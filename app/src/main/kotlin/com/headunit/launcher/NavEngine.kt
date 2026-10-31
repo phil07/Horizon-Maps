@@ -913,7 +913,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
     // Android 10 and older have no built-in versions of these: without them the app crashed as soon as GPS was switched off or on
     override fun onProviderDisabled(provider: String) {}
     override fun onProviderEnabled(provider: String) {}
-    @Deprecated(Lang.t("Nötig auf Android 10 und älter", "Needed on Android 10 and older"))
+    @Deprecated("Needed on Android 10 and older")
     @Suppress("DEPRECATION")
     override fun onStatusChanged(provider: String?, status: Int, extras: android.os.Bundle?) {}
 
