@@ -2039,7 +2039,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
             try {
                 val p = withContext(Dispatchers.IO) { netGeocode(countryCode(), q, fix?.pos ?: map.center()) }.firstOrNull()
                 if (p == null) toast(str(R.string.toast_066, q), 3500) else { then(); startRoute(p) }
-            } catch (e: Exception) { toast(str(R.string.rest_438, e.message), 4000) }
+            } catch (e: Exception) { toast(str(R.string.rest_438, e.message.orEmpty()), 4000) }
         }
     }
 

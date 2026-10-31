@@ -1027,7 +1027,7 @@ private fun FeedbackDialog(engine: NavEngine, onClose: () -> Unit) {
                 SButton("Close") { onClose() }
                 SButton("Copy") {
                     val cm = ctx.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as? android.content.ClipboardManager
-                    cm?.setPrimaryClip(android.content.ClipData.newPlainText(stringResource(R.string.ui_024), engine.feedbackReport(note)))
+                    cm?.setPrimaryClip(android.content.ClipData.newPlainText(ctx.getString(R.string.ui_024), engine.feedbackReport(note)))
                     engine.toast(engine.str(R.string.rest_1441), 3500)
                 }
                 SButton("Send on GitHub", primary = true) {

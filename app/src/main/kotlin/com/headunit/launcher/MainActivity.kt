@@ -265,12 +265,12 @@ private fun StartupCrashPage(report: String, onRetry: () -> Unit) {
             androidx.compose.material3.Button({
                 val url = "https://github.com/${BuildConfig.UPDATE_REPO}/issues/new?title=" + android.net.Uri.encode("Crash on start: ${Build.MANUFACTURER} ${Build.MODEL}") + "&body=" + android.net.Uri.encode(report.take(5000))
                 try { ctx.startActivity(android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(url)).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)) }
-                catch (e: Exception) { android.widget.Toast.makeText(ctx, engine.str(R.string.rest_247), android.widget.Toast.LENGTH_LONG).show() }
+                catch (e: Exception) { android.widget.Toast.makeText(ctx, ctx.getString(R.string.rest_247), android.widget.Toast.LENGTH_LONG).show() }
             }) { androidx.compose.material3.Text(stringResource(R.string.ui_046)) }
             androidx.compose.material3.Button({
                 val cm = ctx.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as? android.content.ClipboardManager
-                cm?.setPrimaryClip(android.content.ClipData.newPlainText(stringResource(R.string.ui_021), report))
-                android.widget.Toast.makeText(ctx, "Copied: paste it into a message or a Reddit comment", android.widget.Toast.LENGTH_LONG).show()
+                cm?.setPrimaryClip(android.content.ClipData.newPlainText(ctx.getString(R.string.ui_021), report))
+                android.widget.Toast.makeText(ctx, ctx.getString(R.string.rest_1441), android.widget.Toast.LENGTH_LONG).show()
             }) { androidx.compose.material3.Text(stringResource(R.string.ui_011)) }
             androidx.compose.material3.OutlinedButton(onRetry) { androidx.compose.material3.Text(stringResource(R.string.ui_061), color = fg) }
         }

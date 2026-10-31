@@ -128,7 +128,7 @@ class CarNavSession : Session() {
                     q.equals("home", true) && e.places.slot("home") != null -> e.startRoute(e.places.slot("home")!!)
                     q.equals("work", true) && e.places.slot("work") != null -> e.startRoute(e.places.slot("work")!!)
                     q.isNotEmpty() -> ms.screenManager.push(SearchScreen(carContext, holder, q))
-                    else -> try { androidx.car.app.CarToast.makeText(carContext, str(R.string.rest_1048), androidx.car.app.CarToast.LENGTH_LONG).show() } catch (x: Exception) { }
+                    else -> try { androidx.car.app.CarToast.makeText(carContext, carContext.getString(R.string.rest_1048), androidx.car.app.CarToast.LENGTH_LONG).show() } catch (x: Exception) { }
                 }
             }
         }.apply { isDaemon = true; name = "car-nav-intent" }
