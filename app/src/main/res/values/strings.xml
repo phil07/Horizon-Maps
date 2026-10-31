@@ -189,7 +189,9 @@
     <string name="ui_095">Kilometer pro Stunde</string>
     <string name="ui_096">Durchschnitt</string>
     <string name="ui_097">Route aktualisieren</string>
-    <string name="ui_082">Zurück zum Zentrum</string>
+    <string name="ui_082">Zentrieren</string>
     <string name="ui_098">Tippen zum Festlegen</string>
     <string name="ui_099">Setze %1$s</string>
+    <string name="ui_100">Zuhause</string>
+    <string name="ui_101">Arbeit</string>
 </resources>

@@ -560,7 +560,7 @@ private fun CarChips(engine: NavEngine, actions: CarActions, rows: Int) {
     val here = engine.fix?.pos
     @Composable fun tile(id: String, icon: androidx.compose.ui.graphics.vector.ImageVector, tint: Color, label: String, place: com.headunit.launcher.Place?, mins: Int?, m: Modifier) {
         val sub = when {
-            place == null -> "Tap to set"
+            place == null -> stringResource(R.string.ui_098)
             mins == 0 -> "You're here"
             mins != null && mins > 0 -> Geo.fmtDur(mins * 60.0)
             here != null -> Geo.fmtDist(Geo.dist(here, place.pos), engine.imperial)
@@ -572,7 +572,7 @@ private fun CarChips(engine: NavEngine, actions: CarActions, rows: Int) {
                 androidx.compose.material3.Icon(icon, null, tint = tint, modifier = Modifier.size(20.dp))
             }
             Column(Modifier.padding(start = 10.dp).weight(1f)) {
-                Text(if (place == null) "Set ${label.lowercase()}" else label, color = c.text, fontSize = 16.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(if (place == null) stringResource(R.string.ui_099, label.lowercase()) else label, color = c.text, fontSize = 16.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 Text(sub, color = c.sub, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
         }
@@ -584,8 +584,8 @@ private fun CarChips(engine: NavEngine, actions: CarActions, rows: Int) {
     }
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            tile("home", androidx.compose.material.icons.Icons.Rounded.Home, Color(0xFF4C8DFF), "Home", home, engine.slotMins["home"], Modifier.weight(1f))
-            tile("work", androidx.compose.material.icons.Icons.Rounded.Work, Color(0xFFF29900), "Work", work, engine.slotMins["work"], Modifier.weight(1f))
+            tile("home", androidx.compose.material.icons.Icons.Rounded.Home, Color(0xFF4C8DFF), stringResource(R.string.ui_100), home, engine.slotMins["home"], Modifier.weight(1f))
+            tile("work", androidx.compose.material.icons.Icons.Rounded.Work, Color(0xFFF29900), stringResource(R.string.ui_101), work, engine.slotMins["work"], Modifier.weight(1f))
         }
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             find("fuel", androidx.compose.material.icons.Icons.Rounded.LocalGasStation, Color(0xFFEA4335))
