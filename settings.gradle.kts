@@ -1,6 +1,9 @@
 pluginManagement {
     repositories { google(); mavenCentral(); gradlePluginPortal() }
 }
+plugins {
+    id("org.gradle.toolchains.foojay-resolver-convention") version "1.0.0"
+}
 
 // Mapbox's download token (a secret token with the DOWNLOADS:READ scope). The GitHub build passes it in from the repo's secret
 // MAPBOX_DOWNLOADS_TOKEN; it is never kept in the project. Mapbox's current guide downloads the SDK without one, so when it isn't

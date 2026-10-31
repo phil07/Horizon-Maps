@@ -460,7 +460,7 @@ class MapScreen(carContext: CarContext, private val holder: CarHolder) : Screen(
             try {
                 if (guiding) {
                     nav?.navigationStarted()
-                    try { NavService.start(holder.carContext.applicationContext, "Navigating to ${e.dest?.name ?: "your destination"}") } catch (x: Exception) { }
+                    try { NavService.start(holder.carContext.applicationContext, "Navigation nach ${e.dest?.name ?: "deinem Ziel"}") } catch (x: Exception) { }
                 } else {
                     nav?.navigationEnded()
                     // (the phone may still be guiding a trip of its own: then its background GPS service stays on)
@@ -491,11 +491,11 @@ class MapScreen(carContext: CarContext, private val holder: CarHolder) : Screen(
         val previewing = e != null && e.route != null && e.previewing
         if (previewing) {
             // the route choice (drawn by the app on the map): start, try the next route, or cancel
-            strip.addAction(Action.Builder().setTitle("Start").setOnClickListener { e?.beginNavigation(); invalidate() }.build())
-            if ((e?.routes?.size ?: 0) > 1) strip.addAction(Action.Builder().setTitle("Next route").setOnClickListener {
+            strip.addAction(Action.Builder().setTitle("Starten").setOnClickListener { e?.beginNavigation(); invalidate() }.build())
+            if ((e?.routes?.size ?: 0) > 1) strip.addAction(Action.Builder().setTitle("Nächste Route").setOnClickListener {
                 e?.let { en -> en.selectRoute((en.active + 1) % en.routes.size.coerceAtMost(3)) }; invalidate()
             }.build())
-            strip.addAction(Action.Builder().setTitle("Cancel").setOnClickListener { e?.endRoute(); invalidate() }.build())
+            strip.addAction(Action.Builder().setTitle("Abbrechen").setOnClickListener { e?.endRoute(); invalidate() }.build())
             return NavigationTemplate.Builder().setActionStrip(strip.build()).build()
         }
         val taps = carContext.carAppApiLevel >= 5
@@ -508,14 +508,14 @@ class MapScreen(carContext: CarContext, private val holder: CarHolder) : Screen(
         val fr = e?.faster
         if (guiding && fr != null) {
             // a faster route turned up: switch or keep (also on the map card, for cars that pass taps on)
-            strip.addAction(Action.Builder().setTitle("Switch −${fr.savedMin} min").setOnClickListener { e?.acceptFaster(); invalidate() }.build())
-            strip.addAction(Action.Builder().setTitle("Keep").setOnClickListener { e?.dismissFaster(); invalidate() }.build())
+            strip.addAction(Action.Builder().setTitle("Wechseln −${fr.savedMin} Min.").setOnClickListener { e?.acceptFaster(); invalidate() }.build())
+            strip.addAction(Action.Builder().setTitle("Beibehalten").setOnClickListener { e?.dismissFaster(); invalidate() }.build())
             strip.addAction(sound)
         } else if (guiding) {
-            strip.addAction(Action.Builder().setTitle("Stop").setOnClickListener { e?.endRoute(); invalidate() }.build())
+            strip.addAction(Action.Builder().setTitle("Beenden").setOnClickListener { e?.endRoute(); invalidate() }.build())
             // the demo drive (for trying it out parked; only with Demo switched on in Settings, as in the app): starts it, speeds it
             // up, stops it. Otherwise that space is the 2D / 3D button
-            if (demoOn) strip.addAction(Action.Builder().setTitle(when (e?.simMode ?: 0) { 0 -> "Demo"; 1 -> "Faster"; else -> "End demo" })
+            if (demoOn) strip.addAction(Action.Builder().setTitle(when (e?.simMode ?: 0) { 0 -> "Demo"; 1 -> "Schneller"; else -> "Demo beenden" })
                 .setOnClickListener { e?.cycleSim(); invalidate() }.build())
             else strip.addAction(view)
             strip.addAction(sound)

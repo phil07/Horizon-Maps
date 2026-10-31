@@ -333,9 +333,9 @@ fun App(prefs: Prefs, engine: NavEngine, map: MapBinding) {
                 Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(22.dp)).background(updateHeader).padding(18.dp)) {
                     androidx.compose.foundation.layout.Column(verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(6.dp)) {
                         Text(stringResource(R.string.ui_020), color = updatePalette.accent, fontSize = 11.sp, fontWeight = androidx.compose.ui.text.font.FontWeight.Bold, letterSpacing = 1.5.sp)
-                        Text("What's new in $installedVersion", color = updateHeaderTitle, fontSize = 25.sp, fontWeight = androidx.compose.ui.text.font.FontWeight.Bold, lineHeight = 30.sp)
+                        Text("Das ist neu in $installedVersion", color = updateHeaderTitle, fontSize = 25.sp, fontWeight = androidx.compose.ui.text.font.FontWeight.Bold, lineHeight = 30.sp)
                         val summary = remember(whatsNewNotes) { notesSummary(whatsNewNotes) }
-                        Text(summary.ifBlank { "Your settings and saved places stay as they were" }, color = updateHeaderSub, fontSize = 14.sp)
+                        Text(summary.ifBlank { "Deine Einstellungen und gespeicherten Orte bleiben erhalten" }, color = updateHeaderSub, fontSize = 14.sp)
                     }
                 }
             }
