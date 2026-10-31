@@ -2572,6 +2572,10 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         if (!previewing && following) {
             val hdg = if (onR && r != null && s != null) gHead else p.heading
             followCamera(Fix(gPos ?: p.pos, hdg, p.speed, p.alt, p.acc), onR)
+        } else if (stoppedOverview) {
+            // the stopped check only runs while the map follows you: once you've moved the map away (or it isn't following),
+            // the traffic view and its banner must go too, or they stay on the screen for good
+            stoppedOverview = false; stoppedOverviewActive = false; stoppedSince = 0L
         }
         if (previewing) return
         if (r == null || r.pts.size < 2 || s == null) return
