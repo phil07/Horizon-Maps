@@ -1,12 +1,11 @@
 # Builds the APK from the source code in this repository on every push to main.
 # The APK appears under Actions > the run > Artifacts ("HorizonNav-apk-<number>").
-# Pushing a tag like v1.2.3 additionally attaches the APK to a GitHub release with that name.
+# Each build is also published under Releases as "Horizon Nav 1.0.<build>", and in the "app" release the app updates from.
 name: Build APK
 
 on:
   push:
     branches: [main]
-    tags: ["v*"]
   workflow_dispatch:
 
 permissions:
@@ -68,11 +67,50 @@ jobs:
           path: app/build/outputs/apk/release/*.apk
           if-no-files-found: error
 
-      - name: Attach the APK to the release
-        if: startsWith(github.ref, 'refs/tags/')
+      # Every build is published: as its own release "v1.0.<build>" (shown as the latest release), and in the fixed
+      # release "app", which the app's built-in update check reads (APK + .sha256 checksum + version.json).
+      - name: Publish the APK under Releases
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          APK=app/build/outputs/apk/release/HorizonNav-public.apk
-          gh release create "$GITHUB_REF_NAME" "$APK" --title "$GITHUB_REF_NAME" --generate-notes || \
-            gh release upload "$GITHUB_REF_NAME" "$APK" --clobber
+          set -euo pipefail
+          REPO="${{ github.repository }}"
+          BUILD=$((1000 + GITHUB_RUN_NUMBER))
+          VERSION="1.0.${BUILD}"
+          TAG="v${VERSION}"
+          OUT=app/build/outputs/apk/release
+          APK="$OUT/HorizonNav-public.apk"
+          [ -f "$APK" ] || { echo "No APK was built"; exit 1; }
+          (cd "$OUT" && sha256sum HorizonNav-public.apk | awk '{print $1}' > HorizonNav-public.apk.sha256)
+          printf '{\n  "version": "%s",\n  "build": %s,\n  "versionCode": %s\n}\n' "$VERSION" "$BUILD" "$((100 + BUILD))" > "$OUT/version.json"
+          FILES=("$APK" "$APK.sha256" "$OUT/version.json")
+
+          {
+            echo "## Horizon Nav ${VERSION}"
+            echo
+            git log -1 --format='%s%n%n%b' | grep -v -e '^Co-Authored-By:' -e '^Claude-Session:' | sed -e :a -e '/^\n*$/{$d;N;ba' -e '}'
+            echo
+            echo "### Downloads"
+            echo "- **HorizonNav-public.apk**: the app to install"
+            echo "- **HorizonNav-public.apk.sha256**: SHA-256 checksum"
+            echo "- **version.json**: version information for the updater"
+          } > release-notes.md
+
+          # the version's own release (a re-run of the same build replaces its files)
+          if gh release view "$TAG" --repo "$REPO" >/dev/null 2>&1; then
+            gh release upload "$TAG" "${FILES[@]}" --repo "$REPO" --clobber
+          else
+            gh release create "$TAG" "${FILES[@]}" --repo "$REPO" --target "$GITHUB_SHA" \
+              --title "Horizon Nav ${VERSION}" --notes-file release-notes.md --latest
+          fi
+
+          # the fixed release the app's update check looks at
+          if gh release view app --repo "$REPO" >/dev/null 2>&1; then
+            gh release edit app --repo "$REPO" --title "Horizon Nav (${VERSION})" --notes-file release-notes.md --latest=false
+          else
+            gh release create app --repo "$REPO" --target "$GITHUB_SHA" \
+              --title "Horizon Nav (${VERSION})" --notes-file release-notes.md --latest=false
+          fi
+          gh release upload app "${FILES[@]}" --repo "$REPO" --clobber
+
+          echo "Published https://github.com/$REPO/releases/tag/$TAG"
