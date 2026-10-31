@@ -108,21 +108,21 @@ internal fun parseNotes(notes: String): List<NoteItem> {
 }
 
 private fun iconFor(low: String): ImageVector = when {
-    low.contains("android auto") || low.contains("car screen") -> Icons.Rounded.DirectionsCar
-    low.contains("electric") || low.contains("charg") || low.contains("battery") -> Icons.Rounded.BatteryChargingFull
-    low.contains("fuel") || low.contains("petrol") || low.contains("diesel") || low.contains("e85") -> Icons.Rounded.LocalGasStation
-    low.contains("traffic") -> Icons.Rounded.Traffic
-    low.contains("voice") || low.contains("spoken") || low.contains("say ") || low.contains("sound") -> Icons.Rounded.RecordVoiceOver
-    low.contains("lane") || low.contains("turn") || low.contains("junction") || low.contains("roundabout") -> Icons.Rounded.TurnRight
-    low.contains("camera") || low.contains("speed") || low.contains("limit") -> Icons.Rounded.Speed
-    low.contains("route") || low.contains("toll") || low.contains("stop") -> Icons.Rounded.Route
-    low.contains("offline") || low.contains("download") -> Icons.Rounded.CloudDownload
-    low.contains("key") || low.contains("mapbox") || low.contains("tomtom") -> Icons.Rounded.VpnKey
-    low.contains("update") || low.contains("what's new") -> Icons.Rounded.SystemUpdate
-    low.contains("home") || low.contains("place") || low.contains("favourite") -> Icons.Rounded.Place
-    low.contains("setting") -> Icons.Rounded.Settings
-    low.contains("map") || low.contains("3d") || low.contains("satellite") || low.contains("building") -> Icons.Rounded.Map
-    low.startsWith("fix") -> Icons.Rounded.Build
+    low.contains("android auto") || low.contains("car screen") || low.contains("autobildschirm") -> Icons.Rounded.DirectionsCar
+    low.contains("electric") || low.contains("charg") || low.contains("battery") || low.contains("elektro") || low.contains("lade") || low.contains("akku") -> Icons.Rounded.BatteryChargingFull
+    low.contains("fuel") || low.contains("petrol") || low.contains("tank") || low.contains("sprit") || low.contains("kraftstoff") || low.contains("diesel") || low.contains("e85") -> Icons.Rounded.LocalGasStation
+    low.contains("traffic") || low.contains("verkehr") || low.contains("stau") -> Icons.Rounded.Traffic
+    low.contains("voice") || low.contains("spoken") || low.contains("ansage") || low.contains("sprach") || low.contains("ton ") || low.contains("ansagen") || low.contains("say ") || low.contains("sound") -> Icons.Rounded.RecordVoiceOver
+    low.contains("lane") || low.contains("turn") || low.contains("spur") || low.contains("kreuzung") || low.contains("kreisverkehr") || low.contains("abbieg") || low.contains("ausfahrt") || low.contains("junction") || low.contains("roundabout") -> Icons.Rounded.TurnRight
+    low.contains("camera") || low.contains("speed") || low.contains("blitzer") || low.contains("tempo") || low.contains("tacho") || low.contains("limit") -> Icons.Rounded.Speed
+    low.contains("route") || low.contains("toll") || low.contains("maut") || low.contains("zwischenstopp") || low.contains("stop") -> Icons.Rounded.Route
+    low.contains("offline") || low.contains("download") || low.contains("herunterge") -> Icons.Rounded.CloudDownload
+    low.contains("key") || low.contains("schlüssel") || low.contains("mapbox") || low.contains("tomtom") -> Icons.Rounded.VpnKey
+    low.contains("update") || low.contains("what's new") || low.contains("neue-version") || low.contains("aktualis") -> Icons.Rounded.SystemUpdate
+    low.contains("home") || low.contains("place") || low.contains("favourite") || low.contains("zuhause") || low.contains("ziel") || low.contains("geparkt") || low.contains("favorit") -> Icons.Rounded.Place
+    low.contains("setting") || low.contains("einstellung") -> Icons.Rounded.Settings
+    low.contains("map") || low.contains("karte") || low.contains("gebäude") || low.contains("satellit") || low.contains("3d") || low.contains("satellite") || low.contains("building") -> Icons.Rounded.Map
+    low.startsWith("fix") || low.startsWith("behoben") -> Icons.Rounded.Build
     else -> Icons.Rounded.AutoAwesome
 }
 
