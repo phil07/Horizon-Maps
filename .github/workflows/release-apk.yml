@@ -1,6 +1,7 @@
 # Builds the APK from the source code in this repository on every push to main.
 # The APK appears under Actions > the run > Artifacts ("HorizonNav-apk-<number>").
-# Each build is also published under Releases as "Horizon Nav 1.0.<build>", and in the "app" release the app updates from.
+# Each build is also published under Releases of the public repo phil07/Horizon-Maps-Releases as "Horizon Nav 1.0.<build>",
+# and in its "app" release, which the app updates from.
 name: Build APK
 
 on:
@@ -69,12 +70,15 @@ jobs:
 
       # Every build is published: as its own release "v1.0.<build>" (shown as the latest release), and in the fixed
       # release "app", which the app's built-in update check reads (APK + .sha256 checksum + version.json).
+      # Published to the public repo phil07/Horizon-Maps-Releases (this one is private, so the app couldn't reach it).
+      # Needs the secret RELEASES_TOKEN: a token with "Contents: Read and write" on that repo.
       - name: Publish the APK under Releases
         env:
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ secrets.RELEASES_TOKEN }}
         run: |
           set -euo pipefail
-          REPO="${{ github.repository }}"
+          REPO="phil07/Horizon-Maps-Releases"
+          [ -n "$GH_TOKEN" ] || { echo "::error::Secret RELEASES_TOKEN is missing: the APK was built (see Artifacts) but not published to $REPO."; exit 1; }
           BUILD=$((1000 + GITHUB_RUN_NUMBER))
           VERSION="1.0.${BUILD}"
           TAG="v${VERSION}"
@@ -100,7 +104,7 @@ jobs:
           if gh release view "$TAG" --repo "$REPO" >/dev/null 2>&1; then
             gh release upload "$TAG" "${FILES[@]}" --repo "$REPO" --clobber
           else
-            gh release create "$TAG" "${FILES[@]}" --repo "$REPO" --target "$GITHUB_SHA" \
+            gh release create "$TAG" "${FILES[@]}" --repo "$REPO" \
               --title "Horizon Nav ${VERSION}" --notes-file release-notes.md --latest
           fi
 
@@ -108,7 +112,7 @@ jobs:
           if gh release view app --repo "$REPO" >/dev/null 2>&1; then
             gh release edit app --repo "$REPO" --title "Horizon Nav (${VERSION})" --notes-file release-notes.md --latest=false
           else
-            gh release create app --repo "$REPO" --target "$GITHUB_SHA" \
+            gh release create app --repo "$REPO" \
               --title "Horizon Nav (${VERSION})" --notes-file release-notes.md --latest=false
           fi
           gh release upload app "${FILES[@]}" --repo "$REPO" --clobber

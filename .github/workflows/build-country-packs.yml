@@ -1,5 +1,5 @@
 # Builds offline packs (routing, map, search lists) for any country, US state or Canadian province, from the free OpenStreetMap
-# extracts on download.geofabrik.de, and publishes each as a GitHub release the app downloads from.
+# extracts on download.geofabrik.de, and publishes each as a GitHub release the app downloads from, in the public repo phil07/Horizon-Maps-Releases.
 #
 # Run it from the Actions tab: Build country packs > Run workflow, and type the areas as Geofabrik paths, separated by commas, e.g.
 #   europe/france, europe/germany, north-america/us/california, north-america/canada/ontario, south-america/brazil
@@ -40,7 +40,7 @@ jobs:
       - name: Work out the release names and create the releases
         id: plan
         env:
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ secrets.RELEASES_TOKEN }}
           REGIONS: ${{ inputs.regions }}
           MODE: ${{ inputs.mode }}
         run: |
@@ -62,7 +62,7 @@ jobs:
           PY
           cat areas.json
           for t in $(python3 -c "import json;print(' '.join(a['tag'] for a in json.load(open('areas.json'))))"); do
-            gh release create "$t" --repo "${{ github.repository }}" --title "$t" --notes "Offline pack for Horizon Nav" 2>/dev/null || echo "$t already exists"
+            gh release create "$t" --repo "phil07/Horizon-Maps-Releases" --title "$t" --notes "Offline pack for Horizon Nav" 2>/dev/null || echo "$t already exists"
           done
           python3 - <<'PY' >> "$GITHUB_OUTPUT"
           import json
@@ -442,7 +442,7 @@ jobs:
       # ---------------- publish ----------------
       - name: Publish to the release
         env:
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ secrets.RELEASES_TOKEN }}
         run: |
           rm -f data/region.osm.pbf data/tz.sqlite
           # GitHub refuses release files of 2 GB or more, so a bigger file is cut into parts (the app joins them again)
@@ -459,8 +459,8 @@ jobs:
           [ -n "$FILES" ] || { echo "Nothing to publish"; exit 1; }
           # (in "extras only" mode just the speed limit and camera files are here: the rest of the release is left as it is)
           ls -l $FILES
-          gh release upload "${{ matrix.area.tag }}" $FILES --repo "${{ github.repository }}" --clobber
-          echo "Download address: https://github.com/${{ github.repository }}/releases/download/${{ matrix.area.tag }}"
+          gh release upload "${{ matrix.area.tag }}" $FILES --repo "phil07/Horizon-Maps-Releases" --clobber
+          echo "Download address: https://github.com/phil07/Horizon-Maps-Releases/releases/download/${{ matrix.area.tag }}"
 
   build2:
     needs: plan
@@ -830,7 +830,7 @@ jobs:
       # ---------------- publish ----------------
       - name: Publish to the release
         env:
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ secrets.RELEASES_TOKEN }}
         run: |
           rm -f data/region.osm.pbf data/tz.sqlite
           # GitHub refuses release files of 2 GB or more, so a bigger file is cut into parts (the app joins them again)
@@ -847,8 +847,8 @@ jobs:
           [ -n "$FILES" ] || { echo "Nothing to publish"; exit 1; }
           # (in "extras only" mode just the speed limit and camera files are here: the rest of the release is left as it is)
           ls -l $FILES
-          gh release upload "${{ matrix.area.tag }}" $FILES --repo "${{ github.repository }}" --clobber
-          echo "Download address: https://github.com/${{ github.repository }}/releases/download/${{ matrix.area.tag }}"
+          gh release upload "${{ matrix.area.tag }}" $FILES --repo "phil07/Horizon-Maps-Releases" --clobber
+          echo "Download address: https://github.com/phil07/Horizon-Maps-Releases/releases/download/${{ matrix.area.tag }}"
 
   build3:
     needs: plan
@@ -1218,7 +1218,7 @@ jobs:
       # ---------------- publish ----------------
       - name: Publish to the release
         env:
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ secrets.RELEASES_TOKEN }}
         run: |
           rm -f data/region.osm.pbf data/tz.sqlite
           # GitHub refuses release files of 2 GB or more, so a bigger file is cut into parts (the app joins them again)
@@ -1235,8 +1235,8 @@ jobs:
           [ -n "$FILES" ] || { echo "Nothing to publish"; exit 1; }
           # (in "extras only" mode just the speed limit and camera files are here: the rest of the release is left as it is)
           ls -l $FILES
-          gh release upload "${{ matrix.area.tag }}" $FILES --repo "${{ github.repository }}" --clobber
-          echo "Download address: https://github.com/${{ github.repository }}/releases/download/${{ matrix.area.tag }}"
+          gh release upload "${{ matrix.area.tag }}" $FILES --repo "phil07/Horizon-Maps-Releases" --clobber
+          echo "Download address: https://github.com/phil07/Horizon-Maps-Releases/releases/download/${{ matrix.area.tag }}"
 
   build4:
     needs: plan
@@ -1606,7 +1606,7 @@ jobs:
       # ---------------- publish ----------------
       - name: Publish to the release
         env:
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ secrets.RELEASES_TOKEN }}
         run: |
           rm -f data/region.osm.pbf data/tz.sqlite
           # GitHub refuses release files of 2 GB or more, so a bigger file is cut into parts (the app joins them again)
@@ -1623,5 +1623,5 @@ jobs:
           [ -n "$FILES" ] || { echo "Nothing to publish"; exit 1; }
           # (in "extras only" mode just the speed limit and camera files are here: the rest of the release is left as it is)
           ls -l $FILES
-          gh release upload "${{ matrix.area.tag }}" $FILES --repo "${{ github.repository }}" --clobber
-          echo "Download address: https://github.com/${{ github.repository }}/releases/download/${{ matrix.area.tag }}"
+          gh release upload "${{ matrix.area.tag }}" $FILES --repo "phil07/Horizon-Maps-Releases" --clobber
+          echo "Download address: https://github.com/phil07/Horizon-Maps-Releases/releases/download/${{ matrix.area.tag }}"

@@ -62,8 +62,9 @@ android {
             // People paste their own in Settings > Data (or the app uses Mapbox).
             buildConfigField("String", "TOMTOM_API_KEY", "\"\"")
             buildConfigField("String", "DEFAULT_MAP", "\"mapbox\"")
-            // where the build's "publish" option puts new versions (the "app" release); the app checks it for updates
-            buildConfigField("String", "UPDATE_REPO", "\"phil07/Horizon-Maps\"")
+            // the public repo the builds publish to (the "app" release); the app checks it for updates. The source repo is private,
+            // and GitHub only answers for a private repo when signed in, so the app could never see releases there
+            buildConfigField("String", "UPDATE_REPO", "\"phil07/Horizon-Maps-Releases\"")
             // the APK file the updater looks for in that release
             buildConfigField("String", "UPDATE_APK", "\"HorizonNav-public.apk\"")
         }
