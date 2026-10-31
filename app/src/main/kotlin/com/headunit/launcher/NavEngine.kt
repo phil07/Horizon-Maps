@@ -2743,7 +2743,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
             val nearEnd = navigating && ((eta?.dist ?: Double.MAX_VALUE) < 400.0 || (turn?.dist ?: Double.MAX_VALUE) < 200.0)
             val ov = prefs.b(PreferenceKeys.STOPPED_OVERVIEW, true) && stoppedSince > 0L && nowMs - stoppedSince > 30_000L &&
                 !nearEnd && arrival == null && abs(zoomOffset) < 0.01
-            if (ov != stoppedOverview) { stoppedOverview = ov; stoppedOverviewActive = ov; engine.toast(stringResource(R.string.ui_083), 5000) }
+            if (ov != stoppedOverview) { stoppedOverview = ov; stoppedOverviewActive = ov; toast(stringResource(R.string.ui_083), 5000) }
             if (ov) { tilt = 0.0; pad = 0.0 }
         }
         tTilt = tilt; tPad = pad
