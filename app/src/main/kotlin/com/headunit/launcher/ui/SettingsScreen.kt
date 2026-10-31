@@ -581,8 +581,8 @@ private fun PlacesSection(engine: NavEngine) {
                     }
                 }
                 slotFor == f -> SItem("Make ${f.name}…") {
-                    SButton("Home", primary = true) { pl.setSlot("home", f); slotFor = null; engine.toast("${f.name} is now Home", 2500) }
-                    SButton("Work", primary = true) { pl.setSlot("work", f); slotFor = null; engine.toast("${f.name} is now Work", 2500) }
+                    SButton("Home", primary = true) { pl.setSlot("home", f); slotFor = null; engine.toast(engine.str(R.string.toast_063, f.name), 2500) }
+                    SButton("Work", primary = true) { pl.setSlot("work", f); slotFor = null; engine.toast(engine.str(R.string.toast_064, f.name), 2500) }
                     SButton("Cancel") { slotFor = null }
                 }
                 else -> SItem(f.name, f.sub) {

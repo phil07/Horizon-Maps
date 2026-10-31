@@ -255,7 +255,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
     fun cycleSound() {
         val n = (soundMode + 1) % 3
         prefs.put(PreferenceKeys.SOUND_MODE, n)
-        toast(listOf("Sound: all", "Sound: alerts only", "Sound: off")[n], 1800)
+        toast(str(listOf(R.string.toast_050, R.string.toast_051, R.string.toast_052)[n]), 1800)
     }
 
     /** Miles in the UK and US (and the few others that use them), kilometres everywhere else; before the country is known, miles. */
@@ -317,7 +317,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
             val wait = if (m.contains("401") || m.contains("403") || m.contains("accept") || m.contains("limit") || m.contains("too many")) 3_600_000L else 600_000L
             if (p == "tomtom") ttDownUntil = System.currentTimeMillis() + wait else mbDownUntil = System.currentTimeMillis() + wait
             val name = if (p == "tomtom") "TomTom" else "Mapbox"
-            scope.launch { toast("$name isn't working right now, so ${if (backup == "tomtom") "TomTom" else "Mapbox"} is being used instead", 4500) }
+            scope.launch { toast(str(R.string.toast_053, name, if (backup == "tomtom") "TomTom" else "Mapbox"), 4500) }
             return call(backup)
         }
     }
@@ -753,7 +753,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         // Mapbox turned the token away: say so (the map can't show without a working token)
         if (m.contains("401") || m.contains("403") || m.contains("unauthor") || m.contains("forbidden") || m.contains("access token")) {
             if (m.contains("401")) refusedMb = mbToken
-            toast("Mapbox turned down your access token (${if (m.contains("403")) "403" else "401"}), so the map can't load. Check the token in Settings > Keys & accounts and at account.mapbox.com.", 9000)
+            toast(str(R.string.toast_054, if (m.contains("403")) "403" else "401"), 9000)
             return
         }
         val network = m.contains("resolve") || m.contains("host") || m.contains("timeout") || m.contains("timed out") || m.contains("connect") || m.contains("network") || m.contains("unreachable")
@@ -872,7 +872,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
                     map.recolourBase = true
                     map.setStyleUrl(TomTomRest.styleUrl(apiKey, dark, prefs.b(PreferenceKeys.TRAFFIC, true)))
                 } else {
-                    toast(if (hasKey) "TomTom turned down the key for its map, so Mapbox's map is showing" else "Add a TomTom key in Settings > Keys & accounts for TomTom's map. Showing Mapbox's map", 5000)
+                    toast(str(if (hasKey) R.string.toast_055 else R.string.toast_056), 5000)
                     map.setStyleUrl(map.baseStyle())
                 }
             }
@@ -1496,7 +1496,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
             places.setSlot(slot, p)
             pendingSave = null
             results = emptyList()
-            toast("${if (slot == "home") "Home" else "Work"} saved: ${p.name}", 3500)
+            toast(str(if (slot == "home") R.string.toast_061 else R.string.toast_062, p.name), 3500)
         } else startRoute(p)
     }
 
@@ -2038,7 +2038,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         scope.launch {
             try {
                 val p = withContext(Dispatchers.IO) { netGeocode(countryCode(), q, fix?.pos ?: map.center()) }.firstOrNull()
-                if (p == null) toast("Could not find \"$q\"", 3500) else { then(); startRoute(p) }
+                if (p == null) toast(str(R.string.toast_066, q), 3500) else { then(); startRoute(p) }
             } catch (e: Exception) { toast(str(R.string.rest_438, e.message), 4000) }
         }
     }
@@ -2221,7 +2221,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
                 withContext(Dispatchers.IO) { CarLink.send(code, p) }
                 toast(str(R.string.rest_434, p.name), 3500)
                 if (previewing) endRoute()
-            } catch (e: Exception) { toast("Couldn't send it: " + (e.message ?: "no signal"), 4500) }
+            } catch (e: Exception) { toast(str(R.string.toast_057, e.message ?: str(R.string.toast_058)), 4500) }
         }
     }
 
@@ -3487,7 +3487,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         // arrived: at the end of the route and really there (not just level with the end of the route on another road)
         val atEnd = rem < 25 && fix.let { f -> f == null || Geo.dist(f.pos, dest?.pos ?: r.pts.last()) < 120.0 || Geo.dist(f.pos, r.pts.last()) < 120.0 }
         if (atEnd && said.add("end")) {
-            toast("Sie haben Ihr Ziel erreicht", 5000)
+            toast(str(R.string.toast_060), 5000)
             if (navStartMs > 0) {
                 val secsT = (System.currentTimeMillis() - navStartMs) / 1000.0
                 val dd = max(0.0, tripDist - navStartDist)

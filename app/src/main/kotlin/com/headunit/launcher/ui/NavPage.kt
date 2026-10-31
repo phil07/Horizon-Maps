@@ -225,7 +225,7 @@ internal fun BoxScope.RoutePreview(engine: NavEngine) {
             if (d != null) Row(Modifier.padding(top = 4.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 val fav = engine.places.isFavourite(d)
                 Icon(if (fav) Icons.Rounded.Star else Icons.Rounded.StarBorder, "Favourite", tint = if (fav) Warn else c.sub,
-                    modifier = Modifier.size(26.dp).clickable { engine.toast(if (engine.places.toggleFavourite(d)) "Saved to favourites" else engine.str(R.string.rest_1253), 2000) })
+                    modifier = Modifier.size(26.dp).clickable { engine.toast(if (engine.places.toggleFavourite(d)) engine.str(R.string.toast_065) else engine.str(R.string.rest_1253), 2000) })
                 Icon(Icons.Rounded.Home, "Set as home", tint = c.sub,
                     modifier = Modifier.size(26.dp).clickable { engine.places.setSlot("home", d); engine.toast(engine.str(R.string.rest_1263, d.name), 2500) })
                 Icon(Icons.Rounded.Work, "Set as work", tint = c.sub,
