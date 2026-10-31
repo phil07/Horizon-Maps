@@ -1263,7 +1263,15 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         updateCheckInFlight = true
         if (manual) updateStatus = "Checking…"
         scope.launch {
-            val u = try { withContext(Dispatchers.IO) { Updater.check() } } catch (e: Exception) { if (manual) updateStatus = "Couldn't check: no connection"; return@launch } finally { updateCheckInFlight = false }
+            val u = try { withContext(Dispatchers.IO) { Updater.check() } } catch (e: Exception) {
+                if (manual) updateStatus = when ((e as? Updater.CheckFailed)?.code) {
+                    null -> "Couldn't check: no connection"
+                    404 -> "Couldn't check: no published version found on GitHub (is the repository private?)"
+                    403, 429 -> "Couldn't check: GitHub is limiting requests, try again later"
+                    else -> "Couldn't check: GitHub answered ${(e as Updater.CheckFailed).code}"
+                }
+                return@launch
+            } finally { updateCheckInFlight = false }
             prefs.put(PreferenceKeys.UPDATE_LAST_CHECK, now.toString())
             if (u == null) { if (manual) updateStatus = "You have the latest version"; return@launch }
             if (manual) updateStatus = "Version ${u.version} is available"

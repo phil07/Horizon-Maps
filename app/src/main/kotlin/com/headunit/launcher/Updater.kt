@@ -16,6 +16,8 @@ import java.net.URL
  */
 object Updater {
     class Update(val version: String, val build: Int, val url: String, val sha256: String, val releaseNotes: String = "")
+    /** GitHub answered the update check with an error ([code] is the HTTP status). */
+    class CheckFailed(val code: Int) : java.io.IOException("GitHub answered $code")
     private const val MAX_RELEASE_JSON_BYTES = 1024 * 1024
     private const val MAX_CHECKSUM_BYTES = 1024
     private const val DOWNLOAD_POLL_INTERVAL_MS = 700L
@@ -36,7 +38,8 @@ object Updater {
         c.setRequestProperty("User-Agent", "HorizonNav/${BuildConfig.VERSION_NAME}")
         c.setRequestProperty("Accept", "application/vnd.github+json")
         try {
-            if (c.responseCode !in 200..299) return null
+            // not "no update": a private repository, a missing "app" release or GitHub's rate limit must not look like the latest version
+            if (c.responseCode !in 200..299) throw CheckFailed(c.responseCode)
             // GitHub release metadata should be small; cap it to avoid unbounded memory use on malformed responses.
             val bytes = c.inputStream.use { input ->
                 val out = java.io.ByteArrayOutputStream()
