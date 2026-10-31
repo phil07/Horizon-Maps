@@ -190,6 +190,6 @@
     <string name="ui_096">Durchschnitt</string>
     <string name="ui_097">Route aktualisieren</string>
     <string name="ui_082">Zurück zum Zentrum</string>
+    <string name="ui_098">Tippen zum Festlegen</string>
+    <string name="ui_099">Setze %1$s</string>
 </resources>
-    <string name=ui_098>Tippen zum Festlegen</string>
-    <string name=ui_099>Setze %1</string>
