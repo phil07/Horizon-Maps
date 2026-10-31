@@ -561,7 +561,7 @@ private fun CarChips(engine: NavEngine, actions: CarActions, rows: Int) {
     @Composable fun tile(id: String, icon: androidx.compose.ui.graphics.vector.ImageVector, tint: Color, label: String, place: com.headunit.launcher.Place?, mins: Int?, m: Modifier) {
         val sub = when {
             place == null -> stringResource(R.string.ui_098)
-            mins == 0 -> "You're here"
+            mins == 0 -> stringResource(R.string.ui_102)
             mins != null && mins > 0 -> Geo.fmtDur(mins * 60.0)
             here != null -> Geo.fmtDist(Geo.dist(here, place.pos), engine.imperial)
             else -> place.sub
