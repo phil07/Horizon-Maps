@@ -56,7 +56,11 @@ jobs:
         env:
           MAPBOX_DOWNLOADS_TOKEN: ${{ secrets.MAPBOX_DOWNLOADS_TOKEN }}
           TOMTOM_API_KEY: ${{ secrets.TOMTOM_API_KEY }}
-        run: gradle :app:assembleRelease -PtomtomApiKey="$TOMTOM_API_KEY"
+        run: |
+          # version 1.0.<1000 + run number>: always above the earlier releases (up to 1.0.246), so the APK installs as an update
+          export BUILD_NUMBER=$((1000 + GITHUB_RUN_NUMBER))
+          echo "Building version 1.0.$BUILD_NUMBER (versionCode $((100 + BUILD_NUMBER)))"
+          gradle :app:assembleRelease -PtomtomApiKey="$TOMTOM_API_KEY"
 
       - uses: actions/upload-artifact@v4
         with:

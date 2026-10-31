@@ -18,7 +18,8 @@ android {
         minSdk = 26
         targetSdk = 34
         // each GitHub build gets a higher version number, so Android always treats a new APK as an update
-        val run = System.getenv("GITHUB_RUN_NUMBER")?.toIntOrNull() ?: 0
+        // BUILD_NUMBER (set by the Build APK workflow) wins over the run number, so builds can continue above earlier releases
+        val run = (System.getenv("BUILD_NUMBER") ?: System.getenv("GITHUB_RUN_NUMBER"))?.toIntOrNull() ?: 0
         versionCode = 100 + run
         versionName = "1.0.$run"
         resValue("string", "app_name", "Horizon Nav")
