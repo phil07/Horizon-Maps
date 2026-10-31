@@ -136,6 +136,14 @@ object Overpass {
                 "service" -> 10 * mph
                 else -> 30 * mph
             }
+            "DE" -> when (base) {
+                "motorway" -> if (link) 60 * kmh else 130 * kmh
+                "trunk", "primary" -> if (link) 60 * kmh else if (lit) 50 * kmh else 100 * kmh
+                "secondary", "tertiary", "unclassified" -> if (link) 50 * kmh else if (lit) 50 * kmh else 100 * kmh
+                "residential" -> 30 * kmh
+                "living_street" -> 10 * kmh
+                else -> 50 * kmh
+            }
             "US" -> when (base) {
                 "motorway" -> if (link) 45 * mph else 65 * mph
                 "trunk", "primary" -> if (lit) 35 * mph else 55 * mph
