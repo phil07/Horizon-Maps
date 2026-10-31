@@ -139,6 +139,7 @@ jobs:
           VERSION="1.0.${BUILD}"
           TAG="v${VERSION}"
           OUT=app/build/outputs/apk/release
+          CHANGE_NOTES="$RUNNER_TEMP/horizon-change-notes.md"   # written by the release-notes step
           APK="$OUT/HorizonNav-public.apk"
           [ -f "$APK" ] || { echo "No APK was built"; exit 1; }
           (cd "$OUT" && sha256sum HorizonNav-public.apk | awk '{print $1}' > HorizonNav-public.apk.sha256)
