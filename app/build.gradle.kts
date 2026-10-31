@@ -62,7 +62,7 @@ android {
             buildConfigField("String", "TOMTOM_API_KEY", "\"\"")
             buildConfigField("String", "DEFAULT_MAP", "\"mapbox\"")
             // where the build's "publish" option puts new versions (the "app" release); the app checks it for updates
-            buildConfigField("String", "UPDATE_REPO", "\"benbishop028-arch/Horizon-Maps\"")
+            buildConfigField("String", "UPDATE_REPO", "\"phil07/Horizon-Maps\"")
             // the APK file the updater looks for in that release
             buildConfigField("String", "UPDATE_APK", "\"HorizonNav-public.apk\"")
         }
