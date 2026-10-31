@@ -7,6 +7,7 @@ import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.border
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.clickable
@@ -733,6 +734,7 @@ private fun FuelSection(prefs: Prefs) {
         SFieldItem("Effizienz (km pro kWh)", prefs.s(PreferenceKeys.EVMPK, ""), placeholder = "z. B. 5.5", number = true) { s -> prefs.put(PreferenceKeys.EVMPK, s.filter { it.isDigit() || it == '.' }.take(5)) }
         SFieldItem("Nutzbare Batterie (kWh)", prefs.s(PreferenceKeys.EV_BATTERY_KWH, ""), "Für Akkuschätzung und Ladestopps (Standard: 60 kWh)", placeholder = "z. B. 64", number = true) { s -> prefs.put(PreferenceKeys.EV_BATTERY_KWH, s.filter { it.isDigit() || it == '.' }.take(5)) }
         SFieldItem("Strompreis (Cent pro kWh)", prefs.s(PreferenceKeys.EVPPK, ""), placeholder = "z. B. 38", number = true) { s -> prefs.put(PreferenceKeys.EVPPK, s.filter { it.isDigit() || it == '.' }.take(6)) }
+        EvWidgetItem(prefs)
     } else SGroup("Kraftstoffkosten auf der Route") {
         SFieldItem("Verbrauch (Liter pro 100 km)", prefs.s(PreferenceKeys.FUELMPG, ""), placeholder = "z. B. 6.5", number = true) { s -> prefs.put(PreferenceKeys.FUELMPG, s.filter { it.isDigit() || it == '.' }.take(5)) }
         SFieldItem("Kraftstoffpreis (Cent pro Liter)", prefs.s(PreferenceKeys.FUELPPL, ""), placeholder = "z. B. 175.9", number = true) { s -> prefs.put(PreferenceKeys.FUELPPL, s.filter { it.isDigit() || it == '.' }.take(6)) }
@@ -1020,6 +1022,71 @@ private fun FeedbackDialog(engine: NavEngine, onClose: () -> Unit) {
                     catch (e: Exception) { engine.toast(engine.str(R.string.rest_1443), 3500) }
                     onClose()
                 }
+            }
+        }
+    }
+}
+
+/**
+ * Settings > Fuel > Your electric car: takes the battery level from another app's widget (e.g. the car maker's app). The
+ * widget is hosted out of sight; Android asks once whether Horizon Nav may create widgets.
+ */
+@Composable
+private fun EvWidgetItem(prefs: Prefs) {
+    val ctx = LocalContext.current
+    val c = LocalVw.current
+    var picking by remember { mutableStateOf(false) }
+    var pendingId by remember { mutableIntStateOf(-1) }
+    val id = com.headunit.launcher.EvWidget.widgetId(prefs)
+    val configure = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { r ->
+        val pid = pendingId; pendingId = -1
+        if (pid < 0) return@rememberLauncherForActivityResult
+        if (r.resultCode == android.app.Activity.RESULT_OK) com.headunit.launcher.EvWidget.finishBind(ctx, prefs, pid)
+        else com.headunit.launcher.EvWidget.cancelBind(ctx, pid)
+    }
+    fun afterBind(pid: Int) {
+        val cfg = com.headunit.launcher.EvWidget.configureIntent(ctx, pid)
+        if (cfg != null) { pendingId = pid; try { configure.launch(cfg) } catch (e: Exception) { com.headunit.launcher.EvWidget.finishBind(ctx, prefs, pid); pendingId = -1 } }
+        else com.headunit.launcher.EvWidget.finishBind(ctx, prefs, pid)
+    }
+    val bind = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { r ->
+        val pid = pendingId
+        if (pid < 0) return@rememberLauncherForActivityResult
+        if (r.resultCode == android.app.Activity.RESULT_OK) afterBind(pid)
+        else { pendingId = -1; com.headunit.launcher.EvWidget.cancelBind(ctx, pid) }
+    }
+    val at = com.headunit.launcher.EvWidget.readAt(prefs)
+    val name = remember(id) { com.headunit.launcher.EvWidget.providerLabel(ctx, prefs) }
+    val sub = when {
+        id < 0 -> "Übernimmt den Ladestand aus dem Widget deiner Auto-App, statt ihn von Hand einzustellen"
+        at > 0 -> "$name · ${prefs.i(PreferenceKeys.EV_CHARGE_PCT, 80)} %, gelesen um " + java.text.SimpleDateFormat("HH:mm", java.util.Locale.GERMANY).format(java.util.Date(at))
+        else -> "$name · Noch kein Prozentwert gefunden. Das Widget meldet sich, sobald es sich aktualisiert."
+    }
+    SItem("Ladestand aus Widget", sub) {
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            if (id >= 0) SButton("Entfernen", danger = true) { com.headunit.launcher.EvWidget.remove(ctx, prefs) }
+            SButton(if (id >= 0) "Ändern" else "Widget wählen", primary = id < 0) { picking = true }
+        }
+    }
+    if (picking) {
+        val list = remember { com.headunit.launcher.EvWidget.providers(ctx) }
+        androidx.compose.ui.window.Dialog(onDismissRequest = { picking = false }) {
+            Column(Modifier.widthIn(max = 560.dp).fillMaxWidth().clip(RoundedCornerShape(26.dp)).background(c.panel).padding(22.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Text("Widget mit dem Ladestand", color = c.text, fontSize = 22.sp, fontWeight = FontWeight.Bold)
+                Text("Wähle das Widget deiner Auto-App. Horizon Nav liest daraus den Prozentwert, wenn es sich aktualisiert.", color = c.sub, fontSize = 14.sp)
+                Column(Modifier.heightIn(max = 420.dp).verticalScroll(rememberScrollState())) {
+                    if (list.isEmpty()) Text("Keine Widgets gefunden", color = c.sub, fontSize = 15.sp)
+                    for (info in list) {
+                        val label = remember(info) { com.headunit.launcher.EvWidget.label(ctx, info) }
+                        Text(label, color = c.text, fontSize = 16.sp, modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).clickable {
+                            picking = false
+                            val (pid, intent) = com.headunit.launcher.EvWidget.beginBind(ctx, info)
+                            if (intent == null) afterBind(pid)
+                            else { pendingId = pid; try { bind.launch(intent) } catch (e: Exception) { pendingId = -1; com.headunit.launcher.EvWidget.cancelBind(ctx, pid) } }
+                        }.padding(horizontal = 10.dp, vertical = 12.dp))
+                    }
+                }
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) { SButton("Abbrechen") { picking = false } }
             }
         }
     }

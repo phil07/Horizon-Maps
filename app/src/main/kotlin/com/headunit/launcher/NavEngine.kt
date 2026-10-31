@@ -490,6 +490,8 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
             delay(3_000)
             // (the phone's app does the update checks; the car screen's engine doesn't repeat them)
             if (!isCar) onOpened()
+            // electric: the battery level from the car app's widget, if one was chosen
+            try { EvWidget.start(ctx, prefs) } catch (e: Exception) { }
         }
         try {
             val o = org.json.JSONObject(prefs.s(PreferenceKeys.RESUME, "{}"))
