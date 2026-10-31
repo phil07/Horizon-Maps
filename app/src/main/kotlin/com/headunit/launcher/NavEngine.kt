@@ -326,7 +326,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
 
     private fun noteMbRefused(e: Exception) {
         val m = e.message ?: ""
-        if (m.contains("(401)")) { refusedMb = mbToken; scope.launch { toast("Mapbox didn't accept your access token, so it isn't being used. Check it in Settings > Keys & accounts.", 8000) } }
+        if (m.contains("(401)")) { refusedMb = mbToken; scope.launch { toast(ctx.getString(R.string.toast_012), 8000) } }
     }
 
     /** Routes from whichever service is set up (see [provider]). */
@@ -513,7 +513,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         tts = TextToSpeech(ctx) { status ->
             if (status != TextToSpeech.SUCCESS) {
                 // no working text-to-speech on this unit: the beeps still sound, but nothing can be said (this used to fail silently)
-                scope.launch { toast("No voice for directions: install or turn on a text-to-speech engine (Settings > Sound & voice > Voice and language)", 9000) }
+                scope.launch { toast(ctx.getString(R.string.toast_024), 9000) }
             }
             if (status == TextToSpeech.SUCCESS) {
                 ttsReady = true
@@ -521,7 +521,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
                 if (r == TextToSpeech.LANG_MISSING_DATA || r == TextToSpeech.LANG_NOT_SUPPORTED) {
                     val r2 = tts?.setLanguage(Locale.UK)
                     if (r2 == TextToSpeech.LANG_MISSING_DATA || r2 == TextToSpeech.LANG_NOT_SUPPORTED)
-                        scope.launch { toast("The text-to-speech voice has no language installed, so directions can't be spoken. Add one in Settings > Sound & voice > Voice and language", 9000) }
+                        scope.launch { toast(ctx.getString(R.string.toast_045), 9000) }
                 }
                 voiceChan = prefs.s(PreferenceKeys.VOICE_CHANNEL, "nav")
                 tts?.setAudioAttributes(speechAttrs)
@@ -695,7 +695,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
                 withContext(Dispatchers.IO) { OfflineRouter.download(ctx, url, id, extrasUrl) { packStatus = it } }
                 onDone()
                 packStatus = "Pack ready"
-                toast("Offline pack ready", 3000)
+                toast(ctx.getString(R.string.toast_028), 3000)
             } catch (e: Throwable) {
                 packStatus = "Download failed: ${e.message ?: e.javaClass.simpleName}. Tap Download again to carry on."
             } finally { packBusy = false; packDownloading = null; packRev++; restyle() }
@@ -757,7 +757,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         val network = m.contains("resolve") || m.contains("host") || m.contains("timeout") || m.contains("timed out") || m.contains("connect") || m.contains("network") || m.contains("unreachable")
         if (!network) { toast("Map: $msg", 5000); return }
         styleRetry++
-        if (styleRetry == 1) toast("No signal for the map: trying again…", 3000)
+        if (styleRetry == 1) toast(ctx.getString(R.string.toast_020), 3000)
         // still no signal: the downloaded pack's own map meanwhile
         if (styleRetry == 2 && OfflineMap.installed(ctx) && OfflineMap.hasFonts(ctx) && prefs.s(PreferenceKeys.OFF_MAP, "auto") != "never") {
             try { map.setStyleUrl(OfflineServer.styleJson(ctx, lastDark)) } catch (e: Exception) { }
@@ -847,7 +847,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
             val now = System.currentTimeMillis()
             if (refusedMb != mbToken && now - noTokenToldAt > 60_000L) {
                 noTokenToldAt = now
-                toast("Add your Mapbox access token (it starts pk.) in Settings > Keys & accounts to show the map", 8000)
+                toast(ctx.getString(R.string.toast_001), 8000)
             }
             return
         }
@@ -857,7 +857,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         // no signal (or "Downloaded" chosen): the pack's own map, served from the phone. Satellite is Mapbox's photos, so it
         // wins while there's a connection (with "Downloaded" chosen, switching satellite on used to do nothing at all)
         if (useOfflineMap() && !(map.isSatellite && online())) {
-            if (map.isSatellite) toast("Satellite view needs a connection: showing the downloaded map until it's back", 5000)
+            if (map.isSatellite) toast(ctx.getString(R.string.toast_039), 5000)
             try { map.setStyleUrl(OfflineServer.styleJson(ctx, dark)); return } catch (e: Exception) { android.util.Log.w("NavEngine", "offline map", e) }
         }
         OfflineServer.stop()
@@ -893,7 +893,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
                 ?.let { handleLocation(it, true) }
         } catch (e: SecurityException) {
             lm = null
-            toast("Location permission is needed for navigation")
+            toast(ctx.getString(R.string.toast_010))
         } catch (e: Exception) {
             lm = null
             android.util.Log.w("NavEngine", "startLocation failed", e)
@@ -1153,7 +1153,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         val next = r.steps.getOrNull(row.index + 1)?.off ?: r.len
         val p0 = row.off + 40.0
         val p1 = min(next - 40.0, p0 + 3000.0)
-        if (p1 <= p0) { toast("That stretch is too short to avoid", 2500); return }
+        if (p1 <= p0) { toast(ctx.getString(R.string.toast_044), 2500); return }
         itineraryOpen = false
         avoidStretch(r, p0, p1)
     }
@@ -1162,7 +1162,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
     fun avoidRoadAhead() {
         val r = route ?: return
         if (previewing || dest == null) return
-        if (fix == null) { toast("No GPS fix yet"); return }
+        if (fix == null) { toast(ctx.getString(R.string.toast_013)); return }
         val p0 = curProgress + 60.0
         val toTurn = turn?.dist ?: 1500.0
         val p1 = p0 + toTurn.coerceIn(300.0, 3000.0)
@@ -1178,10 +1178,10 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         for (q in inside) {
             minLat = min(minLat, q.lat); maxLat = max(maxLat, q.lat); minLon = min(minLon, q.lon); maxLon = max(maxLon, q.lon)
         }
-        if (minLat > maxLat) { toast("Nothing to avoid ahead", 2500); return }
+        if (minLat > maxLat) { toast(ctx.getString(R.string.toast_027), 2500); return }
         val pad = 0.0004
         sessionAvoid += LL(minLat - pad, minLon - pad) to LL(maxLat + pad, maxLon + pad)
-        toast("Looking for a way round…", 2500)
+        toast(ctx.getString(R.string.toast_011), 2500)
         startRoute(d, 0, true, startNow = true)
     }
 
@@ -1303,7 +1303,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         val u = appUpdate ?: return
         if (updateBusy) return
         if (!Updater.canInstall(ctx)) {
-            toast("Allow Horizon Nav to install updates, then tap Update again", 6000)
+            toast(ctx.getString(R.string.toast_002), 6000)
             try { Updater.openInstallSetting(ctx) } catch (e: Exception) { }
             return
         }
@@ -1437,7 +1437,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
                 val local = offlineMatches(q, near)
                 results = local
                 if (local.isEmpty()) toast(if (OfflinePlaces.installed(ctx) || OfflineRouter.hasPlaces(ctx) || OfflineRouter.hasAddresses(ctx)) "No signal, and nothing saved or downloaded matches" else "No signal. Download the offline pack or place names in Settings > Offline maps to search with no signal", 4500)
-                else toast("No signal: showing saved places and offline towns", 3000)
+                else toast(ctx.getString(R.string.toast_022), 3000)
                 return@launch
             }
             // the online search and the saved / downloaded places run at the same time, and their results are merged
@@ -1453,7 +1453,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
             val merged = rankResults(q, near, net ?: emptyList(), local)
             results = merged
             if (merged.isEmpty()) toast(if (net == null) "Search failed: weak or no signal" else "No matches. Try adding a town or postcode.", 3500)
-            else if (net == null) toast("Weak signal: showing saved places and offline towns", 3500)
+            else if (net == null) toast(ctx.getString(R.string.toast_049), 3500)
         }
     }
 
@@ -1544,9 +1544,9 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         syncRoutePrefs(fix?.pos ?: map.center(), to.pos)
         resume = null
         if (!keepVia) via = emptyList()
-        if (!hasOnline && !OfflineRouter.installed(ctx)) { toast("To plan routes, add a free TomTom key or Mapbox token in Settings > Keys & accounts, or download the offline pack", 7000); return }
+        if (!hasOnline && !OfflineRouter.installed(ctx)) { toast(ctx.getString(R.string.toast_047), 7000); return }
         val from = fix?.pos ?: map.center() ?: return
-        if (fix == null) toast("No GPS fix yet: routing from the map centre. Use the demo drive to simulate.", 5000)
+        if (fix == null) toast(ctx.getString(R.string.toast_015), 5000)
         busy = true
         scope.launch {
             try {
@@ -1561,9 +1561,9 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
                     }
                 }
                 if (rs.isEmpty()) throw IllegalStateException("No route found")
-                if (usedOffline) toast("Offline route: no traffic or live data", 4000)
+                if (usedOffline) toast(ctx.getString(R.string.toast_030), 4000)
                 if (rs[0].steps.isEmpty()) toast(if (provider == "mapbox") "Mapbox returned no turn instructions for this route" else "This key returned no turn instructions. Check it has TomTom Routing API access", 6000)
-                if (departInMin > 0 && !usedOffline && !departApplied) toast("Departure time not supported here: showing live traffic", 4000)
+                if (departInMin > 0 && !usedOffline && !departApplied) toast(ctx.getString(R.string.toast_007), 4000)
                 departMin = departInMin
                 departAtMs = if (!usedOffline && departApplied) departMs else 0L
                 if (to.name != "Dropped pin") places.addRecent(to)
@@ -1576,7 +1576,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
                 clearNearby()
                 results = emptyList()
                 stopSim()
-                if (TomTomRest.avoidDropped && !usedOffline) toast("Couldn't find a way round the areas you're avoiding, so the route goes through them", 5000)
+                if (TomTomRest.avoidDropped && !usedOffline) toast(ctx.getString(R.string.toast_005), 5000)
                 dest = to; routes = rs; active = 0
                 prediction = null; predictionAt = 0L
                 updateRouteZones()
@@ -1601,7 +1601,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
             } catch (e: Exception) {
                 val m = e.message ?: ""
                 if (m.contains("signal")) {
-                    toast("No signal: this route will start by itself as soon as there is a connection", 6000)
+                    toast(ctx.getString(R.string.toast_023), 6000)
                     if (waitingFor !== to) waitForSignal(to, departInMin, keepVia)
                 } else toast("Route failed: $m", 6000)
             } finally { busy = false }
@@ -1647,7 +1647,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         }
         val f = fix
         if (f != null) onPosition(f, true)
-        else { updateGuidance(0.0); toast("No GPS fix yet. Use the play button for a demo drive.", 5000) }
+        else { updateGuidance(0.0); toast(ctx.getString(R.string.toast_014), 5000) }
         cardsForStartAlts()
     }
 
@@ -1658,7 +1658,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
     }
 
     fun cycleRoute() {
-        if (routes.size < 2) { toast("No alternative routes. Switch on 'Alternatives' first."); return }
+        if (routes.size < 2) { toast(ctx.getString(R.string.toast_016)); return }
         active = (active + 1) % routes.size
         said.clear(); lastIdx = 0
         drawRoutes()
@@ -1681,7 +1681,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         lastReroute = System.currentTimeMillis()
         rerouting = true
         syncRoutePrefs(fix?.pos, d.pos); faster = null
-        toast("Rerouting…", 2500)
+        toast(ctx.getString(R.string.toast_038), 2500)
         scope.launch {
             var err: String? = null
             try {
@@ -1741,7 +1741,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         following = true
         zoomOffset = 0.0
         val f = fix
-        if (f != null) onPosition(f, true) else toast("No GPS fix yet")
+        if (f != null) onPosition(f, true) else toast(ctx.getString(R.string.toast_013))
     }
 
     private var recentreToken = 0
@@ -2032,7 +2032,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
 
     /** Finds [q] and starts routing there (used for calendar appointments). */
     fun routeToText(q: String, then: () -> Unit) {
-        if (!online()) { toast("No signal to search for that", 4000); return }
+        if (!online()) { toast(ctx.getString(R.string.toast_021), 4000); return }
         scope.launch {
             try {
                 val p = withContext(Dispatchers.IO) { netGeocode(countryCode(), q, fix?.pos ?: map.center()) }.firstOrNull()
@@ -2073,7 +2073,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
     fun addBestStop(kind: String) { loadNearby(kind, false, pickBest = true) }
 
     fun loadNearby(kind: String, nearDest: Boolean, pickBest: Boolean = false) {
-        val centre = (if (nearDest) dest?.pos else null) ?: fix?.pos ?: map.center() ?: run { toast("No position yet"); return }
+        val centre = (if (nearDest) dest?.pos else null) ?: fix?.pos ?: map.center() ?: run { toast(ctx.getString(R.string.toast_019)); return }
         val origin = fix?.pos ?: centre
         val rt = route
         val alongRoute = rt != null && !nearDest && kind != "parking"
@@ -2172,13 +2172,13 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
                     } else Overpass.nearby(kind, centre, radius).map { it.copy(dist = Geo.dist(origin, it.place.pos)) }
                 }
                 val list = kotlinx.coroutines.withTimeoutOrNull(30_000L) { work.await() }
-                if (list == null) { work.cancel(); toast("Search took too long. Check the signal and try again.", 4000); clearNearby(); return@launch }
+                if (list == null) { work.cancel(); toast(ctx.getString(R.string.toast_042), 4000); clearNearby(); return@launch }
                 if (pickBest) {
                     val ahead = list.filter { it.ahead || route == null }
                     val best = if (ahead.any { it.price != null }) ahead.filter { it.price != null && it.detourMin in 0..10 }.minByOrNull { (it.price ?: 999.0) + it.detourMin }
                         else ahead.filter { it.detourMin >= 0 }.minByOrNull { it.detourMin * 1000.0 + it.dist / 100.0 } ?: ahead.minByOrNull { it.dist }
                     nearbyBusy = false
-                    if (best == null) { toast("Nothing found along the route ahead", 3000); clearNearby() }
+                    if (best == null) { toast(ctx.getString(R.string.toast_026), 3000); clearNearby() }
                     else { clearNearby(); addStop(best.place) }
                     return@launch
                 }
@@ -2207,13 +2207,13 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         prefs.put(PreferenceKeys.DEFAULT_ZOOM, String.format(java.util.Locale.US, "%.2f", v))
         zoomOffset = 0.0
         fix?.let { onPosition(it, true) }
-        toast("This is now your default zoom. Change or reset it in Settings > Map look", 4500)
+        toast(ctx.getString(R.string.toast_046), 4500)
     }
 
     /** Phone: sends [p] to the paired head unit, which offers to start it (next time it's on, within 12 hours). */
     fun sendToCar(p: Place) {
         val code = prefs.s(PreferenceKeys.LINK_CODE, "")
-        if (code.isBlank()) { toast("Pair with your car first: Settings > Places & trips", 4000); return }
+        if (code.isBlank()) { toast(ctx.getString(R.string.toast_031), 4000); return }
         scope.launch {
             try {
                 withContext(Dispatchers.IO) { CarLink.send(code, p) }
@@ -3020,7 +3020,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
 
     fun report(kind: String) {
         val p = fix?.pos
-        if (p == null) { toast("Waiting for GPS", 2500); return }
+        if (p == null) { toast(ctx.getString(R.string.toast_048), 2500); return }
         val keep = reportsActive().takeLast(29)
         val list = keep + Report(kind, p, System.currentTimeMillis())
         prefs.put(PreferenceKeys.REPORTS, list.joinToString(";") { "${it.kind},${it.pos.lat},${it.pos.lon},${it.t}" })
@@ -3031,7 +3031,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
 
     fun reportPolice() = report("police")
 
-    fun clearReports() { prefs.put(PreferenceKeys.REPORTS, ""); prefs.put(PreferenceKeys.POLICEREP, ""); pushHazards(hzProgress); toast("Reports cleared", 2000) }
+    fun clearReports() { prefs.put(PreferenceKeys.REPORTS, ""); prefs.put(PreferenceKeys.POLICEREP, ""); pushHazards(hzProgress); toast(ctx.getString(R.string.toast_037), 2000) }
 
     /** Refreshes the map icons when reports change or expire, and warns when one is just ahead. */
     private fun checkPolice(p: Fix) {
@@ -3283,7 +3283,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         said.clear(); offCount = 0; lastIdx = 0; trustProg = -1.0
         faster = null
         drawRoutes()
-        toast("Switched to the faster route", 2500)
+        toast(ctx.getString(R.string.toast_043), 2500)
     }
 
     fun dismissFaster() { faster = null; lastFasterCheck = System.currentTimeMillis() + 300_000L }
@@ -3529,7 +3529,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
                     } catch (e: Exception) { null }
                 }
                 if (url != null) map.setRadar(url)
-                else if (!warned) { warned = true; toast("Rain radar isn't available right now (needs signal)", 3500) }
+                else if (!warned) { warned = true; toast(ctx.getString(R.string.toast_033), 3500) }
                 delay(if (url != null) 600_000L else 120_000L)
             }
         }
@@ -4163,7 +4163,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
                 } else null
                 avgInfo = AvgInfo(avg, lim, left, over, false, 0.0, safe)
             } else {
-                if (avgIn != null) { avgIn = null; toast("End of average speed check", 2500) }
+                if (avgIn != null) { avgIn = null; toast(ctx.getString(R.string.toast_008), 2500) }
                 val next = pl.avg.filter { it.start > progress && it.start - progress < 1200.0 }.minByOrNull { it.start }
                 avgInfo = next?.let { AvgInfo(0.0, it.def.limit ?: speedLimit, it.end - it.start, false, true, it.start - progress) }
                 if (next != null && next.start - progress < 500.0 && avgAlerted.add(next.def.id)) {
@@ -4333,7 +4333,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
     // ---- demo drive ----
     fun cycleSim() {
         val r = route
-        if (r == null) { toast("Pick a destination first, then start the demo drive"); return }
+        if (r == null) { toast(ctx.getString(R.string.toast_032)); return }
         when (simMode) {
             0 -> { simMode = 1; startSim(r) }
             1 -> simMode = 4
