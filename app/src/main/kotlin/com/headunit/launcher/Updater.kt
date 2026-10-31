@@ -263,11 +263,15 @@ object Updater {
         require(UpdaterPolicy.isHttpsUrl(u.url)) { "Update URL must use HTTPS" }
         require(UpdaterPolicy.parseSha256(u.sha256) != null) { "Update checksum is invalid" }
         val name = "HorizonNav-${u.version}.apk"
+        // A fresh file name for every attempt: if an earlier download of this version is still lying around (the installer was
+        // cancelled), the download service would otherwise save next to it and the installer could be handed the wrong file.
+        val fileName = "HorizonNav-${u.version}-${System.currentTimeMillis()}.apk"
+        dir.listFiles()?.filter { it.name.startsWith("HorizonNav-${u.version}") }?.forEach { it.delete() }
         val req = DownloadManager.Request(Uri.parse(u.url))
             .setTitle("Horizon Nav ${u.version}")
             .setMimeType("application/vnd.android.package-archive")
             .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE)
-            .setDestinationInExternalFilesDir(ctx, null, name)
+            .setDestinationInExternalFilesDir(ctx, null, fileName)
         val id = dm.enqueue(req)
         val startedAt = android.os.SystemClock.elapsedRealtime()
         progress(Lang.t("Wird heruntergeladen…", "Downloading…"))
@@ -286,11 +290,15 @@ object Updater {
                 val total = cur.getLong(cur.getColumnIndexOrThrow(DownloadManager.COLUMN_TOTAL_SIZE_BYTES))
                 when (status) {
                     DownloadManager.STATUS_SUCCESSFUL -> {
-                        val uri = dm.getUriForDownloadedFile(id) ?: throw IllegalStateException("Download missing")
+                        val local = cur.getString(cur.getColumnIndexOrThrow(DownloadManager.COLUMN_LOCAL_URI))
+                        val apk = local?.let { Uri.parse(it).path }?.let { java.io.File(it) }?.takeIf { it.isFile } ?: java.io.File(dir, fileName)
+                        if (!apk.isFile) throw IllegalStateException("Download missing")
+                        // the installer reads the checked file itself, through the app's own file provider
+                        val uri = androidx.core.content.FileProvider.getUriForFile(ctx, "${ctx.packageName}.updates", apk)
                         progress(Lang.t("Download wird geprüft…", "Verifying download…"))
                         val digest = java.security.MessageDigest.getInstance("SHA-256")
                         var bytesRead = 0L
-                        ctx.contentResolver.openInputStream(uri)?.use { input ->
+                        apk.inputStream().use { input ->
                             val buffer = ByteArray(64 * 1024)
                             while (true) {
                                 val n = input.read(buffer)
@@ -299,14 +307,14 @@ object Updater {
                                 if (bytesRead > MAX_APK_BYTES) throw IllegalStateException("Downloaded APK is unexpectedly large")
                                 digest.update(buffer, 0, n)
                             }
-                        } ?: throw IllegalStateException("Could not read downloaded APK")
+                        }
                         val actualSha256 = digest.digest().joinToString("") { "%02x".format(it.toInt() and 0xff) }
                         if (!actualSha256.equals(u.sha256, ignoreCase = true)) {
                             dm.remove(id)
                             throw IllegalStateException("APK checksum verification failed; download removed")
                         }
                         // Keep the previous APK until this download has passed verification.
-                        dir.listFiles()?.filter { it.name.startsWith("HorizonNav-") && it.name.endsWith(".apk") && it.name != name }?.forEach { it.delete() }
+                        dir.listFiles()?.filter { it.name.startsWith("HorizonNav-") && it.name.endsWith(".apk") && it.name != apk.name }?.forEach { it.delete() }
                         // installed with AAEnabler: the checked file goes to Downloads for AAEnabler to install, so the app stays in
                         // Android Auto (installing it here would take it out)
                         if (toDownloads && android.os.Build.VERSION.SDK_INT >= 29) {

@@ -1331,7 +1331,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
                 // Never bypass checksum verification by opening the APK URL after a failed download.
                 // Browser fallback is reserved for devices that genuinely lack DownloadManager.
                 val message = e.message.orEmpty()
-                if (message.contains(Lang.t("Kein Download-Dienst", "No download service"), ignoreCase = true)) {
+                if (message.contains("No download service", ignoreCase = true)) {
                     updateStatus = Lang.t("Download-Dienst nicht verfügbar, der Download wird im Browser geöffnet…", "Download service unavailable; opening the download in your browser…")
                     try { Updater.openInBrowser(ctx, u) }
                     catch (_: Exception) { updateStatus = Lang.t("Download konnte nicht geöffnet werden. Bitte erneut versuchen.", "Couldn't open the download. Please try again.") }

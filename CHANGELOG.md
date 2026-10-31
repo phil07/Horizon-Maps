@@ -54,6 +54,7 @@ Add user-facing Horizon Nav changes under **Unreleased** before publishing each 
 - Spurdaten von Mapbox auch auf TomTom-Routen: Mit Mapbox-Schlüssel bekommt eine TomTom-Route im Hintergrund die Spurdaten von Mapbox. Abschaltbar unter Einstellungen > Abbiegekarte.
 
 ### Behoben
+- Update nach Abbruch: Wurde die Installation eines Updates abgebrochen, meldete ein erneuter Versuch „Problem beim Parsen des Pakets“. Jeder Versuch lädt jetzt in eine neue Datei, und der Installer bekommt genau die geprüfte Datei.
 - Spurführung: Routenlinie und Spuren rutschen an normalen Kreuzungen nicht mehr neben die Straße.
 - Kreisverkehr-Pfeile: Zeigen jetzt die Richtung der echten Ausfahrt, statt sie aus der Ausfahrtnummer zu raten.
 - Kreuzungen: Die Ansicht wird vor Abbiegungen flacher, statt so tief zu schwenken, dass der Horizont den Bildschirm füllt.
