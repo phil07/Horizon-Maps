@@ -656,7 +656,7 @@ private fun PhoneLinkGroup(prefs: Prefs) {
                 SItem("This is the car", "Paired. Code ${com.headunit.launcher.CarLink.pretty(code)}: type it on another phone to add it too") {
                     SButton("Unpair", danger = true) { prefs.put(PreferenceKeys.LINK_CODE, ""); prefs.put(PreferenceKeys.LINK_ROLE, ""); prefs.put(PreferenceKeys.LINK_LAST, "") }
                 }
-                val qr = remember(code) { donateQr(com.headunit.launcher.CarLink.pretty(code), 300) }
+                val qr = remember(code) { qrCode(com.headunit.launcher.CarLink.pretty(code), 300) }
                 if (qr != null) Row(Modifier.fillMaxWidth().padding(vertical = 6.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
                     Box(Modifier.size(110.dp).clip(RoundedCornerShape(12.dp)).background(Color.White).padding(6.dp)) {
                         androidx.compose.foundation.Image(qr, "The pairing code as a QR code", Modifier.size(98.dp), filterQuality = androidx.compose.ui.graphics.FilterQuality.None)
@@ -937,11 +937,6 @@ private fun KeysSection(prefs: Prefs, engine: NavEngine) {
 private fun AboutSection(prefs: Prefs, engine: NavEngine) {
     val ctx = LocalContext.current
     val pkg = android.net.Uri.parse("package:" + ctx.packageName)
-    var donating by remember { mutableStateOf(false) }
-    if (donating) DonateDialog(LocalVw.current.dark) { donating = false }
-    SGroup("Support Horizon Nav") {
-        SItem("Donate", "Free, no ads. Donations help keep it going (PayPal)") { SButton("Donate", primary = true) { donating = true } }
-    }
     SGroup("Horizon Nav") {
         SItem("Version", BuildConfig.VERSION_NAME)
         if (com.headunit.launcher.Updater.enabled) {

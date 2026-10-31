@@ -160,8 +160,6 @@ internal object PreferenceKeys {
     const val QUICKLIST = "quicklist"
     /** The map in 3D (true) or flat 2D: remembered between drives, and shared by the phone / head unit and Android Auto. */
     const val VIEW_3D = "view3d"
-    /** The donate card has been shown (it's shown once, a day or more after install). */
-    const val DONATE_SHOWN = "donateshown"
     /** Your own normal zoom when not on a route, in zoom levels from the standard one (-2 to +2; 0 = standard). */
     const val DEFAULT_ZOOM = "defzoom"
     /** Stopped for 30 s: the map pulls back to a top-down view of the traffic round you. */
