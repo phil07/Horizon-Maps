@@ -11,10 +11,9 @@ import java.net.URL
  * The "Build country packs" workflow uses exactly the same rule, so the app always knows where a pack will be.
  */
 data class PackRegion(val id: String, val name: String, val group: String, val path: String, val country: String) {
-    // all packs, UK included, are published as releases of this repo
     val url: String get() = "$RELEASES/pack-$id"
-    /** Where the speed limit and camera files are: the same release, except the UK packs, whose extras are built in Horizon-Maps. */
-    val extrasUrl: String get() = "$COUNTRY_RELEASES/pack-$id"
+    /** Where the speed limit and camera files are: the same release. */
+    val extrasUrl: String get() = "$RELEASES/pack-$id"
 }
 
 const val RELEASES = "https://github.com/phil07/Horizon-Maps/releases/download"
