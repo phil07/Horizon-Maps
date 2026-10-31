@@ -196,7 +196,8 @@ private fun HomeWorkStep(engine: NavEngine) {
     LaunchedEffect(q) { if (q.length >= 3) { delay(450); engine.search(q) } else engine.results = emptyList() }
     @Suppress("UNUSED_VARIABLE") val r = rev
     // where to look: the country you're in (worked out from the GPS) or anywhere
-    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+    // the label sits above the choice, so both options have the card's full width (side by side they were cut off)
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(stringResource(R.string.ui_044), color = c.sub, fontSize = 14.sp)
         Segmented(searchCountryOptions(engine), searchCountryValue(engine.prefs)) { engine.prefs.put(PreferenceKeys.COUNTRY, it); if (q.length >= 3) engine.search(q) }
     }
