@@ -3985,64 +3985,86 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
      * Understands simple spoken commands. Returns null when it isn't a command (the words are then searched for),
      * "share" when the ETA should be shared, "search:<place>" to search for a place, or "" when it was handled.
      */
+    /** Understands spoken commands in English and German ("take me home", "bring mich nach Hause", "nächste Tankstelle"…). */
     fun handleVoice(raw: String): String? {
-        val t = raw.lowercase(Locale.UK).trim().removePrefix("hey horizon").trim(' ', ',', '.')
+        val t = raw.lowercase(Locale.GERMAN).trim().removePrefix("hey horizon").removePrefix("hallo horizon").trim(' ', ',', '.', '!', '?')
         fun has(vararg w: String) = w.any { t.contains(it) }
         val f = SimpleDateFormat("HH:mm", Locale.UK)
         fun say(s: String) { toast(s, 3500); speak(s, true) }
+        // German verbs that start a trip: "fahr / navigiere / bring mich / route / führe mich / ich will …"
+        val deGo = "(?:bitte )?(?:fahr(?:e)?(?: mich)?|navigier(?:e)?(?: mich)?|bring(?:e)?(?: mich)?|führ(?:e)?(?: mich)?|leite mich|route|ich will|ich möchte|wir fahren|zeig mir den weg)"
         // places you have saved
-        if (Regex("^(go|take me|navigate|drive|directions|head)( back)?( to)? ?home$").matches(t) || t == "home") {
+        if (Regex("^(go|take me|navigate|drive|directions|head)( back)?( to)? ?home$").matches(t) || t == "home" ||
+            Regex("^(?:$deGo )?(?:nach hause|heim|zu hause|nachhause)(?: fahren| bitte)?$").matches(t) || t == "zuhause") {
             val h = places.slot("home"); if (h != null) { say(Lang.t("Fahre nach Hause", "Going home")); startRoute(h) } else say(Lang.t("Zuhause ist noch nicht festgelegt", "Home isn't set yet")); return ""
         }
-        if (Regex("^(go|take me|navigate|drive|directions|head)( to)? ?work$").matches(t) || t == "work") {
+        if (Regex("^(go|take me|navigate|drive|directions|head)( to)? ?work$").matches(t) || t == "work" ||
+            Regex("^(?:$deGo )?(?:zur arbeit|in die arbeit|ins büro|zum büro|zur firma|in die firma)(?: fahren| bitte)?$").matches(t) || t == "arbeit") {
             val w = places.slot("work"); if (w != null) { say(Lang.t("Fahre zur Arbeit", "Going to work")); startRoute(w) } else say(Lang.t("Arbeit ist noch nicht festgelegt", "Work isn't set yet")); return ""
         }
         // reports
-        if (t.startsWith("report")) {
-            val k = when { has("police", "cop") -> "police"; has("accident", "crash") -> "accident"; has("breakdown", "broken") -> "breakdown"; has("camera") -> "mobilecam"; else -> "hazard" }
+        if (t.startsWith("report") || t.startsWith("melde") || t.startsWith("meldung")) {
+            val k = when {
+                has("police", "cop", "polizei", "kontrolle") -> "police"; has("accident", "crash", "unfall") -> "accident"
+                has("breakdown", "broken", "panne", "liegengeblieben") -> "breakdown"; has("camera", "blitzer", "radar") -> "mobilecam"
+                else -> "hazard"
+            }
             report(k); return ""
         }
         // finding things
         val kind = when {
-            has("fuel", "petrol", "diesel", "filling station", "gas station") -> "fuel"
-            has("charg") -> "charging"; has("toilet", "loo", "bathroom") -> "toilets"; has("coffee", "cafe", "café") -> "coffee"
-            has("food", "eat", "restaurant", "hungry") -> "food"; has("services", "rest stop", "rest area") -> "services"
-            has("parking", "car park", "somewhere to park") -> "parking"; else -> null
+            has("charg", "ladesäule", "ladestation", "ladepunkt", "aufladen", "e-tankstelle", "strom tanken") -> "charging"
+            has("fuel", "petrol", "diesel", "filling station", "gas station", "tankstelle", "tanken", "sprit", "benzin") -> "fuel"
+            has("toilet", "loo", "bathroom", "klo", "wc", "toilette") -> "toilets"
+            has("coffee", "cafe", "café", "kaffee") -> "coffee"
+            has("food", "eat", "restaurant", "hungry", "essen", "hunger", "imbiss") -> "food"
+            has("services", "rest stop", "rest area", "raststätte", "rastplatz", "raststelle", "autohof") -> "services"
+            has("parking", "car park", "somewhere to park", "parkplatz", "parkhaus", "parken") -> "parking"
+            else -> null
         }
-        if (kind != null && has("find", "nearest", "look for", "search for", "where", "any ", "need", "show", "cheap", "stop for", "add a stop", "add stop", "near")) {
-            nearbySort = if (has("cheap")) "cheap" else "near"
-            if (has("stop") && route != null) stopMode = true
-            loadNearby(kind, has("destination", "when i get there"))
+        // "fahr nach Ladenburg" is a place, "fahr zur nächsten Tankstelle" is a search nearby
+        val deDest = Regex("^$deGo\\s+(?:nach|zu|zum|zur|in die|ins|in den|an den|an die|zu der|zu dem)\\s+(.+?)(?:\\s+fahren|\\s+bitte)?$").find(t)?.groupValues?.get(1)
+        val nearbyWords = Regex("(^|\\s)(nächste|günstig|billig|eine[mnr]?\\s|in der nähe)").containsMatchIn(deDest ?: "")
+        if (deDest != null && !nearbyWords) return "search:$deDest"
+        if (kind != null && has("find", "nearest", "look for", "search for", "where", "any ", "need", "show", "cheap", "stop for", "add a stop", "add stop", "near",
+                "such", "finde", "nächste", "wo ist", "wo gibt", "brauche", "zeig", "günstig", "billig", "stopp", "halt", "zwischenstopp", "in der nähe", "muss", "will", "möchte")) {
+            nearbySort = if (has("cheap", "günstig", "billig")) "cheap" else "near"
+            if (has("stop", "zwischenstopp", "halt") && route != null) stopMode = true
+            loadNearby(kind, has("destination", "when i get there", "am ziel", "beim ziel", "dort"))
             say(if (Lang.de) "Suche " + Overpass.kindLabel(kind) + if (route != null) " entlang der Route" else " in der Nähe"
                 else "Looking for " + Overpass.kindLabel(kind).lowercase() + if (route != null) " along your route" else " nearby")
             return ""
         }
         // route preferences
-        if (has("avoid toll")) { prefs.put(PreferenceKeys.AVOID_TOLL, true); say(Lang.t("Mautstraßen werden gemieden", "Avoiding toll roads")); dest?.let { startRoute(it, departMin, true, startNow = route != null && !previewing) }; return "" }
-        if (has("avoid motorway")) { prefs.put(PreferenceKeys.AVOID_MOTORWAY, true); say(Lang.t("Autobahnen werden gemieden", "Avoiding motorways")); dest?.let { startRoute(it, departMin, true, startNow = route != null && !previewing) }; return "" }
-        if (has("avoid this road", "avoid the road")) { if (route != null) { say(Lang.t("Suche eine Umfahrung", "Looking for a way round")); avoidRoadAhead() } else say(Lang.t("Es gibt keine Route zum Ändern", "There's no route to change")); return "" }
+        if (has("avoid toll", "maut")) { prefs.put(PreferenceKeys.AVOID_TOLL, true); say(Lang.t("Mautstraßen werden gemieden", "Avoiding toll roads")); dest?.let { startRoute(it, departMin, true, startNow = route != null && !previewing) }; return "" }
+        if (has("avoid motorway", "keine autobahn", "ohne autobahn", "autobahn vermeiden", "autobahnen vermeiden", "meide autobahn")) { prefs.put(PreferenceKeys.AVOID_MOTORWAY, true); say(Lang.t("Autobahnen werden gemieden", "Avoiding motorways")); dest?.let { startRoute(it, departMin, true, startNow = route != null && !previewing) }; return "" }
+        if (has("avoid this road", "avoid the road", "diese straße vermeiden", "straße meiden", "umfahrung", "umleitung", "andere route", "anderen weg")) { if (route != null) { say(Lang.t("Suche eine Umfahrung", "Looking for a way round")); avoidRoadAhead() } else say(Lang.t("Es gibt keine Route zum Ändern", "There's no route to change")); return "" }
         // trip info
-        if (has("eta", "arrive", "how long", "how far", "time left", "when will i")) {
+        if (has("eta", "arrive", "how long", "how far", "time left", "when will i", "wann komme", "wann sind wir", "wie lange", "wie weit", "ankunft", "restzeit", "wie viel zeit")) {
             val e = eta
             if (e == null) say(Lang.t("Gerade ist keine Route aktiv", "There's no route at the moment"))
             else say(Lang.t("Ankunft um ${e.arrive}, in ${Geo.fmtDur(e.secs)}. Noch ${Geo.spoken(e.dist, imperial)}.", "You'll arrive at ${e.arrive}, in ${Geo.fmtDur(e.secs)}. ${Geo.spoken(e.dist, imperial)} to go.") + if (e.delayMin >= 1) Lang.t(" ${e.delayMin} Minuten Verzögerung durch Verkehr.", " ${e.delayMin} minutes of traffic.") else "")
             return ""
         }
-        if (has("share")) return "share"
+        if (has("share", "teilen", "teile", "schicke", "sende")) return "share"
         // sound
-        if (has("unmute", "sound on", "turn the voice on", "voice on")) { prefs.put(PreferenceKeys.SOUND_MODE, 0); say(Lang.t("Sprachansagen an", "Voice guidance on")); return "" }
-        if (has("alerts only")) { prefs.put(PreferenceKeys.SOUND_MODE, 1); say(Lang.t("Nur Warnungen", "Alerts only")); return "" }
-        if (has("mute", "be quiet", "quiet", "stop talking", "silence", "voice off")) { say(Lang.t("Sprachansagen aus", "Voice off")); prefs.put(PreferenceKeys.SOUND_MODE, 2); return "" }
+        if (has("unmute", "sound on", "turn the voice on", "voice on", "ton an", "ton ein", "stimme an", "sprache an", "ansagen an", "lauter")) { prefs.put(PreferenceKeys.SOUND_MODE, 0); say(Lang.t("Sprachansagen an", "Voice guidance on")); return "" }
+        if (has("alerts only", "nur warnungen", "nur warnung")) { prefs.put(PreferenceKeys.SOUND_MODE, 1); say(Lang.t("Nur Warnungen", "Alerts only")); return "" }
+        if (has("mute", "be quiet", "quiet", "stop talking", "silence", "voice off", "stumm", "ruhe", "leise", "ton aus", "sprache aus", "ansagen aus", "sei still", "halt die klappe")) { say(Lang.t("Sprachansagen aus", "Voice off")); prefs.put(PreferenceKeys.SOUND_MODE, 2); return "" }
         // the map
-        if (has("stop navigation", "end route", "end navigation", "cancel route", "cancel navigation", "stop the route", "stop route")) { endRoute(); say(Lang.t("Route beendet", "Route ended")); return "" }
-        if (has("overview", "show the route", "show route", "whole route")) { overview(); return "" }
-        if (has("zoom in")) { zoom(1.0); return "" }
-        if (has("zoom out")) { zoom(-1.0); return "" }
-        if (has("north up")) { if (!northUp) toggleNorthUp(); return "" }
-        if (t == "3d" || t == "2d" || has("three d", "two d")) { if ((t.contains("3") || t.contains("three")) != tilt3d) toggleTilt(); return "" }
-        if (has("what time")) { say(Lang.t("Es ist ${f.format(Date())}", "It's ${f.format(Date())}")); return "" }
-        // "take me to …", "navigate to …"
+        if (has("stop navigation", "end route", "end navigation", "cancel route", "cancel navigation", "stop the route", "stop route",
+                "navigation beenden", "navigation stoppen", "route beenden", "route abbrechen", "navigation abbrechen", "beende die", "stoppe die", "abbrechen")) { endRoute(); say(Lang.t("Route beendet", "Route ended")); return "" }
+        if (has("overview", "show the route", "show route", "whole route", "übersicht", "ganze route", "route zeigen", "zeig die route", "zeige die route")) { overview(); return "" }
+        if (has("zoom in", "reinzoomen", "hineinzoomen", "näher", "vergrößern")) { zoom(1.0); return "" }
+        if (has("zoom out", "rauszoomen", "herauszoomen", "weiter weg", "verkleinern")) { zoom(-1.0); return "" }
+        if (has("north up", "norden oben", "nach norden")) { if (!northUp) toggleNorthUp(); return "" }
+        if (t == "3d" || t == "2d" || has("three d", "two d", "drei d", "zwei d")) { if ((t.contains("3") || t.contains("three") || t.contains("drei")) != tilt3d) toggleTilt(); return "" }
+        if (has("what time", "wie spät", "uhrzeit", "wieviel uhr", "wie viel uhr")) { say(Lang.t("Es ist ${f.format(Date())}", "It's ${f.format(Date())}")); return "" }
+        // "take me to …", "navigate to …", "fahr nach …", "navigiere zu …"
         Regex("^(?:go to|take me to|navigate to|drive to|directions to|head to|find|search for|show me)\\s+(.+)$").find(t)?.let { return "search:" + it.groupValues[1] }
+        deDest?.let { return "search:$it" }
+        Regex("^(?:suche?|such mal|finde?|zeig(?:e)? mir|wo ist|wo gibt es)\\s+(?:nach\\s+)?(.+)$").find(t)?.let { return "search:" + it.groupValues[1] }
+        Regex("^(?:nach|zu|zum|zur)\\s+(.+)$").find(t)?.let { return "search:" + it.groupValues[1] }
         return null
     }
 

@@ -5,6 +5,7 @@ Add user-facing Horizon Nav changes under **Unreleased** before publishing each 
 ## Unreleased
 
 ### Neu
+- Deutsche Sprachbefehle: Tippe aufs Mikrofon und sag z. B. „Bring mich nach Hause“, „Fahr nach München“, „Nächste Tankstelle“, „Günstige Tankstelle“, „Wann komme ich an?“, „Ton aus“, „Navigation beenden“, „Melde Blitzer“ oder „Autobahnen vermeiden“. Englische Befehle funktionieren weiterhin.
 - Eigener Standard-Zoom: Lege fest, wie nah die Karte ohne Route zeigt. Mit + und − zoomen und „Als Standard verwenden“ tippen, oder den Regler unter Einstellungen > Kartenansicht nutzen, wo „Zurücksetzen“ ihn wiederherstellt. Der Auto-Zoom zoomt bei Tempo weiter heraus und an Kreuzungen hinein, ausgehend von deiner Einstellung.
 - Verkehrsübersicht im Stand: Nach 30 Sekunden Stillstand an der Ampel oder im Stau zeigt die Karte den Verkehr um dich herum von oben und kehrt zurück, sobald du losfährst. Standardmäßig an, abschaltbar unter Einstellungen > Auf der Karte.
 - Wo du geparkt hast: Wenn Android Auto sich trennt, merkt sich das Handy, wo das Auto steht. Eine Karte „Dein Auto“ zeigt, wie lange her und wie weit weg, mit Fußweg-Button und Auto-Pin auf der Karte – für 2 Tage oder bis du wieder im Auto sitzt.
