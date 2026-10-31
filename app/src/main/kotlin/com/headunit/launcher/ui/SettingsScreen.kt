@@ -597,7 +597,7 @@ private fun PlacesSection(engine: NavEngine) {
     SGroup("History", footer = "Swipe a place sideways on the Saved & recent list to take it off.") {
         SToggle(engine.prefs, "Saved & recent under the search bar", "quicklist", true, "The list of favourites and recent places on the map")
         SItem("Recent destinations", "${pl.recents().size} recent, plus places remembered for searching without signal") {
-            SButton("Clear", danger = true) { pl.clearHistory(); engine.toast("History cleared", 2000) }
+            SButton("Clear", danger = true) { pl.clearHistory(); engine.toast(engine.str(R.string.rest_1437), 2000) }
         }
     }
     TripsGroup(engine)
@@ -763,7 +763,7 @@ private fun OfflinePlacesGroup(engine: NavEngine) {
                     sc.launch {
                         try {
                             val n = withContext(Dispatchers.IO) { OfflinePlaces.download(ctx, cc) }
-                            state = "Installed: $n places"; engine.toast("Offline places ready", 3000)
+                            state = "Installed: $n places"; engine.toast(engine.str(R.string.rest_1436), 3000)
                         } catch (e: Exception) { state = "Failed: ${e.message}" } finally { busy = false }
                     }
                 }
@@ -1028,7 +1028,7 @@ private fun FeedbackDialog(engine: NavEngine, onClose: () -> Unit) {
                 SButton("Copy") {
                     val cm = ctx.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as? android.content.ClipboardManager
                     cm?.setPrimaryClip(android.content.ClipData.newPlainText(stringResource(R.string.ui_024), engine.feedbackReport(note)))
-                    engine.toast("Report copied: paste it into a message or a Reddit comment", 3500)
+                    engine.toast(engine.str(R.string.rest_1441), 3500)
                 }
                 SButton("Send on GitHub", primary = true) {
                     val title = note.lineSequence().firstOrNull()?.take(80)?.ifBlank { null } ?: "Report from Horizon Nav ${com.headunit.launcher.BuildConfig.VERSION_NAME}"
@@ -1036,7 +1036,7 @@ private fun FeedbackDialog(engine: NavEngine, onClose: () -> Unit) {
                     val body = engine.feedbackReport(note).take(5000)
                     val url = "https://github.com/${BuildConfig.UPDATE_REPO}/issues/new?title=" + android.net.Uri.encode(title) + "&body=" + android.net.Uri.encode(body)
                     try { ctx.startActivity(android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(url)).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)) }
-                    catch (e: Exception) { engine.toast("No browser on this unit: use Copy instead", 3500) }
+                    catch (e: Exception) { engine.toast(engine.str(R.string.rest_1443), 3500) }
                     onClose()
                 }
             }

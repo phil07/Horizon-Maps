@@ -110,4 +110,25 @@
     <string name="toast_047">Für Routen brauchst du einen kostenlosen TomTom-Schlüssel oder ein Mapbox-Token unter Einstellungen &gt; Schlüssel &amp; Konten, oder lade das Offline-Paket</string>
     <string name="toast_048">Warte auf GPS</string>
     <string name="toast_049">Schwaches Signal: Es werden gespeicherte Orte und Offline-Orte angezeigt</string>
+    <string name="rest_104">Mapbox-Suche hat nicht funktioniert: %1$s</string>
+    <string name="rest_119">Zuhause gesetzt auf %1$s</string>
+    <string name="rest_120">Stopp erreicht: %1$s</string>
+    <string name="rest_121">Stopp hinzugefügt: %1$s</string>
+    <string name="rest_125">Weiter zu %1$s</string>
+    <string name="rest_126">Suche fehlgeschlagen: %1$s</string>
+    <string name="rest_137">Verlauf gelöscht</string>
+    <string name="rest_143">Kein Browser auf diesem Gerät: Stattdessen Kopieren nutzen</string>
+    <string name="rest_144">Arbeit gesetzt auf %1$s</string>
+    <string name="rest_149">Gespeichert als %1$s</string>
+    <string name="rest_242">Aus dieser Eingabe konnte kein Ort gelesen werden</string>
+    <string name="rest_247">Kein Browser auf diesem Gerät: Stattdessen Kopieren nutzen</string>
+    <string name="rest_432">Stopp erreicht: %1$s</string>
+    <string name="rest_433">Stopp hinzugefügt: %1$s</string>
+    <string name="rest_434">An dein Auto gesendet: %1$s</string>
+    <string name="rest_437">Weiter zu %1$s</string>
+    <string name="rest_438">Suche fehlgeschlagen: %1$s</string>
+    <string name="rest_439">Route fehlgeschlagen: %1$s</string>
+    <string name="rest_440">Karte: %1$s</string>
+    <string name="rest_441">Blitzerwarnungen sind in %1$s aus, weil sie dort nicht erlaubt sind. Du kannst das unter Einstellungen &gt; Warnungen ändern.</string>
+    <string name="rest_442">Mapbox-Suche hat nicht funktioniert: %1$s</string>
 </resources>

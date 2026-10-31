@@ -401,7 +401,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         }
         if (hasMapbox) {
             val r = MapboxRest.geocode(mbToken, country, q, near)
-            if (r.isEmpty()) MapboxRest.lastError?.let { err -> scope.launch { toast("Mapbox search didn't work: ${err.take(120)}", 6000) } }
+            if (r.isEmpty()) MapboxRest.lastError?.let { err -> scope.launch { toast(str(R.string.rest_442, err.take(120)), 6000) } }
             return r
         }
         // no key or token: OpenStreetMap's free search
@@ -503,7 +503,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
                     while (fix == null && n < 40) { delay(500); n++ }
                     if (route != null) return@launch
                     via = stops
-                    toast("Carrying on to ${d.name}", 3500)
+                    toast(str(R.string.rest_437, d.name), 3500)
                     startRoute(d, 0, keepVia = true, startNow = true)
                 }
             } else if (o.has("la") && age < 15 * 60_000L)
@@ -615,6 +615,8 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         try { scope.coroutineContext[Job]?.cancel() } catch (e: Exception) { }
         try { toneGen?.release() } catch (e: Exception) { }; toneGen = null
     }
+
+    fun str(id: Int, vararg a: Any): String = ctx.getString(id, *a)
 
     fun toast(msg: String, ms: Long = 4000) {
         message = msg
@@ -755,7 +757,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
             return
         }
         val network = m.contains("resolve") || m.contains("host") || m.contains("timeout") || m.contains("timed out") || m.contains("connect") || m.contains("network") || m.contains("unreachable")
-        if (!network) { toast("Map: $msg", 5000); return }
+        if (!network) { toast(str(R.string.rest_440, msg), 5000); return }
         styleRetry++
         if (styleRetry == 1) toast(ctx.getString(R.string.toast_020), 3000)
         // still no signal: the downloaded pack's own map meanwhile
@@ -1029,7 +1031,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         via = via + p
         stopMode = false
         clearNearby()
-        toast("Stop added: ${p.name}", 2500)
+        toast(str(R.string.rest_433, p.name), 2500)
         startRoute(d, departMin, true, startNow = route != null && !previewing)
     }
 
@@ -1603,7 +1605,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
                 if (m.contains("signal")) {
                     toast(ctx.getString(R.string.toast_023), 6000)
                     if (waitingFor !== to) waitForSignal(to, departInMin, keepVia)
-                } else toast("Route failed: $m", 6000)
+                } else toast(str(R.string.rest_439, m), 6000)
             } finally { busy = false }
         }
     }
@@ -2037,7 +2039,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
             try {
                 val p = withContext(Dispatchers.IO) { netGeocode(countryCode(), q, fix?.pos ?: map.center()) }.firstOrNull()
                 if (p == null) toast("Could not find \"$q\"", 3500) else { then(); startRoute(p) }
-            } catch (e: Exception) { toast("Search failed: ${e.message}", 4000) }
+            } catch (e: Exception) { toast(str(R.string.rest_438, e.message), 4000) }
         }
     }
 
@@ -2217,7 +2219,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         scope.launch {
             try {
                 withContext(Dispatchers.IO) { CarLink.send(code, p) }
-                toast("Sent to your car: ${p.name}", 3500)
+                toast(str(R.string.rest_434, p.name), 3500)
                 if (previewing) endRoute()
             } catch (e: Exception) { toast("Couldn't send it: " + (e.message ?: "no signal"), 4500) }
         }
@@ -2854,7 +2856,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         if (name == null || !prefs.b(PreferenceKeys.CAMERA_WARNINGS, false) ||!prefs.b(PreferenceKeys.CAMBANOBEY, true)) { if (name == null) banNoted = ""; return }
         if (banNoted == cc) return
         banNoted = cc
-        toast("Speed camera alerts are off in $name, where they aren't allowed. You can change this in Settings > Alerts.", 7000)
+        toast(str(R.string.rest_441, name), 7000)
     }
 
     /** False when the camera is known to check only the other direction (or a road crossing yours), judged against [heading]. */
@@ -3399,7 +3401,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         if (!light) {
             try { checkIncidents(r, progress) } catch (e: Exception) { }
             fix?.let { f -> try { checkYieldSigns(f.pos, f.heading) } catch (e: Exception) { } }
-            fix?.let { f -> if (via.isNotEmpty() && Geo.dist(f.pos, via[0].pos) < 80) { toast("Stop reached: ${via[0].name}", 3000); via = via.drop(1) } }
+            fix?.let { f -> if (via.isNotEmpty() && Geo.dist(f.pos, via[0].pos) < 80) { toast(str(R.string.rest_432, via[0].name), 3000); via = via.drop(1) } }
             if (via.isEmpty()) checkParking(r, rem)
             curProgress = progress
             // time left = what the rest of the road takes with no traffic + the delays that are still ahead of you

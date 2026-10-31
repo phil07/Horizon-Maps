@@ -1,5 +1,7 @@
 package com.headunit.launcher.ui
 
+import com.headunit.launcher.R
+
 import android.content.Intent
 import android.net.Uri
 import android.provider.ContactsContract
@@ -215,13 +217,13 @@ fun rememberShareEta(engine: NavEngine): () -> Unit {
                 .putExtra("sms_body", msg)
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
         } catch (e: Exception) {
-            engine.toast("No messaging app available", 3000)
+            engine.toast(engine.str(R.string.rest_1494), 3000)
         }
     }
-    val pickContact = rememberEtaContactPicker(prefs) { engine.toast("Contact saved. Tap share again to send.", 3500) }
+    val pickContact = rememberEtaContactPicker(prefs) { engine.toast(engine.str(R.string.rest_1491), 3500) }
     return {
         if (prefs.s(PreferenceKeys.ETA_NUMBER, "").isBlank()) {
-            engine.toast("Choose who to send your ETA to", 3000)
+            engine.toast(engine.str(R.string.rest_1492), 3000)
             pickContact()
         } else shareNow()
     }

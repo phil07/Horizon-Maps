@@ -1071,10 +1071,10 @@ private fun ImmChips(engine: NavEngine, focusSearch: () -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             PlaceTile(engine, Modifier.weight(1f), Icons.Rounded.Home, Color(0xFF4C8DFF), "Home", home, engine.slotMins["home"]) {
-                if (home != null) engine.startRoute(home) else { engine.pendingSave = "home"; engine.toast("Search for your home address", 3500); focusSearch() }
+                if (home != null) engine.startRoute(home) else { engine.pendingSave = "home"; engine.toast(engine.str(R.string.rest_1198), 3500); focusSearch() }
             }
             PlaceTile(engine, Modifier.weight(1f), Icons.Rounded.Work, Color(0xFFF29900), "Work", work, engine.slotMins["work"]) {
-                if (work != null) engine.startRoute(work) else { engine.pendingSave = "work"; engine.toast("Search for your work address", 3500); focusSearch() }
+                if (work != null) engine.startRoute(work) else { engine.pendingSave = "work"; engine.toast(engine.str(R.string.rest_1197), 3500); focusSearch() }
             }
         }
         // things to find nearby: always all five on show, no scrolling sideways to find them
@@ -1165,7 +1165,7 @@ private fun ParkedCard(engine: NavEngine) {
                 .addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
             val geo = android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(String.format(java.util.Locale.US, "geo:%.6f,%.6f?q=%.6f,%.6f(Your car)", spot.lat, spot.lon, spot.lat, spot.lon)))
                 .addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
-            try { ctx.startActivity(walk) } catch (e: Exception) { try { ctx.startActivity(geo) } catch (x: Exception) { engine.toast("No walking maps app on this phone", 3000) } }
+            try { ctx.startActivity(walk) } catch (e: Exception) { try { ctx.startActivity(geo) } catch (x: Exception) { engine.toast(engine.str(R.string.rest_1199), 3000) } }
         }, filled = true)
         Box(Modifier.size(40.dp).clip(CircleShape).clickable { engine.prefs.put(PreferenceKeys.PARKED_SPOT, "") }, contentAlignment = Alignment.Center) {
             Icon(Icons.Rounded.Close, "Forget where you parked", tint = c.sub, modifier = Modifier.size(22.dp))
@@ -1260,9 +1260,9 @@ private fun ImmQuick(engine: NavEngine, showSaved: Boolean = true) {
                             detectHorizontalDragGestures(
                                 onDragEnd = {
                                     if (kotlin.math.abs(dx) > w * 0.35f) when (kind) {
-                                        0 -> { engine.places.removeCustom(label); engine.toast("Removed $label", 2000) }
-                                        1 -> { engine.places.toggleFavourite(p); engine.toast("Removed from favourites", 2000) }
-                                        else -> { engine.places.removeRecent(p); engine.toast("Removed from recent places", 2000) }
+                                        0 -> { engine.places.removeCustom(label); engine.toast(engine.str(R.string.rest_1216, label), 2000) }
+                                        1 -> { engine.places.toggleFavourite(p); engine.toast(engine.str(R.string.rest_1201), 2000) }
+                                        else -> { engine.places.removeRecent(p); engine.toast(engine.str(R.string.rest_1200), 2000) }
                                     }
                                     dx = 0f
                                 },

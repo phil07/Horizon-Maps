@@ -1,5 +1,7 @@
 package com.headunit.launcher.car
 
+import com.headunit.launcher.R
+
 import com.headunit.launcher.PreferenceKeys
 import android.app.Presentation
 import android.content.Intent
@@ -127,7 +129,7 @@ class CarNavSession : Session() {
                     q.equals("home", true) && e.places.slot("home") != null -> e.startRoute(e.places.slot("home")!!)
                     q.equals("work", true) && e.places.slot("work") != null -> e.startRoute(e.places.slot("work")!!)
                     q.isNotEmpty() -> ms.screenManager.push(SearchScreen(carContext, holder, q))
-                    else -> try { androidx.car.app.CarToast.makeText(carContext, "Couldn't read a place from that", androidx.car.app.CarToast.LENGTH_LONG).show() } catch (x: Exception) { }
+                    else -> try { androidx.car.app.CarToast.makeText(carContext, str(R.string.rest_1048), androidx.car.app.CarToast.LENGTH_LONG).show() } catch (x: Exception) { }
                 }
             }
         }.apply { isDaemon = true; name = "car-nav-intent" }

@@ -773,7 +773,7 @@ fun AddPlaceDialog(engine: NavEngine, preset: Place?, slot: String? = null, onCl
                 Pill("Save", pk != null, {
                     val p = picked
                     if (p != null && slot != null) { engine.places.setSlot(slot, p); engine.toast(if (slot == "home") "Home saved" else "Work saved", 2500); close() }
-                    else if (p != null) { engine.places.addCustom(label, p); engine.toast("Saved as ${label.trim().ifBlank { p.name }}", 2500); close() }
+                    else if (p != null) { engine.places.addCustom(label, p); engine.toast(engine.str(R.string.rest_1371, label.trim().ifBlank { p.name }), 2500); close() }
                 })
                 Pill("Cancel", false, { close() })
             }

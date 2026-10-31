@@ -169,7 +169,7 @@ class MainActivity : ComponentActivity() {
             // wait (briefly) for a first position so the route can start from where you are
             var n = 0
             while (t?.pos != null && engine.fix == null && n < 20) { kotlinx.coroutines.delay(500); n++ }
-            if (t != null) engine.openShared(t) else engine.toast("Couldn't read a place from that", 3500)
+            if (t != null) engine.openShared(t) else engine.toast(engine.str(R.string.rest_242), 3500)
         }
     }
 
@@ -265,7 +265,7 @@ private fun StartupCrashPage(report: String, onRetry: () -> Unit) {
             androidx.compose.material3.Button({
                 val url = "https://github.com/${BuildConfig.UPDATE_REPO}/issues/new?title=" + android.net.Uri.encode("Crash on start: ${Build.MANUFACTURER} ${Build.MODEL}") + "&body=" + android.net.Uri.encode(report.take(5000))
                 try { ctx.startActivity(android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(url)).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)) }
-                catch (e: Exception) { android.widget.Toast.makeText(ctx, "No browser on this unit: use Copy instead", android.widget.Toast.LENGTH_LONG).show() }
+                catch (e: Exception) { android.widget.Toast.makeText(ctx, engine.str(R.string.rest_247), android.widget.Toast.LENGTH_LONG).show() }
             }) { androidx.compose.material3.Text(stringResource(R.string.ui_046)) }
             androidx.compose.material3.Button({
                 val cm = ctx.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as? android.content.ClipboardManager

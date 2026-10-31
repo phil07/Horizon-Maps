@@ -110,4 +110,25 @@
     <string name="toast_047">To plan routes, add a free TomTom key or Mapbox token in Settings &gt; Keys &amp; accounts, or download the offline pack</string>
     <string name="toast_048">Waiting for GPS</string>
     <string name="toast_049">Weak signal: showing saved places and offline towns</string>
+    <string name="rest_104">Mapbox search didn\'t work: %1$s</string>
+    <string name="rest_119">Home set to %1$s</string>
+    <string name="rest_120">Stop reached: %1$s</string>
+    <string name="rest_121">Stop added: %1$s</string>
+    <string name="rest_125">Carrying on to %1$s</string>
+    <string name="rest_126">Search failed: %1$s</string>
+    <string name="rest_137">History cleared</string>
+    <string name="rest_143">No browser on this unit: use Copy instead</string>
+    <string name="rest_144">Work set to %1$s</string>
+    <string name="rest_149">Saved as %1$s</string>
+    <string name="rest_242">Couldn\'t read a place from that</string>
+    <string name="rest_247">No browser on this unit: use Copy instead</string>
+    <string name="rest_432">Stop reached: %1$s</string>
+    <string name="rest_433">Stop added: %1$s</string>
+    <string name="rest_434">Sent to your car: %1$s</string>
+    <string name="rest_437">Carrying on to %1$s</string>
+    <string name="rest_438">Search failed: %1$s</string>
+    <string name="rest_439">Route failed: %1$s</string>
+    <string name="rest_440">Map: %1$s</string>
+    <string name="rest_441">Speed camera alerts are off in %1$s, where they aren\'t allowed. You can change this in Settings &gt; Alerts.</string>
+    <string name="rest_442">Mapbox search didn\'t work: %1$s</string>
 </resources>
