@@ -64,7 +64,15 @@ class MainActivity : ComponentActivity() {
         // running fine for 25 seconds: clear the counts and the "starting" marker
         window.decorView.postDelayed({ try { boot.edit().putInt(CrashGuardPrefs.START_FAILURES, 0).putBoolean(CrashGuardPrefs.STARTING, false).putInt(CrashGuardPrefs.BAD_STARTS, 0).apply() } catch (x: Throwable) { } }, 25_000L)
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        window.statusBarColor = android.graphics.Color.TRANSPARENT
+        window.navigationBarColor = android.graphics.Color.TRANSPARENT
         hideBars()
+
+        // Ensure full screen by setting the window insets controller
+        WindowInsetsControllerCompat(window, window.decorView).let { controller ->
+            controller.hide(WindowInsetsCompat.Type.statusBars() or WindowInsetsCompat.Type.navigationBars())
+            controller.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+        }
         // on Android 10 and older the bars come back whenever anything pops up (a dialog, the keyboard, a system message): hide them again
         @Suppress("DEPRECATION")
         window.decorView.setOnSystemUiVisibilityChangeListener { vis ->
