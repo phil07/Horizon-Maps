@@ -422,7 +422,13 @@ private fun MapScreen(engine: NavEngine, onSettings: () -> Unit) {
         }
 
         // ---- top centre: the traffic view while you're stopped (it goes back by itself when you move off)
-        AnimatedVisibility(engine.stoppedOverview && !previewing, modifier = Modifier.align(Alignment.TopCenter).padding(top = 16.dp),
+        // shown for 5 seconds when the traffic view comes on, then gone (the view stays until you move)
+        var stoppedHint by remember { mutableStateOf(false) }
+        LaunchedEffect(engine.stoppedOverview) {
+            stoppedHint = engine.stoppedOverview
+            if (engine.stoppedOverview) { delay(5000); stoppedHint = false }
+        }
+        AnimatedVisibility(stoppedHint && engine.stoppedOverview && !previewing, modifier = Modifier.align(Alignment.TopCenter).padding(top = 16.dp),
             enter = fadeIn(tween(300)), exit = fadeOut(tween(250))) {
             Row(Modifier.panel(6.dp, RoundedCornerShape(20.dp), c.surface).padding(horizontal = 14.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
                 Icon(Icons.Rounded.Traffic, null, tint = c.accent, modifier = Modifier.size(18.dp))
