@@ -3071,6 +3071,27 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         map.setHazards(list)
     }
 
+    private var yieldAt: LL? = null
+    @Volatile private var yieldNear: List<Pair<LL, Boolean>> = emptyList()
+    private val yieldAlerted = HashSet<LL>()
+
+    private fun checkYieldSigns(p: LL, heading: Double) {
+        val last = yieldAt
+        if (last == null || Geo.dist(last, p) > 300.0) {
+            yieldAt = p
+            Thread {
+                yieldNear = try { Overpass.yieldSigns(p.lat - 0.005, p.lon - 0.007, p.lat + 0.005, p.lon + 0.007) } catch (e: Exception) { emptyList() }
+            }.start()
+        }
+        val hit = yieldNear.firstOrNull { (s, _) ->
+            s !in yieldAlerted && Geo.dist(p, s) < 200.0 && abs(angDiff(Geo.bearing(p, s), heading)) <= 60.0
+        } ?: return
+        yieldAlerted.add(hit.first)
+        val text = if (hit.second) "Stoppschild voraus" else "Vorfahrt gewähren"
+        raiseAlert("yield", text)
+        speak(text, alert = true)
+    }
+
     private fun checkIncidents(r: Route, progress: Double) {
         try { if (camerasOn()) updateRouteCams(r, progress); pushHazards(progress) } catch (e: Exception) { }
         // TomTom's incident data when there's a key; otherwise the incidents that came with a Mapbox route
@@ -3377,6 +3398,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         val frac = if (r.len > 0) rem / r.len else 0.0
         if (!light) {
             try { checkIncidents(r, progress) } catch (e: Exception) { }
+            fix?.let { f -> try { checkYieldSigns(f.pos, f.heading) } catch (e: Exception) { } }
             fix?.let { f -> if (via.isNotEmpty() && Geo.dist(f.pos, via[0].pos) < 80) { toast("Stop reached: ${via[0].name}", 3000); via = via.drop(1) } }
             if (via.isEmpty()) checkParking(r, rem)
             curProgress = progress

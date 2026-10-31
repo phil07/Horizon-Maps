@@ -362,6 +362,14 @@ object Overpass {
         }
     }
 
+    /** Stop signs (true) and give-way signs (false) inside a box. */
+    fun yieldSigns(minLat: Double, minLon: Double, maxLat: Double, maxLon: Double): List<Pair<LL, Boolean>> = run("[out:json][timeout:15];node($minLat,$minLon,$maxLat,$maxLon)[\"highway\"~\"^(stop|give_way)$\"];out body;", 10000, 20000, 2).let { els ->
+        (0 until els.length()).map {
+            val e = els.getJSONObject(it)
+            LL(e.getDouble("lat"), e.getDouble("lon")) to (e.getJSONObject("tags").getString("highway") == "stop")
+        }
+    }
+
     /**
      * Which way each known speed camera checks traffic (degrees, 0 = north), from OpenStreetMap's direction tag, keyed by [camKey].
      * Cameras without one aren't in here (they count for both directions).
