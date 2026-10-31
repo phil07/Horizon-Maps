@@ -604,7 +604,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
     fun testAlert() {
         chime(android.media.ToneGenerator.TONE_PROP_PROMPT)
         raiseAlert("camera", "Test alert: speed camera ahead")
-        speak("Speed camera ahead", true)
+        speak("Blitzer voraus", true)
     }
 
     fun shutdown() {
@@ -1017,8 +1017,8 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         if (candidateHits >= 2 && (fix?.speed ?: 0.0) > 3.0) {
             announcedLimit = n; candidateHits = 0; limitCandidate = -1
             chime()
-            raiseAlert("limit", "Speed limit $n")
-            speak("Speed limit $n", true)
+            raiseAlert("limit", "Tempolimit $n")
+            speak("Tempolimit $n", true)
             limitPulse = true
             scope.launch { delay(3500); limitPulse = false }
         }
@@ -3456,14 +3456,14 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
             if (!familiar && d <= 1700 && d > 1100 && p0Speed() > 18.0 && !arriving && said.add("${k}e"))
                 speak("In ${Geo.spoken(d, imperial)}, $phrase")
             if (d <= fFrom && d > 200 && said.add("${k}f"))
-                speak(if (arriving) "In ${Geo.spoken(d, imperial)}, you will arrive" + (if (side.isNotEmpty()) ". Your destination is on the $side" else "") else "In ${Geo.spoken(d, imperial)}, $phrase$lane")
+                speak(if (arriving) "In ${Geo.spoken(d, imperial)} erreichen Sie Ihr Ziel" + (if (side.isNotEmpty()) ". Das Ziel liegt auf der $side" else "") else "In ${Geo.spoken(d, imperial)}, $phrase$lane")
             if (d <= 120 && said.add("${k}n"))
-                speak(if (arriving) (if (side.isNotEmpty()) "Your destination is on the $side" else "You have arrived") else phrase.replaceFirstChar { it.uppercase() })
+                speak(if (arriving) (if (side.isNotEmpty()) "Das Ziel liegt auf der $side" else "Sie haben Ihr Ziel erreicht") else phrase.replaceFirstChar { it.uppercase() })
         }
         // arrived: at the end of the route and really there (not just level with the end of the route on another road)
         val atEnd = rem < 25 && fix.let { f -> f == null || Geo.dist(f.pos, dest?.pos ?: r.pts.last()) < 120.0 || Geo.dist(f.pos, r.pts.last()) < 120.0 }
         if (atEnd && said.add("end")) {
-            toast("You have arrived", 5000)
+            toast("Sie haben Ihr Ziel erreicht", 5000)
             if (navStartMs > 0) {
                 val secsT = (System.currentTimeMillis() - navStartMs) / 1000.0
                 val dd = max(0.0, tripDist - navStartDist)
@@ -3671,23 +3671,23 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         val exitLike = m.contains("EXIT") || m.contains("KEEP") || m.contains("BEAR") || m.contains("RAMP")
         // "junction 9" is how it's said in the UK and Ireland; everywhere else it's "exit 9"
         val jWord = if (detectedCountry.ifBlank { "GB" }.uppercase() in setOf("GB", "IE", "IM", "JE", "GG")) "junction" else "exit"
-        var main = if (cur.exitNo.isNotBlank() && exitLike) "take $jWord ${cur.exitNo}" else word
+        var main = if (cur.exitNo.isNotBlank() && exitLike) "Ausfahrt ${cur.exitNo} nehmen" else word
         val dests = signDests(cur.sign)
         val refs = signRefs(cur.sign)
         main += when {
             !sayRoads -> tail
-            dests.isNotEmpty() -> (if (refs.isNotEmpty() && cur.exitNo.isNotBlank()) " for the ${refs[0]}" else "") + " towards " + dests.take(2).joinToString(" and ")
-            refs.isNotEmpty() && exitLike -> " for the ${refs[0]}"
+            dests.isNotEmpty() -> (if (refs.isNotEmpty() && cur.exitNo.isNotBlank()) " auf der ${refs[0]}" else "") + " in Richtung " + dests.take(2).joinToString(" and ")
+            refs.isNotEmpty() && exitLike -> " auf der ${refs[0]}"
             else -> tail
         }
         if (nxt != null && nxt.off - cur.off in 1.0..450.0 && !nxt.maneuver.uppercase().startsWith("ARRIVE")) {
             val target = signRefs(nxt.sign).firstOrNull() ?: nxt.street
             val forWhat = when {
                 target.isBlank() || !sayRoads -> ""
-                refRx.matches(target) -> " for the $target"
-                else -> " onto $target"
+                refRx.matches(target) -> " auf der $target"
+                else -> " auf $target"
             }
-            main += ", then " + Geo.maneuverText(nxt.maneuver, nxt.roundExit) + forWhat
+            main += ", dann " + Geo.maneuverText(nxt.maneuver, nxt.roundExit) + forWhat
         }
         return main
     }
@@ -3734,15 +3734,15 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
     /** "left" or "right" for the side of the road the destination is on, from the route's own instruction or from where the pin is. */
     private fun arrivalSide(r: Route, maneuver: String): String {
         val m = maneuver.uppercase()
-        if (m.endsWith("LEFT")) return "left"
-        if (m.endsWith("RIGHT")) return "right"
+        if (m.endsWith("LEFT")) return "links"
+        if (m.endsWith("RIGHT")) return "rechts"
         val d = dest?.pos ?: return ""
         if (r.pts.size < 2) return ""
         val a = r.pts[r.pts.size - 2]; val b = r.pts.last()
         if (Geo.dist(a, b) < 2.0 || Geo.dist(b, d) < 8.0) return ""
         val kx = cos(Geo.rad(b.lat)) * 111320.0
         val cross = ((b.lon - a.lon) * kx) * ((d.lat - a.lat) * 110574.0) - ((b.lat - a.lat) * 110574.0) * ((d.lon - a.lon) * kx)
-        return if (cross > 0) "left" else "right"
+        return if (cross > 0) "links" else "rechts"
     }
 
     // ---- arrive by ----
@@ -3762,7 +3762,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
             // back to the map, where the planned card shows the leave time
             if (previewing) endRoute()
             val f = SimpleDateFormat("HH:mm", Locale.UK)
-            toast(if (leave <= System.currentTimeMillis()) "Leave now to arrive by ${f.format(Date(arriveMs))}" else "Leave by ${f.format(Date(leave))} to arrive by ${f.format(Date(arriveMs))}. I'll remind you.", 5000)
+            toast(if (leave <= System.currentTimeMillis()) "Jetzt losfahren, um ${f.format(Date(arriveMs))} anzukommen" else "Um ${f.format(Date(leave))} losfahren, um ${f.format(Date(arriveMs))} anzukommen. Ich erinnere Sie.", 5000)
             watchPlanned()
         }
     }

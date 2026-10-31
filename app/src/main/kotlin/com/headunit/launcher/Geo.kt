@@ -104,7 +104,7 @@ object Geo {
             val ft = m * 3.28084
             return if (ft < 528) "${((ft / 50).roundToInt()) * 50} Fuß" else String.format("%.1f Meilen", m / 1609.344).replace('.', ',')
         }
-        return if (m < 1000) "${((m / 50).roundToInt()) * 50} Meter" else String.format("%.1f Kilometer", m / 1000.0).replace('.', ',')
+        return if (m < 1000) "${((m / 50).roundToInt()) * 50} Metern" else String.format("%.1f Kilometern", m / 1000.0).replace('.', ',')
     }
 
     fun ordinal(n: Int): String = "$n."
