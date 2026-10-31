@@ -102,33 +102,29 @@ object Geo {
     fun spoken(m: Double, imperial: Boolean): String {
         if (imperial) {
             val ft = m * 3.28084
-            return if (ft < 528) "${((ft / 50).roundToInt()) * 50} feet" else String.format("%.1f miles", m / 1609.344)
+            return if (ft < 528) "${((ft / 50).roundToInt()) * 50} Fuß" else String.format("%.1f Meilen", m / 1609.344).replace('.', ',')
         }
-        return if (m < 1000) "${((m / 50).roundToInt()) * 50} metres" else String.format("%.1f kilometres", m / 1000.0)
+        return if (m < 1000) "${((m / 50).roundToInt()) * 50} Meter" else String.format("%.1f Kilometer", m / 1000.0).replace('.', ',')
     }
 
-    fun ordinal(n: Int): String = when {
-        n % 100 in 11..13 -> "${n}th"
-        n % 10 == 1 -> "${n}st"; n % 10 == 2 -> "${n}nd"; n % 10 == 3 -> "${n}rd"
-        else -> "${n}th"
-    }
+    fun ordinal(n: Int): String = "$n."
 
     /** Spoken/short wording for a manoeuvre, e.g. "turn left" or "take the 2nd exit at the roundabout". */
     fun maneuverText(m: String, exit: Int = 0): String {
         val u = m.uppercase()
         if (u.startsWith("ROUNDABOUT")) {
-            if (u == "ROUNDABOUT_BACK") return if (exit > 0) "take the ${ordinal(exit)} exit at the roundabout" else "go all the way round the roundabout"
-            return if (exit > 0) "at the roundabout, take the ${ordinal(exit)} exit" else "take the roundabout"
+            if (u == "ROUNDABOUT_BACK") return if (exit > 0) "im Kreisverkehr die ${ordinal(exit)} Ausfahrt nehmen" else "einmal ganz um den Kreisverkehr fahren"
+            return if (exit > 0) "im Kreisverkehr die ${ordinal(exit)} Ausfahrt nehmen" else "in den Kreisverkehr einfahren"
         }
         val t = mapOf(
-            "ARRIVE" to "arrive", "ARRIVE_LEFT" to "arrive, destination on the left", "ARRIVE_RIGHT" to "arrive, destination on the right",
-            "DEPART" to "head out", "MAKE_UTURN" to "make a U-turn", "TRY_MAKE_UTURN" to "make a U-turn when possible",
-            "STRAIGHT" to "continue straight", "FOLLOW" to "continue", "TURN_LEFT" to "turn left", "TURN_RIGHT" to "turn right",
-            "SHARP_LEFT" to "turn sharp left", "SHARP_RIGHT" to "turn sharp right", "BEAR_LEFT" to "bear left", "BEAR_RIGHT" to "bear right",
-            "KEEP_LEFT" to "keep left", "KEEP_RIGHT" to "keep right", "ENTER_MOTORWAY" to "join the motorway", "ENTER_FREEWAY" to "join the main road",
-            "ENTER_HIGHWAY" to "join the main road", "TAKE_EXIT" to "take the exit", "MOTORWAY_EXIT_LEFT" to "take the exit on the left",
-            "MOTORWAY_EXIT_RIGHT" to "take the exit on the right", "ENTRANCE_RAMP" to "take the slip road", "SWITCH_PARALLEL_ROAD" to "switch to the parallel road",
-            "SWITCH_MAIN_ROAD" to "switch to the main road", "TAKE_FERRY" to "take the ferry",
+            "ARRIVE" to "Ziel erreicht", "ARRIVE_LEFT" to "Ziel erreicht, links", "ARRIVE_RIGHT" to "Ziel erreicht, rechts",
+            "DEPART" to "losfahren", "MAKE_UTURN" to "wenden", "TRY_MAKE_UTURN" to "wenden, wenn möglich",
+            "STRAIGHT" to "geradeaus weiterfahren", "FOLLOW" to "weiterfahren", "TURN_LEFT" to "links abbiegen", "TURN_RIGHT" to "rechts abbiegen",
+            "SHARP_LEFT" to "scharf links abbiegen", "SHARP_RIGHT" to "scharf rechts abbiegen", "BEAR_LEFT" to "halb links halten", "BEAR_RIGHT" to "halb rechts halten",
+            "KEEP_LEFT" to "links halten", "KEEP_RIGHT" to "rechts halten", "ENTER_MOTORWAY" to "auf die Autobahn auffahren", "ENTER_FREEWAY" to "auf die Schnellstraße auffahren",
+            "ENTER_HIGHWAY" to "auf die Straße auffahren", "TAKE_EXIT" to "die Ausfahrt nehmen", "MOTORWAY_EXIT_LEFT" to "die Ausfahrt links nehmen",
+            "MOTORWAY_EXIT_RIGHT" to "die Ausfahrt rechts nehmen", "ENTRANCE_RAMP" to "die Auffahrt nehmen", "SWITCH_PARALLEL_ROAD" to "auf die Parallelstraße wechseln",
+            "SWITCH_MAIN_ROAD" to "auf die Hauptstraße wechseln", "TAKE_FERRY" to "die Fähre nehmen",
         )
         return t[u] ?: u.lowercase().replace('_', ' ')
     }
@@ -151,19 +147,19 @@ object Geo {
         val act = sec.lanes.indices.filter { i -> if (anyFollow) sec.lanes[i].follow != null else sec.lanes[i].dirs.any { laneFits(it, maneuver) } }
         if (act.isEmpty() || act.size == n) return null
         val cnt = act.size
-        val lanes = if (cnt == 1) "lane" else "${if (cnt == 2) "two" else if (cnt == 3) "three" else cnt.toString()} lanes"
+        val lanes = when (cnt) { 1 -> "eine Spur"; 2 -> "zwei Spuren"; 3 -> "drei Spuren"; else -> "$cnt Spuren" }
         return when {
-            act.first() == 0 -> "Use the left $lanes"
-            act.last() == n - 1 -> "Use the right $lanes"
-            cnt == 1 -> "Use lane ${act[0] + 1} from the left"
-            else -> "Use the middle $lanes"
+            act.first() == 0 -> "Links $lanes nutzen"
+            act.last() == n - 1 -> "Rechts $lanes nutzen"
+            cnt == 1 -> "Spur ${act[0] + 1} von links nutzen"
+            else -> "Mittlere $lanes nutzen"
         }
     }
 
     /** Short caption shown on the turn card for a roundabout or motorway exit, or blank. */
     fun stepTag(s: Step): String = when {
-        s.maneuver.uppercase().startsWith("ROUNDABOUT") && s.roundExit > 0 -> "${ordinal(s.roundExit)} exit"
-        s.exitNo.isNotBlank() -> "Exit ${s.exitNo}"
+        s.maneuver.uppercase().startsWith("ROUNDABOUT") && s.roundExit > 0 -> "${ordinal(s.roundExit)} Ausfahrt"
+        s.exitNo.isNotBlank() -> "Ausfahrt ${s.exitNo}"
         else -> ""
     }
 
