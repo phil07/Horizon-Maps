@@ -69,10 +69,18 @@ class MainActivity : ComponentActivity() {
         hideBars()
 
         // Ensure full screen by setting the window insets controller
+        // Force full screen by setting the window insets controller and display cutout
+        val window = window
+        window.setDecorFitsSystemWindows(false)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            window.attributes.layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
+        }
         WindowInsetsControllerCompat(window, window.decorView).let { controller ->
-            controller.hide(WindowInsetsCompat.Type.statusBars() or WindowInsetsCompat.Type.navigationBars())
+            controller.hide(WindowInsetsCompat.Type.systemBars())
             controller.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
         }
+        window.statusBarColor = android.graphics.Color.TRANSPARENT
+        window.navigationBarColor = android.graphics.Color.TRANSPARENT
         // on Android 10 and older the bars come back whenever anything pops up (a dialog, the keyboard, a system message): hide them again
         @Suppress("DEPRECATION")
         window.decorView.setOnSystemUiVisibilityChangeListener { vis ->
