@@ -60,7 +60,6 @@ import com.headunit.launcher.NavEngine
 import com.headunit.launcher.NavService
 import com.headunit.launcher.Place
 import com.headunit.launcher.Prefs
-import com.headunit.launcher.R
 import com.headunit.launcher.TurnInfo
 import java.util.TimeZone
 
