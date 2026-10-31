@@ -1,11 +1,11 @@
-# Builds the APK from the source code in this repository on every push (any branch).
+# Builds the APK from the source code in this repository on every push to main.
 # The APK appears under Actions > the run > Artifacts ("HorizonNav-apk-<number>").
 # Pushing a tag like v1.2.3 additionally attaches the APK to a GitHub release with that name.
 name: Build APK
 
 on:
   push:
-    branches: ["**"]
+    branches: [main]
     tags: ["v*"]
   workflow_dispatch:
 
