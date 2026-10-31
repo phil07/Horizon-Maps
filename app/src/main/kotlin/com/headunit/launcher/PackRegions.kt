@@ -16,7 +16,7 @@ data class PackRegion(val id: String, val name: String, val group: String, val p
     val extrasUrl: String get() = "$RELEASES/pack-$id"
 }
 
-const val RELEASES = "https://github.com/phil07/Horizon-Maps-Releases/releases/download"
+const val RELEASES = "https://github.com/phil07/Horizon-Maps/releases/download"
 
 object PackRegions {
     fun idOf(path: String): String {
