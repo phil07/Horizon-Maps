@@ -82,7 +82,7 @@ object RouteExtras {
             val t = e.optJSONObject("tags") ?: JSONObject()
             val pos = if (e.has("lat")) LL(e.getDouble("lat"), e.getDouble("lon")) else e.optJSONObject("center")?.let { LL(it.getDouble("lat"), it.getDouble("lon")) } ?: continue
             val rest = t.optString("highway") == "rest_area"
-            val name = t.optString("name").ifBlank { t.optString("operator") }.ifBlank { if (rest) "Rest area" else "Services" }
+            val name = t.optString("name").ifBlank { t.optString("operator") }.ifBlank { if (rest) Lang.t("Rastplatz", "Rest area") else Lang.t("Raststätte", "Services") }
             out += RoutePoi(if (rest) "rest" else "services", name, pos)
         }
         return out
@@ -116,7 +116,7 @@ object RouteExtras {
                     if (pos != null && e.optString("type") == "node") nodes[e.optLong("id")] = pos
                     val t = e.optJSONObject("tags") ?: continue
                     if (pos == null) continue
-                    if (t.optString("highway") == "stop") pois += RoutePoi("stop", "Stop", pos)
+                    if (t.optString("highway") == "stop") pois += RoutePoi("stop", Lang.t("Stoppschild", "Stop"), pos)
                     else if (t.optString("railway") == "level_crossing") pois += RoutePoi("rail", "Level crossing", pos)
                     else if (t.optString("ford") == "yes") pois += RoutePoi("ford", "Ford", pos)
                     else if (t.optString("highway") == "crossing") pois += RoutePoi("crossing", t.optString("crossing"), pos)
@@ -139,7 +139,7 @@ object RouteExtras {
             val lim = t.optString("maxspeed").takeIf { it.isNotBlank() }?.let { Overpass.parseSpeed(it, "GB") }
             val starts = from.ifEmpty { dev }; val ends = to.ifEmpty { dev }
             if (starts.isEmpty() || ends.isEmpty()) continue
-            avgs += AvgDef(rel.optLong("id"), t.optString("name").ifBlank { "Average speed check" }, starts, ends, lim)
+            avgs += AvgDef(rel.optLong("id"), t.optString("name").ifBlank { Lang.t("Abschnittskontrolle", "Average speed check") }, starts, ends, lim)
         }
         return pois to avgs
     }

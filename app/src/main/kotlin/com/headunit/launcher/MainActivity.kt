@@ -120,17 +120,17 @@ class MainActivity : ComponentActivity() {
         SessionWatch.resumed(applicationContext)
         if (sessionStep > 0) window.decorView.postDelayed({ try { engine.toast(SessionWatch.message(sessionStep), 12_000) } catch (e: Throwable) { } }, 5000L)
         if (safeLevel > 0) window.decorView.postDelayed({
-            try { engine.toast(if (safeLevel >= 2) "Horizon Nav had trouble starting, so the map is on Lightest. You can change it in Settings > Map look" else "Horizon Nav had trouble starting, so the heaviest 3D map features are off. You can turn them back on in Settings > Map look and On the map", 10_000) } catch (e: Throwable) { }
+            try { engine.toast(if (safeLevel >= 2) Lang.t("Horizon Nav hatte Startprobleme, darum ist die Karte auf „Am leichtesten“ gestellt. Ändern kannst du das unter Einstellungen > Kartenansicht", "Horizon Nav had trouble starting, so the map is on Lightest. You can change it in Settings > Map look") else Lang.t("Horizon Nav hatte Startprobleme, darum sind die aufwendigsten 3D-Funktionen aus. Einschalten kannst du sie unter Einstellungen > Kartenansicht und Auf der Karte", "Horizon Nav had trouble starting, so the heaviest 3D map features are off. You can turn them back on in Settings > Map look and On the map"), 10_000) } catch (e: Throwable) { }
         }, 4000L)
 
         setContent { App(prefs, engine, map) }
 
         // while a route runs, a foreground service keeps GPS and voice going in the background; it stops when the route ends
         lifecycleScope.launch {
-            snapshotFlow { if (guiding()) (engine.dest?.name ?: "your destination") else null }
+            snapshotFlow { if (guiding()) (engine.dest?.name ?: Lang.t("dein Ziel", "your destination")) else null }
                 .distinctUntilChanged()
                 .collect { to ->
-                    if (to != null && hasLocation()) NavService.start(applicationContext, "Navigating to $to")
+                    if (to != null && hasLocation()) NavService.start(applicationContext, Lang.t("Navigation nach $to", "Navigating to $to"))
                     else if (to == null) {
                         NavService.stop(applicationContext)
                         // the route ended (arrived or cancelled) while another app was in front: GPS can rest too
@@ -241,7 +241,7 @@ private fun NoGlesPage(gl: Int) {
     ) {
         androidx.compose.material3.Text(stringResource(R.string.ui_058), color = fg, fontSize = 24.sp, fontWeight = androidx.compose.ui.text.font.FontWeight.Bold)
         androidx.compose.material3.Text("Horizon Nav needs OpenGL ES 3.0 graphics, and this unit has version ${gl shr 16}.${gl and 0xFFFF}. " +
-            "Versions of Horizon Nav from before the Mapbox map work on older graphics, if you still have one.", color = fg.copy(alpha = 0.8f), fontSize = 16.sp)
+            Lang.t("Versionen von Horizon Nav vor der Mapbox-Karte laufen auf älterer Grafik, falls du noch eine hast.", "Versions of Horizon Nav from before the Mapbox map work on older graphics, if you still have one."), color = fg.copy(alpha = 0.8f), fontSize = 16.sp)
     }
 }
 

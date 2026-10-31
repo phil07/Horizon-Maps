@@ -1,6 +1,7 @@
 package com.headunit.launcher.ui
 
 import com.headunit.launcher.R
+import com.headunit.launcher.Lang
 import androidx.compose.ui.res.stringResource
 
 import androidx.compose.animation.core.Animatable
@@ -73,20 +74,20 @@ private fun alertColor(kind: String): Color = when (kind) {
 }
 
 private fun alertLabel(kind: String): String = when (kind) {
-    "camera" -> "SPEED CAMERA"
-    "limit" -> "SPEED LIMIT"
-    "incident" -> "HAZARD AHEAD"
+    "camera" -> Lang.t("BLITZER", "SPEED CAMERA")
+    "limit" -> Lang.t("TEMPOLIMIT", "SPEED LIMIT")
+    "incident" -> Lang.t("GEFAHR VORAUS", "HAZARD AHEAD")
     "rain" -> "WEATHER"
-    "break" -> "TAKE A BREAK"
-    "avg" -> "AVERAGE SPEED CHECK"
-    "bump" -> "SPEED BUMP"
-    "rail" -> "LEVEL CROSSING"
+    "break" -> Lang.t("PAUSE MACHEN", "TAKE A BREAK")
+    "avg" -> Lang.t("ABSCHNITTSKONTROLLE", "AVERAGE SPEED CHECK")
+    "bump" -> Lang.t("BODENWELLE", "SPEED BUMP")
+    "rail" -> Lang.t("BAHNÜBERGANG", "LEVEL CROSSING")
     "ford" -> "FORD"
     "school" -> "SCHOOL"
-    "zone" -> "CLEAN AIR ZONE"
-    "report" -> "REPORTED AHEAD"
-    "wrongway" -> "WRONG WAY"
-    "plan" -> "PLANNED TRIP"
+    "zone" -> Lang.t("UMWELTZONE", "CLEAN AIR ZONE")
+    "report" -> Lang.t("GEMELDET VORAUS", "REPORTED AHEAD")
+    "wrongway" -> Lang.t("FALSCHE RICHTUNG", "WRONG WAY")
+    "plan" -> Lang.t("GEPLANTE FAHRT", "PLANNED TRIP")
     else -> "ALERT"
 }
 

@@ -86,7 +86,7 @@ object CarLink {
                     val j = try { JSONObject(txt) } catch (e: Exception) { continue }
                     val at = j.optLong("t", 0L)
                     if (System.currentTimeMillis() - at > 12 * 3600_000L) continue
-                    val pl = Place(j.optString("n").ifBlank { "Destination" }, j.optString("s"), LL(j.optDouble("la"), j.optDouble("lo")))
+                    val pl = Place(j.optString("n").ifBlank { Lang.t("Ziel", "Destination") }, j.optString("s"), LL(j.optDouble("la"), j.optDouble("lo")))
                     if (pl.pos.lat.isNaN() || pl.pos.lon.isNaN()) continue
                     if (best == null || at >= best!!.at) best = Sent(o.optString("id"), pl, at)
                 }

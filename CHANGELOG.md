@@ -74,6 +74,8 @@ Add user-facing Horizon Nav changes under **Unreleased** before publishing each 
 - Verkehrsbanner: Der Hinweis „Verkehr in deiner Nähe“ verschwindet nach 5 Sekunden und bleibt nicht mehr dauerhaft stehen.
 - Verkehrsübersicht im Stand: Die lange Erklärung erscheint nicht mehr bei jedem Anhalten und Losfahren.
 - Kategorien auf Deutsch: Tankstellen, Ladesäulen, Essen, Kaffee, Parkplätze, Toiletten und Raststätten heißen in der Suche, den Kartenoptionen und in Android Auto jetzt deutsch, ebenso Meldungen wie Gefahr, Panne und mobiler Blitzer.
+- Alles auf Deutsch: Meldungen, Ansagen, Schaltflächen, Warnungen, Kartenoptionen, Offline-Karten, Update-Hinweise und Android Auto sind jetzt deutsch (auf englisch eingestellten Geräten bleibt es englisch).
+- Neu-Karte nach mehreren Updates: Zeigt keine internen Zeichen wie „(1023, ###“ mehr, wenn du eine Version übersprungen hast.
 - Einrichtung: Die Auswahl des Suchbereichs („Nur in Deutschland“ / „Überall“) wird wieder vollständig angezeigt.
 
 ## 1.0.246 — 2026-10-28

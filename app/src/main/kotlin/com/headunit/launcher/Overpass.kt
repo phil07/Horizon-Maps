@@ -493,21 +493,21 @@ object Overpass {
                         }
                     }
                     if (sockets.isNotEmpty()) extra += sockets.take(3).joinToString(", ")
-                    tags.optString("capacity").takeIf { it.isNotBlank() }?.let { extra += "$it points" }
+                    tags.optString("capacity").takeIf { it.isNotBlank() }?.let { extra += Lang.t("$it Ladepunkte", "$it points") }
                     tags.optString("operator").takeIf { it.isNotBlank() && it != name }?.let { extra += it }
                 }
                 "parking" -> {
-                    when (tags.optString("fee")) { "yes" -> extra += "Paid"; "no" -> extra += "Free" }
-                    tags.optString("capacity").takeIf { it.isNotBlank() }?.let { extra += "$it spaces" }
-                    when (tags.optString("parking")) { "multi-storey" -> extra += "Multi-storey"; "underground" -> extra += "Underground" }
+                    when (tags.optString("fee")) { "yes" -> extra += Lang.t("Kostenpflichtig", "Paid"); "no" -> extra += Lang.t("Kostenlos", "Free") }
+                    tags.optString("capacity").takeIf { it.isNotBlank() }?.let { extra += Lang.t("$it Stellplätze", "$it spaces") }
+                    when (tags.optString("parking")) { "multi-storey" -> extra += Lang.t("Parkhaus", "Multi-storey"); "underground" -> extra += Lang.t("Tiefgarage", "Underground") }
                 }
                 "food", "coffee" -> {
                     tags.optString("cuisine").takeIf { it.isNotBlank() }?.let { extra += it.replace("_", " ").replace(";", ", ") }
                     tags.optString("opening_hours").takeIf { it.isNotBlank() }?.let { extra += it }
                 }
                 "toilets" -> {
-                    when (tags.optString("fee")) { "yes" -> extra += "Paid"; "no" -> extra += "Free" }
-                    if (tags.optString("wheelchair") == "yes") extra += "Accessible"
+                    when (tags.optString("fee")) { "yes" -> extra += Lang.t("Kostenpflichtig", "Paid"); "no" -> extra += Lang.t("Kostenlos", "Free") }
+                    if (tags.optString("wheelchair") == "yes") extra += Lang.t("Barrierefrei", "Accessible")
                 }
                 else -> {
                     tags.optString("operator").takeIf { it.isNotBlank() && it != name }?.let { extra += it }

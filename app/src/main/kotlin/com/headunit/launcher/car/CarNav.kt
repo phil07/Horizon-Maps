@@ -125,7 +125,7 @@ class CarNavSession : Session() {
                 val p = t?.pos
                 val q = t?.query?.trim().orEmpty()
                 when {
-                    p != null -> e.startRoute(Place(t?.name ?: "Destination", "From Google Assistant", p))
+                    p != null -> e.startRoute(Place(t?.name ?: Lang.t("Ziel", "Destination"), Lang.t("Von Google Assistant", "From Google Assistant"), p))
                     q.equals("home", true) && e.places.slot("home") != null -> e.startRoute(e.places.slot("home")!!)
                     q.equals("work", true) && e.places.slot("work") != null -> e.startRoute(e.places.slot("work")!!)
                     q.isNotEmpty() -> ms.screenManager.push(SearchScreen(carContext, holder, q))
@@ -244,7 +244,7 @@ class CarSurface(private val carContext: CarContext, private val onReady: (MapBi
                 overlay?.setContent { com.headunit.launcher.ui.CarOverlay(v, area, dark, uiScale, actions) }
             }
         }
-    /** What the app's own search bar and "Saved & recent" chip open (set by the map screen). */
+    /** What the app's own search bar and Lang.t("Gespeichert & zuletzt", "Saved & recent") chip open (set by the map screen). */
     var actions: com.headunit.launcher.ui.CarActions = object : com.headunit.launcher.ui.CarActions { override fun search() {}; override fun places() {}; override fun nearby(kind: String) {}; override fun settings() {} }
     /** How much larger the app's cards are drawn on the car screen than its own pixel density would make them (same as the map). */
     private val uiScale = androidx.compose.runtime.mutableStateOf(1.7f)
@@ -527,8 +527,8 @@ class MapScreen(carContext: CarContext, private val holder: CarHolder) : Screen(
             strip.addAction(view)
             strip.addAction(Action.Builder().setIcon(icon(R.drawable.ic_car_settings)).setOnClickListener { openSettings() }.build())
         } else {
-            strip.addAction(Action.Builder().setTitle("Search").setOnClickListener { screenManager.push(SearchScreen(carContext, holder)) }.build())
-            strip.addAction(Action.Builder().setTitle("Places").setOnClickListener { screenManager.push(PlacesScreen(carContext, holder)) }.build())
+            strip.addAction(Action.Builder().setTitle(Lang.t("Suche", "Search")).setOnClickListener { screenManager.push(SearchScreen(carContext, holder)) }.build())
+            strip.addAction(Action.Builder().setTitle(Lang.t("Orte", "Places")).setOnClickListener { screenManager.push(PlacesScreen(carContext, holder)) }.build())
             strip.addAction(view)
             strip.addAction(Action.Builder().setIcon(icon(R.drawable.ic_car_settings)).setOnClickListener { openSettings() }.build())
         }
@@ -549,7 +549,7 @@ class MapScreen(carContext: CarContext, private val holder: CarHolder) : Screen(
         val est = estimate(eta.dist, eta.secs, e.imperial)
         val tb = Trip.Builder().addStep(step(e, t, carContext), estimate(t.dist, 0.0, e.imperial))
         val d = e.dest
-        tb.addDestination(Destination.Builder().setName(d?.name ?: "Destination").setAddress(d?.sub ?: "").build(), est)
+        tb.addDestination(Destination.Builder().setName(d?.name ?: Lang.t("Ziel", "Destination")).setAddress(d?.sub ?: "").build(), est)
         if (e.roadNow.isNotBlank()) tb.setCurrentRoad(e.roadNow)
         return tb.build()
     }
@@ -699,8 +699,8 @@ class MapScreen(carContext: CarContext, private val holder: CarHolder) : Screen(
             val mb = Maneuver.Builder(type).setIcon(CarIcon.Builder(IconCompat.createWithResource(ctx, maneuverIcon(type))).build())
             if (type == Maneuver.TYPE_ROUNDABOUT_ENTER_AND_EXIT_CW || type == Maneuver.TYPE_ROUNDABOUT_ENTER_AND_EXIT_CCW) mb.setRoundaboutExitNumber(t.exit.coerceAtLeast(1))
             val what = when {
-                type == Maneuver.TYPE_ROUNDABOUT_ENTER_AND_EXIT_CW || type == Maneuver.TYPE_ROUNDABOUT_ENTER_AND_EXIT_CCW -> "Take exit ${t.exit}"
-                m.startsWith("ARRIVE") -> "Arrive"
+                type == Maneuver.TYPE_ROUNDABOUT_ENTER_AND_EXIT_CW || type == Maneuver.TYPE_ROUNDABOUT_ENTER_AND_EXIT_CCW -> Lang.t("Ausfahrt ${t.exit} nehmen", "Take exit ${t.exit}")
+                m.startsWith("ARRIVE") -> Lang.t("Ankunft", "Arrive")
                 t.tag.isNotBlank() -> t.tag
                 else -> m.lowercase().replace('_', ' ').replaceFirstChar { it.uppercase() }
             }
@@ -751,12 +751,12 @@ class PlacesScreen(carContext: CarContext, private val holder: CarHolder) : Scre
     override fun onGetTemplate(): Template {
         val e = holder.engine
         val limit = try { carContext.getCarService(ConstraintManager::class.java).getContentLimit(ConstraintManager.CONTENT_LIMIT_TYPE_LIST) } catch (x: Exception) { 6 }
-        val list = ItemList.Builder().setNoItemsMessage(if (e == null) "Starting the map…" else "No saved or recent places yet")
+        val list = ItemList.Builder().setNoItemsMessage(if (e == null) Lang.t("Karte wird gestartet…", "Starting the map…") else Lang.t("Noch keine gespeicherten oder letzten Orte", "No saved or recent places yet"))
         if (e != null) {
             // (label, place, icon, colour) in the app's colours: Home blue, Work amber, saved teal, favourites gold, recent grey
             val all = ArrayList<Triple<String, Place, Pair<Int, Int>>>()
-            e.places.slot("home")?.let { all += Triple("Home", it, R.drawable.ic_car_home to 0xFF4C8DFF.toInt()) }
-            e.places.slot("work")?.let { all += Triple("Work", it, R.drawable.ic_car_work to 0xFFF29900.toInt()) }
+            e.places.slot("home")?.let { all += Triple(Lang.t("Zuhause", "Home"), it, R.drawable.ic_car_home to 0xFF4C8DFF.toInt()) }
+            e.places.slot("work")?.let { all += Triple(Lang.t("Arbeit", "Work"), it, R.drawable.ic_car_work to 0xFFF29900.toInt()) }
             for (c in e.places.customs()) all += Triple(c.label, c.place, R.drawable.ic_car_star to 0xFF12A4B4.toInt())
             for (p in e.places.favourites()) all += Triple(p.name, p, R.drawable.ic_car_star to 0xFFF2C230.toInt())
             for (p in e.places.recents()) all += Triple(p.name, p, R.drawable.ic_car_history to 0xFF9CA4BF.toInt())
@@ -773,7 +773,7 @@ class PlacesScreen(carContext: CarContext, private val holder: CarHolder) : Scre
                 list.addItem(r.build())
             }
         }
-        return ListTemplate.Builder().setTitle("Places").setHeaderAction(Action.BACK).setSingleList(list.build()).build()
+        return ListTemplate.Builder().setTitle(Lang.t("Orte", "Places")).setHeaderAction(Action.BACK).setSingleList(list.build()).build()
     }
 
     private fun go(e: NavEngine, p: Place) {
@@ -808,7 +808,7 @@ class SearchScreen(carContext: CarContext, private val holder: CarHolder, initia
     override fun onGetTemplate(): Template {
         val e = holder.engine
         val limit = try { carContext.getCarService(ConstraintManager::class.java).getContentLimit(ConstraintManager.CONTENT_LIMIT_TYPE_LIST) } catch (x: Exception) { 6 }
-        val list = ItemList.Builder().setNoItemsMessage(if (query.length < 3) "Type a place, address or postcode" else "Searching…")
+        val list = ItemList.Builder().setNoItemsMessage(if (query.length < 3) Lang.t("Ort, Adresse oder Postleitzahl eingeben", "Type a place, address or postcode") else Lang.t("Suche läuft…", "Searching…"))
         if (query.length >= 3) for (p in shown.take(limit.coerceIn(1, 12))) {
             // a red pin, the name, and how far it is with the address under it (as in the app's results)
             val r = Row.Builder().setTitle(p.name).setImage(rowIcon(carContext, R.drawable.ic_car_pin, 0xFFEA4335.toInt()))
@@ -825,7 +825,7 @@ class SearchScreen(carContext: CarContext, private val holder: CarHolder, initia
                 if (searchText.length >= 3) handler.postDelayed(typed, 500)
             }
             override fun onSearchSubmitted(searchText: String) { query = searchText; handler.removeCallbacks(typed); e?.search(searchText) }
-        }).setHeaderAction(Action.BACK).setSearchHint("Search for a place").setInitialSearchText(query)
+        }).setHeaderAction(Action.BACK).setSearchHint(Lang.t("Ort suchen", "Search for a place")).setInitialSearchText(query)
             .setShowKeyboardByDefault(query.isEmpty()).setItemList(list.build()).build()
     }
 }
@@ -866,13 +866,13 @@ class NearbyScreen(carContext: CarContext, private val holder: CarHolder, privat
         val b = ListTemplate.Builder().setTitle(title).setHeaderAction(Action.BACK)
         if (busy && items.isEmpty()) return b.setLoading(true).build()
         val limit = try { carContext.getCarService(ConstraintManager::class.java).getContentLimit(ConstraintManager.CONTENT_LIMIT_TYPE_LIST) } catch (x: Exception) { 6 }
-        val list = ItemList.Builder().setNoItemsMessage("Nothing found nearby")
+        val list = ItemList.Builder().setNoItemsMessage(Lang.t("Nichts in der Nähe gefunden", "Nothing found nearby"))
         for (n in items.take(limit.coerceIn(1, 12))) {
             val r = Row.Builder().setTitle(n.place.name).setImage(rowIcon(carContext, iconRes, tint))
             val bits = ArrayList<String>()
             bits += com.headunit.launcher.Geo.fmtDist(n.dist, e?.imperial ?: true)
             n.price?.let { bits += String.format(java.util.Locale.UK, "%.1fp", it) }
-            if (n.detourMin >= 0) bits += "+${n.detourMin} min"
+            if (n.detourMin >= 0) bits += Lang.t("+${n.detourMin} Min.", "+${n.detourMin} min")
             if (n.extra.isNotBlank()) bits += n.extra
             r.addText(bits.joinToString(" · "))
             if (n.place.sub.isNotBlank()) r.addText(n.place.sub)
@@ -907,13 +907,13 @@ class CarSettingsScreen(carContext: CarContext, private val holder: CarHolder, p
         val limit = try { carContext.getCarService(ConstraintManager::class.java).getContentLimit(ConstraintManager.CONTENT_LIMIT_TYPE_LIST) } catch (x: Exception) { 6 }
         val rows = ArrayList<Row>()
         val sm = e?.soundMode ?: prefs.i(PreferenceKeys.SOUND_MODE, 0)
-        rows += Row.Builder().setTitle("Voice guidance")
-            .addText(listOf("All directions and alerts", "Alerts only (cameras, limits, hazards)", "Off")[sm.coerceIn(0, 2)])
+        rows += Row.Builder().setTitle(Lang.t("Sprachansagen", "Voice guidance"))
+            .addText(listOf(Lang.t("Alle Ansagen und Warnungen", "All directions and alerts"), Lang.t("Nur Warnungen (Blitzer, Limits, Gefahren)", "Alerts only (cameras, limits, hazards)"), Lang.t("Aus", "Off"))[sm.coerceIn(0, 2)])
             .setImage(CarIcon.Builder(IconCompat.createWithResource(carContext, when (sm) { 0 -> R.drawable.ic_car_sound_on; 1 -> R.drawable.ic_car_sound_alerts; else -> R.drawable.ic_car_sound_off })).build())
             .setOnClickListener { if (e != null) e.cycleSound() else prefs.put(PreferenceKeys.SOUND_MODE, (sm + 1) % 3); invalidate() }.build()
         val th = prefs.s(PreferenceKeys.CARTHEME, "car")
-        rows += Row.Builder().setTitle("Day and night")
-            .addText(when (th) { "day" -> "Always day"; "night" -> "Always night"; else -> "Follows the car" })
+        rows += Row.Builder().setTitle(Lang.t("Tag und Nacht", "Day and night"))
+            .addText(when (th) { "day" -> Lang.t("Immer Tag", "Always day"); "night" -> Lang.t("Immer Nacht", "Always night"); else -> Lang.t("Folgt dem Auto", "Follows the car") })
             .setOnClickListener {
                 prefs.put(PreferenceKeys.CARTHEME, when (th) { "car" -> "day"; "day" -> "night"; else -> "car" })
                 onTheme(); invalidate()
@@ -921,8 +921,8 @@ class CarSettingsScreen(carContext: CarContext, private val holder: CarHolder, p
         // Android Auto's templated UI does not expose a native continuous slider here,
         // so these map-accessible controls step through sensible values on each tap.
         val uiScale = prefs.i(PreferenceKeys.CARSCALE, 100).coerceIn(40, 300)
-        rows += Row.Builder().setTitle("Map UI scale")
-            .addText("${uiScale}% · tap to cycle from 40% to 300%")
+        rows += Row.Builder().setTitle(Lang.t("Größe der Kartenoberfläche", "Map UI scale"))
+            .addText(Lang.t("${uiScale} % · tippen zum Wechseln von 40 % bis 300 %", "${uiScale}% · tap to cycle from 40% to 300%"))
             .setOnClickListener {
                 val levels = listOf(40, 60, 80, 100, 120, 140, 160, 180, 200, 225, 250, 275, 300)
                 val next = levels[(levels.indexOf(uiScale).takeIf { it >= 0 } ?: 3).let { (it + 1) % levels.size }]
@@ -930,8 +930,8 @@ class CarSettingsScreen(carContext: CarContext, private val holder: CarHolder, p
                 invalidate()
             }.build()
         val arrowScale = (prefs.s(PreferenceKeys.ARROW_PERCENT, "240").toIntOrNull() ?: 240).coerceIn(100, 500)
-        rows += Row.Builder().setTitle("Locator arrow scale")
-            .addText("${arrowScale}% · tap to increase; resets after 300%")
+        rows += Row.Builder().setTitle(Lang.t("Größe des Positionspfeils", "Locator arrow scale"))
+            .addText(Lang.t("${arrowScale} % · tippen zum Vergrößern, nach 300 % zurück", "${arrowScale}% · tap to increase; resets after 300%"))
             .setOnClickListener {
                 val next = when (arrowScale) { in 0..149 -> 150; in 150..199 -> 200; in 200..249 -> 250; in 250..299 -> 300; else -> 100 }
                 prefs.put(PreferenceKeys.ARROW_PERCENT, next)
@@ -939,13 +939,13 @@ class CarSettingsScreen(carContext: CarContext, private val holder: CarHolder, p
                 invalidate()
             }.build()
         val reroute: (Boolean) -> Unit = { holder.engine?.rerouteForSettings() }
-        rows += toggleRow("Avoid motorways", "avoid_motorway", false, null, reroute)
-        rows += toggleRow("Avoid toll roads", "avoid_toll", false, null, reroute)
-        rows += toggleRow("Speed cameras", "cameras", false, "Show and warn")
-        rows += toggleRow("Traffic lights", "signals", true, "On your route") { on -> try { holder.map?.signalsEnabled(on) } catch (x: Exception) { } }
-        rows += toggleRow("Avoid ferries", "avoid_ferry", false, null, reroute)
+        rows += toggleRow(Lang.t("Autobahnen meiden", "Avoid motorways"), "avoid_motorway", false, null, reroute)
+        rows += toggleRow(Lang.t("Mautstraßen meiden", "Avoid toll roads"), "avoid_toll", false, null, reroute)
+        rows += toggleRow(Lang.t("Blitzer", "Speed cameras"), "cameras", false, Lang.t("Anzeigen und warnen", "Show and warn"))
+        rows += toggleRow(Lang.t("Ampeln", "Traffic lights"), "signals", true, Lang.t("Auf deiner Route", "On your route")) { on -> try { holder.map?.signalsEnabled(on) } catch (x: Exception) { } }
+        rows += toggleRow(Lang.t("Fähren meiden", "Avoid ferries"), "avoid_ferry", false, null, reroute)
         val list = ItemList.Builder()
         for (r in rows.take(limit.coerceIn(1, 12))) list.addItem(r)
-        return ListTemplate.Builder().setTitle("Settings").setHeaderAction(Action.BACK).setSingleList(list.build()).build()
+        return ListTemplate.Builder().setTitle(Lang.t("Einstellungen", "Settings")).setHeaderAction(Action.BACK).setSingleList(list.build()).build()
     }
 }

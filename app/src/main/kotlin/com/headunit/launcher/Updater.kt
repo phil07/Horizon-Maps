@@ -156,12 +156,13 @@ object Updater {
             val build = match.groupValues[1].toIntOrNull() ?: continue
             if (build <= previousBuild || build > installedBuild) continue
             val body = cleanReleaseNotes(release.optString("body"))
-            if (body.isNotBlank()) notes += build to "### 1.0.$build\n$body"
+            if (body.isNotBlank()) notes += build to body
         }
         if (notes.none { it.first == installedBuild } && !installedFallback.isNullOrBlank()) {
-            notes += installedBuild to "### $version\n$installedFallback"
+            notes += installedBuild to installedFallback
         }
-        return notes.sortedBy { it.first }.joinToString("\n\n").take(4000).ifBlank { installedFallback.orEmpty() }
+        // (only the notes themselves: joining the pairs printed "(1023, ..." on the card)
+        return notes.sortedBy { it.first }.joinToString("\n\n") { it.second }.take(4000).ifBlank { installedFallback.orEmpty() }
     }
 
     /** Fetches a single immutable GitHub release tag; returns null for network/API failures. */
@@ -210,7 +211,7 @@ object Updater {
             .replace(Regex("(?m)^[-•⁃]\\s*$"), "")
             .trim()
         return cleaned.takeIf { it.isNotBlank() }
-            ?: "No feature notes were published for this version. Check the project's changelog for the changes included in this build."
+            ?: Lang.t("Für diese Version wurden keine Hinweise veröffentlicht.", "No feature notes were published for this version. Check the project's changelog for the changes included in this build.")
     }
 
     private fun readSmallText(address: String): String {
@@ -269,7 +270,7 @@ object Updater {
             .setDestinationInExternalFilesDir(ctx, null, name)
         val id = dm.enqueue(req)
         val startedAt = android.os.SystemClock.elapsedRealtime()
-        progress("Downloading…")
+        progress(Lang.t("Wird heruntergeladen…", "Downloading…"))
         try {
           while (true) {
             if (Thread.currentThread().isInterrupted) throw InterruptedException("Update download interrupted")
@@ -286,7 +287,7 @@ object Updater {
                 when (status) {
                     DownloadManager.STATUS_SUCCESSFUL -> {
                         val uri = dm.getUriForDownloadedFile(id) ?: throw IllegalStateException("Download missing")
-                        progress("Verifying download…")
+                        progress(Lang.t("Download wird geprüft…", "Verifying download…"))
                         val digest = java.security.MessageDigest.getInstance("SHA-256")
                         var bytesRead = 0L
                         ctx.contentResolver.openInputStream(uri)?.use { input ->
@@ -309,16 +310,16 @@ object Updater {
                         // installed with AAEnabler: the checked file goes to Downloads for AAEnabler to install, so the app stays in
                         // Android Auto (installing it here would take it out)
                         if (toDownloads && android.os.Build.VERSION.SDK_INT >= 29) {
-                            progress("Saving to Downloads…")
+                            progress(Lang.t("Wird in Downloads gespeichert…", "Saving to Downloads…"))
                             saveToDownloads(ctx, uri, name)
                             return
                         }
-                        progress("Opening the installer…")
+                        progress(Lang.t("Installationsprogramm wird geöffnet…", "Opening the installer…"))
                         val i = Intent(Intent.ACTION_VIEW).setDataAndType(uri, "application/vnd.android.package-archive")
                             .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK)
                         // Explicit ClipData helps the package installer receive the content-URI read grant
                         // consistently across Android versions and installer implementations.
-                        i.clipData = android.content.ClipData.newRawUri("Horizon Nav update", uri)
+                        i.clipData = android.content.ClipData.newRawUri(Lang.t("Horizon-Nav-Update", "Horizon Nav update"), uri)
                         ctx.startActivity(i)
                         return
                     }
@@ -327,9 +328,9 @@ object Updater {
                         val percent = (done * 100 / total).coerceIn(0, 100)
                         val doneMb = done / (1024.0 * 1024.0)
                         val totalMb = total / (1024.0 * 1024.0)
-                        progress("Downloading… $percent% (${"%.1f".format(java.util.Locale.UK, doneMb)} / ${"%.1f".format(java.util.Locale.UK, totalMb)} MB)")
+                        progress(Lang.t("Wird heruntergeladen… ", "Downloading… ") + "$percent% (${"%.1f".format(java.util.Locale.UK, doneMb)} / ${"%.1f".format(java.util.Locale.UK, totalMb)} MB)")
                     } else if (done > 0) {
-                        progress("Downloading… ${"%.1f".format(java.util.Locale.UK, done / (1024.0 * 1024.0))} MB")
+                        progress(Lang.t("Wird heruntergeladen… ", "Downloading… ") + "${"%.1f".format(java.util.Locale.UK, done / (1024.0 * 1024.0))} MB")
                     }
                 }
             }

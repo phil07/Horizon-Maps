@@ -255,7 +255,7 @@ class Prefs(ctx: Context) {
 
     /** Restores values from [exportJson] output; validates the complete file before changing settings. */
     fun importJson(text: String): Int {
-        require(text.isNotBlank() && text.length <= 2 * 1024 * 1024) { "Backup is empty or too large" }
+        require(text.isNotBlank() && text.length <= 2 * 1024 * 1024) { Lang.t("Die Sicherung ist leer oder zu groß", "Backup is empty or too large") }
         val o = JSONObject(text)
         // Parse and validate everything first, so a malformed backup can never leave half the settings restored.
         val pending = LinkedHashMap<String, String>()

@@ -29,9 +29,9 @@ object MapboxRest {
     private fun enc(s: String) = URLEncoder.encode(s, "UTF-8").replace("+", "%20")
 
     private fun httpError(code: Int, body: String): IOException = IOException(when (code) {
-        401 -> "Mapbox didn't accept the access token (401). Check it in Settings > Keys & accounts"
-        403 -> "This Mapbox token isn't allowed to use that service (403). Check its scopes at account.mapbox.com"
-        429 -> "Mapbox's request limit was reached. Try again in a minute"
+        401 -> Lang.t("Mapbox hat den Zugangsschlüssel abgelehnt (401). Prüfe ihn unter Einstellungen > Schlüssel & Konten", "Mapbox didn't accept the access token (401). Check it in Settings > Keys & accounts")
+        403 -> Lang.t("Dieser Mapbox-Schlüssel darf diesen Dienst nicht nutzen (403). Prüfe seine Berechtigungen auf account.mapbox.com", "This Mapbox token isn't allowed to use that service (403). Check its scopes at account.mapbox.com")
+        429 -> Lang.t("Das Anfragelimit von Mapbox ist erreicht. Versuche es in einer Minute erneut", "Mapbox's request limit was reached. Try again in a minute")
         else -> "HTTP $code ${body.take(140)}"
     })
 
@@ -195,7 +195,7 @@ object MapboxRest {
     /** True when the last request was accepted with its departure time. */
     @Volatile var departApplied = false
 
-    /** Countries (two-letter codes) where toll roads are avoided even though "Avoid toll roads" is off. */
+    /** Countries (two-letter codes) where toll roads are avoided even though Lang.t("Mautstraßen meiden", "Avoid toll roads") is off. */
     @Volatile var tollCountries: Set<String> = emptySet()
 
     /** The route pays a toll in one of [countries]: a toll stretch (Mapbox marks its junctions "toll") in that country. */

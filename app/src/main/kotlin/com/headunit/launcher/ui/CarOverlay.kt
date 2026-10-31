@@ -1,6 +1,7 @@
 package com.headunit.launcher.ui
 
 import com.headunit.launcher.R
+import com.headunit.launcher.Lang
 import androidx.compose.ui.res.stringResource
 
 import androidx.compose.animation.AnimatedVisibility
@@ -358,7 +359,7 @@ private fun FasterCard(engine: NavEngine, modifier: Modifier) {
         }
         Column(Modifier.weight(1f, fill = false)) {
             Text(stringResource(R.string.ui_015), color = c.text, fontSize = 18.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            Text("Saves about ${fr.savedMin} min", color = Good, fontSize = 14.sp, fontWeight = FontWeight.Medium, maxLines = 1)
+            Text(Lang.t("Spart etwa ${fr.savedMin} Min.", "Saves about ${fr.savedMin} min"), color = Good, fontSize = 14.sp, fontWeight = FontWeight.Medium, maxLines = 1)
         }
         Box(Modifier.carTap("faster-yes") { engine.acceptFaster() }) { ImmPill("Wechseln", {}, filled = true) }
         Box(Modifier.carTap("faster-no") { engine.dismissFaster() }) { ImmPill("Beibehalten", {}) }
@@ -515,7 +516,7 @@ private fun CarRoutePreview(engine: NavEngine) {
             Box(Modifier.align(Alignment.CenterStart).fillMaxHeight().fillMaxWidth(progress.value).background(c.accent))
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Text(stringResource(R.string.ui_052), color = Color.White, fontSize = 17.sp, fontWeight = FontWeight.Bold)
-                if (autoStart) Text("Starting in ${kotlin.math.ceil((1f - progress.value) * countdownSeconds).toInt()} s", color = Color.White.copy(alpha = 0.85f), fontSize = 12.sp) else Text(stringResource(R.string.ui_055), color = Color.White.copy(alpha = 0.85f), fontSize = 12.sp)
+                if (autoStart) Text(Lang.t("Start in ${kotlin.math.ceil((1f - progress.value) * countdownSeconds).toInt()} s", "Starting in ${kotlin.math.ceil((1f - progress.value) * countdownSeconds).toInt()} s"), color = Color.White.copy(alpha = 0.85f), fontSize = 12.sp) else Text(stringResource(R.string.ui_055), color = Color.White.copy(alpha = 0.85f), fontSize = 12.sp)
             }
         }
     }
@@ -606,7 +607,7 @@ private fun CarChips(engine: NavEngine, actions: CarActions, rows: Int) {
         if (engine.prefs.b(PreferenceKeys.QUICKLIST, true)) Column(Modifier.fillMaxWidth().panel(10.dp, RoundedCornerShape(24.dp), c.surface).padding(vertical = 2.dp)) {
             Row(Modifier.fillMaxWidth().carTap("saved") { actions.places() }.padding(start = 16.dp, end = 14.dp, top = 10.dp, bottom = 10.dp), verticalAlignment = Alignment.CenterVertically) {
                 Text(stringResource(R.string.ui_040), color = c.sub, fontSize = 12.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.2.sp, modifier = Modifier.weight(1f))
-                Text(if (saved.size > rows) "All ${saved.size}" else "Open", color = c.accent, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+                Text(if (saved.size > rows) Lang.t("Alle ${saved.size}", "All ${saved.size}") else Lang.t("Öffnen", "Open"), color = c.accent, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
             }
             for ((i, tr) in saved.take(rows).withIndex()) {
                 val (p, fav, label) = tr

@@ -195,8 +195,8 @@ object TomTomRest {
 
     /** A failed request, explained in plain words for the common cases (a missing or wrong key, the daily limit). */
     private fun httpError(code: Int, body: String): IOException = IOException(when (code) {
-        401, 403 -> "TomTom didn't accept the API key. Check it in Settings > Keys & accounts (a free key from developer.tomtom.com needs the Search and Routing APIs)"
-        429 -> "This TomTom key has reached its daily limit. It resets tomorrow"
+        401, 403 -> Lang.t("TomTom hat den API-Schlüssel abgelehnt. Prüfe ihn unter Einstellungen > Schlüssel & Konten (ein kostenloser Schlüssel von developer.tomtom.com braucht die Search- und Routing-APIs)", "TomTom didn't accept the API key. Check it in Settings > Keys & accounts (a free key from developer.tomtom.com needs the Search and Routing APIs)")
+        429 -> Lang.t("Dieser TomTom-Schlüssel hat sein Tageslimit erreicht. Es wird morgen zurückgesetzt", "This TomTom key has reached its daily limit. It resets tomorrow")
         else -> "HTTP $code ${body.take(140)}"
     })
 
@@ -641,7 +641,7 @@ object Weather {
         val parse = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US)
         val show = java.text.SimpleDateFormat("EEE", java.util.Locale.getDefault())
         val days = (0 until dt.length()).map { i ->
-            val label = if (i == 0) "Today" else show.format(parse.parse(dt.getString(i))!!)
+            val label = if (i == 0) Lang.t("Heute", "Today") else show.format(parse.parse(dt.getString(i))!!)
             Day(label, dc.getInt(i), mx.getDouble(i), mn.getDouble(i))
         }
         Forecast(
@@ -651,9 +651,9 @@ object Weather {
     } catch (e: Exception) { null }
 
     fun text(code: Int) = when (code) {
-        0 -> "Clear"; 1, 2 -> "Partly cloudy"; 3 -> "Overcast"; 45, 48 -> "Fog"
-        in 51..57 -> "Drizzle"; in 61..67 -> "Rain"; in 71..77 -> "Snow"; in 80..82 -> "Showers"
-        in 85..86 -> "Snow showers"; in 95..99 -> "Thunderstorm"; else -> "—"
+        0 -> Lang.t("Klar", "Clear"); 1, 2 -> Lang.t("Teils bewölkt", "Partly cloudy"); 3 -> Lang.t("Bedeckt", "Overcast"); 45, 48 -> Lang.t("Nebel", "Fog")
+        in 51..57 -> Lang.t("Nieselregen", "Drizzle"); in 61..67 -> Lang.t("Regen", "Rain"); in 71..77 -> Lang.t("Schnee", "Snow"); in 80..82 -> Lang.t("Schauer", "Showers")
+        in 85..86 -> Lang.t("Schneeschauer", "Snow showers"); in 95..99 -> Lang.t("Gewitter", "Thunderstorm"); else -> "—"
     }
 }
 

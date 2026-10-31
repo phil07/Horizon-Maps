@@ -1,6 +1,7 @@
 package com.headunit.launcher.ui
 
 import com.headunit.launcher.R
+import com.headunit.launcher.Lang
 
 import android.content.Intent
 import android.net.Uri
@@ -201,11 +202,11 @@ fun rememberShareEta(engine: NavEngine): () -> Unit {
     val ctx = LocalContext.current
     val prefs = engine.prefs
     fun message(): String {
-        val d = engine.dest?.name ?: "my destination"
+        val d = engine.dest?.name ?: Lang.t("mein Ziel", "my destination")
         val e = engine.eta
         val p = engine.fix?.pos
-        return "I'm on my way to $d" + (if (e != null) ", arriving about ${e.arrive}" else "") +
-            (if (p != null) ". Where I am now: https://maps.google.com/?q=${p.lat},${p.lon}" else ".")
+        return Lang.t("Ich bin unterwegs nach $d", "I'm on my way to $d") + (if (e != null) Lang.t(", Ankunft etwa ${e.arrive}", ", arriving about ${e.arrive}") else "") +
+            (if (p != null) Lang.t(". Hier bin ich gerade: https://maps.google.com/?q=${p.lat},${p.lon}", ". Where I am now: https://maps.google.com/?q=${p.lat},${p.lon}") else ".")
     }
     fun shareNow() {
         val num = prefs.s(PreferenceKeys.ETA_NUMBER, "")

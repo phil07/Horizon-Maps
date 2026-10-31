@@ -433,7 +433,7 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
                 try { install(st) } catch (e: Throwable) { android.util.Log.w("MapBinding", "install failed", e) }
                 onStyleLoaded?.invoke()
             }
-        } catch (e: Throwable) { onError?.invoke(e.message ?: "Map failed to load") }
+        } catch (e: Throwable) { onError?.invoke(e.message ?: Lang.t("Karte konnte nicht geladen werden", "Map failed to load")) }
     }
 
     /** Adds a picture to the map at the size MapLibre gave it (its pixels at the bitmap's own density). */
@@ -500,7 +500,7 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
     }
 
     /** Google-style destination pin: red teardrop with a white centre. */
-    /** Where you parked, shown on the map ("Your car"), or null for none. */
+    /** Where you parked, shown on the map (Lang.t("Dein Auto", "Your car")), or null for none. */
     @Volatile private var parkedAt: LL? = null
     fun setParked(p: LL?) {
         if (p == parkedAt || (p != null && parkedAt != null && Geo.dist(p, parkedAt!!) < 1.0)) return
@@ -1120,7 +1120,7 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
     var lampGap = 40.0
         private set
     /** What the lamps are doing now, for Settings. */
-    @Volatile var lampStage = "waiting for the map"
+    @Volatile var lampStage = Lang.t("warte auf die Karte", "waiting for the map")
     fun lampInfo(): String = if (!lampsOn) "off" else lampStage
 
     /** Streets lamps stand along (not motorways or tunnels), from the last look at the roads on screen. */
@@ -1157,7 +1157,7 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
         // the lamp post itself, and its lamp (lit up at night)
         addL(st, Furniture.layer("dl-lamp-post", "dl-lamps", Furniture.LAMP, if (night) 0.3 else 0.0, 15.0, lampSize()).inSlot(MID))
         addL(st, Furniture.layer("dl-lamp-light", "dl-lamps", Furniture.LAMP_LENS, if (night) 1.0 else 0.15, 15.0, lampSize()).inSlot(MID))
-        lampStage = "waiting for the map"
+        lampStage = Lang.t("warte auf die Karte", "waiting for the map")
         main0.postDelayed({ refreshLamps(true) }, 300L)
     }
 
@@ -1169,7 +1169,7 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
         val wantLights = signalsOn && st.styleSourceExists("dl-signals-near")
         if (!wantLamps && !wantLights) return
         val cam = try { mbMap.cameraState } catch (e: Throwable) { return }
-        if (cam.zoom < 14.0) { if (wantLamps) lampStage = "zoom in closer to see them"; return }
+        if (cam.zoom < 14.0) { if (wantLamps) lampStage = Lang.t("näher heranzoomen, um sie zu sehen", "zoom in closer to see them"); return }
         val c = LL(cam.center.latitude(), cam.center.longitude())
         val now = android.os.SystemClock.uptimeMillis()
         val last = lampsCentre
@@ -1249,12 +1249,12 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
         val pools = kept.map { val h = Furniture.offset(LL(it[0], it[1]), it[2], 2.5); Feature.fromGeometry(Point.fromLngLat(h.lon, h.lat)) }
         val placedOnRoads = kept.size - minOf(kept.size, near.size)
         val note = when {
-            kept.isEmpty() && roads.isEmpty() -> "no streets read from the map here yet"
-            kept.isEmpty() -> "none here"
-            mapped.isNotEmpty() && placedOnRoads > 0 -> "${kept.size} shown (${near.size} mapped, $placedOnRoads placed along the streets)"
-            mapped.isNotEmpty() -> "${kept.size} shown, from your offline pack"
-            !OfflineRouter.hasLamps(ctx) -> "${kept.size} placed along the streets (your offline pack has no lamp list)"
-            else -> "${kept.size} placed along the streets (none mapped here)"
+            kept.isEmpty() && roads.isEmpty() -> Lang.t("hier noch keine Straßen aus der Karte gelesen", "no streets read from the map here yet")
+            kept.isEmpty() -> Lang.t("hier keine", "none here")
+            mapped.isNotEmpty() && placedOnRoads > 0 -> Lang.t("${kept.size} angezeigt (${near.size} erfasst, $placedOnRoads entlang der Straßen gesetzt)", "${kept.size} shown (${near.size} mapped, $placedOnRoads placed along the streets)")
+            mapped.isNotEmpty() -> Lang.t("${kept.size} angezeigt, aus deinem Offline-Paket", "${kept.size} shown, from your offline pack")
+            !OfflineRouter.hasLamps(ctx) -> Lang.t("${kept.size} entlang der Straßen gesetzt (dein Offline-Paket hat keine Laternenliste)", "${kept.size} placed along the streets (your offline pack has no lamp list)")
+            else -> Lang.t("${kept.size} entlang der Straßen gesetzt (hier keine erfasst)", "${kept.size} placed along the streets (none mapped here)")
         }
         return Triple(posts, pools, note)
     }
@@ -1330,7 +1330,7 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
     var signalsOn = true
     @Volatile private var signalPts: List<LL> = emptyList()
     @Volatile private var signalErr = ""
-    @Volatile private var signalStage = "not started"
+    @Volatile private var signalStage = Lang.t("nicht gestartet", "not started")
     @Volatile private var signalToken = 0
     @Volatile private var signalBusy = false
     private var sigRoute: List<LL>? = null
@@ -1347,7 +1347,7 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
     /** One line for the settings page: how many lights are known and whether the last fetch worked. */
     fun signalInfo(): String {
         if (!signalsOn) return "off"
-        if (main.size < 2) return "no route (lights only show on your route)"
+        if (main.size < 2) return Lang.t("keine Route (Ampeln erscheinen nur auf deiner Route)", "no route (lights only show on your route)")
         val onR = signalShown
         return "$onR on the drawn route, ${signalPts.size} found along it" + (if (signalErr.isNotEmpty()) ", last error: $signalErr" else "") + ", status: $signalStage"
     }
@@ -1355,7 +1355,7 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
     /** A short version for the performance meter. */
     fun signalShort(): String {
         if (!signalsOn) return "off"
-        if (main.size < 2) return "no route"
+        if (main.size < 2) return Lang.t("keine Route", "no route")
         val onR = signalShown
         return "$onR shown/${signalPts.size} found" + (if (signalErr.isNotEmpty()) " ($signalErr)" else "") + " · $signalStage"
     }
@@ -1522,7 +1522,7 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
         if (route.size < 2 || route === sigRoute) return
         sigRoute = route
         val token = ++signalToken
-        signalBusy = true; signalErr = ""; signalStage = "finding lights along the route…"
+        signalBusy = true; signalErr = ""; signalStage = Lang.t("suche Ampeln entlang der Route…", "finding lights along the route…")
         Thread {
             try {
                 // points every ~50 m along the route
@@ -1554,7 +1554,7 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
                 for (ch in chunks) {
                     if (token != signalToken) return@Thread
                     n++
-                    signalStage = "finding lights along the route ($n of ${chunks.size})…"
+                    signalStage = Lang.t("suche Ampeln entlang der Route ($n von ${chunks.size})…", "finding lights along the route ($n of ${chunks.size})…")
                     val cells = HashSet<Long>()
                     for (i in 0 until ch.size - 1) cellsAlong(ch[i], ch[i + 1], cells)
                     var found: List<LL>? = null
@@ -1622,7 +1622,7 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
                 main0.post {
                     if (token == signalToken) {
                         signalPts = snap; pushSignals(); signalBusy = false
-                        signalStage = if (signalErr.isEmpty()) "route searched (${if (usedPack) "downloaded area" else Overpass.lastNote})" else "some of the route couldn't be searched, will retry"
+                        signalStage = if (signalErr.isEmpty()) "route searched (${if (usedPack) "downloaded area" else Overpass.lastNote})" else Lang.t("ein Teil der Route konnte nicht durchsucht werden, neuer Versuch folgt", "some of the route couldn't be searched, will retry")
                     }
                 }
             } catch (e: Throwable) {
@@ -2435,7 +2435,7 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
     fun setRoute(mainPts: List<LL>, altPts: List<List<LL>>, sev: IntArray? = null) {
         main = mainPts; alts = altPts; mainSev = sev; mainOff = 0; pushRoute(); pushSignals()
         if (mainPts.isEmpty()) { setAvgZones(emptyList(), emptyList()); setTunnels(emptyList()); setCrossings(emptyList()); setStopSigns(emptyList()) }
-        if (mainPts.size >= 2) loadSignalsAlong(mainPts) else { sigRoute = null; signalToken++; signalBusy = false; signalStage = "no route" }
+        if (mainPts.size >= 2) loadSignalsAlong(mainPts) else { sigRoute = null; signalToken++; signalBusy = false; signalStage = Lang.t("keine Route", "no route") }
         val on = mainPts.isNotEmpty()
         if (on != routing) { routing = on; applyTraffic(); applyNearLook() }
         syncFlow()
@@ -2455,8 +2455,8 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
      */
     private fun bubbleBitmap(diff: Int, traffic: Int = 0): Bitmap {
         val d = mapView.resources.displayMetrics.density * 2f
-        val top = if (diff < 0) "${-diff} min faster" else if (diff > 0) "$diff min slower" else "Same time"
-        val sub = when (traffic) { -1 -> "Less traffic"; 1 -> "More traffic"; else -> "Similar traffic" }
+        val top = if (diff < 0) Lang.t("${-diff} Min. schneller", "${-diff} min faster") else if (diff > 0) Lang.t("$diff Min. langsamer", "$diff min slower") else Lang.t("Gleiche Zeit", "Same time")
+        val sub = when (traffic) { -1 -> Lang.t("Weniger Verkehr", "Less traffic"); 1 -> Lang.t("Mehr Verkehr", "More traffic"); else -> Lang.t("Ähnlicher Verkehr", "Similar traffic") }
         // day: a light card with dark writing, like the rest of the day look; night: the dark card. A faster way is green in both
         val day = !nightStyle
         val green = diff < 0

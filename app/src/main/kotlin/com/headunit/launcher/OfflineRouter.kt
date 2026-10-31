@@ -159,7 +159,7 @@ object OfflineRouter {
         val dst = File(d, name)
         // already here (same size): kept, and marked as checked now, so the "new map data" check doesn't keep offering it
         if (total > 0 && dst.exists() && dst.length() == total) { c.disconnect(); dst.setLastModified(System.currentTimeMillis()); progress("Already have $name"); return true }
-        progress("Downloading $name…")
+        progress(Lang.t("$name wird heruntergeladen…", "Downloading $name…"))
         val tmp = File(d, "$name.part")
         c.inputStream.use { i ->
             tmp.outputStream().use { o ->
@@ -170,7 +170,7 @@ object OfflineRouter {
                     if (n < 0) break
                     o.write(buf, 0, n); done += n
                     val mb = done / 8_000_000
-                    if (mb != lastMb) { lastMb = mb; progress("Downloading $name… ${done / 1_048_576} MB" + if (total > 0) " of ${total / 1_048_576} MB" else "") }
+                    if (mb != lastMb) { lastMb = mb; progress(Lang.t("$name wird heruntergeladen… ${done / 1_048_576} MB", "Downloading $name… ${done / 1_048_576} MB") + if (total > 0) Lang.t(" von ${total / 1_048_576} MB", " of ${total / 1_048_576} MB") else "") }
                 }
             }
         }
@@ -228,7 +228,7 @@ object OfflineRouter {
         if (!fetchJoined(d, base, "map.pmtiles", progress)) progress("No map.pmtiles in this pack")
         if (!fetchJoined(d, base, "postcodes.tsv", progress)) progress("No postcodes.tsv in this pack")
         if (!fetchJoined(d, base, "addresses.tsv", progress)) progress("No addresses.tsv: house numbers will not be searchable offline")
-        if (fetchJoined(d, base, "names.idx", progress)) progress("Search index ready")
+        if (fetchJoined(d, base, "names.idx", progress)) progress(Lang.t("Suchindex bereit", "Search index ready"))
         if (!fetchJoined(d, base, "lamps.tsv", progress)) progress("No lamps.tsv: night map will use estimated lamps")
         if (!fetchJoined(d, base, "signals.tsv", progress)) progress("No signals.tsv: traffic lights will be fetched online instead")
         // speed limits and cameras (added to packs later, so they may live in a separate release for the older UK packs)
@@ -237,7 +237,7 @@ object OfflineRouter {
                 progress("No $name yet: ${if (name == "limits.bin") "speed limits" else "speed cameras"} will be looked up online")
         }
         invalidate()
-        progress("Download finished")
+        progress(Lang.t("Download abgeschlossen", "Download finished"))
     }
 
     /** The build machine's valhalla.json points at its own folders: rewrite those paths for this device. */
