@@ -5,20 +5,19 @@ import java.net.URL
 
 /**
  * The areas an offline pack can be downloaded for. Each pack is built (once, on GitHub) from the matching Geofabrik extract of
- * OpenStreetMap and published as a release called "pack-<id>". England & Wales and Great Britain keep their original releases.
+ * OpenStreetMap and published as a release called "pack-<id>".
  *
  * The id comes from the Geofabrik path with the continent dropped: europe/france → "france", north-america/us/georgia → "us-georgia".
  * The "Build country packs" workflow uses exactly the same rule, so the app always knows where a pack will be.
  */
 data class PackRegion(val id: String, val name: String, val group: String, val path: String, val country: String) {
-    // the original UK packs live in the HeadUnitOrbis repo; every other area is built in the Horizon-Maps repo
-    val url: String get() = if (id == "ew" || id == "gb") "$RELEASES/pack-$id" else "$COUNTRY_RELEASES/pack-$id"
+    // all packs, UK included, are published as releases of this repo
+    val url: String get() = "$RELEASES/pack-$id"
     /** Where the speed limit and camera files are: the same release, except the UK packs, whose extras are built in Horizon-Maps. */
     val extrasUrl: String get() = "$COUNTRY_RELEASES/pack-$id"
 }
 
-const val RELEASES = "https://github.com/benbishop028-arch/HeadUnitOrbis/releases/download"
-const val COUNTRY_RELEASES = "https://github.com/benbishop028-arch/Horizon-Maps/releases/download"
+const val RELEASES = "https://github.com/phil07/Horizon-Maps/releases/download"
 
 object PackRegions {
     fun idOf(path: String): String {

@@ -607,9 +607,9 @@ object OfflineRouter {
     }
 
     /** Where the pack is published by the build workflow, so the Download button works without typing anything. */
-    const val DEFAULT_PACK = "https://github.com/benbishop028-arch/HeadUnitOrbis/releases/download/pack-ew"
+    const val DEFAULT_PACK = "https://github.com/phil07/Horizon-Maps/releases/download/pack-ew"
     /** The Great Britain pack (England, Wales and Scotland), built by the same workflow with the "pack-gb" release name. */
-    const val DEFAULT_PACK_GB = "https://github.com/benbishop028-arch/HeadUnitOrbis/releases/download/pack-gb"
+    const val DEFAULT_PACK_GB = "https://github.com/phil07/Horizon-Maps/releases/download/pack-gb"
 
     fun hasSignals(ctx: Context): Boolean = hasFile(dir(ctx), "signals.tsv", 20)
 
