@@ -1,6 +1,7 @@
 package com.headunit.launcher.ui
 
 import com.headunit.launcher.R
+import com.headunit.launcher.Lang
 import androidx.compose.ui.res.stringResource
 
 import androidx.compose.animation.AnimatedVisibility
@@ -377,8 +378,9 @@ private fun nearbyIcon(kind: String?): androidx.compose.ui.graphics.vector.Image
 }
 
 private fun nearbyTitle(kind: String?): String = when (kind) {
-    "fuel" -> "Fuel stations"; "charging" -> "Charging points"; "food" -> "Food"; "coffee" -> "Coffee"
-    "toilets" -> "Toilets"; "services" -> "Services"; else -> "Car parks"
+    "fuel" -> Lang.t("Tankstellen", "Fuel stations"); "charging" -> Lang.t("Ladesäulen", "Charging points")
+    "food" -> Lang.t("Essen", "Food"); "coffee" -> Lang.t("Kaffee", "Coffee")
+    "toilets" -> Lang.t("Toiletten", "Toilets"); "services" -> Lang.t("Raststätten", "Services"); else -> Lang.t("Parkplätze", "Car parks")
 }
 
 @Composable
@@ -386,7 +388,7 @@ internal fun NearbyCard(engine: NavEngine) {
     val c = LocalVw.current
     val adding = engine.stopMode || engine.route != null
     val along = engine.nearby.any { it.ahead }
-    val title = (if (adding) "Add a stop: " else "") + nearbyTitle(engine.nearbyKind) + (if (along) " ahead" else "")
+    val title = (if (adding) Lang.t("Stopp hinzufügen: ", "Add a stop: ") else "") + nearbyTitle(engine.nearbyKind) + (if (along) Lang.t(" voraus", " ahead") else "")
     val hasPrices = engine.nearby.any { it.price != null }
     Column(Modifier.floating(24.dp).padding(14.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {

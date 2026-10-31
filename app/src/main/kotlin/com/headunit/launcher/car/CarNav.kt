@@ -1,6 +1,7 @@
 package com.headunit.launcher.car
 
 import com.headunit.launcher.R
+import com.headunit.launcher.Lang
 
 import com.headunit.launcher.PreferenceKeys
 import android.app.Presentation
@@ -854,7 +855,7 @@ class NearbyScreen(carContext: CarContext, private val holder: CarHolder, privat
         })
     }
 
-    private val title = when (kind) { "fuel" -> "Fuel"; "charging" -> "Charging"; "food" -> "Food"; "coffee" -> "Coffee"; "parking" -> "Parking"; else -> "Nearby" }
+    private val title = when (kind) { "fuel" -> Lang.t("Tanken", "Fuel"); "charging" -> Lang.t("Laden", "Charging"); "food" -> Lang.t("Essen", "Food"); "coffee" -> Lang.t("Kaffee", "Coffee"); "parking" -> Lang.t("Parken", "Parking"); else -> Lang.t("In der Nähe", "Nearby") }
     private val iconRes = when (kind) { "fuel" -> R.drawable.ic_car_fuel; "charging" -> R.drawable.ic_car_charging; "food" -> R.drawable.ic_car_food; "coffee" -> R.drawable.ic_car_coffee; "parking" -> R.drawable.ic_car_parking; else -> R.drawable.ic_car_pin }
     private val tint = when (kind) { "fuel" -> 0xFFEA4335.toInt(); "charging" -> 0xFF34A853.toInt(); "food" -> 0xFFF29900.toInt(); "coffee" -> 0xFFA56BFF.toInt(); else -> 0xFF4C8DFF.toInt() }
 

@@ -73,6 +73,7 @@ Add user-facing Horizon Nav changes under **Unreleased** before publishing each 
 - Updates mit AAEnabler: Wurde Horizon Nav mit AAEnabler installiert, speichert „Aktualisieren“ die neue Version im Download-Ordner, damit sie in Android Auto bleibt.
 - Verkehrsbanner: Der Hinweis „Verkehr in deiner Nähe“ verschwindet nach 5 Sekunden und bleibt nicht mehr dauerhaft stehen.
 - Verkehrsübersicht im Stand: Die lange Erklärung erscheint nicht mehr bei jedem Anhalten und Losfahren.
+- Kategorien auf Deutsch: Tankstellen, Ladesäulen, Essen, Kaffee, Parkplätze, Toiletten und Raststätten heißen in der Suche, den Kartenoptionen und in Android Auto jetzt deutsch, ebenso Meldungen wie Gefahr, Panne und mobiler Blitzer.
 - Einrichtung: Die Auswahl des Suchbereichs („Nur in Deutschland“ / „Überall“) wird wieder vollständig angezeigt.
 
 ## 1.0.246 — 2026-10-28

@@ -4013,7 +4013,8 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
             nearbySort = if (has("cheap")) "cheap" else "near"
             if (has("stop") && route != null) stopMode = true
             loadNearby(kind, has("destination", "when i get there"))
-            say("Looking for " + Overpass.kindLabel(kind).lowercase() + if (route != null) " along your route" else " nearby")
+            say(if (Lang.de) "Suche " + Overpass.kindLabel(kind) + if (route != null) " entlang der Route" else " in der Nähe"
+                else "Looking for " + Overpass.kindLabel(kind).lowercase() + if (route != null) " along your route" else " nearby")
             return ""
         }
         // route preferences

@@ -445,8 +445,9 @@ object Overpass {
     }
 
     fun kindLabel(kind: String): String = when (kind) {
-        "fuel" -> "Fuel station"; "fuel_e85" -> "E85 station"; "charging" -> "Charging point"; "food" -> "Food"; "coffee" -> "Coffee"
-        "toilets" -> "Toilets"; "services" -> "Services"; else -> "Car park"
+        "fuel" -> Lang.t("Tankstelle", "Fuel station"); "fuel_e85" -> Lang.t("E85-Tankstelle", "E85 station"); "charging" -> Lang.t("Ladesäule", "Charging point")
+        "food" -> Lang.t("Essen", "Food"); "coffee" -> Lang.t("Kaffee", "Coffee")
+        "toilets" -> Lang.t("Toiletten", "Toilets"); "services" -> Lang.t("Raststätte", "Services"); else -> Lang.t("Parkplatz", "Car park")
     }
 
     /** kind: "fuel", "charging", "parking", "food", "coffee", "toilets" or "services". */

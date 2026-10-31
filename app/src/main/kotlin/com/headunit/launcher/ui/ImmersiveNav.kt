@@ -1,6 +1,7 @@
 package com.headunit.launcher.ui
 
 import com.headunit.launcher.R
+import com.headunit.launcher.Lang
 import androidx.compose.ui.res.stringResource
 
 import androidx.activity.compose.BackHandler
@@ -562,21 +563,21 @@ private fun OptionsSheet(engine: NavEngine, shareEta: () -> Unit, wide: Boolean 
                 WideTiles(5, listOf(
                     TileSpec(Icons.Rounded.LocalPolice, "Police", Color(0xFF1E66F5), { engine.report("police"); close() }),
                     TileSpec(Icons.Rounded.CarCrash, "Crash", Bad, { engine.report("accident"); close() }),
-                    TileSpec(Icons.Rounded.PriorityHigh, "Hazard", Warn, { engine.report("hazard"); close() }),
-                    TileSpec(Icons.Rounded.Build, "Broken down", Color(0xFFFB8C00), { engine.report("breakdown"); close() }),
-                    TileSpec(Icons.Rounded.CameraAlt, "Mobile cam", Color(0xFF1E66F5), { engine.report("mobilecam"); close() }),
+                    TileSpec(Icons.Rounded.PriorityHigh, Lang.t("Gefahr", "Hazard"), Warn, { engine.report("hazard"); close() }),
+                    TileSpec(Icons.Rounded.Build, Lang.t("Panne", "Broken down"), Color(0xFFFB8C00), { engine.report("breakdown"); close() }),
+                    TileSpec(Icons.Rounded.CameraAlt, Lang.t("Mobiler Blitzer", "Mobile cam"), Color(0xFF1E66F5), { engine.report("mobilecam"); close() }),
                 ), compact = true)
                 // with no route the map page already has fuel, charging, food, coffee and parking, so only the rest are here
                 fun find(kind: String): () -> Unit = { engine.loadNearby(kind, false); close() }
                 val finds = listOfNotNull(
-                    if (engine.route != null) TileSpec(Icons.Rounded.LocalGasStation, "Fuel", Color(0xFFEA4335), find("fuel")) else null,
-                    if (engine.route != null) TileSpec(Icons.Rounded.EvStation, "Charging", Color(0xFF34A853), find("charging")) else null,
-                    if (engine.route != null) TileSpec(Icons.Rounded.Restaurant, "Food", Color(0xFFF29900), find("food")) else null,
-                    if (engine.route != null) TileSpec(Icons.Rounded.LocalCafe, "Coffee", Color(0xFFA56BFF), find("coffee")) else null,
-                    TileSpec(Icons.Rounded.Wc, "Toilets", Color(0xFF4C8DFF), find("toilets")),
-                    if (engine.route != null) TileSpec(Icons.Rounded.LocalParking, "Parking", Color(0xFF4C8DFF), find("parking")) else null,
-                    if (engine.route != null) TileSpec(Icons.Rounded.Apartment, "Services", Color(0xFF12A4B4), find("services")) else null,
-                    if (engine.dest != null) TileSpec(Icons.Rounded.Place, "Park at end", Color(0xFFEA4335), { engine.loadNearby("parking", true); close() }) else null,
+                    if (engine.route != null) TileSpec(Icons.Rounded.LocalGasStation, Lang.t("Tanken", "Fuel"), Color(0xFFEA4335), find("fuel")) else null,
+                    if (engine.route != null) TileSpec(Icons.Rounded.EvStation, Lang.t("Laden", "Charging"), Color(0xFF34A853), find("charging")) else null,
+                    if (engine.route != null) TileSpec(Icons.Rounded.Restaurant, Lang.t("Essen", "Food"), Color(0xFFF29900), find("food")) else null,
+                    if (engine.route != null) TileSpec(Icons.Rounded.LocalCafe, Lang.t("Kaffee", "Coffee"), Color(0xFFA56BFF), find("coffee")) else null,
+                    TileSpec(Icons.Rounded.Wc, Lang.t("Toiletten", "Toilets"), Color(0xFF4C8DFF), find("toilets")),
+                    if (engine.route != null) TileSpec(Icons.Rounded.LocalParking, Lang.t("Parken", "Parking"), Color(0xFF4C8DFF), find("parking")) else null,
+                    if (engine.route != null) TileSpec(Icons.Rounded.Apartment, Lang.t("Raststätten", "Services"), Color(0xFF12A4B4), find("services")) else null,
+                    if (engine.dest != null) TileSpec(Icons.Rounded.Place, Lang.t("Parken am Ziel", "Park at end"), Color(0xFFEA4335), { engine.loadNearby("parking", true); close() }) else null,
                 )
                 SheetHeading(if (engine.route != null) "Find along the route" else "Find nearby")
                 WideTiles(4, finds)
