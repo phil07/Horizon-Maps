@@ -165,4 +165,12 @@
     <string name="toast_064">%1$s ist jetzt Arbeit</string>
     <string name="toast_065">Zu Favoriten hinzugefügt</string>
     <string name="toast_066">Kein Treffer für „%1$s“</string>
+    <string name="ui_075">Polizei</string>
+    <string name="ui_076">Gefahr</string>
+    <string name="ui_077">Unfall</string>
+    <string name="ui_078">Pannenfahrzeug</string>
+    <string name="ui_079">Mobile Blitzer</string>
+    <string name="ui_080">Keine Treffer für „%1$s“</string>
+    <string name="toast_067">%1$s-Meldung hier gespeichert</string>
+    <string name="toast_068">%1$s voraus gemeldet</string>
 </resources>

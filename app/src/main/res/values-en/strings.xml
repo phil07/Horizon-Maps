@@ -165,4 +165,12 @@
     <string name="toast_064">%1$s is now Work</string>
     <string name="toast_065">Saved to favourites</string>
     <string name="toast_066">Could not find “%1$s”</string>
+    <string name="ui_075">Police</string>
+    <string name="ui_076">Hazard</string>
+    <string name="ui_077">Accident</string>
+    <string name="ui_078">Broken-down vehicle</string>
+    <string name="ui_079">Mobile speed camera</string>
+    <string name="ui_080">Nothing matches “%1$s”</string>
+    <string name="toast_067">%1$s report saved here</string>
+    <string name="toast_068">%1$s reported ahead</string>
 </resources>

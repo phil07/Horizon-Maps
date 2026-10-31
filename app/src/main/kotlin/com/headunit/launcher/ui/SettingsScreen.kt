@@ -166,7 +166,7 @@ private fun SettingsBody(prefs: Prefs, engine: NavEngine, onClose: () -> Unit) {
                 if (query.isNotEmpty()) Icon(Icons.Rounded.Close, "Clear", tint = c.sub, modifier = Modifier.size(20.dp).clickable { query = ""; focus.clearFocus() })
             }
             if (words.isNotEmpty()) {
-                if (matches.isEmpty()) Text("Nothing matches \"${query.trim()}\"", color = c.sub, fontSize = 13.sp, modifier = Modifier.padding(10.dp))
+                if (matches.isEmpty()) Text(stringResource(R.string.ui_080, query.trim()), color = c.sub, fontSize = 13.sp, modifier = Modifier.padding(10.dp))
                 matches.forEach { r ->
                     Column(
                         Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).clickable {
