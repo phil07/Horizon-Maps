@@ -1,5 +1,8 @@
 package com.headunit.launcher
 
+import com.headunit.launcher.R
+import androidx.compose.ui.res.stringResource
+
 import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.min
@@ -852,7 +855,7 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
         c.drawPath(octagon(35f), Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xFFFFFFFF.toInt() })
         c.drawPath(octagon(30f), Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xFFC8102E.toInt() })
         val tp = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xFFFFFFFF.toInt(); textSize = 18f; typeface = android.graphics.Typeface.DEFAULT_BOLD; textAlign = Paint.Align.CENTER }
-        c.drawText("STOP", s / 2f, s / 2f - (tp.descent() + tp.ascent()) / 2f, tp)
+        c.drawText(stringResource(R.string.ui_042), s / 2f, s / 2f - (tp.descent() + tp.ascent()) / 2f, tp)
         return bmp
     }
 

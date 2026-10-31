@@ -1,5 +1,8 @@
 package com.headunit.launcher.ui
 
+import com.headunit.launcher.R
+import androidx.compose.ui.res.stringResource
+
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.tween
@@ -137,7 +140,7 @@ fun AlertSign(a: AlertInfo, size: Dp) {
                     drawPath(oct(r), Color.White)
                     drawPath(oct(r * 0.86f), Color(0xFFC8102E))
                 }
-                Text("STOP", color = Color.White, fontSize = (size.value * 0.26f).sp, fontWeight = FontWeight.Bold, maxLines = 1)
+                Text(stringResource(R.string.ui_042), color = Color.White, fontSize = (size.value * 0.26f).sp, fontWeight = FontWeight.Bold, maxLines = 1)
             }
             "wrongway" -> {
                 // the no-entry sign
@@ -294,10 +297,10 @@ private fun LimitBoard(n: Int, canada: Boolean, over: Boolean, estimated: Boolea
     ) {
         androidx.compose.foundation.layout.Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = androidx.compose.foundation.layout.Arrangement.Center) {
             val head = (size.value * 0.12f).sp
-            if (canada) Text("MAXIMUM", color = Color(0xFF151515), fontSize = (size.value * 0.105f).sp, fontWeight = FontWeight.Bold, maxLines = 1, lineHeight = head)
+            if (canada) Text(stringResource(R.string.ui_032), color = Color(0xFF151515), fontSize = (size.value * 0.105f).sp, fontWeight = FontWeight.Bold, maxLines = 1, lineHeight = head)
             else {
-                Text("SPEED", color = Color(0xFF151515), fontSize = head, fontWeight = FontWeight.Bold, maxLines = 1, lineHeight = head)
-                Text("LIMIT", color = Color(0xFF151515), fontSize = head, fontWeight = FontWeight.Bold, maxLines = 1, lineHeight = head)
+                Text(stringResource(R.string.ui_041), color = Color(0xFF151515), fontSize = head, fontWeight = FontWeight.Bold, maxLines = 1, lineHeight = head)
+                Text(stringResource(R.string.ui_029), color = Color(0xFF151515), fontSize = head, fontWeight = FontWeight.Bold, maxLines = 1, lineHeight = head)
             }
             Text("$n", color = if (estimated) Color(0xFF4A4A4A) else Color(0xFF111111), fontSize = (size.value * (if (n >= 100) 0.3f else 0.38f)).sp,
                 fontWeight = FontWeight.Black, maxLines = 1, lineHeight = (size.value * 0.4f).sp)

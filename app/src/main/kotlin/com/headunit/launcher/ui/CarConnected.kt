@@ -1,5 +1,8 @@
 package com.headunit.launcher.ui
 
+import com.headunit.launcher.R
+import androidx.compose.ui.res.stringResource
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -60,7 +63,7 @@ internal fun CarConnectedScreen(engine: NavEngine, onShowMap: () -> Unit, onSett
                 }
                 ImmPill("End route", { engine.endRoute() }, icon = Icons.Rounded.Close)
             } else {
-                Text("Pick where to go on the car screen, or share a place to Horizon Nav from any app and it appears there.",
+                Text(stringResource(R.string.ui_038),
                     color = c.sub, fontSize = 15.sp, textAlign = TextAlign.Center)
             }
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {

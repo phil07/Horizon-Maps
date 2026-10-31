@@ -1,6 +1,9 @@
 
 package com.headunit.launcher.ui
 
+import com.headunit.launcher.R
+import androidx.compose.ui.res.stringResource
+
 import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -141,7 +144,7 @@ private fun SettingsBody(prefs: Prefs, engine: NavEngine, onClose: () -> Unit) {
                 Box(Modifier.size(46.dp).clip(CircleShape).background(c.tile).pressClick(onClose), contentAlignment = Alignment.Center) {
                     Icon(Icons.Rounded.ArrowBack, "Back to the map", tint = c.text, modifier = Modifier.size(24.dp))
                 }
-                Text("Settings", color = c.text, fontSize = 24.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(start = 14.dp))
+                Text(stringResource(R.string.ui_048), color = c.text, fontSize = 24.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(start = 14.dp))
             }
             // search every setting by name
             Row(
@@ -150,7 +153,7 @@ private fun SettingsBody(prefs: Prefs, engine: NavEngine, onClose: () -> Unit) {
             ) {
                 Icon(Icons.Rounded.Search, null, tint = c.sub, modifier = Modifier.size(20.dp))
                 Box(Modifier.weight(1f).padding(start = 10.dp), contentAlignment = Alignment.CenterStart) {
-                    if (query.isEmpty()) Text("Search settings", color = c.sub, fontSize = 15.sp)
+                    if (query.isEmpty()) Text(stringResource(R.string.ui_045), color = c.sub, fontSize = 15.sp)
                     androidx.compose.foundation.text.BasicTextField(
                         value = query, onValueChange = { query = it; highlight = null }, singleLine = true,
                         textStyle = androidx.compose.ui.text.TextStyle(color = c.text, fontSize = 15.sp),
@@ -211,7 +214,7 @@ private fun SettingsBody(prefs: Prefs, engine: NavEngine, onClose: () -> Unit) {
                     Box(Modifier.size(42.dp).clip(CircleShape).background(c.tile), contentAlignment = Alignment.Center) {
                         Icon(Icons.Rounded.ArrowBack, "All settings", tint = c.text, modifier = Modifier.size(22.dp))
                     }
-                    Text("Settings", color = c.sub, fontSize = 15.sp, modifier = Modifier.padding(start = 10.dp))
+                    Text(stringResource(R.string.ui_048), color = c.sub, fontSize = 15.sp, modifier = Modifier.padding(start = 10.dp))
                 }
                 Text(sections[cat].title, color = c.text, fontSize = 28.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(start = 6.dp, top = 6.dp))
                 Text(sections[cat].sub, color = c.sub, fontSize = 13.sp, modifier = Modifier.padding(start = 6.dp, bottom = 16.dp))
@@ -633,10 +636,10 @@ private fun DefaultZoomRow(prefs: Prefs) {
             if (kotlin.math.abs(v) > 0.01f) SButton("Reset") { v = 0f; save(0f) }
         }
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            Text("Further out", color = c.sub, fontSize = 13.sp)
+            Text(stringResource(R.string.ui_017), color = c.sub, fontSize = 13.sp)
             androidx.compose.material3.Slider(value = v, onValueChange = { v = (Math.round(it * 4f) / 4f) }, onValueChangeFinished = { save(v) },
                 valueRange = -2f..2f, modifier = Modifier.weight(1f).padding(horizontal = 10.dp))
-            Text("Closer", color = c.sub, fontSize = 13.sp)
+            Text(stringResource(R.string.ui_010), color = c.sub, fontSize = 13.sp)
         }
     }
 }
@@ -1016,15 +1019,15 @@ private fun FeedbackDialog(engine: NavEngine, onClose: () -> Unit) {
     var note by remember { mutableStateOf("") }
     androidx.compose.ui.window.Dialog(onDismissRequest = onClose) {
         Column(Modifier.widthIn(max = 560.dp).fillMaxWidth().clip(RoundedCornerShape(26.dp)).background(c.panel).padding(22.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Text("Feedback or a problem", color = c.text, fontSize = 22.sp, fontWeight = FontWeight.Bold)
-            Text("What happened, or what would you like? Where you were and what you tapped helps.", color = c.sub, fontSize = 14.sp)
+            Text(stringResource(R.string.ui_016), color = c.text, fontSize = 22.sp, fontWeight = FontWeight.Bold)
+            Text(stringResource(R.string.ui_063), color = c.sub, fontSize = 14.sp)
             SField(note, { note = it.take(600) }, placeholder = "e.g. Rerouted the wrong way near Southampton", width = 516.dp, fill = true)
-            Text("Sent with it: the app version, your head unit, the main settings, your downloaded areas and the last crash (no places or API keys).", color = c.sub, fontSize = 12.sp)
+            Text(stringResource(R.string.ui_047), color = c.sub, fontSize = 12.sp)
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)) {
                 SButton("Close") { onClose() }
                 SButton("Copy") {
                     val cm = ctx.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as? android.content.ClipboardManager
-                    cm?.setPrimaryClip(android.content.ClipData.newPlainText("Horizon Nav report", engine.feedbackReport(note)))
+                    cm?.setPrimaryClip(android.content.ClipData.newPlainText(stringResource(R.string.ui_024), engine.feedbackReport(note)))
                     engine.toast("Report copied: paste it into a message or a Reddit comment", 3500)
                 }
                 SButton("Send on GitHub", primary = true) {

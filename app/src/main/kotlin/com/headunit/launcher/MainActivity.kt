@@ -1,5 +1,8 @@
 package com.headunit.launcher
 
+import com.headunit.launcher.R
+import androidx.compose.ui.res.stringResource
+
 import android.Manifest
 import android.content.pm.PackageManager
 import android.os.Build
@@ -220,7 +223,7 @@ private fun NoGlesPage(gl: Int) {
         androidx.compose.ui.Modifier.fillMaxSize().background(bg).verticalScroll(androidx.compose.foundation.rememberScrollState()).padding(32.dp),
         verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(14.dp),
     ) {
-        androidx.compose.material3.Text("This head unit can't draw the Mapbox map", color = fg, fontSize = 24.sp, fontWeight = androidx.compose.ui.text.font.FontWeight.Bold)
+        androidx.compose.material3.Text(stringResource(R.string.ui_058), color = fg, fontSize = 24.sp, fontWeight = androidx.compose.ui.text.font.FontWeight.Bold)
         androidx.compose.material3.Text("Horizon Nav needs OpenGL ES 3.0 graphics, and this unit has version ${gl shr 16}.${gl and 0xFFFF}. " +
             "Versions of Horizon Nav from before the Mapbox map work on older graphics, if you still have one.", color = fg.copy(alpha = 0.8f), fontSize = 16.sp)
     }
@@ -256,20 +259,20 @@ private fun StartupCrashPage(report: String, onRetry: () -> Unit) {
         androidx.compose.ui.Modifier.fillMaxSize().background(bg).verticalScroll(androidx.compose.foundation.rememberScrollState()).padding(32.dp),
         verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(14.dp),
     ) {
-        androidx.compose.material3.Text("Horizon Nav keeps closing while it starts", color = fg, fontSize = 24.sp, fontWeight = androidx.compose.ui.text.font.FontWeight.Bold)
-        androidx.compose.material3.Text("Sorry about that. Sending the report below lets it be fixed for this head unit. Nothing personal is in it.", color = fg.copy(alpha = 0.75f), fontSize = 15.sp)
+        androidx.compose.material3.Text(stringResource(R.string.ui_023), color = fg, fontSize = 24.sp, fontWeight = androidx.compose.ui.text.font.FontWeight.Bold)
+        androidx.compose.material3.Text(stringResource(R.string.ui_051), color = fg.copy(alpha = 0.75f), fontSize = 15.sp)
         androidx.compose.foundation.layout.Row(horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(10.dp)) {
             androidx.compose.material3.Button({
                 val url = "https://github.com/${BuildConfig.UPDATE_REPO}/issues/new?title=" + android.net.Uri.encode("Crash on start: ${Build.MANUFACTURER} ${Build.MODEL}") + "&body=" + android.net.Uri.encode(report.take(5000))
                 try { ctx.startActivity(android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(url)).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)) }
                 catch (e: Exception) { android.widget.Toast.makeText(ctx, "No browser on this unit: use Copy instead", android.widget.Toast.LENGTH_LONG).show() }
-            }) { androidx.compose.material3.Text("Send on GitHub") }
+            }) { androidx.compose.material3.Text(stringResource(R.string.ui_046)) }
             androidx.compose.material3.Button({
                 val cm = ctx.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as? android.content.ClipboardManager
-                cm?.setPrimaryClip(android.content.ClipData.newPlainText("Horizon Nav crash", report))
+                cm?.setPrimaryClip(android.content.ClipData.newPlainText(stringResource(R.string.ui_021), report))
                 android.widget.Toast.makeText(ctx, "Copied: paste it into a message or a Reddit comment", android.widget.Toast.LENGTH_LONG).show()
-            }) { androidx.compose.material3.Text("Copy") }
-            androidx.compose.material3.OutlinedButton(onRetry) { androidx.compose.material3.Text("Try again", color = fg) }
+            }) { androidx.compose.material3.Text(stringResource(R.string.ui_011)) }
+            androidx.compose.material3.OutlinedButton(onRetry) { androidx.compose.material3.Text(stringResource(R.string.ui_061), color = fg) }
         }
         androidx.compose.material3.Text(report, color = fg.copy(alpha = 0.6f), fontSize = 11.sp, fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace)
     }
