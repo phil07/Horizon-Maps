@@ -996,7 +996,7 @@ private fun ImmSearch(engine: NavEngine, q: String, onQ: (String) -> Unit, locke
     Box(Modifier.fillMaxWidth().height(60.dp).panel(10.dp, shape, c.surface)) {
         TextField(
             value = q, onValueChange = onQ, enabled = !locked,
-            placeholder = { Text(if (locked) "Tap the mic to search while driving" else "Where to?", fontSize = if (locked) 15.sp else 18.sp) },
+            placeholder = { Text(if (locked) "Zum Suchen beim Fahren auf das Mikrofon tippen" else stringResource(R.string.ui_064), fontSize = if (locked) 15.sp else 18.sp) },
             leadingIcon = { Icon(Icons.Rounded.Search, null, tint = c.sub) },
             trailingIcon = {
                 if (q.isNotEmpty()) Icon(Icons.Rounded.Close, "Clear", tint = c.sub, modifier = Modifier.padding(end = 8.dp).clickable { onQ(""); engine.results = emptyList() })
@@ -1070,10 +1070,10 @@ private fun ImmChips(engine: NavEngine, focusSearch: () -> Unit) {
     LaunchedEffect(Unit) { while (true) { engine.refreshSlotTimes(); delay(60_000) } }
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            PlaceTile(engine, Modifier.weight(1f), Icons.Rounded.Home, Color(0xFF4C8DFF), "Home", home, engine.slotMins["home"]) {
+            PlaceTile(engine, Modifier.weight(1f), Icons.Rounded.Home, Color(0xFF4C8DFF), "Zuhause", home, engine.slotMins["home"]) {
                 if (home != null) engine.startRoute(home) else { engine.pendingSave = "home"; engine.toast(engine.str(R.string.rest_1198), 3500); focusSearch() }
             }
-            PlaceTile(engine, Modifier.weight(1f), Icons.Rounded.Work, Color(0xFFF29900), "Work", work, engine.slotMins["work"]) {
+            PlaceTile(engine, Modifier.weight(1f), Icons.Rounded.Work, Color(0xFFF29900), "Arbeit", work, engine.slotMins["work"]) {
                 if (work != null) engine.startRoute(work) else { engine.pendingSave = "work"; engine.toast(engine.str(R.string.rest_1197), 3500); focusSearch() }
             }
         }
@@ -1093,8 +1093,8 @@ private fun PlaceTile(engine: NavEngine, modifier: Modifier, icon: ImageVector, 
     val c = LocalVw.current
     val here = engine.fix?.pos
     val sub = when {
-        place == null -> "Tap to set"
-        mins == 0 -> "You're here"
+        place == null -> "Tippen zum Festlegen"
+        mins == 0 -> "Du bist hier"
         mins != null && mins > 0 -> Geo.fmtDur(mins * 60.0)
         here != null -> Geo.fmtDist(Geo.dist(here, place.pos), engine.imperial)
         else -> place.sub
@@ -1103,7 +1103,7 @@ private fun PlaceTile(engine: NavEngine, modifier: Modifier, icon: ImageVector, 
         verticalAlignment = Alignment.CenterVertically) {
         Box(Modifier.size(36.dp).clip(CircleShape).background(tint.copy(alpha = 0.18f)), contentAlignment = Alignment.Center) { Icon(icon, null, tint = tint, modifier = Modifier.size(20.dp)) }
         Column(Modifier.padding(start = 10.dp).weight(1f)) {
-            Text(if (place == null) "Set ${label.lowercase()}" else label, color = c.text, fontSize = 16.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(if (place == null) (if (label == "Zuhause") "Zuhause festlegen" else "Arbeitsplatz festlegen") else label, color = c.text, fontSize = 16.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
             Text(sub, color = c.sub, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
     }

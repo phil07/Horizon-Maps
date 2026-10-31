@@ -53,7 +53,7 @@ import androidx.compose.ui.unit.sp
 internal class NoteItem(val kind: Int, val title: String, val desc: String, val icon: ImageVector)
 
 /** 0 new, 1 improved, 2 fixed. */
-private val kindNames = listOf("NEW", "IMPROVED", "FIXED")
+private val kindNames = listOf("NEU", "VERBESSERT", "BEHOBEN")
 
 /**
  * Turns release notes ("- Something: what it does" lines, maybe under "### 1.0.N" headings when several versions are shown) into
@@ -71,7 +71,7 @@ internal fun parseNotes(notes: String): List<NoteItem> {
         if (l.isEmpty()) continue
         if (l.startsWith("#")) {
             val h = l.trimStart('#').trim().lowercase()
-            headKind = when { h.startsWith("new") || h.startsWith("added") -> 0; h.startsWith("improv") || h.startsWith("changed") -> 1; h.startsWith("fix") -> 2; else -> -1 }
+            headKind = when { h.startsWith("neu") || h.startsWith("new") || h.startsWith("added") -> 0; h.startsWith("verbessert") || h.startsWith("improv") || h.startsWith("changed") -> 1; h.startsWith("behoben") || h.startsWith("fix") -> 2; else -> -1 }
             continue
         }
         if (l.startsWith("- ") || l.startsWith("* ") || l.startsWith("• ")) bullets += l.substring(2).trim() to headKind
@@ -83,8 +83,8 @@ internal fun parseNotes(notes: String): List<NoteItem> {
         if (b.isEmpty()) continue
         val low = b.lowercase()
         val kind = if (hk >= 0) hk else when {
-            low.startsWith("fix") || low.startsWith("stop ") || low.startsWith("no more") || low.contains(" no longer ") && low.indexOf(" no longer ") < 40 -> 2
-            low.startsWith("new") || low.startsWith("add") || low.startsWith("added") || low.contains(" new ") && low.indexOf(" new ") < 25 -> 0
+            low.startsWith("fix") || low.startsWith("behoben") || low.startsWith("stop ") || low.startsWith("no more") || low.contains(" no longer ") && low.indexOf(" no longer ") < 40 -> 2
+            low.startsWith("neu") || low.startsWith("new") || low.startsWith("add") || low.startsWith("added") || low.contains(" new ") && low.indexOf(" new ") < 25 -> 0
             else -> 1
         }
         // the headline: before the first colon if that comes early, else the first short clause, else it all
@@ -142,7 +142,7 @@ internal fun WhatsNewList(notes: String, dark: Boolean, columns: Int = 1, maxHei
     Column(Modifier.fillMaxWidth().heightIn(max = capH).verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(8.dp)) {
         if (items.isEmpty()) {
-            Text(if (notes.isBlank()) "This version is installed and ready. The details of what changed aren't available right now." else notes,
+            Text(if (notes.isBlank()) "Diese Version ist installiert und bereit." else notes,
                 color = v.text, fontSize = 14.sp, lineHeight = 20.sp, modifier = Modifier.padding(4.dp))
             return@Column
         }

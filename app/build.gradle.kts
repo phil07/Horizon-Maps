@@ -99,14 +99,15 @@ dependencies {
     implementation("androidx.car.app:app:1.4.0")
     // Offline routing engine (Valhalla) that runs on downloaded road data, with the libraries it needs at run time
     implementation("io.github.rallista:valhalla-mobile:0.6.4")
-    implementation("com.squareup.moshi:moshi-kotlin:1.15.1")
+    implementation("com.squareup.moshi:moshi-kotlin:1.15.2")
 
     // Small, fast JVM tests for camera and GPS decision policies; these don't require a device.
     testImplementation("junit:junit:4.13.2")
 }
 
 // After a release build, put the APK in one folder with a clear name (HorizonNav-public.apk), where the GitHub build picks it up.
-val collectApks by tasks.registering(Copy::class) {
+val collectApks = tasks.register<Copy>("collectApks") {
+    description = "Copies the release APK to outputs/apk/release directory."
     from(layout.buildDirectory.dir("outputs/apk/public/release")) { include("*.apk"); rename { "HorizonNav-public.apk" } }
     into(layout.buildDirectory.dir("outputs/apk/release"))
 }
