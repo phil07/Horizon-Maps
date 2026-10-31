@@ -44,7 +44,7 @@ object PackRegions {
             "belgium" to ("Belgium" to "BE"), "bosnia-herzegovina" to ("Bosnia & Herzegovina" to "BA"), "bulgaria" to ("Bulgaria" to "BG"),
             "croatia" to ("Croatia" to "HR"), "cyprus" to ("Cyprus" to "CY"), "czech-republic" to ("Czechia" to "CZ"), "denmark" to ("Denmark" to "DK"),
             "estonia" to ("Estonia" to "EE"), "faroe-islands" to ("Faroe Islands" to "FO"), "finland" to ("Finland" to "FI"), "france" to ("France" to "FR"),
-            "georgia" to ("Georgia" to "GE"), "germany" to ("Germany" to "DE"), "greece" to ("Greece" to "GR"), "hungary" to ("Hungary" to "HU"),
+            "georgia" to ("Georgia" to "GE"), "germany" to ("Deutschland" to "DE"), "greece" to ("Greece" to "GR"), "hungary" to ("Hungary" to "HU"),
             "iceland" to ("Iceland" to "IS"), "italy" to ("Italy" to "IT"), "kosovo" to ("Kosovo" to "XK"), "latvia" to ("Latvia" to "LV"),
             "liechtenstein" to ("Liechtenstein" to "LI"), "lithuania" to ("Lithuania" to "LT"), "luxembourg" to ("Luxembourg" to "LU"),
             "macedonia" to ("North Macedonia" to "MK"), "malta" to ("Malta" to "MT"), "moldova" to ("Moldova" to "MD"), "monaco" to ("Monaco" to "MC"),

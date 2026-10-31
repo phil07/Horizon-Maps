@@ -29,7 +29,7 @@ val FAHRENHEIT_COUNTRIES = setOf("US", "PR", "VI", "GU", "AS", "MP", "LR", "BS",
 
 /** Countries that drive on the left (right-hand drive cars), where the screen keeps its normal layout. */
 /** Countries where warning drivers about speed cameras isn't allowed (camera alerts switch off there unless you choose otherwise). */
-val CAMERA_BANNED = mapOf("FR" to "France", "DE" to "Germany", "CH" to "Switzerland")
+val CAMERA_BANNED = mapOf("FR" to "Frankreich", "DE" to "Deutschland", "CH" to "Schweiz")
 val KEEP_LEFT = setOf("GB", "IE", "IM", "GG", "JE", "MT", "CY", "AU", "NZ", "JP", "IN", "ZA", "HK", "MO", "SG", "MY", "TH", "ID", "KE", "TZ", "UG",
     "ZM", "ZW", "BW", "NA", "MZ", "MW", "LS", "SZ", "PK", "BD", "LK", "NP", "BT", "JM", "TT", "BB", "BS", "GY", "SR", "FJ", "PG", "MU", "SC", "BN", "TL", "KY", "BM", "VG", "AG", "DM", "GD", "KN", "LC", "VC", "FK", "SH", "MV", "KI", "SB", "TO", "TV", "WS", "NR")
 class AlertInfo(val kind: String, val text: String, val ms: Long = 5000)
