@@ -29,6 +29,7 @@ import kotlin.math.cos
 import kotlin.math.hypot
 import kotlin.math.max
 import kotlin.math.min
+import androidx.compose.ui.res.stringResource
 
 class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding) : LocationListener {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
@@ -2743,7 +2744,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
             val nearEnd = navigating && ((eta?.dist ?: Double.MAX_VALUE) < 400.0 || (turn?.dist ?: Double.MAX_VALUE) < 200.0)
             val ov = prefs.b(PreferenceKeys.STOPPED_OVERVIEW, true) && stoppedSince > 0L && nowMs - stoppedSince > 30_000L &&
                 !nearEnd && arrival == null && abs(zoomOffset) < 0.01
-            if (ov != stoppedOverview) { stoppedOverview = ov; stoppedOverviewActive = ov; toast(stringResource(R.string.ui_083), 5000) }
+            if (ov != stoppedOverview) { stoppedOverview = ov; stoppedOverviewActive = ov; toast(str(R.string.ui_083), 5000) }
             if (ov) { tilt = 0.0; pad = 0.0 }
         }
         tTilt = tilt; tPad = pad
