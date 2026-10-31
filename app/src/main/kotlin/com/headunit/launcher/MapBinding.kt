@@ -1165,7 +1165,7 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
     private fun refreshLamps(force: Boolean = false) {
         if (lampsBusy) return
         val st = style ?: return
-        val wantLamps = lampsOn && st.styleSourceExists("dl-lamps")
+        val wantLamps = prefs.b(PreferenceKeys.LAMPS, false) && st.styleSourceExists("dl-lamps")
         val wantLights = signalsOn && st.styleSourceExists("dl-signals-near")
         if (!wantLamps && !wantLights) return
         val cam = try { mbMap.cameraState } catch (e: Throwable) { return }
@@ -1744,7 +1744,7 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
         for ((id, side) in listOf("dl-avg-edge-l" to -1.0, "dl-avg-edge-r" to 1.0)) addL(st, LineLayer(id, "dl-avg").inSlot(MID).lineEmissiveStrength(1.0)
             .lineCap(LineCap.BUTT).lineJoin(LineJoin.ROUND).lineColor("#FFCC00").lineOpacity(0.95)
             .lineWidth(zoomed(2.0, 12 to 1.2, 16 to 2.6, 20 to 8.0)).lineDasharray(listOf(3.0, 2.2))
-            .lineOffset(zoomed(2.0, 12 to 4.0 * side, 16 to 15.0 * side, 20 to 240.0 * side)))
+            .lineOffset(zoomed(2.0, 12 to 4.0 * side, 16 to 15.0 * side, 20 to 150.0 * side)))
         // zebra crossings on the route: white stripes painted across the road, with Belisha beacons at each side (close in only)
         addImg(st, "dl-zebra", zebraBitmap()); addImg(st, "dl-beacon", beaconBitmap())
         addS(st, GeoJsonSource.Builder("dl-zebras").featureCollection(FeatureCollection.fromFeatures(zebraFeats())).build())

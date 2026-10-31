@@ -173,4 +173,20 @@
     <string name="ui_080">Nothing matches “%1$s”</string>
     <string name="toast_067">%1$s report saved here</string>
     <string name="toast_068">%1$s reported ahead</string>
+    <string name="ui_081">Tap the mic to search while driving</string>
+    <string name="ui_083">After 30 seconds stopped (lights, a queue), the map pulls back to a top-down view of the traffic round you, and back again when you move off</string>
+    <string name="ui_084">Fuel</string>
+    <string name="ui_085">Charger</string>
+    <string name="ui_086">Coffee</string>
+    <string name="ui_087">Food</string>
+    <string name="ui_088">Services</string>
+    <string name="ui_089">Toilets</string>
+    <string name="ui_090">Charging stop</string>
+    <string name="ui_091">Fuel stop</string>
+    <string name="ui_092">Time</string>
+    <string name="ui_093">Distance</string>
+    <string name="ui_094">mph</string>
+    <string name="ui_095">km/h</string>
+    <string name="ui_096">Average</string>
+    <string name="ui_097">Update route</string>
 </resources>

@@ -343,7 +343,7 @@ fun StopsDialog(engine: NavEngine, onClose: () -> Unit) {
                 Text(stringResource(R.string.ui_037), color = c.sub, fontSize = 11.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
                 Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     val ev = engine.prefs.s(PreferenceKeys.FUEL_TYPE, "E10") == "EV"
-                    for ((kind, name) in listOfNotNull(if (ev) null else "fuel" to "Fuel", "charging" to "Charger", "coffee" to "Coffee", "food" to "Food", "services" to "Services", "toilets" to "Toilets"))
+                    for ((kind, name) in listOfNotNull(if (ev) null else "fuel" to stringResource(R.string.ui_084), "charging" to stringResource(R.string.ui_085), "coffee" to stringResource(R.string.ui_086), "food" to stringResource(R.string.ui_087), "services" to stringResource(R.string.ui_088), "toilets" to stringResource(R.string.ui_089)))
                         Pill(name, false, { engine.addBestStop(kind); onClose() })
                 }
             }
@@ -404,7 +404,7 @@ fun StopsDialog(engine: NavEngine, onClose: () -> Unit) {
             }
             if (stops.isEmpty()) Text(stringResource(R.string.ui_036), color = c.sub, fontSize = 13.sp)
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.padding(top = 4.dp)) {
-                Pill("Update route", true, { engine.setStops(stops); onClose() })
+                Pill(stringResource(R.string.ui_097), true, { engine.setStops(stops); onClose() })
                 Pill("Cancel", false, onClose)
             }
         }
@@ -522,7 +522,7 @@ fun FuelSuggestionRow(engine: NavEngine) {
         Modifier.floating(50.dp).padding(start = 16.dp, end = 6.dp, top = 6.dp, bottom = 6.dp),
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        Text(if (engine.prefs.s(PreferenceKeys.FUEL_TYPE, "E10") == "EV") "Charging stop" else "Fuel stop", color = Good, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+        Text(if (engine.prefs.s(PreferenceKeys.FUEL_TYPE, "E10") == "EV") stringResource(R.string.ui_090) else stringResource(R.string.ui_091), color = Good, fontSize = 13.sp, fontWeight = FontWeight.Bold)
         Text(
             n.place.name + " · " + Geo.fmtDist(n.dist, engine.imperial) + " in" + (if (n.price != null) " · " + com.headunit.launcher.fmtFuelPrice(n.price, n.unit) else "") + (if (n.detourMin >= 0) " · +${n.detourMin} min" else "") + (if (n.extra.startsWith("arrive")) " · " + n.extra else ""),
             color = c.text, fontSize = 13.sp, maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.widthIn(max = 420.dp),

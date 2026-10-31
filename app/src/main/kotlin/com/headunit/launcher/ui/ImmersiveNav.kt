@@ -415,7 +415,7 @@ private fun MapScreen(engine: NavEngine, onSettings: () -> Unit) {
             enter = fadeIn(tween(200)) + androidx.compose.animation.scaleIn(tween(220), initialScale = 0.85f), exit = fadeOut(tween(150)) + androidx.compose.animation.scaleOut(tween(150), targetScale = 0.9f),
         ) {
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
-                ImmPill("Re-centre", { engine.recenter() }, Icons.Rounded.MyLocation, filled = true)
+                ImmPill(stringResource(R.string.ui_082), { engine.recenter() }, Icons.Rounded.MyLocation, filled = true)
                 // zoomed with + and - while following you, with no route: keep this as your normal zoom
                 if (!routing && engine.following && kotlin.math.abs(engine.zoomOffset) > 0.01) ImmPill("Make this my default", { engine.saveZoomAsDefault() }, Icons.Rounded.ZoomIn)
             }
@@ -527,7 +527,7 @@ private fun OptionsSheet(engine: NavEngine, shareEta: () -> Unit, wide: Boolean 
                     Triple(Icons.Rounded.Apartment, "3D buildings", tog(PreferenceKeys.BUILDINGS_3D, true)),
                     Triple(Icons.Rounded.Traffic, "Traffic lights", tog(PreferenceKeys.SIGNALS, true)),
                     Triple(Icons.Rounded.CameraAlt, "Cameras", tog(PreferenceKeys.HAZARD_ICONS, true)),
-                    Triple(Icons.Rounded.Lightbulb, "Street lamps", tog(PreferenceKeys.LAMPS, true)),
+                    Triple(Icons.Rounded.Lightbulb, "Street lamps", tog(PreferenceKeys.LAMPS, false)),
                     Triple(Icons.Rounded.Park, "Trees", tog(PreferenceKeys.TREES, true)),
                     Triple(Icons.Rounded.DirectionsWalk, "Footpaths", tog(PreferenceKeys.PATHS, true)),
                     Triple(Icons.Rounded.WaterDrop, "Rain radar", tog(PreferenceKeys.RAIN_RADAR, false)),
@@ -996,7 +996,7 @@ private fun ImmSearch(engine: NavEngine, q: String, onQ: (String) -> Unit, locke
     Box(Modifier.fillMaxWidth().height(60.dp).panel(10.dp, shape, c.surface)) {
         TextField(
             value = q, onValueChange = onQ, enabled = !locked,
-            placeholder = { Text(if (locked) "Tap the mic to search while driving" else "Where to?", fontSize = if (locked) 15.sp else 18.sp) },
+            placeholder = { Text(if (locked) stringResource(R.string.ui_081) else stringResource(R.string.ui_064), fontSize = if (locked) 15.sp else 18.sp) },
             leadingIcon = { Icon(Icons.Rounded.Search, null, tint = c.sub) },
             trailingIcon = {
                 if (q.isNotEmpty()) Icon(Icons.Rounded.Close, "Clear", tint = c.sub, modifier = Modifier.padding(end = 8.dp).clickable { onQ(""); engine.results = emptyList() })

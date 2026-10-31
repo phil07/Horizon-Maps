@@ -337,9 +337,9 @@ internal fun ArrivalCard(engine: NavEngine, a: ArrivalInfo, modifier: Modifier =
         Text(a.name, color = c.text, fontSize = 24.sp, fontWeight = FontWeight.Bold, maxLines = 2, overflow = TextOverflow.Ellipsis)
         if (a.side.isNotEmpty()) Text("On the ${a.side}", color = c.accent, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
         Row(Modifier.fillMaxWidth().padding(vertical = 6.dp), horizontalArrangement = Arrangement.SpaceEvenly) {
-            ArrivalStat(Geo.fmtDist(a.dist, imp), "distance")
-            ArrivalStat(Geo.fmtDur(a.secs), "time")
-            ArrivalStat("${Math.round(a.avgMs * k)} ${if (imp) "mph" else "km/h"}", "average")
+            ArrivalStat(Geo.fmtDist(a.dist, imp), stringResource(R.string.ui_093))
+            ArrivalStat(Geo.fmtDur(a.secs), stringResource(R.string.ui_092))
+            ArrivalStat("${Math.round(a.avgMs * k)} ${if (imp) stringResource(R.string.ui_094) else stringResource(R.string.ui_095)}", stringResource(R.string.ui_096))
         }
         engine.arrivalParking?.let { pk ->
             Row(

@@ -173,4 +173,20 @@
     <string name="ui_080">Keine Treffer für „%1$s“</string>
     <string name="toast_067">%1$s-Meldung hier gespeichert</string>
     <string name="toast_068">%1$s voraus gemeldet</string>
+    <string name="ui_081">Tippe auf das Mikrofon, um während der Fahrt zu suchen</string>
+    <string name="ui_083">Nach 30 Sekunden angehalten (Lichter, Stau) zeigt die Karte eine Vogelperspektive auf den Verkehr in deiner Nähe und kehrt zurück, sobald du dich bewegst</string>
+    <string name="ui_084">Tankstelle</string>
+    <string name="ui_085">Ladestation</string>
+    <string name="ui_086">Café</string>
+    <string name="ui_087">Essen</string>
+    <string name="ui_088">Services</string>
+    <string name="ui_089">Toiletten</string>
+    <string name="ui_090">Ladestopp</string>
+    <string name="ui_091">Tankstopp</string>
+    <string name="ui_092">Zeit</string>
+    <string name="ui_093">Entfernung</string>
+    <string name="ui_094">Meilen pro Stunde</string>
+    <string name="ui_095">Kilometer pro Stunde</string>
+    <string name="ui_096">Durchschnitt</string>
+    <string name="ui_097">Route aktualisieren</string>
 </resources>
