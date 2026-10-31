@@ -480,8 +480,8 @@ private fun AlertsSection(prefs: Prefs, engine: NavEngine) {
         if (prefs.b(PreferenceKeys.SPEEDWARN, true)) SChoice("Warn when over by", listOf("0", "5", "10").map { it to it + if (engine.imperial) " mph" else " km/h" }, prefs.s(PreferenceKeys.TRAFFIC_WARNING, "5")) { prefs.put(PreferenceKeys.TRAFFIC_WARNING, it) }
         SToggle(prefs, "Say when the limit changes", "limitchange", true)
         SToggle(prefs, "Show estimated limits", "limitest", false, "Where no limit is mapped, show the usual one for that kind of road (greyed out). Off shows no sign instead of a guess")
-        SToggle(prefs, "Speed cameras", "cameras", true)
-        if (prefs.b(PreferenceKeys.CAMERA_WARNINGS, true)) SToggle(prefs, "Off where they're banned", "cambanobey", true, "France, Germany and Switzerland don't allow camera warnings, so they switch off there by themselves")
+        SToggle(prefs, "Speed cameras", "cameras", false)
+        if (prefs.b(PreferenceKeys.CAMERA_WARNINGS, false))SToggle(prefs, "Off where they're banned", "cambanobey", true, "France, Germany and Switzerland don't allow camera warnings, so they switch off there by themselves")
         SToggle(prefs, "Average speed checks", "avgzones", true, "Shows your average against the limit")
     }
     SGroup("On the road", footer = "Average speed checks, speed bumps, schools and clean air zones come from OpenStreetMap, so some may be missing.") {

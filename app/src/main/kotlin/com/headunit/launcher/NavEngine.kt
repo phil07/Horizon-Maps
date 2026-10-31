@@ -248,7 +248,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
     private var tripPts = ArrayList<LL>()
 
     val route: Route? get() = routes.getOrNull(active)
-    val imperial: Boolean get() = prefs.s(PreferenceKeys.DISTANCE_UNIT, if (defaultUnits() == "imperial") "mi" else "km") == "mi"
+    val imperial: Boolean get() = prefs.s(PreferenceKeys.DISTANCE_UNIT, "km") == "mi"
     /** 0 = all sound, 1 = alerts only, 2 = off. Falls back to the old on/off voice setting. */
     val soundMode: Int get() = prefs.i(PreferenceKeys.SOUND_MODE, if (prefs.b(PreferenceKeys.VOICE, true)) 0 else 2).coerceIn(0, 2)
     val voiceOn: Boolean get() = soundMode != 2
@@ -259,10 +259,6 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
     }
 
     /** Miles in the UK and US (and the few others that use them), kilometres everywhere else; before the country is known, miles. */
-    private fun defaultUnits(): String {
-        val cc = detectedCountry.uppercase()
-        return if (cc.isBlank() || cc in MILES_COUNTRIES) "imperial" else "metric"
-    }
 
     val apiKey: String
         get() = prefs.s(PreferenceKeys.API_KEY, "").ifBlank { BuildConfig.TOMTOM_API_KEY }.trim()
@@ -2848,14 +2844,14 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
     }
 
     /** Camera alerts are on: switched on in Settings, and not in a country that bans them (unless you've chosen to keep them there). */
-    fun camerasOn(): Boolean = prefs.b(PreferenceKeys.CAMERA_WARNINGS, true) && !(detectedCountry in CAMERA_BANNED && prefs.b(PreferenceKeys.CAMBANOBEY, true))
+    fun camerasOn(): Boolean = prefs.b(PreferenceKeys.CAMERA_WARNINGS, false) &&!(detectedCountry in CAMERA_BANNED && prefs.b(PreferenceKeys.CAMBANOBEY, true))
 
     private var banNoted = ""
     /** Says once, on arriving in a country that bans camera warnings, that they've been switched off. */
     private fun noteCameraBan() {
         val cc = detectedCountry
         val name = CAMERA_BANNED[cc]
-        if (name == null || !prefs.b(PreferenceKeys.CAMERA_WARNINGS, true) || !prefs.b(PreferenceKeys.CAMBANOBEY, true)) { if (name == null) banNoted = ""; return }
+        if (name == null || !prefs.b(PreferenceKeys.CAMERA_WARNINGS, false) ||!prefs.b(PreferenceKeys.CAMBANOBEY, true)) { if (name == null) banNoted = ""; return }
         if (banNoted == cc) return
         banNoted = cc
         toast("Speed camera alerts are off in $name, where they aren't allowed. You can change this in Settings > Alerts.", 7000)

@@ -24,7 +24,6 @@ class TurnInfo(
     val thenExit: Int = 0,
 )
 /** Countries that use miles for road distances and speeds. */
-val MILES_COUNTRIES = setOf("GB", "US", "PR", "LR", "MM", "IM", "GG", "JE", "VG", "VI", "AG", "DM", "GD", "KN", "LC", "VC", "BS", "KY", "FK", "SH", "WS", "GU", "AS", "MP")
 /** Countries that use Fahrenheit. */
 val FAHRENHEIT_COUNTRIES = setOf("US", "PR", "VI", "GU", "AS", "MP", "LR", "BS", "KY", "BZ", "PW", "FM", "MH")
 

@@ -939,7 +939,7 @@ class CarSettingsScreen(carContext: CarContext, private val holder: CarHolder, p
         val reroute: (Boolean) -> Unit = { holder.engine?.rerouteForSettings() }
         rows += toggleRow("Avoid motorways", "avoid_motorway", false, null, reroute)
         rows += toggleRow("Avoid toll roads", "avoid_toll", false, null, reroute)
-        rows += toggleRow("Speed cameras", "cameras", true, "Show and warn")
+        rows += toggleRow("Speed cameras", "cameras", false, "Show and warn")
         rows += toggleRow("Traffic lights", "signals", true, "On your route") { on -> try { holder.map?.signalsEnabled(on) } catch (x: Exception) { } }
         rows += toggleRow("Avoid ferries", "avoid_ferry", false, null, reroute)
         val list = ItemList.Builder()
