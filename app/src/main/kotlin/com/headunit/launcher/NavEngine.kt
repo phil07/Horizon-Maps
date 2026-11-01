@@ -735,17 +735,27 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
     private val audioMgr = ctx.getSystemService(Context.AUDIO_SERVICE) as android.media.AudioManager
     private var focusReq: android.media.AudioFocusRequest? = null
 
-    /** Lowers the music while a spoken instruction plays, so it can be heard. */
+    /** Announcements not yet finished. The music is ducked (lowered, not paused) while there are any. */
+    private var spoken = 0
+
+    /** Lowers the music while a spoken instruction plays, so it can be heard. Asks for "may duck" only: the music keeps playing. */
     private fun duck() {
+        if (focusReq != null) return
         try {
             val req = android.media.AudioFocusRequest.Builder(android.media.AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_MAY_DUCK)
-                .setAudioAttributes(speechAttrs).build()
+                .setAudioAttributes(speechAttrs)
+                .setWillPauseWhenDucked(false)
+                .setOnAudioFocusChangeListener { }
+                .build()
             focusReq = req
             audioMgr.requestAudioFocus(req)
         } catch (e: Exception) { }
     }
 
+    /** Puts the music back up once every announcement has finished (not after each one, so it doesn't flicker between them). */
     private fun unduck() {
+        spoken = (spoken - 1).coerceAtLeast(0)
+        if (spoken > 0) return
         try { focusReq?.let { audioMgr.abandonAudioFocusRequest(it) } } catch (e: Exception) { }
         focusReq = null
     }
@@ -1956,6 +1966,8 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         map.highlightDestination(null)
         stopSim()
         tts?.stop()
+        // a stopped announcement never reports done: put the music back up here
+        spoken = 0; unduck()
         glideRoute = null; glideOnRoute = false
         // back to the zoom you use when not on a route
         zoomOffset = try { savedFreeZoom() } catch (e: Exception) { 0.0 }
@@ -5048,9 +5060,11 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         if (m == 2 || (m == 1 && !alert) || !ttsReady) return
         val ch = prefs.s(PreferenceKeys.VOICE_CHANNEL, "nav")
         if (ch != voiceChan) { voiceChan = ch; try { tts?.setAudioAttributes(speechAttrs) } catch (e: Exception) { } }
+        spoken++
         duck()
         // every announcement waits for the one before it to be finished (none cuts another off half way); the queue is played in order
-        tts?.speak(text, TextToSpeech.QUEUE_ADD, null, "nav")
+        val r = tts?.speak(text, TextToSpeech.QUEUE_ADD, null, "nav")
+        if (r == TextToSpeech.ERROR) unduck()
     }
 
     // ---- demo drive ----
