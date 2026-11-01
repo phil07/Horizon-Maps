@@ -109,7 +109,9 @@ object Overpass {
      */
     class Limit(val ms: Double, val estimated: Boolean, val road: String = "", val wayId: Long = 0L, val names: List<String> = emptyList(), val sure: Boolean = false,
                 /** No general limit at all (maxspeed=none, or an Autobahn in Germany with no limit posted): shown as the "end of all restrictions" sign. */
-                val noLimit: Boolean = false)
+                val noLimit: Boolean = false,
+                /** A motorway or trunk road (Schnellstraße): with no limit tagged here, a posted limit before it has ended. */
+                val major: Boolean = false)
 
     /** Set when the last speed-limit lookup failed (no network, server busy…), null when it worked. */
     @Volatile var lastError: String? = null
@@ -283,9 +285,12 @@ object Overpass {
             val none = unType == "none" || (unType == "de:motorway" && inDe)
             if (posted != null) Limit(posted, false, road, w.id, names, sure)
             else if (unposted) Limit(-1.0, false, road, w.id, names, sure, noLimit = none)
-            else estimate(t, country)?.let { Limit(if (country == "GB") snapGb(it) else it, true, road, w.id, names, sure) }
-                // a German Autobahn with no limit mapped: no general limit there
-                ?: Limit(-1.0, true, road, w.id, names, sure, noLimit = inDe && t.optString("highway") == "motorway")
+            else {
+                val isMajor = t.optString("highway") in setOf("motorway", "trunk", "motorway_link", "trunk_link")
+                estimate(t, country)?.let { Limit(if (country == "GB") snapGb(it) else it, true, road, w.id, names, sure, major = isMajor) }
+                    // a German Autobahn with no limit mapped: no general limit there
+                    ?: Limit(-1.0, true, road, w.id, names, sure, noLimit = inDe && t.optString("highway") == "motorway", major = isMajor)
+            }
         }
     } catch (e: Exception) { lastError = e.message ?: e.javaClass.simpleName; null }
 

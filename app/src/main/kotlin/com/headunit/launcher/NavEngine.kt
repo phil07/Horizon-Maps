@@ -2104,7 +2104,8 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         val showEst = prefs.b(PreferenceKeys.LIMITEST, false)
         val v = if (r.ms <= 0.0 || (r.estimated && !showEst)) -1.0 else r.ms
         // no general limit (an unrestricted Autobahn) counts as its own value (-3), apart from no sign at all (-1)
-        val none = v <= 0.0 && r.noLimit
+        // no limit is tagged on a motorway or trunk road right after a posted one: the posted limit has ended (a Schnellstraße)
+        val none = v <= 0.0 && (r.noLimit || (r.major && speedLimit != null && !limitEstimated))
         val key = if (none) -3.0 else v
         val cur = speedLimit ?: if (noLimit) -3.0 else -1.0
         if (abs(key - cur) > 0.3 || (v > 0 && r.estimated != limitEstimated)) {
@@ -2113,7 +2114,12 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
                 if (pendHits < 2) return
             }
             pendHits = 0; pendLimit = -2.0
-            if (v <= 0.0) { speedLimit = null; limitEstimated = false; noLimit = none }
+            if (v <= 0.0) {
+                // the end of a posted limit is announced like a change (when limit announcements are on)
+                if (none && speedLimit != null && !limitEstimated && prefs.b(PreferenceKeys.LIMITCHANGE, false))
+                    speak(Lang.t("Tempolimit aufgehoben", "Speed limit lifted"), true)
+                speedLimit = null; limitEstimated = false; noLimit = none
+            }
             else { speedLimit = v; limitEstimated = r.estimated; noLimit = false }
         }
         if (v > 0.0) checkLimitChange(v, r.estimated)
