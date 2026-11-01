@@ -144,6 +144,83 @@ object EvWidget {
         }
     }
 
+    // ---- tapping the widget's own refresh button while Android Auto is connected ----
+    // Android has no way for one app to make another app's widget refresh. But Horizon Nav is this widget's host (as a home
+    // screen is), so the widget's buttons are real views here: tapping its refresh button sends the maker app the same request a
+    // tap on the home screen does, even with the phone locked (as long as the button doesn't open a screen, which Android blocks
+    // from the background). Every 10 minutes: the maker's server wakes the car for each request and throttles frequent ones.
+    private const val TAP_EVERY_MS = 10 * 60_000L
+    private var tapPrefs: Prefs? = null
+    /** What the last tap did, with the time, for Settings ("" before the first one). */
+    var refreshNote by mutableStateOf(""); private set
+    private val tapJob = object : Runnable {
+        override fun run() {
+            val p = tapPrefs ?: return
+            // the car's own reading is live: no need to wake the car through the maker's server
+            if (System.currentTimeMillis() - liveAt >= 10 * 60_000L) tapRefresh()
+            main.postDelayed(this, TAP_EVERY_MS)
+            if (view == null) try { appCtx?.let { start(it, p) } } catch (e: Exception) { }
+        }
+    }
+    private var appCtx: Context? = null
+
+    /** Android Auto connected: taps the widget's refresh button now and then (Settings > battery widget). Safe to call more than once. */
+    fun autoRefreshStart(ctx: Context, p: Prefs) {
+        main.post {
+            if (!p.b(PreferenceKeys.EV_AUTOREFRESH, true) || widgetId(p) < 0) return@post
+            appCtx = ctx.applicationContext; tapPrefs = p
+            start(ctx, p)
+            main.removeCallbacks(tapJob)
+            main.postDelayed(tapJob, 30_000L)
+        }
+    }
+
+    /** Android Auto disconnected. */
+    fun autoRefreshStop() {
+        main.post { main.removeCallbacks(tapJob); tapPrefs = null }
+    }
+
+    private val refreshWords = listOf("aktualis", "refresh", "reload", "neu laden", "update", "sync", "abrufen")
+
+    /** Finds the widget's refresh button and taps it. True if one was found and tapped. Main thread only. */
+    private fun tapRefresh(): Boolean {
+        val at = java.text.SimpleDateFormat("HH:mm", java.util.Locale.getDefault()).format(java.util.Date())
+        val v = view ?: run { refreshNote = Lang.t("$at: Widget nicht geladen", "$at: widget not loaded"); return false }
+        try {
+            if (v.width == 0) {
+                val w = (v.resources.displayMetrics.density * 320).toInt(); val h = (v.resources.displayMetrics.density * 180).toInt()
+                v.measure(View.MeasureSpec.makeMeasureSpec(w, View.MeasureSpec.EXACTLY), View.MeasureSpec.makeMeasureSpec(h, View.MeasureSpec.EXACTLY))
+                v.layout(0, 0, w, h)
+            }
+            val found = ArrayList<Pair<View, String>>()
+            fun walk(x: View) {
+                // (never the widget as a whole: tapping that usually opens the app)
+                if (x !== v && x.hasOnClickListeners()) {
+                    val words = buildList {
+                        x.contentDescription?.toString()?.let { add(it) }
+                        (x as? TextView)?.text?.toString()?.let { add(it) }
+                        if (x.id != View.NO_ID) try { add(x.resources.getResourceEntryName(x.id)) } catch (e: Exception) { }
+                    }.joinToString(" ")
+                    found += x to words
+                }
+                if (x is ViewGroup) for (i in 0 until x.childCount) walk(x.getChildAt(i))
+            }
+            walk(v)
+            val hit = found.firstOrNull { (_, w) -> val l = w.lowercase(); refreshWords.any { l.contains(it) } }?.first
+            if (hit == null) {
+                refreshNote = Lang.t("$at: kein Aktualisieren-Knopf gefunden", "$at: no refresh button found") +
+                    (if (found.isNotEmpty()) " (" + found.joinToString(", ") { it.second.ifBlank { "?" }.take(30) } + ")" else "")
+                return false
+            }
+            hit.performClick()
+            refreshNote = Lang.t("$at: Aktualisieren angetippt", "$at: refresh tapped")
+            return true
+        } catch (e: Exception) {
+            refreshNote = Lang.t("$at: Antippen fehlgeschlagen", "$at: tap failed")
+            return false
+        }
+    }
+
     /** Live battery level from the car (Android Auto). Takes precedence over the widget for a while. */
     fun liveReading(p: Prefs, pct: Int, km: Int?) {
         liveAt = System.currentTimeMillis()

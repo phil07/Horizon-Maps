@@ -1132,6 +1132,11 @@ private fun EvWidgetItem(prefs: Prefs) {
         SButton(if (id >= 0) "Ändern" else "Widget wählen", primary = id < 0) { picking = true }
         if (id >= 0) SButton("Entfernen", danger = true) { com.headunit.launcher.EvWidget.remove(ctx, prefs) }
     }
+    if (id >= 0) {
+        SToggle(prefs, "Widget automatisch aktualisieren", PreferenceKeys.EV_AUTOREFRESH, true, "Tippt mit Android Auto alle 10 Minuten den Aktualisieren-Knopf im Widget an, auch bei gesperrtem Handy")
+        val note = com.headunit.launcher.EvWidget.refreshNote
+        if (note.isNotBlank()) Text("Zuletzt: $note", color = LocalVw.current.sub, fontSize = 12.sp, modifier = Modifier.padding(bottom = 10.dp))
+    }
     // while no value has been read: the texts the widget shows, so it's visible whether a percentage is among them
     if (id >= 0 && at == 0L) {
         val texts = com.headunit.launcher.EvWidget.lastTexts

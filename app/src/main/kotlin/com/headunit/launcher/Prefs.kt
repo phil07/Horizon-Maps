@@ -160,6 +160,8 @@ internal object PreferenceKeys {
     const val POLICEREP = "policerep"
     const val PREDICT = "predict"
     const val QUICKLIST = "quicklist"
+    /** Tap the battery widget's refresh button every 10 minutes while Android Auto is connected. */
+    const val EV_AUTOREFRESH = "evautorefresh"
     /** Saved & recent on the phone folded down to its header line (tap the header to fold and unfold). */
     const val QUICKFOLD = "quickfold"
     /** The map in 3D (true) or flat 2D: remembered between drives, and shared by the phone / head unit and Android Auto. */
