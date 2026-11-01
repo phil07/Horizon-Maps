@@ -349,7 +349,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
     private fun netRoutes(from: LL, to: LL, alternatives: Boolean, departAtMs: Long = 0L, via: List<LL> = emptyList(), headingDeg: Double = -1.0, quick: Boolean = false): List<Route> =
         withBackup { p ->
             lastRouteProvider = p
-            if (p == "mapbox") try { MapboxRest.routes(mbToken, from, to, alternatives, departAtMs, via, headingDeg, quick, !mirrored) } catch (e: Exception) { noteMbRefused(e); throw e }
+            if (p == "mapbox") try { MapboxRest.routes(mbToken, from, to, alternatives, departAtMs, via, headingDeg, quick, leftTraffic) } catch (e: Exception) { noteMbRefused(e); throw e }
             else TomTomRest.routes(apiKey, from, to, alternatives, departAtMs, via, headingDeg, quick)
         }.also { rs -> if (lastRouteProvider == "tomtom" && rs.isNotEmpty()) mapboxLanesFor(rs, from, to, via, headingDeg) }
 
@@ -363,7 +363,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         if (!hasMapbox || !prefs.b(PreferenceKeys.LANES_MAPBOX, true) || !online()) return
         searchScope.launch {
             try {
-                val mb = MapboxRest.routes(mbToken, from, to, false, 0L, via, headingDeg, true, !mirrored).firstOrNull() ?: return@launch
+                val mb = MapboxRest.routes(mbToken, from, to, false, 0L, via, headingDeg, true, leftTraffic).firstOrNull() ?: return@launch
                 if (mb.lanes.isEmpty()) return@launch
                 var matched = 0
                 for (r in rs.take(3)) {
@@ -681,6 +681,14 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
     /** The country you're in (from the GPS), remembered between drives; blank until it's known. */
     var detectedCountry by mutableStateOf(prefs.s(PreferenceKeys.COUNTRYDETECTED, ""))
         private set
+    // road numbers on routes are written the way this country signs them ("A 4" in Germany, never the E-number)
+    init { RoadRefs.country = detectedCountry.uppercase() }
+
+    /**
+     * Traffic drives on the left here (UK, Ireland…): roundabouts go clockwise and U-turn lanes are on the right. From the
+     * country you're in; only when that isn't known yet from which side the car is driven from.
+     */
+    val leftTraffic: Boolean get() = if (detectedCountry.isNotBlank()) detectedCountry.uppercase() in KEEP_LEFT else !mirrored
     private var countryChecked = false
     private var countryTryAt = 0L
 
@@ -700,7 +708,11 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
             }
             if (cc == null) { countryChecked = false; return@launch }
             val up = cc.uppercase()
-            if (up != detectedCountry) { detectedCountry = up; prefs.put(PreferenceKeys.COUNTRYDETECTED, up) }
+            val changed = up != detectedCountry
+            if (changed) { detectedCountry = up; prefs.put(PreferenceKeys.COUNTRYDETECTED, up) }
+            RoadRefs.country = up
+            // the low emission zones are the country's own (Germany's Umweltzonen, Britain's clean air zones): fetch them for a new country
+            if (changed) try { if (Zones.needsRefresh(ctx) && online()) { withContext(Dispatchers.IO) { Zones.fetch(ctx) }; zonesVersion++ } } catch (e: Exception) { }
         }
     }
 
@@ -1678,8 +1690,8 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
 
     /** A name for the map strip of the current route: "Southampton → Bristol" style, from where you are to the destination. */
     fun offlineRouteName(): String {
-        val to = dest?.name?.takeIf { it.isNotBlank() } ?: "destination"
-        val from = onRoad.takeIf { it.isNotBlank() } ?: "here"
+        val to = dest?.name?.takeIf { it.isNotBlank() } ?: Lang.t("Ziel", "destination")
+        val from = onRoad.takeIf { it.isNotBlank() } ?: Lang.t("Hier", "here")
         return "$from → $to"
     }
 
@@ -3207,8 +3219,8 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         if (d < 8000 && incAlerted.add(next.first.id)) {
             val mins = next.first.delaySec / 60
             val extra = if (mins >= 2) Lang.t(", etwa $mins Minuten Verzögerung", ", about $mins minutes delay") else ""
-            raiseAlert("incident", "${next.third} ahead, ${Geo.fmtDist(d, imperial)}$extra", 7000)
-            speak("${next.third} ahead in ${Geo.spoken(d, imperial)}$extra", true)
+            raiseAlert("incident", Lang.t("${next.third} in ${Geo.fmtDist(d, imperial)}$extra", "${next.third} ahead, ${Geo.fmtDist(d, imperial)}$extra"), 7000)
+            speak(Lang.t("In ${Geo.spoken(d, imperial)}: ${next.third}$extra", "${next.third} ahead in ${Geo.spoken(d, imperial)}$extra"), true)
         }
     }
 
@@ -3502,7 +3514,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
             val arriving = cur.maneuver.uppercase().startsWith("ARRIVE")
             val side = if (arriving) arrivalSide(r, cur.maneuver) else ""
             val nxt = ins.getOrNull(k + 1)
-            val street = if (arriving) (dest?.name ?: Lang.t("Ziel", "Destination")) + (if (side.isNotEmpty()) Lang.t(" · auf der $side", " · on the $side") else "") else cur.street.ifBlank { Geo.maneuverText(cur.maneuver, cur.roundExit).replaceFirstChar { it.uppercase() } }
+            val street = if (arriving) (dest?.name ?: Lang.t("Ziel", "Destination")) + (if (side.isNotEmpty()) Lang.t(" · $side", " · on the " + (if (side == "links") "left" else "right")) else "") else cur.street.ifBlank { Geo.maneuverText(cur.maneuver, cur.roundExit).replaceFirstChar { it.uppercase() } }
             // several lane sections can touch one junction (the road often widens on the approach): use the one with the most lanes, then the nearest to the junction
             // on motorways and dual carriageways the lanes are looked at (and shown, and spoken) much earlier, as there's further to move over
             val fastRoad = cur.exitNo.isNotBlank() || (fix?.let { f -> try { map.roadAt(f.pos, f.heading)?.cls } catch (e: Throwable) { null } }?.let { it.startsWith("motorway") || it.startsWith("trunk") } == true)
@@ -3514,7 +3526,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
             if (fastRoad && laneAdv != null && d in 1250.0..1850.0 && earlyLaneFor != cur.off) {
                 earlyLaneFor = cur.off
                 val dist = if (imperial) Lang.t("In etwa einer Meile", "In about a mile") else Lang.t("In etwa eineinhalb Kilometern", "In about one and a half kilometres")
-                speak(dist + ", " + laneAdv.replaceFirst("Use the", "move into the").replaceFirst("Use lane", "move into lane"))
+                speak(dist + " " + laneAdv.replaceFirst("Links ", "links ").replaceFirst("Rechts ", "rechts ").replaceFirst("Mittlere ", "die mittleren "))
             }
             updateLaneMarks(r, cur, laneSec, d)
             updateTurnArrow(r, k, cur, d, arriving)
@@ -3540,7 +3552,8 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
             if (ot == null || ot.maneuver != newTurn.maneuver || ot.street != newTurn.street || ot.lanes !== newTurn.lanes || ot.thenText != newTurn.thenText || abs(ot.dist - newTurn.dist) >= 3.0 || newTurn.dist < 30.0) turn = newTurn
             val word = Geo.maneuverText(cur.maneuver, cur.roundExit)
             // (Settings > Sound > Say road names off: just the direction, "In 200 metres, turn left")
-            val tail = if (arriving || cur.street.isBlank() || !prefs.b(PreferenceKeys.VOICE_ROADS, true)) "" else Lang.t(" auf ${cur.street}", " onto ${cur.street}")
+            // a road number takes its article in German ("auf die A 4"); a street name is said as it is ("auf Hauptstraße")
+            val tail = if (arriving || cur.street.isBlank() || !prefs.b(PreferenceKeys.VOICE_ROADS, true)) "" else Lang.t(if (RoadRefs.isRef(cur.street)) " auf die ${cur.street}" else " auf ${cur.street}", " onto ${cur.street}")
             val lane = if (laneAdv != null) ". $laneAdv" else ""
             if (onRoad.isNotBlank()) tripRoads.add(onRoad)
             // smarter voice: junction numbers, sign destinations and the next move when it follows quickly
@@ -3552,9 +3565,9 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
             if (!familiar && d <= 1700 && d > 1100 && p0Speed() > 18.0 && !arriving && said.add("${k}e"))
                 speak("In ${Geo.spoken(d, imperial)}, $phrase")
             if (d <= fFrom && d > 200 && said.add("${k}f"))
-                speak(if (arriving) "In ${Geo.spoken(d, imperial)} erreichen Sie Ihr Ziel" + (if (side.isNotEmpty()) ". Das Ziel liegt auf der $side" else "") else "In ${Geo.spoken(d, imperial)}, $phrase$lane")
+                speak(if (arriving) "In ${Geo.spoken(d, imperial)} erreichen Sie Ihr Ziel" + (if (side.isNotEmpty()) ". Das Ziel liegt $side" else "") else "In ${Geo.spoken(d, imperial)}, $phrase$lane")
             if (d <= 120 && said.add("${k}n"))
-                speak(if (arriving) (if (side.isNotEmpty()) "Das Ziel liegt auf der $side" else "Sie haben Ihr Ziel erreicht") else phrase.replaceFirstChar { it.uppercase() })
+                speak(if (arriving) (if (side.isNotEmpty()) "Das Ziel liegt $side" else "Sie haben Ihr Ziel erreicht") else phrase.replaceFirstChar { it.uppercase() })
         }
         // arrived: at the end of the route and really there (not just level with the end of the route on another road)
         val atEnd = rem < 25 && fix.let { f -> f == null || Geo.dist(f.pos, dest?.pos ?: r.pts.last()) < 120.0 || Geo.dist(f.pos, r.pts.last()) < 120.0 }
@@ -3750,14 +3763,21 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         if (sig != radarSig) { radarSig = sig; radar = shown }
     }
 
-    private val refRx = Regex("\\b([MAB][0-9]{1,4}(?:\\(M\\))?)\\b")
+    // British "A34", "M3", "A3(M)" and German "A 5", "B 27", "E 40" (with or without the space)
+    private val refRx = Regex("\\b((?:[MABEKL]|St)\\s?[0-9]{1,4}(?:\\(M\\))?)(?![0-9A-Za-z])")
 
-    /** Road numbers on a sign ("A34", "M3"). */
-    private fun signRefs(sign: String): List<String> = refRx.findAll(sign).map { it.groupValues[1] }.distinct().toList()
+    /**
+     * Road numbers on a sign ("A34", "M3", "A 5"), written as the country signs them; a European number ("E 40") only when the
+     * sign has no national one, as that's the number people follow.
+     */
+    private fun signRefs(sign: String): List<String> {
+        val all = refRx.findAll(sign).map { RoadRefs.format(it.groupValues[1].trim()) }.distinct().toList()
+        return all.filter { !RoadRefs.isEuro(it) }.ifEmpty { all }
+    }
 
-    /** Place names on a sign, without the road numbers ("Winchester", "Basingstoke"). */
+    /** Place names on a sign, without the road numbers ("Winchester", "Basingstoke", "Frankfurt" from "A 5: Frankfurt"). */
     private fun signDests(sign: String): List<String> =
-        sign.split(',', '/', ';', '|').map { refRx.replace(it, "").replace(Regex("[()]"), "").trim() }.filter { it.length >= 3 && it.any { ch -> ch.isLetter() } }.distinct()
+        sign.split(',', '/', ';', '|').map { refRx.replace(it, "").replace(Regex("[():]"), "").trim() }.filter { it.length >= 3 && it.any { ch -> ch.isLetter() } }.distinct()
 
     /** "take junction 9 towards Winchester, then keep left for the A34", from the route's step and sign data. */
     private fun smartPhrase(cur: Step, nxt: Step?, word: String, tail: String): String {
@@ -3772,15 +3792,16 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         val refs = signRefs(cur.sign)
         main += when {
             !sayRoads -> tail
-            dests.isNotEmpty() -> (if (refs.isNotEmpty() && cur.exitNo.isNotBlank()) " auf der ${refs[0]}" else "") + " in Richtung " + dests.take(2).joinToString(Lang.t(" und ", " and "))
-            refs.isNotEmpty() && exitLike -> " auf der ${refs[0]}"
+            dests.isNotEmpty() -> (if (refs.isNotEmpty() && cur.exitNo.isNotBlank()) " auf die ${refs[0]}" else "") + " in Richtung " + dests.take(2).joinToString(Lang.t(" und ", " and "))
+            // (onto the road: "rechts halten auf die A 3", not "auf der", which means staying on it)
+            refs.isNotEmpty() && exitLike -> " auf die ${refs[0]}"
             else -> tail
         }
         if (nxt != null && nxt.off - cur.off in 1.0..450.0 && !nxt.maneuver.uppercase().startsWith("ARRIVE")) {
             val target = signRefs(nxt.sign).firstOrNull() ?: nxt.street
             val forWhat = when {
                 target.isBlank() || !sayRoads -> ""
-                refRx.matches(target) -> " auf der $target"
+                refRx.matches(target) -> " auf die $target"
                 else -> " auf $target"
             }
             main += ", dann " + Geo.maneuverText(nxt.maneuver, nxt.roundExit) + forWhat
@@ -4240,7 +4261,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         if (has("eta", "arrive", "how long", "how far", "time left", "when will i", "wann komme", "wann sind wir", "wie lange", "wie weit", "ankunft", "restzeit", "wie viel zeit")) {
             val e = eta
             if (e == null) say(Lang.t("Gerade ist keine Route aktiv", "There's no route at the moment"))
-            else say(Lang.t("Ankunft um ${e.arrive}, in ${Geo.fmtDur(e.secs)}. Noch ${Geo.spoken(e.dist, imperial)}.", "You'll arrive at ${e.arrive}, in ${Geo.fmtDur(e.secs)}. ${Geo.spoken(e.dist, imperial)} to go.") + if (e.delayMin >= 1) Lang.t(" ${e.delayMin} Minuten Verzögerung durch Verkehr.", " ${e.delayMin} minutes of traffic.") else "")
+            else say(Lang.t("Ankunft um ${e.arrive}, in ${Geo.fmtDur(e.secs)}. Noch ${Geo.spokenPlain(e.dist, imperial)}.", "You'll arrive at ${e.arrive}, in ${Geo.fmtDur(e.secs)}. ${Geo.spoken(e.dist, imperial)} to go.") + if (e.delayMin >= 1) Lang.t(" ${e.delayMin} Minuten Verzögerung durch Verkehr.", " ${e.delayMin} minutes of traffic.") else "")
             return ""
         }
         if (has("share", "teilen", "teile", "schicke", "sende")) return "share"
@@ -4378,7 +4399,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
                     if (avgAlerted.add(cur.def.id)) {
                         chime(android.media.ToneGenerator.TONE_PROP_PROMPT)
                         raiseAlert("avg", Lang.t("Abschnittskontrolle noch ${Geo.fmtDist(cur.end - progress, imperial)}", "Average speed check for ${Geo.fmtDist(cur.end - progress, imperial)}"), 6000)
-                        speak(Lang.t("Abschnittskontrolle noch ${Geo.spoken(cur.end - progress, imperial)}", "Average speed check for ${Geo.spoken(cur.end - progress, imperial)}"), true)
+                        speak(Lang.t("Abschnittskontrolle noch ${Geo.spokenPlain(cur.end - progress, imperial)}", "Average speed check for ${Geo.spoken(cur.end - progress, imperial)}"), true)
                     }
                 }
                 val secs = (now - avgEnterAt) / 1000.0
@@ -4476,8 +4497,16 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         if (prefs.b(PreferenceKeys.ZONEWARN, true)) for ((name, off) in pl.zones) {
             val ahead = off - progress
             if (ahead in -50.0..1500.0 && zoneAlerted.add(name)) {
-                raiseAlert("zone", if (ahead <= 0) Lang.t("Sie sind in $name", "You are in $name") else Lang.t("Einfahrt in $name in ${Geo.fmtDist(ahead, imperial)}", "Entering $name in ${Geo.fmtDist(ahead, imperial)}"), 7000)
-                speak(if (ahead <= 0) Lang.t("Sie sind in $name. Es kann eine Gebühr anfallen.", "You are in $name. A charge may apply.") else Lang.t("Sie fahren gleich in $name ein. Es kann eine Gebühr anfallen.", "You are about to enter $name. A charge may apply."), true)
+                if (detectedCountry.uppercase() == "DE") {
+                    // a German Umweltzone: no charge, but only cars with the green sticker may drive in
+                    val zn = if (name.contains("umweltzone", true)) name else "Umweltzone $name"
+                    raiseAlert("zone", if (ahead <= 0) Lang.t("In der $zn", "In the $zn") else Lang.t("$zn in ${Geo.fmtDist(ahead, imperial)}", "$zn in ${Geo.fmtDist(ahead, imperial)}"), 7000)
+                    speak(if (ahead <= 0) Lang.t("Sie sind in der Umweltzone. Nur mit grüner Plakette.", "You are in a low emission zone. Green sticker required.")
+                          else Lang.t("Sie fahren gleich in die Umweltzone ein. Nur mit grüner Plakette.", "You are about to enter a low emission zone. Green sticker required."), true)
+                } else {
+                    raiseAlert("zone", if (ahead <= 0) Lang.t("Sie sind in $name", "You are in $name") else Lang.t("Einfahrt in $name in ${Geo.fmtDist(ahead, imperial)}", "Entering $name in ${Geo.fmtDist(ahead, imperial)}"), 7000)
+                    speak(if (ahead <= 0) Lang.t("Sie sind in $name. Es kann eine Gebühr anfallen.", "You are in $name. A charge may apply.") else Lang.t("Sie fahren gleich in $name ein. Es kann eine Gebühr anfallen.", "You are about to enter $name. A charge may apply."), true)
+                }
             }
         }
 

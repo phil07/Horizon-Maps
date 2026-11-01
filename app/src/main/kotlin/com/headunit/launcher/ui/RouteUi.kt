@@ -81,6 +81,7 @@ import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -233,7 +234,7 @@ fun AvgSpeedCard(engine: NavEngine, modifier: Modifier = Modifier) {
         }
         if (!a.ahead) Column(horizontalAlignment = Alignment.End) {
             Text("${Math.round(a.avgMs * k)}", color = if (a.over) Bad else Good, fontSize = 28.sp, fontWeight = FontWeight.Bold)
-            Text("avg $unit", color = c.sub, fontSize = 11.sp)
+            Text(Lang.t("Ø $unit", "avg $unit"), color = c.sub, fontSize = 11.sp)
         }
     }
 }
@@ -285,7 +286,7 @@ fun ParkingCard(engine: NavEngine, modifier: Modifier = Modifier) {
                 Text(n.place.name, color = c.text, fontSize = 14.sp, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f).padding(start = 10.dp))
                 // a walk at about 80 m a minute
-                Text("${maxOf(1, Math.round(n.dist / 80.0).toInt())} min walk", color = c.sub, fontSize = 12.sp, modifier = Modifier.padding(start = 8.dp, end = 8.dp))
+                Text(maxOf(1, Math.round(n.dist / 80.0).toInt()).let { Lang.t("$it Min. zu Fuß", "$it min walk") }, color = c.sub, fontSize = 12.sp, modifier = Modifier.padding(start = 8.dp, end = 8.dp))
             }
         }
     }
@@ -533,14 +534,26 @@ fun EvStopsRow(engine: NavEngine, planned: List<com.headunit.launcher.EvStop>? =
             if (stops.isEmpty()) Text(warn ?: "", color = Bad, fontSize = 13.sp, fontWeight = FontWeight.Bold)
             else {
                 Text(if (planned != null) Lang.t("${stops.size} Ladestopp$many geplant", "${stops.size} charging stop$many planned") else Lang.t("${stops.size} Ladestopp$many nötig", "${stops.size} charging stop$many needed"), color = Good, fontSize = 13.sp, fontWeight = FontWeight.Bold)
-                stops.forEachIndexed { i, s ->
-                    // the network first (unless the name already says it), and a star for one of the operators preferred in Settings
-                    val op = com.headunit.launcher.ChargeOperators.label(s.n)?.takeUnless { s.n.place.name.contains(it, ignoreCase = true) }
-                    Text(
-                        "${i + 1}. " + (if (s.preferred) "★ " else "") + (op?.let { "$it · " } ?: "") + "${s.n.place.name} · ${Geo.fmtDist(s.n.dist, engine.imperial)} · " + (s.n.kw?.let { "$it kW · " } ?: "") +
-                            Lang.t("Ankunft ${s.arrPct} %, laden auf ${s.toPct} % (${s.minutes} Min.)", "arrive ${s.arrPct}%, charge to ${s.toPct}% (${s.minutes} min)"),
-                        color = c.text, fontSize = 13.sp, maxLines = 2, overflow = TextOverflow.Ellipsis,
-                    )
+                // up to two stops are simply listed; from three on the list is as tall as the first two (plus a sliver of
+                // the third, so it shows there is more) and scrolls by itself
+                val scrollList = stops.size >= 3
+                val density = androidx.compose.ui.platform.LocalDensity.current
+                // (not keyed on the stops: a new list with the same rows would empty it, and onSizeChanged does not fire again for
+                // rows whose size didn't change, which left the list stuck at the 80 dp fallback; the heights only steer the cap)
+                val itemH = remember { androidx.compose.runtime.mutableStateMapOf<Int, Int>() }
+                val twoPx = (itemH[0] ?: 0) + (itemH[1] ?: 0)
+                val listCap = if (twoPx > 0) with(density) { twoPx.toDp() } + 10.dp else 80.dp
+                Column(if (scrollList) Modifier.heightIn(max = listCap).verticalScroll(rememberScrollState()) else Modifier) {
+                    stops.forEachIndexed { i, s ->
+                        // the network first (unless the name already says it), and a star for one of the operators preferred in Settings
+                        val op = com.headunit.launcher.ChargeOperators.label(s.n)?.takeUnless { s.n.place.name.contains(it, ignoreCase = true) }
+                        Text(
+                            "${i + 1}. " + (if (s.preferred) "★ " else "") + (op?.let { "$it · " } ?: "") + "${s.n.place.name} · ${Geo.fmtDist(s.n.dist, engine.imperial)} · " + (s.n.kw?.let { "$it kW · " } ?: "") +
+                                Lang.t("Ankunft ${s.arrPct} %, laden auf ${s.toPct} % (${s.minutes} Min.)", "arrive ${s.arrPct}%, charge to ${s.toPct}% (${s.minutes} min)"),
+                            color = c.text, fontSize = 13.sp, maxLines = 2, overflow = TextOverflow.Ellipsis,
+                            modifier = if (scrollList && i < 2) Modifier.onSizeChanged { if (itemH[i] != it.height) itemH[i] = it.height } else Modifier,
+                        )
+                    }
                 }
                 if (warn != null) Text(warn, color = Bad, fontSize = 12.sp)
             }
@@ -571,25 +584,38 @@ fun FuelSuggestionRow(engine: NavEngine) {
 // ------------------------------------------------------------------ UK road signs
 
 private val ukRefRx = Regex("\\b([MAB][0-9]{1,4})(\\s?\\(M\\))?\\b")
+// German numbers, with or without the space: "A 5", "A5", "B 27"
+private val deRefRx = Regex("\\b([AB])\\s?([0-9]{1,3})\\b")
 
 /**
  * The direction sign for the junction, drawn the way UK gantries look: blue with white text for motorways,
  * green with yellow road numbers for primary roads, white with black text for local roads. The junction number
  * sits in its own black box, and road numbers of a different class get their own coloured panel.
+ * In Germany (the country you're in) the German colours: blue with white text for the Autobahn, yellow with black text for
+ * a Bundesstraße, and the numbers written "A 5", "B 27".
  */
 @Composable
 fun UkSign(sign: String, junction: String, street: String, modifier: Modifier = Modifier) {
     val text = sign.ifBlank { street }
-    val refs = ukRefRx.findAll(text).map { it.groupValues[1] + (if (it.groupValues[2].isNotBlank()) " (M)" else "") }.distinct().toList()
+    val de = com.headunit.launcher.RoadRefs.country.uppercase() == "DE"
+    val rx = if (de) deRefRx else ukRefRx
+    val refs = if (de) deRefRx.findAll(text).map { it.groupValues[1] + " " + it.groupValues[2] }.distinct().toList()
+        else ukRefRx.findAll(text).map { it.groupValues[1] + (if (it.groupValues[2].isNotBlank()) " (M)" else "") }.distinct().toList()
     // (Mapbox writes "M27: Salisbury, Ringwood": the colon after the road number is split off too, so it never shows as ": Salisbury")
-    val dests = text.split(',', '/', ';', '|', ':').map { ukRefRx.replace(it, "").replace(Regex("[()]"), "").trim().trim(':', '-', '–', ' ') }.filter { it.length >= 3 && it.any { ch -> ch.isLetter() } }.distinct().take(3)
-    val motorway = refs.any { it.startsWith("M") || it.endsWith("(M)") } || (junction.isNotBlank() && refs.none { it.startsWith("A") || it.startsWith("B") })
-    val primary = !motorway && refs.any { it.startsWith("A") }
-    val bg = when { motorway -> Color(0xFF0065B3); primary -> Color(0xFF00703C); else -> Color.White }
-    val fg = if (motorway || primary) Color.White else Color(0xFF111111)
+    val dests = text.split(',', '/', ';', '|', ':').map { rx.replace(it, "").replace(Regex("[()]"), "").trim().trim(':', '-', '–', ' ') }.filter { it.length >= 3 && it.any { ch -> ch.isLetter() } }.distinct().take(3)
+    // the motorway class (M roads / Autobahn) and the primary class (A roads / Bundesstraßen)
+    fun isMot(r: String) = if (de) r.startsWith("A") else r.startsWith("M") || r.endsWith("(M)")
+    fun isPri(r: String) = !isMot(r) && r.startsWith(if (de) "B" else "A")
+    val motorway = refs.any { isMot(it) } || (junction.isNotBlank() && refs.none { isPri(it) || it.startsWith("B") })
+    val primary = !motorway && refs.any { isPri(it) }
+    val motBg = Color(0xFF0065B3)
+    val priBg = if (de) Color(0xFFFFD200) else Color(0xFF00703C)
+    val priNum = if (de) Color(0xFF111111) else Color(0xFFFFD200)   // the numbers on a primary sign: black (DE), yellow (UK)
+    val bg = when { motorway -> motBg; primary -> priBg; else -> Color.White }
+    val fg = if (motorway || (primary && !de)) Color.White else Color(0xFF111111)
     val shape = RoundedCornerShape(8.dp)
     Row(
-        modifier.clip(shape).background(bg).border(2.dp, if (motorway || primary) Color.White else Color(0xFF111111), shape).padding(horizontal = 10.dp, vertical = 7.dp),
+        modifier.clip(shape).background(bg).border(2.dp, if (motorway || (primary && !de)) Color.White else Color(0xFF111111), shape).padding(horizontal = 10.dp, vertical = 7.dp),
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         if (junction.isNotBlank()) Text(junction, color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold, maxLines = 1,
@@ -599,17 +625,17 @@ fun UkSign(sign: String, junction: String, street: String, modifier: Modifier = 
             else if (refs.isEmpty()) Text(text, color = fg, fontSize = 17.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
         refs.take(2).forEach { r ->
-            val isM = r.startsWith("M") || r.endsWith("(M)")
-            val isA = r.startsWith("A") && !isM
+            val isM = isMot(r)
+            val isA = isPri(r)
             when {
-                // a road of the sign's own class: plain (yellow numbers on green signs)
+                // a road of the sign's own class: plain (yellow numbers on green UK signs, black on yellow German ones)
                 isM && motorway -> Text(r, color = Color.White, fontSize = 17.sp, fontWeight = FontWeight.Bold, maxLines = 1)
-                isA && primary -> Text(r, color = Color(0xFFFFD200), fontSize = 17.sp, fontWeight = FontWeight.Bold, maxLines = 1)
+                isA && primary -> Text(r, color = priNum, fontSize = 17.sp, fontWeight = FontWeight.Bold, maxLines = 1)
                 // a different class gets its own panel
                 isM -> Text(r, color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.Bold, maxLines = 1,
-                    modifier = Modifier.clip(RoundedCornerShape(3.dp)).background(Color(0xFF0065B3)).padding(horizontal = 6.dp, vertical = 1.dp))
-                isA -> Text(r, color = Color(0xFFFFD200), fontSize = 15.sp, fontWeight = FontWeight.Bold, maxLines = 1,
-                    modifier = Modifier.clip(RoundedCornerShape(3.dp)).background(Color(0xFF00703C)).padding(horizontal = 6.dp, vertical = 1.dp))
+                    modifier = Modifier.clip(RoundedCornerShape(3.dp)).background(motBg).padding(horizontal = 6.dp, vertical = 1.dp))
+                isA -> Text(r, color = priNum, fontSize = 15.sp, fontWeight = FontWeight.Bold, maxLines = 1,
+                    modifier = Modifier.clip(RoundedCornerShape(3.dp)).background(priBg).padding(horizontal = 6.dp, vertical = 1.dp))
                 else -> Text("($r)", color = fg, fontSize = 15.sp, fontWeight = FontWeight.Bold, maxLines = 1)
             }
         }
@@ -903,7 +929,7 @@ fun JunctionSign(t: com.headunit.launcher.TurnInfo, modifier: Modifier = Modifie
 fun RoundaboutView(engine: NavEngine, t: com.headunit.launcher.TurnInfo, modifier: Modifier = Modifier) {
     if (!t.maneuver.uppercase().startsWith("ROUNDABOUT") || t.rbIn < 0 || t.rbOut < 0 || t.dist > 800.0) return
     val c = navVw(LocalVw.current)
-    val clockwise = !engine.mirrored
+    val clockwise = engine.leftTraffic
     // angles on screen: the way you come in points up, so the road you enter from is at the bottom
     fun rel(b: Double) = ((b - t.rbIn) % 360.0 + 360.0) % 360.0
     val exitA = rel(t.rbOut)

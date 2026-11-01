@@ -11,9 +11,10 @@ import java.net.URLEncoder
 /** [price] is in pence or cents a litre; [unit] says which ("p" or "€"), so it can be shown the local way (139.9p, €1.789). */
 data class Nearby(val place: Place, val dist: Double, val extra: String, val price: Double? = null, val detourMin: Int = -1, val ahead: Boolean = false, val unit: String = "p", val kw: Int? = null, val op: String? = null)
 
-/** A fuel price the local way: "139.9p" in the UK, "€1.789" in the euro countries. [price] is in pence or cents a litre. */
+/** A fuel price the local way: "139.9p" in the UK, "1,789 €" in Germany ("€1.789" in English). [price] is in pence or cents a litre. */
 fun fmtFuelPrice(price: Double, unit: String): String =
-    if (unit == "€") String.format(java.util.Locale.UK, "€%.3f", price / 100.0) else String.format(java.util.Locale.UK, "%.1fp", price)
+    if (unit == "€") (if (Lang.de) String.format(java.util.Locale.GERMANY, "%.3f €", price / 100.0) else String.format(java.util.Locale.UK, "€%.3f", price / 100.0))
+    else String.format(java.util.Locale.UK, "%.1fp", price)
 
 /** Free OpenStreetMap queries: speed limits, speed cameras and nearby fuel / charging / parking. */
 object Overpass {
@@ -136,9 +137,12 @@ object Overpass {
                 "service" -> 10 * mph
                 else -> 30 * mph
             }
+            // Germany: 50 km/h in towns, 100 km/h outside; no general limit on the Autobahn or on other roads outside towns with
+            // two lanes each way split by a central reserve (130 km/h there is only the advised speed, never a limit to show)
             "DE" -> when (base) {
-                "motorway" -> if (link) 60 * kmh else 130 * kmh
-                "trunk", "primary" -> if (link) 60 * kmh else if (lit) 50 * kmh else 100 * kmh
+                "motorway" -> if (link) 60 * kmh else null
+                "trunk", "primary" -> if (link) 60 * kmh else if (lit) 50 * kmh
+                    else if (oneway || (tags.optString("lanes").toIntOrNull() ?: 0) >= 4) null else 100 * kmh
                 "secondary", "tertiary", "unclassified" -> if (link) 50 * kmh else if (lit) 50 * kmh else 100 * kmh
                 "residential" -> 30 * kmh
                 "living_street" -> 10 * kmh
@@ -253,6 +257,12 @@ object Overpass {
             val t = w.tags
             // a limit that differs by direction: forward is the way the road is drawn
             val dirKey = if (heading >= 0 && bDiff > 90.0) "maxspeed:backward" else "maxspeed:forward"
+            // "none" (no limit, as on much of the Autobahn), "signals"/"variable" (overhead signs that change): there is no fixed
+            // number to show, and guessing one from the road type would put a made-up limit (130 on an Autobahn) on the sign
+            val rawMs = t.optString(dirKey).ifBlank { t.optString("maxspeed") }.trim().lowercase()
+            val noNumber = setOf("none", "signals", "variable", "de:motorway")
+            val unposted = rawMs in noNumber ||
+                (rawMs.isBlank() && t.optString("maxspeed:type").ifBlank { t.optString("source:maxspeed") }.trim().lowercase() in noNumber)
             val posted = parseSpeed(t.optString(dirKey), country)
                 ?: parseSpeed(t.optString("maxspeed"), country)
                 ?: parseSpeed(t.optString("maxspeed:type"), country)
@@ -265,6 +275,7 @@ object Overpass {
             val names = (listOf(nm) + t.optString("ref").split(";").map { it.trim() }).filter { it.isNotBlank() }
             val sure = bDist <= 18.0 && bAligned
             if (posted != null) Limit(posted, false, road, w.id, names, sure)
+            else if (unposted) Limit(-1.0, false, road, w.id, names, sure)
             else estimate(t, country)?.let { Limit(if (country == "GB") snapGb(it) else it, true, road, w.id, names, sure) }
                 ?: Limit(-1.0, true, road, w.id, names, sure)
         }
@@ -279,9 +290,11 @@ object Overpass {
         if (country == "GB" || country == "US") return null
         return when (kind) {
             "urban" -> 50.0 / 3.6
-            "living_street" -> 20.0 / 3.6
+            "living_street" -> when (country) { "DE", "AT" -> null; else -> 20.0 / 3.6 }   // Germany/Austria: walking pace, no number
             "motorway" -> when (country) { "DE" -> null; else -> 130.0 / 3.6 }
-            else -> null      // "rural" differs too much between countries to guess
+            // "rural" differs too much between countries to guess, except where the law sets it
+            "rural" -> when (country) { "DE", "AT" -> 100.0 / 3.6; else -> null }
+            else -> null
         }
     }
 

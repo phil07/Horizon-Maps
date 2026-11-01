@@ -115,14 +115,31 @@ import com.headunit.launcher.PreferenceKeys
 @Composable
 fun NavOverlays(engine: NavEngine, onSettings: () -> Unit) = ImmersiveNav(engine, onSettings)
 
+/**
+ * The main roads of a route for its card: the one or two roads it follows longest, in the order you drive them ("A 5, A 7").
+ * Road numbers (the national ones, as signed) come before street names when they carry a fair share of the trip.
+ */
 internal fun viaOf(r: com.headunit.launcher.Route): String {
-    var best = ""
-    var bl = 0.0
+    // total length on each road and where it first comes up
+    val len = LinkedHashMap<String, Double>()
+    val first = HashMap<String, Int>()
     for (i in r.steps.indices) {
-        val len = (r.steps.getOrNull(i + 1)?.off ?: r.len) - r.steps[i].off
-        if (len > bl && r.steps[i].street.isNotBlank()) { bl = len; best = r.steps[i].street }
+        val s = r.steps[i]
+        if (s.maneuver.uppercase().startsWith("ARRIVE")) continue
+        val name = s.street.trim()
+        if (name.isEmpty()) continue
+        val l = ((r.steps.getOrNull(i + 1)?.off ?: r.len) - s.off).coerceAtLeast(0.0)
+        len[name] = (len[name] ?: 0.0) + l
+        if (name !in first) first[name] = i
     }
-    return best
+    if (len.isEmpty()) return ""
+    val total = r.len.coerceAtLeast(1.0)
+    val refs = len.entries.filter { com.headunit.launcher.RoadRefs.isRef(it.key) && !com.headunit.launcher.RoadRefs.isEuro(it.key) }
+    val pool = (if (refs.isNotEmpty() && refs.maxOf { it.value } >= total * 0.2) refs else len.entries.toList()).sortedByDescending { it.value }
+    val top = pool.first()
+    // a second road only when it is a real part of the trip, not a few hundred metres of it
+    val second = pool.getOrNull(1)?.takeIf { it.value >= total * 0.15 && it.value >= top.value * 0.25 }
+    return listOfNotNull(top, second).sortedBy { first[it.key] ?: 0 }.joinToString(", ") { it.key }
 }
 
 /** Journey overview: route options plus a Start button that fills up and starts by itself after 5 s. */
@@ -169,12 +186,13 @@ internal fun BoxScope.RoutePreview(engine: NavEngine) {
     // one compact row: the "Options" button and a one-line summary of what is chosen; the rain warning stays visible
     val summary = buildList {
         val m = engine.departMin
-        add(when {
-            plannedHere -> Lang.t("Ankunft geplant", "Arrival planned")
-            m <= 0 -> Lang.t("Abfahrt jetzt", "Leave now")
-            m % 60 == 0 -> Lang.t("Abfahrt +${m / 60} h", "Leave +${m / 60} h")
-            else -> Lang.t("Abfahrt +$m Min.", "Leave +$m min")
-        })
+        // leaving now is the normal case: only a later departure or a planned arrival is worth mentioning
+        when {
+            plannedHere -> add(Lang.t("Ankunft geplant", "Arrival planned"))
+            m <= 0 -> {}
+            m % 60 == 0 -> add(Lang.t("Abfahrt +${m / 60} h", "Leave +${m / 60} h"))
+            else -> add(Lang.t("Abfahrt +$m Min.", "Leave +$m min"))
+        }
         if (ev) {
             val pctNow = engine.evNowPct() ?: engine.prefs.i(PreferenceKeys.EV_CHARGE_PCT, 80).coerceIn(5, 100)
             add(Lang.t("Akku $pctNow %", "Battery $pctNow%"))
@@ -195,12 +213,15 @@ internal fun BoxScope.RoutePreview(engine: NavEngine) {
     ) {
         Pill(if (showOpts) Lang.t("Optionen ▴", "Options ▴") else Lang.t("Optionen ▾", "Options ▾"), showOpts, { showOpts = !showOpts })
         Column(Modifier.weight(1f, fill = false).padding(end = 8.dp)) {
-            Text(summary, color = c.sub, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            if (summary.isNotEmpty()) Text(summary, color = c.sub, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
             engine.destRain?.let { Text(it, color = Warn, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis) }
         }
     }
-    // at most 40 % of the screen's height, so the route cards and Start stay in view on a short (car / landscape) screen
-    val optsMaxH = (androidx.compose.ui.platform.LocalConfiguration.current.screenHeightDp * 0.4f).dp
+    // a short (car / landscape) screen: at most 40 % of its height, so the route cards and Start stay in view (the options
+    // scroll then). A tall screen has room for all of it; the cap there is only a safety net (a long list of charging
+    // stops scrolls by itself, see EvStopsRow), so normally nothing scrolls.
+    val screenH = androidx.compose.ui.platform.LocalConfiguration.current.screenHeightDp
+    val optsMaxH = (screenH * (if (screenH < 600) 0.4f else 0.6f)).dp
     if (showOpts) Column(Modifier.fillMaxWidth().heightIn(max = optsMaxH).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
     Row(
         Modifier.floating(50.dp).horizontalScroll(rememberScrollState()).padding(6.dp),
@@ -223,18 +244,22 @@ internal fun BoxScope.RoutePreview(engine: NavEngine) {
         }
         Pill(Lang.t("Ankunft bis…", "Arrive by…"), planHold, { arriveBy = true })
     }
-    // electric: the battery now, the least you want to arrive with, and the eco route; charging stops are then planned
+    // electric: the battery now, the least you want to arrive with, and the eco route; charging stops are then planned.
+    // A fresh reading from the battery widget makes the "battery now" setting pointless: then only the other two are shown.
     if (ev) Row(
         Modifier.floating(50.dp).horizontalScroll(rememberScrollState()).padding(6.dp),
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         val pct = engine.prefs.i(PreferenceKeys.EV_CHARGE_PCT, 80).coerceIn(5, 100)
         val destKm = engine.prefs.i(PreferenceKeys.EV_DEST_KM, 50)
-        Text(stringResource(R.string.ui_007), color = c.sub, fontSize = 13.sp, modifier = Modifier.padding(horizontal = 10.dp))
-        Pill("−", false, { engine.prefs.put(PreferenceKeys.EV_CHARGE_PCT, (pct - 10).coerceAtLeast(5)); engine.refreshEvPlan() })
-        Text("$pct%", color = c.text, fontSize = 16.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 4.dp))
-        Pill("+", false, { engine.prefs.put(PreferenceKeys.EV_CHARGE_PCT, (pct + 10).coerceAtMost(100)); engine.refreshEvPlan() })
-        Text(Lang.t("Am Ziel mind.", "At destination, at least"), color = c.sub, fontSize = 13.sp, modifier = Modifier.padding(start = 14.dp, end = 4.dp))
+        val fromWidget = engine.evNowPct() != null
+        if (!fromWidget) {
+            Text(stringResource(R.string.ui_007), color = c.sub, fontSize = 13.sp, modifier = Modifier.padding(horizontal = 10.dp))
+            Pill("−", false, { engine.prefs.put(PreferenceKeys.EV_CHARGE_PCT, (pct - 10).coerceAtLeast(5)); engine.refreshEvPlan() })
+            Text("$pct%", color = c.text, fontSize = 16.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 4.dp))
+            Pill("+", false, { engine.prefs.put(PreferenceKeys.EV_CHARGE_PCT, (pct + 10).coerceAtMost(100)); engine.refreshEvPlan() })
+        }
+        Text(Lang.t("Am Ziel mind.", "At destination, at least"), color = c.sub, fontSize = 13.sp, modifier = Modifier.padding(start = if (fromWidget) 10.dp else 14.dp, end = 4.dp))
         for (km in listOf(30, 50, 100)) Pill("$km km", destKm == km, { engine.prefs.put(PreferenceKeys.EV_DEST_KM, km); engine.refreshEvPlan() })
         Pill(if (eco) Lang.t("Öko-Route ✓", "Eco route ✓") else Lang.t("Öko-Route", "Eco route"), eco, { engine.prefs.put(PreferenceKeys.ROUTE_ECO, !eco); engine.rerouteForSettings() })
     }
@@ -279,7 +304,7 @@ internal fun BoxScope.RoutePreview(engine: NavEngine) {
             ) {
                 Text(label.uppercase(), color = if (sel) c.accent else c.sub, fontSize = 11.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
                 Text(Geo.fmtDur(r.time), color = c.text, fontSize = 22.sp, fontWeight = FontWeight.Bold)
-                Text("${Geo.fmtDist(r.len, engine.imperial)} · arrive ${fmt.format(java.util.Date(baseMs + (r.time * 1000).toLong()))}", color = c.sub, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text("${Geo.fmtDist(r.len, engine.imperial)} · ${Lang.t("Ankunft", "arrive")} ${fmt.format(java.util.Date(baseMs + (r.time * 1000).toLong()))}", color = c.sub, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 val via = viaOf(r)
                 val delayMin = Math.round(r.delay / 60.0).toInt()
                 Text(
@@ -296,9 +321,13 @@ internal fun BoxScope.RoutePreview(engine: NavEngine) {
             contentAlignment = Alignment.Center,
         ) {
             Box(Modifier.align(Alignment.CenterStart).fillMaxHeight().fillMaxWidth(progress.value).background(c.accent))
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(stringResource(R.string.ui_052), color = Color.White, fontSize = 17.sp, fontWeight = FontWeight.Bold)
-                Text(if (planHold) Lang.t("Für später geplant", "Planned for later") else if (hold) Lang.t("Zum Starten tippen", "Tap to start") else if (autoStart) Lang.t("Start in ${kotlin.math.ceil((1f - progress.value) * (countdownMs / 1000f)).toInt()} s", "Starting in ${kotlin.math.ceil((1f - progress.value) * (countdownMs / 1000f)).toInt()} s") else Lang.t("Zum Starten tippen", "Tap to start"), color = Color.White.copy(alpha = 0.85f), fontSize = 12.sp)
+            // always one line: if "Navigation starten" does not fit (narrow phone, large font setting) the text gets smaller
+            // instead of being cut off at both ends
+            var startFs by remember(narrowP) { mutableStateOf(17f) }
+            Column(Modifier.padding(horizontal = 12.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(stringResource(R.string.ui_052), color = Color.White, fontSize = startFs.sp, fontWeight = FontWeight.Bold, maxLines = 1, softWrap = false,
+                    onTextLayout = { if (it.hasVisualOverflow && startFs > 11f) startFs -= 1f })
+                Text(if (planHold) Lang.t("Für später geplant", "Planned for later") else if (hold) Lang.t("Zum Starten tippen", "Tap to start") else if (autoStart) Lang.t("Start in ${kotlin.math.ceil((1f - progress.value) * (countdownMs / 1000f)).toInt()} s", "Starting in ${kotlin.math.ceil((1f - progress.value) * (countdownMs / 1000f)).toInt()} s") else Lang.t("Zum Starten tippen", "Tap to start"), color = Color.White.copy(alpha = 0.85f), fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
         }
     }
@@ -328,7 +357,8 @@ internal fun BoxScope.RoutePreview(engine: NavEngine) {
         ) {
             destPart(Modifier.width(150.dp))
             routeCards()
-            if (engine.prefs.b(PreferenceKeys.FLYOVER, true)) FlyOverBtn(engine)
+            // a car screen (800–1000 dp wide) has little room left for the route cards (weighted, so measured last): compact there too
+            if (engine.prefs.b(PreferenceKeys.FLYOVER, true)) FlyOverBtn(engine, compact = androidx.compose.ui.platform.LocalConfiguration.current.screenWidthDp < 1100)
             startBtn(Modifier.width(210.dp))
             RoundBtn(Icons.Rounded.Close, { engine.endRoute() }, size = 46.dp)
         }
@@ -341,24 +371,29 @@ internal fun BoxScope.RoutePreview(engine: NavEngine) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) { routeCards() }
         wxLine()
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-            if (engine.prefs.b(PreferenceKeys.FLYOVER, true)) FlyOverBtn(engine)
+            // compact next to Start, so Start keeps most of the width
+            if (engine.prefs.b(PreferenceKeys.FLYOVER, true)) FlyOverBtn(engine, compact = true)
             startBtn(Modifier.weight(1f))
         }
     }
     }
 }
 
-/** Lang.t("Route überfliegen", "Fly over route"): a 3D flight along the whole drive before you set off. */
+/** "Route überfliegen": a 3D flight along the whole drive before you set off. [compact] (portrait, next to Start): just "Überflug". */
 @Composable
-private fun FlyOverBtn(engine: NavEngine) {
+private fun FlyOverBtn(engine: NavEngine, compact: Boolean = false) {
     val c = LocalVw.current
     Row(
         Modifier.height(72.dp).clip(RoundedCornerShape(36.dp)).background(c.accent.copy(alpha = 0.14f))
-            .clickable(enabled = !engine.flyingOver) { engine.flyOver() }.padding(horizontal = 16.dp),
+            .clickable(enabled = !engine.flyingOver) { engine.flyOver() }.padding(horizontal = if (compact) 12.dp else 16.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Icon(Icons.Rounded.PlayArrow, null, tint = c.accent, modifier = Modifier.size(24.dp))
-        Text(if (engine.flyingOver) Lang.t("Überflug…", "Flying…") else Lang.t("Route überfliegen", "Fly over route"), color = c.accent, fontSize = 15.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(start = 6.dp))
+        Icon(Icons.Rounded.PlayArrow, Lang.t("Route überfliegen", "Fly over route"), tint = c.accent, modifier = Modifier.size(24.dp))
+        Text(
+            if (engine.flyingOver) Lang.t("Überflug…", "Flying…") else if (compact) Lang.t("Überflug", "Fly over") else Lang.t("Route überfliegen", "Fly over route"),
+            color = c.accent, fontSize = if (compact) 14.sp else 15.sp, fontWeight = FontWeight.Bold, maxLines = 1, softWrap = false,
+            modifier = Modifier.padding(start = if (compact) 4.dp else 6.dp),
+        )
     }
 }
 
@@ -386,7 +421,7 @@ internal fun ArrivalCard(engine: NavEngine, a: ArrivalInfo, modifier: Modifier =
         }
         Text(stringResource(R.string.ui_072), color = c.sub, fontSize = 14.sp)
         Text(a.name, color = c.text, fontSize = 24.sp, fontWeight = FontWeight.Bold, maxLines = 2, overflow = TextOverflow.Ellipsis)
-        if (a.side.isNotEmpty()) Text(Lang.t("Auf der ${a.side}", "On the ${a.side}"), color = c.accent, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+        if (a.side.isNotEmpty()) Text(Lang.t("Ziel liegt ${a.side}", "On the " + (if (a.side == "links") "left" else "right")), color = c.accent, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
         Row(Modifier.fillMaxWidth().padding(vertical = 6.dp), horizontalArrangement = Arrangement.SpaceEvenly) {
             ArrivalStat(Geo.fmtDist(a.dist, imp), stringResource(R.string.ui_093))
             ArrivalStat(Geo.fmtDur(a.secs), stringResource(R.string.ui_092))

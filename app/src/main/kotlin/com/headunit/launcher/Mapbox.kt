@@ -324,6 +324,7 @@ object MapboxRest {
         // Mapbox's distances and the line's own differ by a few metres: offsets are scaled onto the line
         val k = if (apiLen > 0) total / apiLen else 1.0
         val steps = ArrayList<Step>()
+        val refCc = RoadRefs.countryFor(pts.firstOrNull())
         val laneSecs = ArrayList<LaneSec>()
         val sevList = ArrayList<Int>()
         val segDur = ArrayList<Double>()
@@ -387,8 +388,8 @@ object MapboxRest {
                 if (!skip) {
                     val man = maneuverOf(type, mod, leftHand)
                     val name = s.optString("name")
-                    val ref = s.optString("ref").substringBefore(';').trim()
-                    val street = if (type == "off ramp" && name.isBlank()) s.optString("destinations") else name.ifBlank { ref }
+                    // "A 4; E 40": the national number, not the European one (see RoadRefs)
+                    val street = if (type == "off ramp" && name.isBlank()) s.optString("destinations") else RoadRefs.street(name, listOf(s.optString("ref")), refCc)
                     val exit = if (man.startsWith("ROUNDABOUT")) m.optInt("exit", 0) else 0
                     steps += Step(at, man, street, m.optString("instruction"), exit, if (type == "off ramp") s.optString("exits").substringBefore(';') else "", s.optString("destinations"),
                         rbIn = if (type == "roundabout" || type == "rotary") m.optDouble("bearing_before", -1.0) else -1.0)

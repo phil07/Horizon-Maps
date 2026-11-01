@@ -836,7 +836,8 @@ private fun SpeedRing(engine: NavEngine, show: Boolean, k: Double) {
     val c = LocalVw.current
     val lim = engine.speedLimit
     val sp = engine.fix?.speed ?: 0.0
-    val full = if (lim != null && lim > 0) lim * 1.2 else 31.3          // the ring is full at 20% over the limit (or 70 mph with no limit)
+    // the ring is full at 20% over the limit; with no limit (an Autobahn) at 200 km/h, or 70 mph where miles are used
+    val full = if (lim != null && lim > 0) lim * 1.2 else if (engine.imperial) 31.3 else 55.6
     val target = (sp / full).toFloat().coerceIn(0f, 1f)
     val frac by androidx.compose.animation.core.animateFloatAsState(target, androidx.compose.animation.core.tween(350), label = "ring")
     val ratio = if (lim != null && lim > 0 && !engine.limitEstimated) (sp / lim).toFloat() else 0f
@@ -934,18 +935,20 @@ internal fun ImmTurnCard(
             .clickable { engine.itineraryOpen = true },
     ) {
         if (slim) Row(Modifier.padding(horizontal = 14.dp, vertical = 9.dp), verticalAlignment = Alignment.CenterVertically) {
-            ManeuverArrow(t.maneuver, Geo.maneuverAngle(t.maneuver), Modifier.size(34.dp), roundaboutExit = t.exit, roundaboutClockwise = !engine.mirrored, exitAngle = roundaboutTurn(t.rbIn, t.rbOut))
+            ManeuverArrow(t.maneuver, Geo.maneuverAngle(t.maneuver), Modifier.size(34.dp), roundaboutExit = t.exit, roundaboutClockwise = engine.leftTraffic, exitAngle = roundaboutTurn(t.rbIn, t.rbOut))
             RollText(Geo.fmtDist(t.dist, engine.imperial), Color.White, 25.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(start = 10.dp))
             Text(t.street, color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(start = 12.dp))
         } else {
         val thenIcon = t.thenManeuver != null && engine.prefs.s(PreferenceKeys.THEN_STYLE, "row") == "icon"
         Row(Modifier.padding(start = if (compact) 12.dp else 18.dp, end = if (compact) 12.dp else 16.dp, top = if (compact) 9.dp else 16.dp, bottom = if (compact) 8.dp else 12.dp), verticalAlignment = Alignment.CenterVertically) {
-            ManeuverArrow(t.maneuver, Geo.maneuverAngle(t.maneuver), Modifier.size(if (compact) 42.dp else 60.dp), roundaboutExit = t.exit, roundaboutClockwise = !engine.mirrored, exitAngle = roundaboutTurn(t.rbIn, t.rbOut))
+            ManeuverArrow(t.maneuver, Geo.maneuverAngle(t.maneuver), Modifier.size(if (compact) 42.dp else 60.dp), roundaboutExit = t.exit, roundaboutClockwise = engine.leftTraffic, exitAngle = roundaboutTurn(t.rbIn, t.rbOut))
             Column(Modifier.padding(start = if (compact) 9.dp else 16.dp).weight(1f)) {
                 RollText(Geo.fmtDist(t.dist, engine.imperial), Color.White, if (compact) 28.sp else 38.sp, fontWeight = FontWeight.Bold)
-                val ukSign = engine.prefs.b(PreferenceKeys.UKSIGNS, true) && (t.sign.isNotBlank() && t.sign != t.street || t.tag.startsWith("Exit"))
+                // (the tag of a motorway exit is "Ausfahrt 17", from Geo.stepTag; older builds wrote "Exit 17")
+                val exitTag = t.tag.startsWith("Exit") || t.tag.startsWith("Ausfahrt ")
+                val ukSign = engine.prefs.b(PreferenceKeys.UKSIGNS, true) && (t.sign.isNotBlank() && t.sign != t.street || exitTag)
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    if (t.tag.isNotBlank() && !(ukSign && t.tag.startsWith("Exit"))) Text(t.tag, color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Bold, maxLines = 1,
+                    if (t.tag.isNotBlank() && !(ukSign && exitTag)) Text(t.tag, color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Bold, maxLines = 1,
                         modifier = Modifier.clip(RoundedCornerShape(6.dp)).background(Color.White.copy(alpha = 0.18f)).padding(horizontal = 7.dp, vertical = 2.dp))
                     if (!ukSign && t.sign.isNotBlank() && t.sign != t.street) Text(t.sign, color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.widthIn(max = 130.dp).clip(RoundedCornerShape(6.dp)).background(Color(0xFF1E8E55)).padding(horizontal = 7.dp, vertical = 2.dp))
@@ -955,25 +958,26 @@ internal fun ImmTurnCard(
             // the turn straight after, as a small arrow (the "Then" line below is used instead when that style is chosen)
             if (thenIcon && t.thenManeuver != null) Column(Modifier.padding(start = 10.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                 Box(Modifier.size(44.dp).clip(RoundedCornerShape(12.dp)).background(TealDeep), contentAlignment = Alignment.Center) {
-                    ManeuverArrow(t.thenManeuver, Geo.maneuverAngle(t.thenManeuver), Modifier.size(28.dp), roundaboutExit = t.thenExit, roundaboutClockwise = !engine.mirrored)
+                    ManeuverArrow(t.thenManeuver, Geo.maneuverAngle(t.thenManeuver), Modifier.size(28.dp), roundaboutExit = t.thenExit, roundaboutClockwise = engine.leftTraffic)
                 }
-                Text("then", color = Color.White.copy(alpha = 0.85f), fontSize = 11.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(top = 2.dp))
+                Text(Lang.t("dann", "then"), color = Color.White.copy(alpha = 0.85f), fontSize = 11.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(top = 2.dp))
             }
         }
         // Explicit slip-road / motorway-exit cue. Lane guidance alone can be ambiguous on
         // fast roads, so make the exit manoeuvre visible in the turn card as well.
         val maneuverUpper = t.maneuver.uppercase()
+        val exitTag = t.tag.startsWith("Exit", ignoreCase = true) || t.tag.startsWith("Ausfahrt ")
         val exitLike = t.exitNo.isNotBlank() ||
-            t.tag.startsWith("Exit", ignoreCase = true) ||
+            exitTag ||
             maneuverUpper.contains("EXIT") ||
             maneuverUpper.contains("OFF_RAMP") ||
             maneuverUpper == "TAKE_EXIT" ||
             maneuverUpper.startsWith("MOTORWAY_EXIT")
         // Only when the UK road sign below isn't shown: it already carries the exit, and the same thing twice on the card is clutter.
-        val signShown = engine.prefs.b(PreferenceKeys.UKSIGNS, true) && (t.sign.isNotBlank() && t.sign != t.street || t.tag.startsWith("Exit"))
+        val signShown = engine.prefs.b(PreferenceKeys.UKSIGNS, true) && (t.sign.isNotBlank() && t.sign != t.street || exitTag)
         if (exitLike && !signShown && !maneuverUpper.startsWith("ROUNDABOUT")) {
             val exitLabel = t.exitNo.ifBlank {
-                t.tag.replaceFirst(Regex("^Exit\\s*", RegexOption.IGNORE_CASE), "").trim().takeIf { it.isNotBlank() }.orEmpty()
+                t.tag.replaceFirst(Regex("^(Exit|Ausfahrt)\\s*", RegexOption.IGNORE_CASE), "").trim().takeIf { it.isNotBlank() }.orEmpty()
             }
             Row(
                 Modifier.fillMaxWidth()
@@ -985,7 +989,7 @@ internal fun ImmTurnCard(
             ) {
                 Text("↗", color = Color.White, fontSize = if (compact) 19.sp else 22.sp, fontWeight = FontWeight.ExtraBold)
                 Text(
-                    if (exitLabel.isNotBlank()) "EXIT  $exitLabel" else "EXIT / SLIP ROAD",
+                    if (exitLabel.isNotBlank()) Lang.t("AUSFAHRT  $exitLabel", "EXIT  $exitLabel") else Lang.t("AUSFAHRT", "EXIT / SLIP ROAD"),
                     color = Color.White,
                     fontSize = if (compact) 13.sp else 15.sp,
                     fontWeight = FontWeight.ExtraBold,
@@ -998,8 +1002,8 @@ internal fun ImmTurnCard(
             }
         }
         // A proper UK direction sign: blue for motorways, green for primary roads, white for local roads.
-        if (engine.prefs.b(PreferenceKeys.UKSIGNS, true) && (t.sign.isNotBlank() && t.sign != t.street || t.tag.startsWith("Exit")))
-            UkSign(t.sign, t.tag.removePrefix("Exit ").takeIf { t.tag.startsWith("Exit") }.orEmpty(), t.street, Modifier.padding(start = if (compact) 12.dp else 16.dp, end = if (compact) 12.dp else 16.dp, bottom = if (compact) 5.dp else 12.dp))
+        if (signShown)
+            UkSign(t.sign, (t.exitNo.ifBlank { t.tag.removePrefix("Exit ").removePrefix("Ausfahrt ") }).takeIf { exitTag }.orEmpty(), t.street, Modifier.padding(start = if (compact) 12.dp else 16.dp, end = if (compact) 12.dp else 16.dp, bottom = if (compact) 5.dp else 12.dp))
         if (!compact && engine.prefs.b(PreferenceKeys.LANE_STRIP, true)) t.lanes?.let { ls ->
             // lane hero view: before a complex junction the lanes grow into a big picture with yours lit; simple ones keep the strip
             // (not in Android Auto: the big lane picture made the card grow to fill much of a car screen as soon as a junction came up)
@@ -1011,7 +1015,7 @@ internal fun ImmTurnCard(
         if (!compact && !heroShown && !(car && t.lanes != null && engine.prefs.b(PreferenceKeys.LANE_STRIP, true))) t.laneAdvice?.let { Text(it, color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.fillMaxWidth().background(TealDeep).padding(horizontal = 18.dp, vertical = 6.dp)) }
         if (!compact && t.thenManeuver != null && !thenIcon) {
             Row(Modifier.fillMaxWidth().background(TealDeep).padding(horizontal = 18.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-                ManeuverArrow(t.thenManeuver, Geo.maneuverAngle(t.thenManeuver), Modifier.size(22.dp), roundaboutExit = t.thenExit, roundaboutClockwise = !engine.mirrored)
+                ManeuverArrow(t.thenManeuver, Geo.maneuverAngle(t.thenManeuver), Modifier.size(22.dp), roundaboutExit = t.thenExit, roundaboutClockwise = engine.leftTraffic)
                 Text(t.thenText, color = Color.White.copy(alpha = 0.92f), fontSize = 14.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(start = 10.dp))
             }
         }
@@ -1356,10 +1360,10 @@ private fun ItineraryCard(engine: NavEngine) {
                 Column(Modifier.fillMaxWidth().background(if (sel) Color.White.copy(alpha = 0.10f) else Color.Transparent)
                     .clickable { touched++; picked = row.index; engine.previewTurn(row) }.padding(horizontal = 16.dp, vertical = 10.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        ManeuverArrow(row.maneuver, Geo.maneuverAngle(row.maneuver), Modifier.size(30.dp), roundaboutExit = row.exit, roundaboutClockwise = !engine.mirrored)
+                        ManeuverArrow(row.maneuver, Geo.maneuverAngle(row.maneuver), Modifier.size(30.dp), roundaboutExit = row.exit, roundaboutClockwise = engine.leftTraffic)
                         Column(Modifier.padding(start = 14.dp).weight(1f)) {
                             Text(row.text, color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Medium, maxLines = 2, overflow = TextOverflow.Ellipsis)
-                            Text(listOfNotNull(row.tag.ifBlank { null }, "about " + row.arrive).joinToString(" · "), color = Color.White.copy(alpha = 0.75f), fontSize = 12.sp, maxLines = 1)
+                            Text(listOfNotNull(row.tag.ifBlank { null }, Lang.t("ca. ", "about ") + row.arrive).joinToString(" · "), color = Color.White.copy(alpha = 0.75f), fontSize = 12.sp, maxLines = 1)
                         }
                         Text(Geo.fmtDist(row.dist, engine.imperial), color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(start = 10.dp))
                     }

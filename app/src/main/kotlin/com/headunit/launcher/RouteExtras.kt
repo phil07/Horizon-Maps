@@ -157,11 +157,14 @@ object RouteExtras {
         val d = c.get(java.util.Calendar.DAY_OF_WEEK)
         if (d == java.util.Calendar.SATURDAY || d == java.util.Calendar.SUNDAY) return false
         val m = c.get(java.util.Calendar.HOUR_OF_DAY) * 60 + c.get(java.util.Calendar.MINUTE)
+        // German schools start earlier and many finish around midday (or mid-afternoon on long days)
+        if (RoadRefs.country.uppercase() in setOf("DE", "AT", "CH"))
+            return m in (7 * 60)..(8 * 60 + 15) || m in (11 * 60 + 15)..(13 * 60 + 45) || m in (15 * 60 + 15)..(16 * 60 + 30)
         return m in (8 * 60)..(9 * 60 + 30) || m in (14 * 60 + 45)..(16 * 60 + 15)
     }
 
     /** Compass point for a heading in degrees. */
-    fun compass(h: Double): String = arrayOf("N", "NE", "E", "SE", "S", "SW", "W", "NW")[(((h % 360.0) + 360.0 + 22.5) / 45.0).toInt() % 8]
+    fun compass(h: Double): String = (if (Lang.de) arrayOf("N", "NO", "O", "SO", "S", "SW", "W", "NW") else arrayOf("N", "NE", "E", "SE", "S", "SW", "W", "NW"))[(((h % 360.0) + 360.0 + 22.5) / 45.0).toInt() % 8]
 }
 
 

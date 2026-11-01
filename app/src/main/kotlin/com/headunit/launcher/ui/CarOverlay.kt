@@ -503,7 +503,7 @@ private fun CarRoutePreview(engine: NavEngine) {
             Column(Modifier.weight(1f).inset(18.dp, if (sel) c.accent else null).carTap("route-$i") { engine.selectRoute(i) }.padding(horizontal = 12.dp, vertical = 9.dp)) {
                 Text(label.uppercase(), color = if (sel) c.accent else c.sub, fontSize = 11.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp, maxLines = 1)
                 Text(Geo.fmtDur(r.time), color = c.text, fontSize = 22.sp, fontWeight = FontWeight.Bold, maxLines = 1)
-                Text("${Geo.fmtDist(r.len, engine.imperial)} · arrive ${fmt.format(java.util.Date(baseMs + (r.time * 1000).toLong()))}", color = c.sub, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text("${Geo.fmtDist(r.len, engine.imperial)} · ${Lang.t("Ankunft", "arrive")} ${fmt.format(java.util.Date(baseMs + (r.time * 1000).toLong()))}", color = c.sub, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 val via = viaOf(r)
                 val delayMin = Math.round(r.delay / 60.0).toInt()
                 Text(if (delayMin >= 1) "+$delayMin Min. Verkehr" else if (via.isNotEmpty()) "über $via" else "Keine Verzögerung",

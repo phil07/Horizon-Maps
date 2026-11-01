@@ -6,8 +6,9 @@ import org.json.JSONObject
 import java.io.File
 
 /**
- * Clean Air Zones, ULEZ, low emission zones and charging zones in Great Britain, from OpenStreetMap
- * (boundary=low_emission_zone and similar). Downloaded once and refreshed monthly; only as good as the map data.
+ * Clean Air Zones, ULEZ, low emission zones and charging zones in Great Britain, or the Umweltzonen in Germany (when you're
+ * there), from OpenStreetMap (boundary=low_emission_zone and similar). Downloaded once and refreshed monthly; only as good as
+ * the map data.
  */
 object Zones {
     class Zone(val name: String, val rings: List<List<LL>>) {
@@ -18,15 +19,23 @@ object Zones {
     }
 
     @Volatile private var cache: List<Zone>? = null
+    @Volatile private var cacheRegion = ""
+
+    /** Which country's zones: Germany's when you're in Germany (from the GPS), otherwise Great Britain's. */
+    private fun region(): String = if (RoadRefs.country.uppercase() == "DE") "DE" else "GB"
+
+    /** The box the zones are downloaded for: south, west, north, east. */
+    private fun box(region: String): String = if (region == "DE") "47.2,5.8,55.1,15.1" else "49.8,-8.7,60.9,1.9"
     @Volatile private var fetching = false
     @Volatile var status = ""
 
-    private fun file(ctx: Context) = File(ctx.filesDir, "zones.json")
+    private fun file(ctx: Context, region: String = region()) = File(ctx.filesDir, if (region == "DE") "zones-DE.json" else "zones.json")
 
     /** The zones known on this device (empty until the first download has worked). */
     fun all(ctx: Context): List<Zone> {
-        cache?.let { return it }
-        val f = file(ctx)
+        val reg = region()
+        cache?.let { if (cacheRegion == reg) return it }
+        val f = file(ctx, reg)
         if (!f.exists()) return emptyList()
         val out = ArrayList<Zone>()
         try {
@@ -41,8 +50,8 @@ object Zones {
                 if (rings.isNotEmpty()) out += Zone(o.optString("n"), rings)
             }
         } catch (e: Exception) { }
-        cache = out
-        status = if (out.isEmpty()) Lang.t("Keine Zonen in den Kartendaten gefunden", "No zones found in the map data") else "${out.size} zones: " + out.joinToString(", ") { it.name }.take(200)
+        cache = out; cacheRegion = reg
+        status = if (out.isEmpty()) Lang.t("Keine Zonen in den Kartendaten gefunden", "No zones found in the map data") else Lang.t("${out.size} Zonen: ", "${out.size} zones: ") + out.joinToString(", ") { it.name }.take(200)
         return out
     }
 
@@ -84,13 +93,15 @@ object Zones {
         return r.filterIndexed { i, _ -> i % step == 0 } + r.last()
     }
 
-    /** Downloads the zones for Great Britain (blocking: call it off the main thread). */
+    /** Downloads the zones for Great Britain, or Germany when you're there (blocking: call it off the main thread). */
     fun fetch(ctx: Context) {
         if (fetching) return
         fetching = true
+        val reg = region()
+        val bb = box(reg)
         try {
-            val q = "[out:json][timeout:90];(relation[\"boundary\"~\"^(low_emission_zone|congestion_charge|clean_air_zone)$\"](49.8,-8.7,60.9,1.9);" +
-                "way[\"boundary\"~\"^(low_emission_zone|congestion_charge|clean_air_zone)$\"](49.8,-8.7,60.9,1.9););out geom;"
+            val q = "[out:json][timeout:90];(relation[\"boundary\"~\"^(low_emission_zone|congestion_charge|clean_air_zone)$\"]($bb);" +
+                "way[\"boundary\"~\"^(low_emission_zone|congestion_charge|clean_air_zone)$\"]($bb););out geom;"
             val els = Overpass.query(q, 15000, 120000, 3)
             val out = JSONArray()
             var n = 0
@@ -118,7 +129,7 @@ object Zones {
                 out.put(JSONObject().put("n", name).put("r", ra))
                 n++
             }
-            file(ctx).writeText(out.toString())
+            file(ctx, reg).writeText(out.toString())
             cache = null
             all(ctx)
             if (n == 0) status = Lang.t("Keine Zonen in den Kartendaten gefunden", "No zones found in the map data")

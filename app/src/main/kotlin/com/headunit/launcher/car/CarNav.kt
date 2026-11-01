@@ -675,7 +675,7 @@ class MapScreen(carContext: CarContext, private val holder: CarHolder) : Screen(
         }
 
         fun step(e: NavEngine, t: TurnInfo, ctx: CarContext): Step {
-            val left = !e.mirrored
+            val left = e.leftTraffic
             val m = t.maneuver.uppercase()
             val type = when {
                 m.startsWith("ROUNDABOUT") -> if (t.exit > 0) (if (left) Maneuver.TYPE_ROUNDABOUT_ENTER_AND_EXIT_CW else Maneuver.TYPE_ROUNDABOUT_ENTER_AND_EXIT_CCW)

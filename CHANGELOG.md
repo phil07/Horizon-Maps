@@ -36,6 +36,8 @@ Add user-facing Horizon Nav changes under **Unreleased** before publishing each 
 - Elektroautos: Akkustand und gewünschten Mindest-Akku bei Ankunft in den Routenoptionen eingeben. Ein Ladestopp wird vorgeschlagen, wenn die Fahrt einen braucht, die Fahrtkarte zeigt den Akku bei Ankunft und einen Button für Ladesäulen voraus, und die Eco-Route nutzt TomToms E-Routing.
 
 ### Verbessert
+- Deutsche Straßen und Regeln: Routen nennen deutsche Straßennummern wie auf den Schildern („über A 5, A 7“ statt „über E 40“), Wegweiser zeigen Autobahnen blau und Bundesstraßen gelb. Auf Autobahnen ohne Tempolimit erscheint kein Limit mehr (130 ist nur Richtgeschwindigkeit), „DE:rural“ gilt als 100 km/h. Ansagen auf Deutsch korrigiert („In einem Kilometer“, „im Kreisverkehr die zweite Ausfahrt“, „Das Ziel liegt links“). Umweltzonen in Deutschland werden mit „Nur mit grüner Plakette“ angesagt. Kreisverkehre und Wendespuren richten sich nach dem Land, nicht nach der Lenkradseite.
+- Routenübersicht: „Navigation starten“ passt ganz in den Knopf, „Akku jetzt“ entfällt, wenn der Akku vom Widget kommt, „Abfahrt jetzt“ steht nicht mehr in der Zusammenfassung, „Ankunft“ statt „arrive“. Bis zu 2 Ladestopps passen ohne Scrollen.
 - Verkehr in der Umgebung: Bleibt jetzt während der Navigation auf der Karte (er verschwand früher beim Routenstart). Unter Einstellungen > Karte lässt er sich auf die Route beschränken.
 - Flüssigere Karte: Die Karte ist nicht mehr zusätzlich auf 30 Bilder pro Sekunde begrenzt, was sie ruckeln ließ.
 - Schnellerer Zoom: Die Karte zoomt während der Fahrt nicht mehr viel zu langsam (bis zu 10 Sekunden vor einer Abbiegung) und startet nicht mehr doppelt so weit herausgezoomt wie gedacht.

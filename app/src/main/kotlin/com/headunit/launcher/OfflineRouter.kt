@@ -871,7 +871,7 @@ object OfflineRouter {
         for (v in via) locs.put(JSONObject().put("lat", v.lat).put("lon", v.lon).put("type", "through"))
         locs.put(JSONObject().put("lat", to.lat).put("lon", to.lon))
         val req = JSONObject().put("locations", locs).put("costing", "auto")
-            .put("directions_options", JSONObject().put("units", "kilometers").put("language", "en-GB"))
+            .put("directions_options", JSONObject().put("units", "kilometers").put("language", if (Lang.de) "de-DE" else "en-GB"))
         val ex = exclude
         if (ex.isNotEmpty()) {
             val polys = org.json.JSONArray()
@@ -903,12 +903,15 @@ object OfflineRouter {
         val cum = DoubleArray(pts.size)
         for (i in 1 until pts.size) cum[i] = cum[i - 1] + Geo.dist(pts[i - 1], pts[i])
         val steps = ArrayList<Step>()
+        val refCc = RoadRefs.countryFor(pts.firstOrNull())
         for ((base, m) in mans) {
             val exits = m.optInt("roundabout_exit_count", 0)
             val man = manText(m.optInt("type", 0), exits) ?: continue
             val gi = (base + m.optInt("begin_shape_index", 0)).coerceIn(0, pts.size - 1)
             val names = m.optJSONArray("street_names")
-            val street = if (names != null && names.length() > 0) names.optString(0) else ""
+            val all = if (names != null) (0 until names.length()).map { names.optString(it) }.filter { it.isNotBlank() } else emptyList()
+            // a motorway's names are its numbers ("A 4", "E 40"): the national one, not the European one (see RoadRefs)
+            val street = RoadRefs.street(all.firstOrNull().orEmpty(), all.drop(1), refCc)
             val sign = m.optJSONObject("sign")
             val exitNo = sign?.optJSONArray("exit_number_elements")?.optJSONObject(0)?.optString("text").orEmpty()
             val toward = sign?.optJSONArray("exit_toward_elements")?.optJSONObject(0)?.optString("text").orEmpty()

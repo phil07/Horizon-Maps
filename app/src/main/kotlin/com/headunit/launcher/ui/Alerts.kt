@@ -96,11 +96,11 @@ private fun alertIcon(a: AlertInfo): ImageVector {
     return when (a.kind) {
         "camera" -> Icons.Rounded.CameraAlt
         "incident" -> when {
-            t.contains("work") -> Icons.Rounded.Construction
-            t.contains("accident") || t.contains("crash") || t.contains("collision") -> Icons.Rounded.CarCrash
+            t.contains("work") || t.contains("baustelle") -> Icons.Rounded.Construction
+            t.contains("accident") || t.contains("crash") || t.contains("collision") || t.contains("unfall") -> Icons.Rounded.CarCrash
             else -> Icons.Rounded.PriorityHigh
         }
-        "rain" -> if (t.startsWith("snow")) Icons.Rounded.AcUnit else Icons.Rounded.WaterDrop
+        "rain" -> if (t.startsWith("snow") || t.startsWith("schnee")) Icons.Rounded.AcUnit else Icons.Rounded.WaterDrop
         "break" -> Icons.Rounded.Coffee
         "avg" -> Icons.Rounded.Speed
         "bump" -> Icons.Rounded.Warning

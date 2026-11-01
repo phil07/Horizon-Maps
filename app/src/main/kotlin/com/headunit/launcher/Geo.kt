@@ -104,17 +104,34 @@ object Geo {
             val ft = m * 3.28084
             return if (ft < 528) "${((ft / 50).roundToInt()) * 50} Fuß" else String.format("%.1f Meilen", m / 1609.344).replace('.', ',')
         }
-        return if (m < 1000) "${((m / 50).roundToInt()) * 50} Metern" else String.format("%.1f Kilometern", m / 1000.0).replace('.', ',')
+        val r50 = ((m / 50).roundToInt()) * 50
+        if (r50 < 1000) return "$r50 Metern"
+        // "In einem Kilometer", "In 2 Kilometern", "In 1,5 Kilometern" (never "1,0 Kilometern")
+        val tenths = (m / 100.0).roundToInt()
+        if (tenths == 10) return "einem Kilometer"
+        if (tenths >= 100) return "${(m / 1000.0).roundToInt()} Kilometern"
+        if (tenths % 10 == 0) return "${tenths / 10} Kilometern"
+        return "${tenths / 10},${tenths % 10} Kilometern"
     }
 
+    /** [spoken] for use without "in" ("Noch 3 Kilometer", not "Noch 3 Kilometern"). */
+    fun spokenPlain(m: Double, imperial: Boolean): String =
+        spoken(m, imperial).replace("einem Kilometer", "ein Kilometer").replace("Kilometern", "Kilometer").replace("Metern", "Meter")
+
     fun ordinal(n: Int): String = "$n."
+
+    /** "erste", "zweite"… for the spoken roundabout exit (the screen keeps the short "2. Ausfahrt"). */
+    private fun ordinalWord(n: Int): String = when (n) {
+        1 -> "erste"; 2 -> "zweite"; 3 -> "dritte"; 4 -> "vierte"; 5 -> "fünfte"; 6 -> "sechste"; 7 -> "siebte"; 8 -> "achte"
+        else -> ordinal(n)
+    }
 
     /** Spoken/short wording for a manoeuvre, e.g. "turn left" or "take the 2nd exit at the roundabout". */
     fun maneuverText(m: String, exit: Int = 0): String {
         val u = m.uppercase()
         if (u.startsWith("ROUNDABOUT")) {
-            if (u == "ROUNDABOUT_BACK") return if (exit > 0) "im Kreisverkehr die ${ordinal(exit)} Ausfahrt nehmen" else "einmal ganz um den Kreisverkehr fahren"
-            return if (exit > 0) "im Kreisverkehr die ${ordinal(exit)} Ausfahrt nehmen" else "in den Kreisverkehr einfahren"
+            if (u == "ROUNDABOUT_BACK") return if (exit > 0) "im Kreisverkehr die ${ordinalWord(exit)} Ausfahrt nehmen" else "einmal ganz um den Kreisverkehr fahren"
+            return if (exit > 0) "im Kreisverkehr die ${ordinalWord(exit)} Ausfahrt nehmen" else "in den Kreisverkehr einfahren"
         }
         val t = mapOf(
             "ARRIVE" to "Ziel erreicht", "ARRIVE_LEFT" to "Ziel erreicht, links", "ARRIVE_RIGHT" to "Ziel erreicht, rechts",
@@ -237,7 +254,7 @@ object TomTomRest {
         val out = ArrayList<Place>()
         // 1. classic fuzzy search
         try {
-            var url = "$SEARCH/$enc.json?key=$k&limit=15&language=en-GB&typeahead=true&minFuzzyLevel=1&maxFuzzyLevel=2&idxSet=POI,Addr,Str,Xstr,Geo,PAD"
+            var url = "$SEARCH/$enc.json?key=$k&limit=15&language=${if (Lang.de) "de-DE" else "en-GB"}&typeahead=true&minFuzzyLevel=1&maxFuzzyLevel=2&idxSet=POI,Addr,Str,Xstr,Geo,PAD"
             if (cc.isNotEmpty()) url += "&countrySet=$cc"
             if (near != null) url += "&lat=${near.lat}&lon=${near.lon}"
             parsePlaces(JSONObject(get(url)).optJSONArray("results") ?: JSONArray(), q, out)
@@ -523,11 +540,14 @@ object TomTomRest {
         val cum = DoubleArray(pts.size)
         for (i in 1 until pts.size) cum[i] = cum[i - 1] + Geo.dist(pts[i - 1], pts[i])
         val insArr = r.optJSONObject("guidance")?.optJSONArray("instructions") ?: r.optJSONArray("instructions") ?: JSONArray()
+        val cc = RoadRefs.countryFor(pts.firstOrNull())
         val steps = (0 until insArr.length()).map {
             val i = insArr.getJSONObject(it)
-            val street = i.optString("street").ifBlank {
+            // the road's numbers often come as ["A4", "E40"] (or the E-number alone in "street"): the national one is what's signed
+            val nums = i.optJSONArray("roadNumbers")?.let { a -> (0 until a.length()).map { n -> a.optString(n) }.filter { n -> n.isNotBlank() } }.orEmpty()
+            val street = RoadRefs.street(i.optString("street").ifBlank {
                 i.optJSONObject("nextRoadInformation")?.optJSONObject("streetName")?.optString("text").orEmpty()
-            }.ifBlank { i.optJSONArray("roadNumbers")?.optString(0).orEmpty() }
+            }, nums, cc)
             var man = snake(i.optString("maneuver", "STRAIGHT"))
             val rx = i.optInt("roundaboutExitNumber", 0)
             if (i.optString("junctionType").equals("ROUNDABOUT", true) && !man.startsWith("ROUNDABOUT") && !man.startsWith("ARRIVE")) {
