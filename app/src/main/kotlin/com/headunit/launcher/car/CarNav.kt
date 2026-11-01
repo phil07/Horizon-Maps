@@ -30,6 +30,8 @@ import androidx.car.app.model.ActionStrip
 import androidx.car.app.model.CarIcon
 import androidx.car.app.model.DateTimeWithZone
 import androidx.car.app.model.Distance
+import androidx.car.app.model.GridItem
+import androidx.car.app.model.GridTemplate
 import androidx.car.app.model.ItemList
 import androidx.car.app.model.ListTemplate
 import androidx.car.app.model.Row
@@ -125,11 +127,11 @@ class CarNavSession : Session() {
                 val p = t?.pos
                 val q = t?.query?.trim().orEmpty()
                 when {
-                    p != null -> e.startRoute(Place(t?.name ?: Lang.t("Ziel", "Destination"), Lang.t("Von Google Assistant", "From Google Assistant"), p))
+                    p != null -> e.startRoute(Place(t?.name ?: Lang.t("Ziel", "Destination"), Lang.t("Ziel aus Google Assistant", "From Google Assistant"), p))
                     q.equals("home", true) && e.places.slot("home") != null -> e.startRoute(e.places.slot("home")!!)
                     q.equals("work", true) && e.places.slot("work") != null -> e.startRoute(e.places.slot("work")!!)
                     q.isNotEmpty() -> ms.screenManager.push(SearchScreen(carContext, holder, q))
-                    else -> try { androidx.car.app.CarToast.makeText(carContext, carContext.getString(R.string.rest_1048), androidx.car.app.CarToast.LENGTH_LONG).show() } catch (x: Exception) { }
+                    else -> try { androidx.car.app.CarToast.makeText(carContext, Lang.t("Konnte keinen Ort erkennen", "Couldn't read a place from that"), androidx.car.app.CarToast.LENGTH_LONG).show() } catch (x: Exception) { }
                 }
             }
         }.apply { isDaemon = true; name = "car-nav-intent" }
@@ -342,6 +344,15 @@ class CarSurface(private val carContext: CarContext, private val onReady: (MapBi
     }
 
     override fun onVisibleAreaChanged(visibleArea: Rect) {
+        // some head units (e.g. Uconnect 8.4) report a visible area that can't be right (a sliver of the screen, or one off the
+        // edge): going by it put the arrow under the cards on the left. Then the whole screen is used, as when nothing is reported
+        val plausible = width <= 1 || height <= 1 || (visibleArea.width() >= width * 0.4 && visibleArea.height() >= height * 0.3 &&
+            visibleArea.left >= 0 && visibleArea.top >= 0 && visibleArea.right <= width + 2 && visibleArea.bottom <= height + 2)
+        if (!plausible) {
+            area.value = null
+            map?.let { it.viewInset = null; it.maxTopFrac = 1.0; try { it.placeBranding(null) } catch (e: Exception) { } }
+            return
+        }
         area.value = Rect(visibleArea)
         // the map's locator goes in the part Android Auto leaves visible (on tall screens its cards cover the bottom of the map),
         // and sits a little higher on tall screens so the speed and trip cards at the bottom don't cover it
@@ -488,6 +499,10 @@ class MapScreen(carContext: CarContext, private val holder: CarHolder) : Screen(
 
     private fun icon(res: Int) = CarIcon.Builder(IconCompat.createWithResource(carContext, res)).build()
 
+    /** Melden (Polizei, Unfall, Gefahr …): opens the "Hier melden" screen. It has the Search button's place. */
+    private fun reportAction(): Action = Action.Builder().setTitle(Lang.t("Melden", "Report"))
+        .setOnClickListener { screenManager.push(ReportScreen(carContext, holder)) }.build()
+
     override fun onGetTemplate(): Template {
         val e = holder.engine
         val guiding = e != null && e.route != null && !e.previewing
@@ -523,14 +538,15 @@ class MapScreen(carContext: CarContext, private val holder: CarHolder) : Screen(
                 .setOnClickListener { e?.cycleSim(); invalidate() }.build())
             else strip.addAction(view)
             strip.addAction(sound)
-            strip.addAction(Action.Builder().setIcon(icon(R.drawable.ic_car_search)).setOnClickListener { screenManager.push(SearchScreen(carContext, holder)) }.build())
+            strip.addAction(reportAction())
         } else if (taps) {
-            // cars that pass taps on use the app's own search bar and chips on the map; Android Auto still needs one of its own buttons
-            strip.addAction(Action.Builder().setIcon(icon(R.drawable.ic_car_search)).setOnClickListener { screenManager.push(SearchScreen(carContext, holder)) }.build())
+            // cars that pass taps on use the app's own search bar and chips on the map, so Melden has the Search button's place
+            strip.addAction(reportAction())
             strip.addAction(view)
             strip.addAction(Action.Builder().setIcon(icon(R.drawable.ic_car_settings)).setOnClickListener { openSettings() }.build())
         } else {
-            strip.addAction(Action.Builder().setTitle(Lang.t("Suche", "Search")).setOnClickListener { screenManager.push(SearchScreen(carContext, holder)) }.build())
+            // cars that don't pass taps on: Melden has the Search button's place, and Suche is the first row in Orte
+            strip.addAction(reportAction())
             strip.addAction(Action.Builder().setTitle(Lang.t("Orte", "Places")).setOnClickListener { screenManager.push(PlacesScreen(carContext, holder)) }.build())
             strip.addAction(view)
             strip.addAction(Action.Builder().setIcon(icon(R.drawable.ic_car_settings)).setOnClickListener { openSettings() }.build())
@@ -539,7 +555,7 @@ class MapScreen(carContext: CarContext, private val holder: CarHolder) : Screen(
             .addAction(Action.PAN)
             .addAction(Action.Builder().setIcon(icon(R.drawable.ic_car_plus)).setOnClickListener { e?.zoom(0.7) }.build())
             .addAction(Action.Builder().setIcon(icon(R.drawable.ic_car_minus)).setOnClickListener { e?.zoom(-0.7) }.build())
-            .addAction(Action.Builder().setIcon(icon(R.drawable.ic_car_recenter)).setOnClickListener { e?.recenter() }.build())
+            .addAction(Action.Builder().setIcon(icon(R.drawable.ic_car_recenter)).setOnClickListener { e?.recenter(byUser = true) }.build())
             .build()
         val b = NavigationTemplate.Builder().setActionStrip(strip.build()).setMapActionStrip(mapStrip)
         // the turn card, trip figures and the "working out the route" spinner are the app's own, drawn on the map (see CarOverlay):
@@ -757,6 +773,14 @@ class PlacesScreen(carContext: CarContext, private val holder: CarHolder) : Scre
         val e = holder.engine
         val limit = try { carContext.getCarService(ConstraintManager::class.java).getContentLimit(ConstraintManager.CONTENT_LIMIT_TYPE_LIST) } catch (x: Exception) { 6 }
         val list = ItemList.Builder().setNoItemsMessage(if (e == null) Lang.t("Karte wird gestartet…", "Starting the map…") else Lang.t("Noch keine gespeicherten oder letzten Orte", "No saved or recent places yet"))
+        // Suche first: on cars that don't pass taps on to the map, this is the way in to it (the Search button is Melden now)
+        var shownRows = 0
+        if (e != null) {
+            list.addItem(Row.Builder().setTitle(Lang.t("Suche", "Search")).addText(Lang.t("Ziel eingeben oder sagen", "Type or say where to"))
+                .setImage(rowIcon(carContext, R.drawable.ic_car_search, 0xFF9CA4BF.toInt()))
+                .setOnClickListener { screenManager.push(SearchScreen(carContext, holder)) }.build())
+            shownRows = 1
+        }
         if (e != null) {
             // (label, place, icon, colour) in the app's colours: Home blue, Work amber, saved teal, favourites gold, recent grey
             val all = ArrayList<Triple<String, Place, Pair<Int, Int>>>()
@@ -768,7 +792,7 @@ class PlacesScreen(carContext: CarContext, private val holder: CarHolder) : Scre
             val seen = HashSet<String>()
             for ((label, p, ic) in all) {
                 if (!seen.add("%.4f,%.4f".format(p.pos.lat, p.pos.lon))) continue
-                if (seen.size > limit.coerceIn(1, 12)) break
+                if (seen.size + shownRows > limit.coerceIn(1, 12)) break
                 val r = Row.Builder().setTitle(label).setImage(rowIcon(carContext, ic.first, ic.second))
                 val sub = if (label == p.name) p.sub else p.name
                 val d = distFrom(e, p)
@@ -784,6 +808,41 @@ class PlacesScreen(carContext: CarContext, private val holder: CarHolder) : Scre
     private fun go(e: NavEngine, p: Place) {
         e.startRoute(p)
         screenManager.popToRoot()
+    }
+}
+
+/** "Hier melden": Polizei, Unfall, Gefahr, Panne oder mobiler Blitzer, saved where you are (the same reports as the phone's). */
+class ReportScreen(carContext: CarContext, private val holder: CarHolder) : Screen(carContext) {
+    override fun onGetTemplate(): Template {
+        val kinds = listOf(
+            Triple("police", Lang.t("Polizei", "Police"), R.drawable.ic_car_police to 0xFF8AB4F8.toInt()),
+            Triple("accident", Lang.t("Unfall", "Crash"), R.drawable.ic_car_crash to 0xFFF28B82.toInt()),
+            Triple("hazard", Lang.t("Gefahr", "Hazard"), R.drawable.ic_car_report to 0xFFFBBC04.toInt()),
+            Triple("breakdown", Lang.t("Panne", "Broken down"), R.drawable.ic_car_breakdown to 0xFFFCAD70.toInt()),
+            Triple("mobilecam", Lang.t("Mobiler Blitzer", "Mobile camera"), R.drawable.ic_car_mobilecam to 0xFF8AB4F8.toInt()),
+        )
+        val list = ItemList.Builder()
+        for ((kind, label, ic) in kinds) list.addItem(
+            GridItem.Builder().setTitle(label).setImage(rowIcon(carContext, ic.first, ic.second), GridItem.IMAGE_TYPE_LARGE)
+                .setOnClickListener { send(kind) }.build()
+        )
+        return GridTemplate.Builder().setTitle(Lang.t("Hier melden", "Report here")).setHeaderAction(Action.BACK).setSingleList(list.build()).build()
+    }
+
+    private fun send(kind: String) {
+        val e = holder.engine
+        val msg = when {
+            e == null -> Lang.t("Karte wird noch gestartet", "The map is still starting")
+            e.fix == null -> Lang.t("Warte auf GPS", "Waiting for GPS")
+            else -> null
+        }
+        if (msg != null || e == null) {
+            try { androidx.car.app.CarToast.makeText(carContext, msg ?: "", androidx.car.app.CarToast.LENGTH_SHORT).show() } catch (x: Exception) { }
+            return
+        }
+        try { e.report(kind) } catch (x: Exception) { }
+        try { androidx.car.app.CarToast.makeText(carContext, Lang.t("${e.reportName(kind)}-Meldung hier gespeichert", "${e.reportName(kind)} report saved here"), androidx.car.app.CarToast.LENGTH_SHORT).show() } catch (x: Exception) { }
+        screenManager.pop()
     }
 }
 

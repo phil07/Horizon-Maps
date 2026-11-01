@@ -865,15 +865,15 @@ fun AddPlaceDialog(engine: NavEngine, preset: Place?, slot: String? = null, onCl
  * (filled in already if one was saved before). Skipping it is fine: it can be added later in Settings › Keys & accounts.
  */
 @Composable
-fun MapboxKeyDialog(prefs: com.headunit.launcher.Prefs, refused: Boolean = false, onClose: () -> Unit) {
+fun MapboxKeyDialog(prefs: com.headunit.launcher.Prefs, refused: Boolean = false, why: String = "", onClose: () -> Unit) {
     val c = LocalVw.current
     var k by remember { mutableStateOf(prefs.s(PreferenceKeys.MAPBOX_TOKEN, "")) }
     Dialog(onDismissRequest = {}) {
         Column(Modifier.widthIn(max = 560.dp).fillMaxWidth().clip(RoundedCornerShape(26.dp)).background(c.panel).padding(22.dp)
             .verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Text(if (refused) Lang.t("Mapbox hat deinen Schlüssel abgelehnt", "Mapbox turned down your key") else Lang.t("Mapbox-Schlüssel eintragen", "Add your Mapbox key"), color = c.text, fontSize = 22.sp, fontWeight = FontWeight.Bold)
-            if (refused) Text(Lang.t("Mapbox hat deinen Schlüssel mit „401“ abgelehnt, darum lädt die Karte nicht. Erstelle einen neuen auf account.mapbox.com › Tokens › ", "Mapbox answered \"401\" for the key you saved, so the map can't load. Make a fresh one at account.mapbox.com › Tokens › ") +
-                Lang.t("Create a token: Nenne ihn Horizon Nav, lass die öffentlichen Berechtigungen angehakt und die geheimen nicht, und füge ihn unten ein.", "Create a token: name it Horizon Nav, leave the public scopes ticked and the secret ones unticked, then paste it below."), color = Warn, fontSize = 14.sp)
+            if (refused) Text(why.ifBlank { Lang.t("Mapbox hat deinen Schlüssel mit „401“ abgelehnt, darum lädt die Karte nicht. Erstelle einen neuen auf account.mapbox.com › Tokens › ", "Mapbox answered \"401\" for the key you saved, so the map can't load. Make a fresh one at account.mapbox.com › Tokens › ") +
+                Lang.t("Create a token: Nenne ihn Horizon Nav, lass die öffentlichen Berechtigungen angehakt und die geheimen nicht, und füge ihn unten ein.", "Create a token: name it Horizon Nav, leave the public scopes ticked and the secret ones unticked, then paste it below.") }, color = Warn, fontSize = 14.sp)
             Text(Lang.t("Horizon Nav zeichnet die Karte mit Mapbox. Dein kostenloser Mapbox-Schlüssel bringt die 3D-Karte mit Gebäuden, Bäumen und Fahrbahnmarkierungen, ", "Horizon Nav now draws its map with Mapbox. Your free Mapbox key adds the 3D map with buildings, trees and lane markings, ") +
                 Lang.t("Live-Verkehr auf der Route sowie bessere Suche und Tempolimits.", "live traffic on your route, and better search and speed limits."), color = c.text, fontSize = 15.sp)
             Text(stringResource(R.string.ui_018), color = c.sub, fontSize = 13.sp)
@@ -882,6 +882,7 @@ fun MapboxKeyDialog(prefs: com.headunit.launcher.Prefs, refused: Boolean = false
             when {
                 t.startsWith("sk.") -> Text(stringResource(R.string.ui_057), color = Warn, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
                 t.isNotEmpty() && !com.headunit.launcher.MapboxRest.looksValid(t) -> Text(stringResource(R.string.ui_056), color = Warn, fontSize = 13.sp)
+                t.isNotEmpty() && !com.headunit.launcher.MapboxRest.looksWhole(t) -> Text(Lang.t("Ein Teil dieses Schlüssels scheint zu fehlen oder vertippt zu sein. Kopiere ihn noch einmal mit dem Kopieren-Knopf auf account.mapbox.com › Tokens.", "Part of that token looks missing or mistyped. Copy it again with the copy button at account.mapbox.com › Tokens."), color = Warn, fontSize = 13.sp)
                 t.isEmpty() -> Text(stringResource(R.string.ui_066), color = c.sub, fontSize = 13.sp)
             }
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {

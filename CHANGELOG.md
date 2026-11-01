@@ -36,6 +36,11 @@ Add user-facing Horizon Nav changes under **Unreleased** before publishing each 
 - Elektroautos: Akkustand und gewünschten Mindest-Akku bei Ankunft in den Routenoptionen eingeben. Ein Ladestopp wird vorgeschlagen, wenn die Fahrt einen braucht, die Fahrtkarte zeigt den Akku bei Ankunft und einen Button für Ladesäulen voraus, und die Eco-Route nutzt TomToms E-Routing.
 
 ### Verbessert
+- Ruhige Karte im Stand: An der Ampel oder geparkt wandern und drehen sich Pfeil und Karte nicht mehr mit dem GPS-Rauschen.
+- Zoom gemerkt: Der Zoom, den du ohne Route mit + und − einstellst, bleibt fürs nächste Mal (Handy und Android Auto getrennt). „Zentrieren“ auf einer Route stellt wieder automatisch ein.
+- Routen von TomTom und Mapbox zugleich: Mit beiden Schlüsseln (und Routen auf „Automatisch“) fragt die App bei einer neuen Route beide und nimmt die schnellere; eine andere Strecke des zweiten Dienstes bleibt als Alternative.
+- Mapbox-Schlüssel abgelehnt (401): Die App fragt Mapbox nach dem Grund und sagt ihn klar, versucht es kurz erneut und schaltet die Karte nicht mehr sofort ab.
+- Android Auto: „Melden“-Knopf (Polizei, Unfall, Gefahr, Panne, mobiler Blitzer); die Suche steht jetzt unter „Orte“. Autos, die ihre Bildschirmgröße falsch melden (z. B. Uconnect 8.4), schieben den Pfeil nicht mehr unter die Karten.
 - Autobahn ohne Tempolimit: Wo auf deutschen Autobahnen keine Begrenzung gilt, zeigt die App das Schild „Ende aller Streckenverbote“ statt einer leeren Stelle (bei Wechselverkehrszeichen bleibt es leer).
 - Autobahnkreuze und Ausfahrten mit Namen: Abbiegekarte und Ansage nennen Kreuze, Dreiecke und Ausfahrten, z. B. „In 2 Kilometern am Frankfurter Kreuz rechts halten auf die A 3 in Richtung Köln“ oder „Ausfahrt 17 Weiterstadt nehmen“ (aus OpenStreetMap, wo der Router keinen Namen liefert).
 - Umweltzonen im Ausland: „Nur mit grüner Plakette“ gilt nur noch für deutsche Zonen; in Frankreich weist die App auf die Crit'Air-Vignette hin, sonst auf die Regeln vor Ort.

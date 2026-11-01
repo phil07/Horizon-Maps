@@ -423,7 +423,7 @@ private fun MapScreen(engine: NavEngine, onSettings: () -> Unit) {
             enter = fadeIn(tween(200)) + androidx.compose.animation.scaleIn(tween(220), initialScale = 0.85f), exit = fadeOut(tween(150)) + androidx.compose.animation.scaleOut(tween(150), targetScale = 0.9f),
         ) {
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
-                ImmPill(stringResource(R.string.ui_082), { engine.recenter() }, Icons.Rounded.MyLocation, filled = true)
+                ImmPill(stringResource(R.string.ui_082), { engine.recenter(byUser = true) }, Icons.Rounded.MyLocation, filled = true)
                 // zoomed with + and - while following you, with no route: keep this as your normal zoom
                 if (!routing && engine.following && kotlin.math.abs(engine.zoomOffset) > 0.01) ImmPill(Lang.t("Als Standard verwenden", "Make this my default"), { engine.saveZoomAsDefault() }, Icons.Rounded.ZoomIn)
             }

@@ -162,6 +162,9 @@ internal object PreferenceKeys {
     const val VIEW_3D = "view3d"
     /** Your own normal zoom when not on a route, in zoom levels from the standard one (-2 to +2; 0 = standard). */
     const val DEFAULT_ZOOM = "defzoom"
+    /** The + / - zoom last used when not on a route, kept for next time: on the phone / head unit, and on Android Auto. */
+    const val FREE_ZOOM = "freezoom"
+    const val FREE_ZOOM_CAR = "freezoomcar"
     /** Stopped for 30 s: the map pulls back to a top-down view of the traffic round you. */
     const val STOPPED_OVERVIEW = "stopview"
     /** Where you left the car, "lat,lon,time" (saved on the phone when Android Auto disconnects). */

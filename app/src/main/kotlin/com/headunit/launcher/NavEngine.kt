@@ -352,16 +352,133 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
 
     private fun noteMbRefused(e: Exception) {
         val m = e.message ?: ""
-        if (m.contains("(401)")) { refusedMb = mbToken; scope.launch { toast(ctx.getString(R.string.toast_012), 8000) } }
+        if (m.contains("(401)")) scope.launch { onMbUnauthorised(false) }
     }
 
-    /** Routes from whichever service is set up (see [provider]). */
-    private fun netRoutes(from: LL, to: LL, alternatives: Boolean, departAtMs: Long = 0L, via: List<LL> = emptyList(), headingDeg: Double = -1.0, quick: Boolean = false): List<Route> =
-        withBackup { p ->
-            lastRouteProvider = p
-            if (p == "mapbox") try { MapboxRest.routes(mbToken, from, to, alternatives, departAtMs, via, headingDeg, quick, leftTraffic) } catch (e: Exception) { noteMbRefused(e); throw e }
-            else TomTomRest.routes(apiKey, from, to, alternatives, departAtMs, via, headingDeg, quick)
-        }.also { rs -> if (lastRouteProvider == "tomtom" && rs.isNotEmpty()) mapboxLanesFor(rs, from, to, via, headingDeg) }
+    /** Why Mapbox turned your token down, in plain words (from Mapbox's own check of it), for the key box and the feedback report. */
+    var mbRefusedWhy by mutableStateOf("")
+        private set
+    /** The last answer from Mapbox's token check, for the feedback report. */
+    private var mbCheckNote = ""
+    private var mbChecking: String? = null
+    private var mbRetryFor: String? = null
+    private var mbRetries = 0
+
+    /**
+     * Mapbox answered 401. Before giving up on the token (which turns the map off until it's changed), Mapbox is asked what's
+     * wrong with it. A 401 used to be taken as "wrong token" straight away, so one refusal (even one left over from before the
+     * token was pasted) shut the map off for the rest of the drive, and people made new tokens that "didn't work" either.
+     */
+    private fun onMbUnauthorised(fromMap: Boolean) {
+        val t = mbToken
+        if (t.isBlank() || mbChecking == t || refusedMb == t) return
+        // the map was already retried with this (valid) token and the "keeps refusing" note shown: don't ask Mapbox again each time
+        if (fromMap && mbRetryFor == t && mbRetries > 3) return
+        mbChecking = t
+        scope.launch {
+            val r = try { withContext(Dispatchers.IO) { MapboxRest.checkToken(t) } } catch (e: Exception) { null }
+            mbChecking = null
+            if (t != mbToken) return@launch
+            val code = r?.first
+            val user = r?.second.orEmpty()
+            val acct = if (user.isNotBlank()) Lang.t(" (Konto $user)", " (account $user)") else ""
+            mbCheckNote = "Mapbox token check: ${code ?: "no answer"}" + (if (user.isNotBlank()) " (account $user)" else "")
+            if (code == "TokenValid") {
+                // the token is fine: don't lock it out. Load the map again (a few times, further apart each time)
+                mbRefusedWhy = ""
+                if (!fromMap) return@launch
+                if (mbRetryFor != t) { mbRetryFor = t; mbRetries = 0 }
+                if (mbRetries < 3) {
+                    mbRetries++
+                    toast(Lang.t("Mapbox hat die Karte kurz verweigert, aber dein Schlüssel ist in Ordnung$acct. Neuer Versuch …", "Mapbox refused the map for a moment, but your token is fine$acct. Trying again…"), 5000)
+                    delay(4000L * mbRetries)
+                    if (t == mbToken) try { applyStyle(lastDark) } catch (e: Exception) { }
+                } else if (mbRetries == 3) { mbRetries++; toast(Lang.t("Mapbox akzeptiert deinen Schlüssel, verweigert aber weiter die Karte. Melde dich auf account.mapbox.com an und suche dort nach einem Hinweis zu deinem Konto.", "Mapbox accepts your token but keeps refusing the map. Sign in at account.mapbox.com and look for a notice about your account."), 10_000) }
+                return@launch
+            }
+            refusedMb = t
+            val why = when (code) {
+                "TokenMalformed" -> Lang.t("Mapbox hat den Schlüssel abgelehnt: Das ist kein vollständiger Schlüssel, ein Teil fehlt oder ist vertippt. Kopiere ihn noch einmal mit dem Kopieren-Knopf auf account.mapbox.com › Tokens (abtippen klappt selten).", "Mapbox says that isn't a whole token: part of it is missing or mistyped. Copy it again with the copy button at account.mapbox.com › Tokens (typing it in by hand rarely works).")
+                "TokenInvalid" -> Lang.t("Mapbox hat den Schlüssel abgelehnt: Der Schlüssel enthält einen Fehler. Kopiere ihn noch einmal mit dem Kopieren-Knopf auf account.mapbox.com › Tokens, statt ihn abzutippen.", "Mapbox says that token has a mistake in it. Copy it again with the copy button at account.mapbox.com › Tokens rather than typing it.")
+                "TokenRevoked" -> Lang.t("Mapbox hat den Schlüssel abgelehnt: Der Schlüssel wurde gelöscht oder ersetzt. Kopiere einen, der auf account.mapbox.com › Tokens noch aufgeführt ist$acct.", "Mapbox says that token has been deleted or replaced. Copy one that's still listed at account.mapbox.com › Tokens$acct.")
+                "TokenExpired" -> Lang.t("Mapbox hat den Schlüssel abgelehnt: Das ist ein temporärer Schlüssel und er ist abgelaufen. Kopiere deinen Default public token (beginnt mit pk.) auf account.mapbox.com › Tokens.", "That's a temporary token and it has run out. Copy your Default public token (it starts pk.) at account.mapbox.com › Tokens.")
+                else -> Lang.t("Mapbox hat deinen Zugangsschlüssel nicht akzeptiert (401). Kopiere ihn noch einmal mit dem Kopieren-Knopf auf account.mapbox.com › Tokens.", "Mapbox didn't accept your access token (401). Copy it again with the copy button at account.mapbox.com › Tokens.")
+            }
+            mbRefusedWhy = why
+            toast(mbRefusedWhy, 9000)
+        }
+    }
+
+    /** Routes from one service ("mapbox" or "tomtom"). */
+    private fun routesFrom(p: String, from: LL, to: LL, alternatives: Boolean, departAtMs: Long, via: List<LL>, headingDeg: Double, quick: Boolean): List<Route> =
+        if (p == "mapbox") try { MapboxRest.routes(mbToken, from, to, alternatives, departAtMs, via, headingDeg, quick, leftTraffic) } catch (e: Exception) { noteMbRefused(e); throw e }
+        else TomTomRest.routes(apiKey, from, to, alternatives, departAtMs, via, headingDeg, quick)
+
+    /**
+     * Routes from whichever service is set up (see [provider]). With both a TomTom key and a Mapbox token (and Settings leaving the
+     * choice on Auto), a new route is asked of both at once: the two often pick different roads, and one alone sometimes missed a
+     * clearly quicker way. The quicker one comes first; a different route from the other service is kept as an alternative.
+     * Only when planning a new route ([askBoth]): not when rerouting, which has to be quick, nor in the faster-route checks while
+     * driving (the two services time the same road differently, which would offer "faster" routes that aren't), nor with eco
+     * routes (TomTom's only), nor when one of them isn't working.
+     */
+    private fun netRoutes(from: LL, to: LL, alternatives: Boolean, departAtMs: Long = 0L, via: List<LL> = emptyList(), headingDeg: Double = -1.0, quick: Boolean = false,
+                          askBoth: Boolean = false): List<Route> =
+        netRoutesRaw(from, to, alternatives, departAtMs, via, headingDeg, quick, askBoth)
+            .also { rs -> if (lastRouteProvider == "tomtom" && rs.isNotEmpty()) mapboxLanesFor(rs, from, to, via, headingDeg) }
+
+    private fun netRoutesRaw(from: LL, to: LL, alternatives: Boolean, departAtMs: Long, via: List<LL>, headingDeg: Double, quick: Boolean,
+                             askBoth: Boolean): List<Route> {
+        val now = System.currentTimeMillis()
+        val both = askBoth && !quick && hasKey && hasMapbox && refusedKey != apiKey &&
+            prefs.s(PreferenceKeys.DATAPROV, "auto") == "auto" &&
+            !prefs.b(PreferenceKeys.ROUTE_ECO, false) && now >= ttDownUntil && now >= mbDownUntil
+        if (!both) return withBackup { p -> lastRouteProvider = p; routesFrom(p, from, to, alternatives, departAtMs, via, headingDeg, quick) }
+        val mainP = provider
+        val otherP = if (mainP == "mapbox") "tomtom" else "mapbox"
+        // the other service on a thread of its own, so the two are asked at the same time
+        val other = java.util.concurrent.FutureTask<List<Route>>(java.util.concurrent.Callable {
+            try { routesFrom(otherP, from, to, false, departAtMs, via, headingDeg, false) } catch (e: Exception) { emptyList<Route>() }
+        })
+        Thread(other, "routes-$otherP").apply { isDaemon = true }.start()
+        val mine = try {
+            withBackup { p -> lastRouteProvider = p; routesFrom(p, from, to, alternatives, departAtMs, via, headingDeg, quick) }
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) { other.cancel(true); throw e }
+            val theirs = try { other.get(20, java.util.concurrent.TimeUnit.SECONDS) } catch (x: Exception) { emptyList() }
+            if (theirs.isEmpty()) throw e
+            lastRouteProvider = otherP
+            return theirs
+        }
+        // the main service has answered: the other gets a few more seconds at most, so nobody waits long for a route
+        val theirs = try { other.get(6, java.util.concurrent.TimeUnit.SECONDS) } catch (x: Exception) { other.cancel(true); emptyList() }
+        val best = theirs.firstOrNull() ?: return mine
+        val top = mine.firstOrNull() ?: run { lastRouteProvider = otherP; return theirs }
+        if (mine.any { sameRoad(it, best) }) return mine
+        // clearly quicker (2 minutes, or 5% on longer trips): it goes first. Otherwise it's offered as another choice
+        return if (best.time < top.time - max(120.0, top.time * 0.05)) {
+            lastRouteProvider = otherP
+            (listOf(best) + mine).take(3)
+        } else mine.take(2) + best
+    }
+
+    /** True when [b] runs along [a] almost all the way (two services' versions of the same route). */
+    private fun sameRoad(a: Route, b: Route): Boolean {
+        if (a.pts.size < 2 || b.pts.size < 2) return false
+        if (abs(a.len - b.len) > 0.06 * max(a.len, b.len)) return false
+        val n = 24
+        var near = 0
+        for (i in 1 until n) {
+            val q = b.pts[(i.toLong() * (b.pts.size - 1) / n).toInt()]
+            // every few points of the other line is plenty: route lines have points a few metres to a few tens of metres apart
+            var d = Double.MAX_VALUE
+            var j = 0
+            val step = max(1, a.pts.size / 4000)
+            while (j < a.pts.size) { val dd = Geo.dist(a.pts[j], q); if (dd < d) d = dd; j += step }
+            if (d < 60.0) near++
+        }
+        return near >= (n - 1) * 0.9
+    }
 
     /**
      * A TomTom route's lane list isn't from the map Mapbox draws the lanes on, so it often doesn't match what's painted. Once the
@@ -801,8 +918,10 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         val m = msg.lowercase()
         // Mapbox turned the token away: say so (the map can't show without a working token)
         if (m.contains("401") || m.contains("403") || m.contains("unauthor") || m.contains("forbidden") || m.contains("access token")) {
-            if (m.contains("401")) refusedMb = mbToken
-            toast(str(R.string.toast_054, if (m.contains("403")) "403" else "401"), 9000)
+            if (m.contains("403") || m.contains("forbidden"))
+                toast(Lang.t("Mapbox lässt diesen Schlüssel die Karte nicht anzeigen (403). Bearbeite ihn auf account.mapbox.com › Tokens: Hake alle öffentlichen Berechtigungen an und entferne URL-Beschränkungen.", "Mapbox won't let this token show the map (403). At account.mapbox.com › Tokens, edit it: tick all the public scopes and remove any URL restrictions."), 9000)
+            // 401: Mapbox is asked what's wrong with the token first (it says so itself if it's mistyped, deleted or out of date)
+            else onMbUnauthorised(true)
             return
         }
         val network = m.contains("resolve") || m.contains("host") || m.contains("timeout") || m.contains("timed out") || m.contains("connect") || m.contains("network") || m.contains("unreachable")
@@ -1141,6 +1260,11 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
             try { append(SessionWatch.report(ctx)) } catch (e: Exception) { }
             if (laneDiag.isNotBlank()) appendLine(laneDiag)
             appendLine("Lane list: ${if (laneSource.isNotBlank()) laneSource else "TomTom's / the route's own"}")
+            run {
+                val t = mbToken
+                val shape = when { t.isBlank() -> "none"; !MapboxRest.looksValid(t) -> "not a token"; !MapboxRest.looksWhole(t) -> "looks incomplete"; else -> "looks whole" }
+                appendLine("Mapbox token: ${t.take(3)}… $shape" + (if (mbCheckNote.isNotBlank()) " · $mbCheckNote" else "") + (if (mbKeyRefused) " · refused" else "") + (if (mbRefusedWhy.isNotBlank()) " · $mbRefusedWhy" else ""))
+            }
             if (crash != null) { appendLine(); appendLine("Last crash:"); appendLine(crash) }
             val freeze = try { FreezeWatch.file(ctx).takeIf { it.exists() }?.readText()?.take(2500) } catch (e: Exception) { null }
             if (freeze != null) { appendLine(); appendLine("Last freeze:"); appendLine(freeze) }
@@ -1633,14 +1757,14 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
                 val rs = withContext(Dispatchers.IO) {
                     val haveOffline = OfflineRouter.installed(ctx)
                     if (haveOffline && (!hasOnline || !online())) { usedOffline = true; OfflineRouter.routes(ctx, from, to.pos, via.map { it.pos }) }
-                    else try { netRoutes(from, to.pos, true, departMs, via.map { it.pos }) }
+                    else try { netRoutes(from, to.pos, true, departMs, via.map { it.pos }, askBoth = true) }
                     catch (e: Exception) {
                         if (haveOffline && NavigationFallbackPolicy.shouldUseOffline(e)) { usedOffline = true; OfflineRouter.routes(ctx, from, to.pos, via.map { it.pos }) } else throw e
                     }
                 }
                 if (rs.isEmpty()) throw IllegalStateException("No route found")
                 if (usedOffline) toast(ctx.getString(R.string.toast_030), 4000)
-                if (rs[0].steps.isEmpty()) toast(if (provider == "mapbox") Lang.t("Mapbox hat für diese Route keine Abbiegehinweise geliefert", "Mapbox returned no turn instructions for this route") else Lang.t("Dieser Schlüssel liefert keine Abbiegehinweise. Prüfe, ob er Zugriff auf die TomTom Routing API hat", "This key returned no turn instructions. Check it has TomTom Routing API access"), 6000)
+                if (rs[0].steps.isEmpty()) toast(if (lastRouteProvider == "mapbox") Lang.t("Mapbox hat für diese Route keine Abbiegehinweise geliefert", "Mapbox returned no turn instructions for this route") else Lang.t("Dieser Schlüssel liefert keine Abbiegehinweise. Prüfe, ob er Zugriff auf die TomTom Routing API hat", "This key returned no turn instructions. Check it has TomTom Routing API access"), 6000)
                 if (departInMin > 0 && !usedOffline && !departApplied) toast(ctx.getString(R.string.toast_007), 4000)
                 departMin = departInMin
                 departAtMs = if (!usedOffline && departApplied) departMs else 0L
@@ -1816,14 +1940,24 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         stopSim()
         tts?.stop()
         glideRoute = null; glideOnRoute = false
+        // back to the zoom you use when not on a route
+        zoomOffset = try { savedFreeZoom() } catch (e: Exception) { 0.0 }
         refreshRoad()
         map.setTilt(if (tilt3d) 55.0 else 0.0)
     }
 
     // ---- camera controls ----
-    fun recenter() {
+    /**
+     * Back to following the car. With no route, the zoom you last set with + and - comes back (it's remembered between drives,
+     * separately for the phone / head unit and Android Auto); pressing re-centre again while already following you puts the zoom
+     * back to automatic. On a route the zoom is always automatic.
+     */
+    fun recenter(byUser: Boolean = false) {
+        val wasFollowing = following
         following = true
-        zoomOffset = 0.0
+        val resetZoom = route != null || (byUser && wasFollowing)
+        zoomOffset = if (resetZoom) 0.0 else savedFreeZoom()
+        if (route == null && resetZoom) rememberFreeZoom()
         val f = fix
         if (f != null) onPosition(f, true) else toast(ctx.getString(R.string.toast_013))
     }
@@ -1859,8 +1993,20 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
     }
 
     fun zoom(delta: Double) {
-        if (following && fix != null) { zoomOffset = (zoomOffset + delta).coerceIn(-4.0, 3.0); fix?.let { onPosition(it, true) } }
+        if (following && fix != null) { zoomOffset = (zoomOffset + delta).coerceIn(-4.0, 3.0); rememberFreeZoom(); fix?.let { onPosition(it, true) } }
         else map.zoomBy(delta)
+    }
+
+    // ---- the zoom you set with + and - when not on a route, remembered for next time (phone / head unit and Android Auto apart) ----
+    private val freeZoomKey: String get() = if (isCar) PreferenceKeys.FREE_ZOOM_CAR else PreferenceKeys.FREE_ZOOM
+    private var freeZoomRestored = false
+
+    private fun savedFreeZoom(): Double = (prefs.s(freeZoomKey, "0").toDoubleOrNull() ?: 0.0).coerceIn(-4.0, 3.0)
+
+    /** Keeps the current + / - zoom for next time; only off a route (a route's zoom is automatic and starts afresh). */
+    private fun rememberFreeZoom() {
+        if (route != null) return
+        try { prefs.put(freeZoomKey, String.format(Locale.US, "%.2f", zoomOffset)) } catch (e: Exception) { }
     }
 
 
@@ -2296,6 +2442,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         val v = (defaultZoom + zoomOffset).coerceIn(-2.0, 2.0)
         prefs.put(PreferenceKeys.DEFAULT_ZOOM, String.format(java.util.Locale.US, "%.2f", v))
         zoomOffset = 0.0
+        rememberFreeZoom()
         fix?.let { onPosition(it, true) }
         toast(ctx.getString(R.string.toast_046), 4500)
     }
@@ -2596,13 +2743,39 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
     /** In portrait: the share of the screen height covered by the trip card at the bottom (the locator is kept above it). */
     var bottomCover = 0.0
 
+    // Standing still (parked, at lights): the first position while stopped, kept until you've clearly moved off. GPS (and the
+    // car's own GPS over Android Auto) wanders a few metres and reports small made-up speeds while stopped; following that
+    // made the map shake and turn on the spot.
+    private var stillAnchor: LL? = null
+    private var isStill = false
+
+    /** True while [p] is still within GPS wander of where you stopped. Movement is taken as real once you're clearly away. */
+    private fun stillCheck(p: Fix): Boolean {
+        if (simMode != 0) { stillAnchor = null; return false }
+        val a = stillAnchor
+        if (a == null) {
+            // (also hardly moved since the last fix: positions that come without a speed read as 0, and must not hold the arrow
+            // while you're driving)
+            val prev = lastMeasured?.pos
+            if (p.speed < 1.0 && (prev == null || Geo.dist(prev, p.pos) < 3.0)) { stillAnchor = p.pos; return true }
+            return false
+        }
+        // how far counts as having moved off: the fix's own uncertainty, kept between 8 and 20 m
+        val radius = (if (p.acc > 0.0) p.acc else 10.0).coerceIn(8.0, 20.0)
+        if (p.speed > 4.0 || Geo.dist(a, p.pos) > radius) { stillAnchor = null; return false }
+        return true
+    }
+
     private fun onPosition(p: Fix, force: Boolean) {
         fix = p
-        // start/stop moving with a little hysteresis (the full map rests its shop labels while you drive)
-        if (!movingNow && p.speed > 4.0) { movingNow = true; map.setMoving(true) }
-        else if (movingNow && p.speed < 1.5) { movingNow = false; map.setMoving(false) }
-        val tNow = android.os.SystemClock.elapsedRealtime()
         val newFix = p !== lastMeasured
+        if (newFix) isStill = try { stillCheck(p) } catch (e: Exception) { false }
+        // the speed used for the camera and the arrow: none while standing still
+        val sp = if (isStill) 0.0 else p.speed
+        // start/stop moving with a little hysteresis (the full map rests its shop labels while you drive)
+        if (!movingNow && sp > 4.0) { movingNow = true; map.setMoving(true) }
+        else if (movingNow && sp < 1.5) { movingNow = false; map.setMoving(false) }
+        val tNow = android.os.SystemClock.elapsedRealtime()
         if (newFix) {
             lastMeasured = p
             posDt = if (lastPosAt == 0L) 1000L else (tNow - lastPosAt).coerceIn(500L, 2500L)
@@ -2610,6 +2783,8 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
             try { updateRoadInfo(p); trackParking(p) } catch (e: Exception) { android.util.Log.w("NavEngine", "road info failed", e) }
             try { checkArea(p.pos) } catch (e: Exception) { }
         }
+        // the first position of this session: the zoom you left the map at last time comes back (not on a route)
+        if (!freeZoomRestored) { freeZoomRestored = true; if (route == null) zoomOffset = try { savedFreeZoom() } catch (e: Exception) { 0.0 } }
         val r = route
         val s = if (!previewing && r != null && r.pts.size >= 2) snap(r, p.pos) else null
         // how far from the route counts as having left it: tighter than before, but widened when the GPS is less certain
@@ -2632,15 +2807,18 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         val onR = r != null && s != null && !jump && s.dist < (if (glideOnRoute) offLim + 12.0 else 45.0)
         if (onR && s != null && newFix && s.dist <= offLim) { trustProg = s.progress; trustAt = nowT }
         if (newFix) {
-            mAt = tNow; mSpeed = p.speed
+            mAt = tNow; mSpeed = sp
             if (onR && r != null && s != null) {
                 if (glideRoute !== r || gPos == null) { glideRoute = r; gProg = s.progress; gPos = s.point; gHead = p.heading }
-                mProg = s.progress
+                // standing still: the arrow stays where it stopped instead of creeping along with the GPS wander
+                if (!isStill || glideRoute !== r) mProg = s.progress
                 glideOnRoute = true
             } else {
                 glideRoute = null; glideOnRoute = false
-                mPos = if (p.speed > 2.0 && prefs.b(PreferenceKeys.SNAPROAD, true)) (Overpass.snapToRoad(p.pos, p.heading) ?: map.snapToRoad(p.pos, p.heading) ?: p.pos) else p.pos
-                mHead = p.heading
+                // standing still: the arrow (and the map round it) stays where you stopped, facing the same way
+                val held = if (isStill) mPos else null
+                mPos = held ?: if (p.speed > 2.0 && prefs.b(PreferenceKeys.SNAPROAD, true)) (Overpass.snapToRoad(p.pos, p.heading) ?: map.snapToRoad(p.pos, p.heading) ?: p.pos) else p.pos
+                if (!isStill) mHead = p.heading
                 val gp = gPos
                 if (gp == null || Geo.dist(gp, p.pos) > 150.0) { gPos = p.pos; gHead = p.heading }
             }
@@ -2649,7 +2827,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         // camera target for this fix; the glide loop eases the shown camera towards it every frame
         if (!previewing && following) {
             val hdg = if (onR && r != null && s != null) gHead else p.heading
-            followCamera(Fix(gPos ?: p.pos, hdg, p.speed, p.alt, p.acc), onR)
+            followCamera(Fix(gPos ?: p.pos, hdg, sp, p.alt, p.acc), onR)
         } else if (stoppedOverview) {
             // the stopped check only runs while the map follows you: once you've moved the map away (or it isn't following),
             // the traffic view and its banner must go too, or they stay on the screen for good

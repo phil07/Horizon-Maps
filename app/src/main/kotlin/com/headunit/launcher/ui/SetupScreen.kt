@@ -175,6 +175,7 @@ private fun KeyStep(prefs: Prefs, engine: NavEngine) {
         t.isEmpty() -> Text(stringResource(R.string.ui_065), color = c.sub, fontSize = 13.sp)
         t.startsWith("sk.") -> Text(stringResource(R.string.ui_057), color = Warn, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
         !com.headunit.launcher.MapboxRest.looksValid(t) -> Text(stringResource(R.string.ui_056), color = Warn, fontSize = 13.sp)
+        !com.headunit.launcher.MapboxRest.looksWhole(com.headunit.launcher.MapboxRest.clean(t)) -> Text(com.headunit.launcher.Lang.t("Ein Teil dieses Schlüssels scheint zu fehlen oder vertippt zu sein. Kopiere ihn noch einmal mit dem Kopieren-Knopf auf account.mapbox.com › Tokens.", "Part of that token looks missing or mistyped. Copy it again with the copy button at account.mapbox.com › Tokens."), color = Warn, fontSize = 13.sp)
         else -> SetupPoint("Token hinzugefügt: Die Karte wird nach der Einrichtung geladen")
     }
     Spacer(Modifier.height(10.dp))
