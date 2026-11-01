@@ -3297,7 +3297,8 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         if (now - viewAt < 4000L || (last != null && Geo.dist(last, c) < 1500.0)) return
         viewAt = now; viewFetched = c
         scope.launch {
-            val found = withContext(Dispatchers.IO) { Overpass.cameras(c, 6000) }
+            // the offline pack's own camera list first (no internet needed), then OpenStreetMap
+            val found = withContext(Dispatchers.IO) { localCameras(c, 6000.0) ?: Overpass.cameras(c, 6000) }
             // a failed lookup keeps the cameras already shown; the next drag tries again
             if (found == null) { viewFetched = null; camNote = Lang.t("Suche am Kartenausschnitt fehlgeschlagen (${Overpass.lastNote.take(60)})", "Lookup at the map view failed (${Overpass.lastNote.take(60)})"); return@launch }
             addAroundCams(found)
