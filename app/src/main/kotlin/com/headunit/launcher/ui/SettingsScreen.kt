@@ -1072,6 +1072,15 @@ private fun EvWidgetItem(prefs: Prefs) {
         if (id >= 0) SButton("Entfernen", danger = true) { com.headunit.launcher.EvWidget.remove(ctx, prefs) }
         SButton(if (id >= 0) "Ändern" else "Widget wählen", primary = id < 0) { picking = true }
     }
+    // while no value has been read: the texts the widget shows, so it's visible whether a percentage is among them
+    if (id >= 0 && at == 0L) {
+        val texts = com.headunit.launcher.EvWidget.lastTexts
+        Text(
+            if (texts.isEmpty()) "Vom Widget ist noch kein Text angekommen. Erst nach „Auto-App öffnen“ und einer Aktualisierung des Widgets."
+            else "Text im Widget: " + texts.joinToString("  |  "),
+            color = LocalVw.current.sub, fontSize = 12.sp, modifier = Modifier.padding(bottom = 10.dp),
+        )
+    }
     if (picking) {
         val list = remember { com.headunit.launcher.EvWidget.providers(ctx) }
         androidx.compose.ui.window.Dialog(onDismissRequest = { picking = false }) {

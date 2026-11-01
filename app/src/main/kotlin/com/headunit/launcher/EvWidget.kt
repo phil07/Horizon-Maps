@@ -12,6 +12,9 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.RemoteViews
 import android.widget.TextView
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 
 /**
  * Reads your electric car's battery level from another app's home-screen widget (the car maker's app, for example).
@@ -33,6 +36,8 @@ object EvWidget {
     /** The last battery level read from the widget, and when (ms), or null. */
     var lastPct: Int? = null; private set
     var lastAt: Long = 0L; private set
+    /** The text the widget last showed (for checking what Horizon Nav can read from it), shown in Settings when nothing was found. */
+    var lastTexts: List<String> by mutableStateOf(emptyList()); internal set
 
     fun widgetId(p: Prefs): Int = p.i(TAG_ID, -1)
     /** Where the last reading came from: "car" (Android Auto) or "widget". */
@@ -178,6 +183,7 @@ object EvWidget {
                     layout(0, 0, w, h)
                     val texts = ArrayList<String>()
                     collect(this, texts)
+                    lastTexts = texts.map { it.take(80) }.take(30)
                     findPct(texts)?.let { onRead?.invoke(it) }
                 } catch (e: Exception) { }
             }
