@@ -37,13 +37,15 @@ object ChargerInfo {
     fun along(prefs: Prefs, line: List<LL>): List<Nearby> {
         if (line.size < 2) return emptyList()
         val key = prefs.s(PreferenceKeys.OCM_KEY, "").trim()
-        val h = line.hashCode() * 31 + key.hashCode()
+        // "all chargers" in Settings: the register's normal (AC) chargers too, so theirs get a power as well
+        val fastOnly = prefs.i(PreferenceKeys.EV_MIN_KW, 50) > 0
+        val h = (line.hashCode() * 31 + key.hashCode()) * 31 + fastOnly.hashCode()
         synchronized(cache) { cache[h] }?.let { return it }
         val out = ArrayList<Nearby>()
         val notes = ArrayList<String>()
         var failed = false
         if (line.any { it.lat in 47.2..55.1 && it.lon in 5.8..15.1 }) {
-            try { out += bnetza(line); notes += "BNetzA ${out.size}" }
+            try { out += bnetza(line, fastOnly); notes += "BNetzA ${out.size}" }
             catch (e: Exception) { failed = true; notes += "BNetzA: " + (e.message ?: e.javaClass.simpleName) }
         }
         if (key.isNotEmpty()) {
@@ -87,7 +89,7 @@ object ChargerInfo {
 
     // ---- Bundesnetzagentur Ladesäulenregister (ArcGIS feature service) ----
 
-    private fun bnetza(line: List<LL>): List<Nearby> {
+    private fun bnetza(line: List<LL>, fastOnly: Boolean): List<Nearby> {
         val path = JSONArray()
         for (p in line) path.put(JSONArray().put(Math.round(p.lon * 1e5) / 1e5).put(Math.round(p.lat * 1e5) / 1e5))
         val geom = JSONObject().put("paths", JSONArray().put(path)).put("spatialReference", JSONObject().put("wkid", 4326)).toString()
@@ -98,7 +100,7 @@ object ChargerInfo {
             val form = linkedMapOf(
                 "f" to "json", "geometry" to geom, "geometryType" to "esriGeometryPolyline", "inSR" to "4326", "outSR" to "4326",
                 "spatialRel" to "esriSpatialRelIntersects", "distance" to "2500", "units" to "esriSRUnit_Meter",
-                "where" to "Typ='Schnellladeeinrichtung' AND Status='In Betrieb'",
+                "where" to if (fastOnly) "Typ='Schnellladeeinrichtung' AND Status='In Betrieb'" else "Status='In Betrieb'",
                 "outFields" to "Betreiber,operator_companyName,max_electric_power_station,Straße,Ort,Anzahl_Ladepunkte",
                 "returnGeometry" to "true", "resultOffset" to offset.toString(), "resultRecordCount" to "2000",
             )
@@ -119,6 +121,8 @@ object ChargerInfo {
                 val k = Math.round(lat * 1e5) to Math.round(lon * 1e5)
                 val prev = sites[k]
                 if (prev == null || (kw ?: 0) > (prev.kw ?: 0)) sites[k] = Nearby(Place(siteName(op ?: prev?.op, str(a, "Ort"), pos), street, pos), 0.0, "", kw = kw ?: prev?.kw, op = op ?: prev?.op)
+                // a slower station of the site may be the only one that names the operator
+                else if (prev.op == null && op != null) sites[k] = prev.copy(place = prev.place.copy(name = siteName(op, str(a, "Ort"), pos)), op = op)
             }
             if (!j.optBoolean("exceededTransferLimit", false) || feats.length() == 0) break
             offset += feats.length()
@@ -156,6 +160,19 @@ object ChargerInfo {
             // ids 1 and 44/45 are "(Unknown Operator)", "(Business Owner at Location)", "(Private Residence/Individual)": names in brackets are no operator
             val op = ops[idStreet.first]?.takeIf { !it.startsWith("(") }
             Nearby(Place(siteName(op, idStreet.second.substringAfterLast(", ").takeIf { it.isNotBlank() }, pos), idStreet.second, pos), 0.0, "", kw = kw, op = op)
+        }
+    }
+
+    /** Checks an Open Charge Map key with one small request (for Settings). Returns a short German/English result. Blocking. */
+    fun testOcm(key: String): String {
+        val k = key.trim(); if (k.isEmpty()) return Lang.t("Kein Schlüssel eingetragen", "No key entered")
+        return try {
+            val arr = JSONArray(get("$OCM/poi?output=json&key=${URLEncoder.encode(k, "UTF-8")}&latitude=52.52&longitude=13.405&distance=5&distanceunit=KM&maxresults=3&compact=true&verbose=false"))
+            Lang.t("Schlüssel funktioniert (${arr.length()} Ladesäulen in Berlin-Mitte gefunden)", "Key works (${arr.length()} chargers found in central Berlin)")
+        } catch (e: Exception) {
+            val m = e.message ?: e.javaClass.simpleName
+            if (m.startsWith("HTTP 401") || m.startsWith("HTTP 403")) Lang.t("Schlüssel abgelehnt – bitte prüfen", "Key refused – please check it")
+            else Lang.t("Keine Verbindung zu Open Charge Map: ", "Couldn't reach Open Charge Map: ") + m.take(60)
         }
     }
 
