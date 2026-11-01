@@ -34,7 +34,19 @@ object Overpass {
     /** Runs a query for other parts of the app (route extras, zones). */
     fun query(q: String, connectMs: Int = 10000, readMs: Int = 30000, tries: Int = endpoints.size): JSONArray = run(q, connectMs, readMs, tries)
 
+    /** Asks the servers, and when every one fails (a dropped connection, a busy server) tries the round again: three rounds, a pause between. */
     private fun run(query: String, connectMs: Int = 8000, readMs: Int = 18000, tries: Int = endpoints.size): JSONArray {
+        var last: IOException? = null
+        for (round in 1..3) {
+            try { return runOnce(query, connectMs, readMs, tries) } catch (e: IOException) {
+                last = e
+                if (round < 3) try { Thread.sleep(2000L) } catch (ie: InterruptedException) { break }
+            }
+        }
+        throw last ?: IOException("no answer from the servers")
+    }
+
+    private fun runOnce(query: String, connectMs: Int, readMs: Int, tries: Int): JSONArray {
         val errors = ArrayList<String>()
         for (n in 0 until minOf(tries, endpoints.size)) {
             val idx = (preferred + n) % endpoints.size

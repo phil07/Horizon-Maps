@@ -889,6 +889,9 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
                     }
                 }
                 onDone()
+                // the files are as new as the moment they finished: a long download would otherwise look older than the server's
+                // copy (made earlier) and the same pack would be downloaded again straight away
+                try { OfflineRouter.packDir(ctx, id).listFiles()?.forEach { it.setLastModified(System.currentTimeMillis()) } } catch (e: Exception) { }
                 packStatus = Lang.t("Paket bereit", "Pack ready")
                 toast(ctx.getString(R.string.toast_028), 3000)
             } catch (e: Throwable) {
