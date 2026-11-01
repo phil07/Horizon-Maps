@@ -26,12 +26,47 @@ object MapboxRest {
 
     fun looksValid(t: String) = t.length > 30 && (t.startsWith("pk.") || t.startsWith("sk.") || t.startsWith("tk."))
 
+    /**
+     * Checked without a connection: a whole token is three parts, and its middle part is readable data naming the Mapbox account.
+     * A token typed in by hand, or cut short when copying, usually fails this. (Only used for a warning, never to refuse a token.)
+     */
+    fun looksWhole(t: String): Boolean = try {
+        val p = t.split('.')
+        if (p.size != 3 || p[1].length < 8 || p[2].length < 10) false
+        else {
+            val json = String(android.util.Base64.decode(p[1], android.util.Base64.URL_SAFE or android.util.Base64.NO_WRAP or android.util.Base64.NO_PADDING), Charsets.UTF_8).trim()
+            json.startsWith("{") && json.endsWith("}") && json.contains("\"u\"")
+        }
+    } catch (e: Exception) { false }
+
+    /**
+     * Mapbox's own verdict on a token (its Tokens API, which works for any token): "TokenValid", "TokenMalformed", "TokenInvalid",
+     * "TokenExpired" or "TokenRevoked", with the account it belongs to. Null when Mapbox couldn't be asked (no signal).
+     */
+    fun checkToken(t: String): Pair<String, String>? = try {
+        val c = URL("$API/tokens/v2?access_token=" + enc(t)).openConnection() as HttpURLConnection
+        c.connectTimeout = 8000
+        c.readTimeout = 10000
+        c.setRequestProperty("User-Agent", "HorizonNav/1.0")
+        try {
+            val code = c.responseCode
+            val body = (if (code in 200..299) c.inputStream else c.errorStream)?.bufferedReader()?.use { it.readText() } ?: ""
+            val o = try { JSONObject(body) } catch (e: Exception) { null }
+            val v = o?.optString("code").orEmpty()
+            when {
+                v.startsWith("Token") -> v to (o?.optJSONObject("token")?.optString("user").orEmpty())
+                code == 401 -> "TokenInvalid" to ""
+                else -> null
+            }
+        } finally { try { c.disconnect() } catch (e: Exception) { } }
+    } catch (e: Exception) { null }
+
     private fun enc(s: String) = URLEncoder.encode(s, "UTF-8").replace("+", "%20")
 
     private fun httpError(code: Int, body: String): IOException = IOException(when (code) {
-        401 -> "Mapbox didn't accept the access token (401). Check it in Settings > Keys & accounts"
-        403 -> "This Mapbox token isn't allowed to use that service (403). Check its scopes at account.mapbox.com"
-        429 -> "Mapbox's request limit was reached. Try again in a minute"
+        401 -> Lang.t("Mapbox hat den Zugangsschlüssel abgelehnt (401). Prüfe ihn unter Einstellungen > Schlüssel & Konten", "Mapbox didn't accept the access token (401). Check it in Settings > Keys & accounts")
+        403 -> Lang.t("Dieser Mapbox-Schlüssel darf diesen Dienst nicht nutzen (403). Prüfe seine Berechtigungen auf account.mapbox.com", "This Mapbox token isn't allowed to use that service (403). Check its scopes at account.mapbox.com")
+        429 -> Lang.t("Das Anfragelimit von Mapbox ist erreicht. Versuche es in einer Minute erneut", "Mapbox's request limit was reached. Try again in a minute")
         else -> "HTTP $code ${body.take(140)}"
     })
 
@@ -195,7 +230,7 @@ object MapboxRest {
     /** True when the last request was accepted with its departure time. */
     @Volatile var departApplied = false
 
-    /** Countries (two-letter codes) where toll roads are avoided even though "Avoid toll roads" is off. */
+    /** Countries (two-letter codes) where toll roads are avoided even though Lang.t("Mautstraßen meiden", "Avoid toll roads") is off. */
     @Volatile var tollCountries: Set<String> = emptySet()
 
     /** The route pays a toll in one of [countries]: a toll stretch (Mapbox marks its junctions "toll") in that country. */
@@ -324,6 +359,7 @@ object MapboxRest {
         // Mapbox's distances and the line's own differ by a few metres: offsets are scaled onto the line
         val k = if (apiLen > 0) total / apiLen else 1.0
         val steps = ArrayList<Step>()
+        val refCc = RoadRefs.countryFor(pts.firstOrNull())
         val laneSecs = ArrayList<LaneSec>()
         val sevList = ArrayList<Int>()
         val segDur = ArrayList<Double>()
@@ -387,11 +423,13 @@ object MapboxRest {
                 if (!skip) {
                     val man = maneuverOf(type, mod, leftHand)
                     val name = s.optString("name")
-                    val ref = s.optString("ref").substringBefore(';').trim()
-                    val street = if (type == "off ramp" && name.isBlank()) s.optString("destinations") else name.ifBlank { ref }
+                    // "A 4; E 40": the national number, not the European one (see RoadRefs)
+                    val street = if (type == "off ramp" && name.isBlank()) s.optString("destinations") else RoadRefs.street(name, listOf(s.optString("ref")), refCc)
                     val exit = if (man.startsWith("ROUNDABOUT")) m.optInt("exit", 0) else 0
+                    // (a junction's name comes with the step in some regions only; elsewhere it's looked up in OpenStreetMap, see Junctions)
                     steps += Step(at, man, street, m.optString("instruction"), exit, if (type == "off ramp") s.optString("exits").substringBefore(';') else "", s.optString("destinations"),
-                        rbIn = if (type == "roundabout" || type == "rotary") m.optDouble("bearing_before", -1.0) else -1.0)
+                        rbIn = if (type == "roundabout" || type == "rotary") m.optDouble("bearing_before", -1.0) else -1.0,
+                        jct = s.optString("junction_name").substringBefore(';').trim())
                     if (type == "roundabout" || type == "rotary") rbIdx = steps.size - 1
                     // the lanes at this junction: which go where, and the ones to be in
                     try {

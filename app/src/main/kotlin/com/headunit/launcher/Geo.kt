@@ -11,7 +11,9 @@ import kotlin.math.*
 data class LL(val lat: Double, val lon: Double)
 data class Step(val off: Double, val maneuver: String, val street: String, val msg: String, val roundExit: Int = 0, val exitNo: String = "", val sign: String = "",
     /** At a roundabout: the way you're heading as you come onto it, the way you leave it, and the other roads off it (degrees; -1 unknown). */
-    val rbIn: Double = -1.0, val rbOut: Double = -1.0, val rbExits: List<Double> = emptyList())
+    val rbIn: Double = -1.0, val rbOut: Double = -1.0, val rbExits: List<Double> = emptyList(),
+    /** The motorway junction's name when the route data has it ("Frankfurter Kreuz", "Weiterstadt"); else it comes from OpenStreetMap (see Junctions). */
+    val jct: String = "")
 data class Place(val name: String, val sub: String, val pos: LL)
 
 class Incident(val id: String, val cat: String, val text: String, val delaySec: Int, val pts: List<LL>)
@@ -102,33 +104,46 @@ object Geo {
     fun spoken(m: Double, imperial: Boolean): String {
         if (imperial) {
             val ft = m * 3.28084
-            return if (ft < 528) "${((ft / 50).roundToInt()) * 50} feet" else String.format("%.1f miles", m / 1609.344)
+            return if (ft < 528) "${((ft / 50).roundToInt()) * 50} Fuß" else String.format("%.1f Meilen", m / 1609.344).replace('.', ',')
         }
-        return if (m < 1000) "${((m / 50).roundToInt()) * 50} metres" else String.format("%.1f kilometres", m / 1000.0)
+        val r50 = ((m / 50).roundToInt()) * 50
+        if (r50 < 1000) return "$r50 Metern"
+        // "In einem Kilometer", "In 2 Kilometern", "In 1,5 Kilometern" (never "1,0 Kilometern")
+        val tenths = (m / 100.0).roundToInt()
+        if (tenths == 10) return "einem Kilometer"
+        if (tenths >= 100) return "${(m / 1000.0).roundToInt()} Kilometern"
+        if (tenths % 10 == 0) return "${tenths / 10} Kilometern"
+        return "${tenths / 10},${tenths % 10} Kilometern"
     }
 
-    fun ordinal(n: Int): String = when {
-        n % 100 in 11..13 -> "${n}th"
-        n % 10 == 1 -> "${n}st"; n % 10 == 2 -> "${n}nd"; n % 10 == 3 -> "${n}rd"
-        else -> "${n}th"
+    /** [spoken] for use without "in" ("Noch 3 Kilometer", not "Noch 3 Kilometern"). */
+    fun spokenPlain(m: Double, imperial: Boolean): String =
+        spoken(m, imperial).replace("einem Kilometer", "ein Kilometer").replace("Kilometern", "Kilometer").replace("Metern", "Meter")
+
+    fun ordinal(n: Int): String = "$n."
+
+    /** "erste", "zweite"… for the spoken roundabout exit (the screen keeps the short "2. Ausfahrt"). */
+    private fun ordinalWord(n: Int): String = when (n) {
+        1 -> "erste"; 2 -> "zweite"; 3 -> "dritte"; 4 -> "vierte"; 5 -> "fünfte"; 6 -> "sechste"; 7 -> "siebte"; 8 -> "achte"
+        else -> ordinal(n)
     }
 
     /** Spoken/short wording for a manoeuvre, e.g. "turn left" or "take the 2nd exit at the roundabout". */
     fun maneuverText(m: String, exit: Int = 0): String {
         val u = m.uppercase()
         if (u.startsWith("ROUNDABOUT")) {
-            if (u == "ROUNDABOUT_BACK") return if (exit > 0) "take the ${ordinal(exit)} exit at the roundabout" else "go all the way round the roundabout"
-            return if (exit > 0) "at the roundabout, take the ${ordinal(exit)} exit" else "take the roundabout"
+            if (u == "ROUNDABOUT_BACK") return if (exit > 0) "im Kreisverkehr die ${ordinalWord(exit)} Ausfahrt nehmen" else "einmal ganz um den Kreisverkehr fahren"
+            return if (exit > 0) "im Kreisverkehr die ${ordinalWord(exit)} Ausfahrt nehmen" else "in den Kreisverkehr einfahren"
         }
         val t = mapOf(
-            "ARRIVE" to "arrive", "ARRIVE_LEFT" to "arrive, destination on the left", "ARRIVE_RIGHT" to "arrive, destination on the right",
-            "DEPART" to "head out", "MAKE_UTURN" to "make a U-turn", "TRY_MAKE_UTURN" to "make a U-turn when possible",
-            "STRAIGHT" to "continue straight", "FOLLOW" to "continue", "TURN_LEFT" to "turn left", "TURN_RIGHT" to "turn right",
-            "SHARP_LEFT" to "turn sharp left", "SHARP_RIGHT" to "turn sharp right", "BEAR_LEFT" to "bear left", "BEAR_RIGHT" to "bear right",
-            "KEEP_LEFT" to "keep left", "KEEP_RIGHT" to "keep right", "ENTER_MOTORWAY" to "join the motorway", "ENTER_FREEWAY" to "join the main road",
-            "ENTER_HIGHWAY" to "join the main road", "TAKE_EXIT" to "take the exit", "MOTORWAY_EXIT_LEFT" to "take the exit on the left",
-            "MOTORWAY_EXIT_RIGHT" to "take the exit on the right", "ENTRANCE_RAMP" to "take the slip road", "SWITCH_PARALLEL_ROAD" to "switch to the parallel road",
-            "SWITCH_MAIN_ROAD" to "switch to the main road", "TAKE_FERRY" to "take the ferry",
+            "ARRIVE" to "Ziel erreicht", "ARRIVE_LEFT" to "Ziel erreicht, links", "ARRIVE_RIGHT" to "Ziel erreicht, rechts",
+            "DEPART" to "losfahren", "MAKE_UTURN" to "wenden", "TRY_MAKE_UTURN" to "wenden, wenn möglich",
+            "STRAIGHT" to "geradeaus weiterfahren", "FOLLOW" to "weiterfahren", "TURN_LEFT" to "links abbiegen", "TURN_RIGHT" to "rechts abbiegen",
+            "SHARP_LEFT" to "scharf links abbiegen", "SHARP_RIGHT" to "scharf rechts abbiegen", "BEAR_LEFT" to "halb links halten", "BEAR_RIGHT" to "halb rechts halten",
+            "KEEP_LEFT" to "links halten", "KEEP_RIGHT" to "rechts halten", "ENTER_MOTORWAY" to "auf die Autobahn auffahren", "ENTER_FREEWAY" to "auf die Schnellstraße auffahren",
+            "ENTER_HIGHWAY" to "auf die Straße auffahren", "TAKE_EXIT" to "die Ausfahrt nehmen", "MOTORWAY_EXIT_LEFT" to "die Ausfahrt links nehmen",
+            "MOTORWAY_EXIT_RIGHT" to "die Ausfahrt rechts nehmen", "ENTRANCE_RAMP" to "die Auffahrt nehmen", "SWITCH_PARALLEL_ROAD" to "auf die Parallelstraße wechseln",
+            "SWITCH_MAIN_ROAD" to "auf die Hauptstraße wechseln", "TAKE_FERRY" to "die Fähre nehmen",
         )
         return t[u] ?: u.lowercase().replace('_', ' ')
     }
@@ -151,19 +166,19 @@ object Geo {
         val act = sec.lanes.indices.filter { i -> if (anyFollow) sec.lanes[i].follow != null else sec.lanes[i].dirs.any { laneFits(it, maneuver) } }
         if (act.isEmpty() || act.size == n) return null
         val cnt = act.size
-        val lanes = if (cnt == 1) "lane" else "${if (cnt == 2) "two" else if (cnt == 3) "three" else cnt.toString()} lanes"
+        val lanes = when (cnt) { 1 -> "eine Spur"; 2 -> "zwei Spuren"; 3 -> "drei Spuren"; else -> "$cnt Spuren" }
         return when {
-            act.first() == 0 -> "Use the left $lanes"
-            act.last() == n - 1 -> "Use the right $lanes"
-            cnt == 1 -> "Use lane ${act[0] + 1} from the left"
-            else -> "Use the middle $lanes"
+            act.first() == 0 -> "Links $lanes nutzen"
+            act.last() == n - 1 -> "Rechts $lanes nutzen"
+            cnt == 1 -> "Spur ${act[0] + 1} von links nutzen"
+            else -> "Mittlere $lanes nutzen"
         }
     }
 
     /** Short caption shown on the turn card for a roundabout or motorway exit, or blank. */
     fun stepTag(s: Step): String = when {
-        s.maneuver.uppercase().startsWith("ROUNDABOUT") && s.roundExit > 0 -> "${ordinal(s.roundExit)} exit"
-        s.exitNo.isNotBlank() -> "Exit ${s.exitNo}"
+        s.maneuver.uppercase().startsWith("ROUNDABOUT") && s.roundExit > 0 -> "${ordinal(s.roundExit)} Ausfahrt"
+        s.exitNo.isNotBlank() -> "Ausfahrt ${s.exitNo}"
         else -> ""
     }
 
@@ -199,8 +214,8 @@ object TomTomRest {
 
     /** A failed request, explained in plain words for the common cases (a missing or wrong key, the daily limit). */
     private fun httpError(code: Int, body: String): IOException = IOException(when (code) {
-        401, 403 -> "TomTom didn't accept the API key. Check it in Settings > Keys & accounts (a free key from developer.tomtom.com needs the Search and Routing APIs)"
-        429 -> "This TomTom key has reached its daily limit. It resets tomorrow"
+        401, 403 -> Lang.t("TomTom hat den API-Schlüssel abgelehnt. Prüfe ihn unter Einstellungen > Schlüssel & Konten (ein kostenloser Schlüssel von developer.tomtom.com braucht die Search- und Routing-APIs)", "TomTom didn't accept the API key. Check it in Settings > Keys & accounts (a free key from developer.tomtom.com needs the Search and Routing APIs)")
+        429 -> Lang.t("Dieser TomTom-Schlüssel hat sein Tageslimit erreicht. Es wird morgen zurückgesetzt", "This TomTom key has reached its daily limit. It resets tomorrow")
         else -> "HTTP $code ${body.take(140)}"
     })
 
@@ -241,7 +256,7 @@ object TomTomRest {
         val out = ArrayList<Place>()
         // 1. classic fuzzy search
         try {
-            var url = "$SEARCH/$enc.json?key=$k&limit=15&language=en-GB&typeahead=true&minFuzzyLevel=1&maxFuzzyLevel=2&idxSet=POI,Addr,Str,Xstr,Geo,PAD"
+            var url = "$SEARCH/$enc.json?key=$k&limit=15&language=${if (Lang.de) "de-DE" else "en-GB"}&typeahead=true&minFuzzyLevel=1&maxFuzzyLevel=2&idxSet=POI,Addr,Str,Xstr,Geo,PAD"
             if (cc.isNotEmpty()) url += "&countrySet=$cc"
             if (near != null) url += "&lat=${near.lat}&lon=${near.lon}"
             parsePlaces(JSONObject(get(url)).optJSONArray("results") ?: JSONArray(), q, out)
@@ -409,7 +424,18 @@ object TomTomRest {
         poi?.optJSONArray("categories")?.optString(0)?.takeIf { it.isNotBlank() && kind in setOf("food", "coffee") }?.let { extra += it.replaceFirstChar { c -> c.uppercase() } }
         val street = addr?.optString("streetName").orEmpty().ifBlank { addr?.optString("municipality").orEmpty() }
         val d = if (x.has("dist")) x.optDouble("dist", 0.0) else Geo.dist(from, p)
-        return Nearby(Place(name, street, p), d, extra.joinToString(" · "))
+        // charging: TomTom lists the connectors with their rated power; the fastest one sets the charge time
+        var kw: Int? = null
+        if (kind == "charging") {
+            val cons = x.optJSONObject("chargingPark")?.optJSONArray("connectors")
+            if (cons != null) for (i in 0 until cons.length()) {
+                val r = cons.optJSONObject(i)?.optDouble("ratedPowerKW", 0.0) ?: 0.0
+                if (!r.isNaN() && r > 0 && r <= 1500 && Math.round(r).toInt() > (kw ?: 0)) kw = Math.round(r).toInt()
+            }
+        }
+        // TomTom puts a charger's operator (or the network it belongs to) in its brands
+        val op = if (kind == "charging") poi?.optJSONArray("brands")?.optJSONObject(0)?.optString("name")?.trim()?.takeIf { it.isNotEmpty() } else null
+        return Nearby(Place(name, street, p), d, extra.joinToString(" · "), kw = kw, op = op)
     }
 
     /** Places of a kind around [c] from TomTom's search (fast, and works wherever there is signal). */
@@ -516,11 +542,14 @@ object TomTomRest {
         val cum = DoubleArray(pts.size)
         for (i in 1 until pts.size) cum[i] = cum[i - 1] + Geo.dist(pts[i - 1], pts[i])
         val insArr = r.optJSONObject("guidance")?.optJSONArray("instructions") ?: r.optJSONArray("instructions") ?: JSONArray()
+        val cc = RoadRefs.countryFor(pts.firstOrNull())
         val steps = (0 until insArr.length()).map {
             val i = insArr.getJSONObject(it)
-            val street = i.optString("street").ifBlank {
+            // the road's numbers often come as ["A4", "E40"] (or the E-number alone in "street"): the national one is what's signed
+            val nums = i.optJSONArray("roadNumbers")?.let { a -> (0 until a.length()).map { n -> a.optString(n) }.filter { n -> n.isNotBlank() } }.orEmpty()
+            val street = RoadRefs.street(i.optString("street").ifBlank {
                 i.optJSONObject("nextRoadInformation")?.optJSONObject("streetName")?.optString("text").orEmpty()
-            }.ifBlank { i.optJSONArray("roadNumbers")?.optString(0).orEmpty() }
+            }, nums, cc)
             var man = snake(i.optString("maneuver", "STRAIGHT"))
             val rx = i.optInt("roundaboutExitNumber", 0)
             if (i.optString("junctionType").equals("ROUNDABOUT", true) && !man.startsWith("ROUNDABOUT") && !man.startsWith("ARRIVE")) {
@@ -645,7 +674,7 @@ object Weather {
         val parse = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US)
         val show = java.text.SimpleDateFormat("EEE", java.util.Locale.getDefault())
         val days = (0 until dt.length()).map { i ->
-            val label = if (i == 0) "Today" else show.format(parse.parse(dt.getString(i))!!)
+            val label = if (i == 0) Lang.t("Heute", "Today") else show.format(parse.parse(dt.getString(i))!!)
             Day(label, dc.getInt(i), mx.getDouble(i), mn.getDouble(i))
         }
         Forecast(
@@ -655,9 +684,9 @@ object Weather {
     } catch (e: Exception) { null }
 
     fun text(code: Int) = when (code) {
-        0 -> "Clear"; 1, 2 -> "Partly cloudy"; 3 -> "Overcast"; 45, 48 -> "Fog"
-        in 51..57 -> "Drizzle"; in 61..67 -> "Rain"; in 71..77 -> "Snow"; in 80..82 -> "Showers"
-        in 85..86 -> "Snow showers"; in 95..99 -> "Thunderstorm"; else -> "—"
+        0 -> Lang.t("Klar", "Clear"); 1, 2 -> Lang.t("Teils bewölkt", "Partly cloudy"); 3 -> Lang.t("Bedeckt", "Overcast"); 45, 48 -> Lang.t("Nebel", "Fog")
+        in 51..57 -> Lang.t("Nieselregen", "Drizzle"); in 61..67 -> Lang.t("Regen", "Rain"); in 71..77 -> Lang.t("Schnee", "Snow"); in 80..82 -> Lang.t("Schauer", "Showers")
+        in 85..86 -> Lang.t("Schneeschauer", "Snow showers"); in 95..99 -> Lang.t("Gewitter", "Thunderstorm"); else -> "—"
     }
 }
 

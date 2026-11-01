@@ -1,5 +1,9 @@
 package com.headunit.launcher.ui
 
+import com.headunit.launcher.R
+import com.headunit.launcher.Lang
+import androidx.compose.ui.res.stringResource
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -46,8 +50,8 @@ internal fun PackPickerDialog(current: PackRegion, onPick: (PackRegion) -> Unit,
             Modifier.widthIn(max = 560.dp).fillMaxWidth().clip(RoundedCornerShape(26.dp)).background(c.panel).border(1.dp, c.line, RoundedCornerShape(26.dp)).padding(20.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Text("Choose an area", color = c.text, fontSize = 22.sp, fontWeight = FontWeight.Bold)
-            SField(q, { q = it }, placeholder = "Search, e.g. France, Texas", width = 520.dp, fill = true)
+            Text(stringResource(R.string.ui_009), color = c.text, fontSize = 22.sp, fontWeight = FontWeight.Bold)
+            SField(q, { q = it }, placeholder = Lang.t("Suchen, z. B. France, Texas", "Search, e.g. France, Texas"), width = 520.dp, fill = true)
             if (q.isBlank()) Segmented(PackRegions.groups.map { it to it }, group) { group = it }
             LazyColumn(Modifier.heightIn(max = 340.dp)) {
                 items(shown) { r ->
@@ -65,8 +69,8 @@ internal fun PackPickerDialog(current: PackRegion, onPick: (PackRegion) -> Unit,
                     }
                 }
             }
-            if (shown.isEmpty()) SNote("No area matches. Try the country's name in English.")
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) { SButton("Close") { onClose() } }
+            if (shown.isEmpty()) SNote(Lang.t("Kein Gebiet passt. Versuche den Ländernamen auf Englisch.", "No area matches. Try the country's name in English."))
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) { SButton(Lang.t("Schließen", "Close")) { onClose() } }
         }
     }
 }

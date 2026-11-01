@@ -10,9 +10,13 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <!-- installing a downloaded update of the app (Android asks you to allow it the first time) -->
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+    <!-- lists the widgets of every app (the car maker's app, for the battery level). Not on Google Play, so allowed here -->
+    <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES" />
     <!-- Android Auto: the navigation layout, and drawing the map on the car screen -->
     <uses-permission android:name="androidx.car.app.NAVIGATION_TEMPLATES" />
     <uses-permission android:name="androidx.car.app.ACCESS_SURFACE" />
+    <!-- Android Auto: the battery level from the car (asked for once, in the car) -->
+    <uses-permission android:name="com.google.android.gms.permission.CAR_FUEL" />
     <uses-feature android:name="android.hardware.telephony" android:required="false" />
     <uses-feature android:name="android.hardware.touchscreen" android:required="false" />
     <uses-feature android:name="android.hardware.location.gps" android:required="false" />
@@ -41,6 +45,14 @@
         android:usesCleartextTraffic="false"
         android:networkSecurityConfig="@xml/network_security_config"
         android:theme="@style/Theme.HorizonNav">
+        <!-- hands a downloaded and checked update to Android's installer -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.updates"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data android:name="android.support.FILE_PROVIDER_PATHS" android:resource="@xml/update_paths" />
+        </provider>
         <activity
             android:name=".MainActivity"
             android:exported="true"

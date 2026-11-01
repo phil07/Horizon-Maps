@@ -1,5 +1,9 @@
 package com.headunit.launcher.ui
 
+import com.headunit.launcher.R
+import com.headunit.launcher.Lang
+import androidx.compose.ui.res.stringResource
+
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -30,6 +34,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.EvStation
 import androidx.compose.ui.draw.scale
 import androidx.compose.material.icons.rounded.Warning
 import androidx.compose.material.icons.rounded.TurnSlightRight
@@ -76,6 +81,7 @@ import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -105,6 +111,7 @@ private fun barIcon(kind: String): ImageVector = when (kind) {
     "services" -> Icons.Rounded.LocalCafe
     "avg" -> Icons.Rounded.Speed
     "stop" -> Icons.Rounded.Place
+    "charge" -> Icons.Rounded.EvStation
     "zone" -> Icons.Rounded.Eco
     else -> Icons.Rounded.Flag
 }
@@ -114,6 +121,7 @@ private fun barColor(kind: String): Color = when (kind) {
     "works", "incident" -> Warn
     "services" -> Color(0xFF4C8DFF)
     "zone" -> Good
+    "charge" -> Color(0xFF14B8A6)
     else -> Color(0xFF8E5CF0)
 }
 
@@ -205,10 +213,10 @@ fun AvgSpeedCard(engine: NavEngine, modifier: Modifier = Modifier) {
             Text(lim?.toString() ?: "?", color = Color.Black, fontSize = 17.sp, fontWeight = FontWeight.Bold)
         }
         Column(Modifier.weight(1f)) {
-            Text(if (a.ahead) "AVERAGE SPEED CHECK AHEAD" else "AVERAGE SPEED CHECK", color = Bad, fontSize = 11.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
-            if (a.ahead) Text("Starts in ${Geo.fmtDist(a.toStartM, engine.imperial)} · ${Geo.fmtDist(a.leftM, engine.imperial)} long", color = c.text, fontSize = 15.sp, fontWeight = FontWeight.Medium)
+            Text(if (a.ahead) Lang.t("ABSCHNITTSKONTROLLE VORAUS", "AVERAGE SPEED CHECK AHEAD") else Lang.t("ABSCHNITTSKONTROLLE", "AVERAGE SPEED CHECK"), color = Bad, fontSize = 11.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+            if (a.ahead) Text(Lang.t("Beginnt in ${Geo.fmtDist(a.toStartM, engine.imperial)} · ${Geo.fmtDist(a.leftM, engine.imperial)} lang", "Starts in ${Geo.fmtDist(a.toStartM, engine.imperial)} · ${Geo.fmtDist(a.leftM, engine.imperial)} long"), color = c.text, fontSize = 15.sp, fontWeight = FontWeight.Medium)
             else {
-                Text("${Geo.fmtDist(a.leftM, engine.imperial)} left", color = c.sub, fontSize = 13.sp)
+                Text(Lang.t("noch ${Geo.fmtDist(a.leftM, engine.imperial)}", "${Geo.fmtDist(a.leftM, engine.imperial)} left"), color = c.sub, fontSize = 13.sp)
                 // what you can do from here and still come out under the limit (only worth saying once it differs from the limit)
                 val safe = a.safeMs
                 val lm = a.limitMs
@@ -216,9 +224,9 @@ fun AvgSpeedCard(engine: NavEngine, modifier: Modifier = Modifier) {
                     val sv = Math.floor(safe * k).toInt()
                     val lv = Math.round(lm * k).toInt()
                     when {
-                        safe <= 0.5 || sv < lv - 25 -> Text("Slow down to bring your average back under", color = Bad, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
-                        sv < lv -> Text("Keep under $sv $unit for the rest", color = Warn, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
-                        sv > lv -> Text("Up to ${minOf(sv, lv + 15)} $unit keeps you under", color = c.sub, fontSize = 13.sp)
+                        safe <= 0.5 || sv < lv - 25 -> Text(stringResource(R.string.ui_050), color = Bad, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                        sv < lv -> Text(Lang.t("Bleib für den Rest unter $sv $unit", "Keep under $sv $unit for the rest"), color = Warn, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                        sv > lv -> Text(Lang.t("Bis ${minOf(sv, lv + 15)} $unit bleibst du darunter", "Up to ${minOf(sv, lv + 15)} $unit keeps you under"), color = c.sub, fontSize = 13.sp)
                         else -> {}
                     }
                 }
@@ -226,7 +234,7 @@ fun AvgSpeedCard(engine: NavEngine, modifier: Modifier = Modifier) {
         }
         if (!a.ahead) Column(horizontalAlignment = Alignment.End) {
             Text("${Math.round(a.avgMs * k)}", color = if (a.over) Bad else Good, fontSize = 28.sp, fontWeight = FontWeight.Bold)
-            Text("avg $unit", color = c.sub, fontSize = 11.sp)
+            Text(Lang.t("Ø $unit", "avg $unit"), color = c.sub, fontSize = 11.sp)
         }
     }
 }
@@ -264,10 +272,10 @@ fun ParkingCard(engine: NavEngine, modifier: Modifier = Modifier) {
     val shape = RoundedCornerShape(20.dp)
     Column(modifier.fillMaxWidth().panel(6.dp, shape, c.surface).padding(start = 14.dp, end = 6.dp, top = 6.dp, bottom = 8.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Text("Parking near ${engine.dest?.name ?: "your destination"}", color = c.sub, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, maxLines = 1,
+            Text(if (Lang.de) "Parken bei ${engine.dest?.name ?: "deinem Ziel"}" else "Parking near ${engine.dest?.name ?: "your destination"}", color = c.sub, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, maxLines = 1,
                 overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
             Box(Modifier.size(32.dp).clip(CircleShape).clickable { engine.parkingNear = emptyList() }, contentAlignment = Alignment.Center) {
-                Icon(Icons.Rounded.Close, "Close", tint = c.sub, modifier = Modifier.size(16.dp))
+                Icon(Icons.Rounded.Close, Lang.t("Schließen", "Close"), tint = c.sub, modifier = Modifier.size(16.dp))
             }
         }
         list.forEach { n ->
@@ -278,7 +286,7 @@ fun ParkingCard(engine: NavEngine, modifier: Modifier = Modifier) {
                 Text(n.place.name, color = c.text, fontSize = 14.sp, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f).padding(start = 10.dp))
                 // a walk at about 80 m a minute
-                Text("${maxOf(1, Math.round(n.dist / 80.0).toInt())} min walk", color = c.sub, fontSize = 12.sp, modifier = Modifier.padding(start = 8.dp, end = 8.dp))
+                Text(maxOf(1, Math.round(n.dist / 80.0).toInt()).let { Lang.t("$it Min. zu Fuß", "$it min walk") }, color = c.sub, fontSize = 12.sp, modifier = Modifier.padding(start = 8.dp, end = 8.dp))
             }
         }
     }
@@ -294,7 +302,7 @@ fun DeadReckoningChip(modifier: Modifier = Modifier) {
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Icon(Icons.Rounded.GpsOff, null, tint = Warn, modifier = Modifier.size(18.dp))
-        Text("No GPS · estimating your position", color = c.text, fontSize = 13.sp, modifier = Modifier.padding(start = 8.dp))
+        Text(stringResource(R.string.ui_035), color = c.text, fontSize = 13.sp, modifier = Modifier.padding(start = 8.dp))
     }
 }
 
@@ -310,7 +318,7 @@ fun CruisePill(engine: NavEngine, modifier: Modifier = Modifier) {
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Icon(Icons.Rounded.Navigation, null, tint = c.accent, modifier = Modifier.size(18.dp))
-        Text((if (road.isNotBlank()) "$road · " else "") + "Heading $dir", color = c.text, fontSize = 16.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(start = 8.dp))
+        Text((if (road.isNotBlank()) "$road · " else "") + Lang.t("Richtung $dir", "Heading $dir"), color = c.text, fontSize = 16.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(start = 8.dp))
     }
 }
 
@@ -332,30 +340,30 @@ fun StopsDialog(engine: NavEngine, onClose: () -> Unit) {
     Dialog(onDismissRequest = onClose, properties = DialogProperties(usePlatformDefaultWidth = false)) {
         Column(Modifier.padding(horizontal = 16.dp).widthIn(max = 620.dp).fillMaxWidth().heightIn(max = 560.dp).clip(RoundedCornerShape(26.dp)).background(c.surface).padding(20.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("Stops on the way", color = c.text, fontSize = 20.sp, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
-                Icon(Icons.Rounded.Close, "Close", tint = c.sub, modifier = Modifier.size(28.dp).clickable { onClose() })
+                Text(stringResource(R.string.ui_053), color = c.text, fontSize = 20.sp, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
+                Icon(Icons.Rounded.Close, Lang.t("Schließen", "Close"), tint = c.sub, modifier = Modifier.size(28.dp).clickable { onClose() })
             }
             // one tap, no typing: the best one along the route ahead is added straight away
             if (engine.dest != null) {
-                Text("ONE TAP: THE BEST ONE ALONG YOUR ROUTE", color = c.sub, fontSize = 11.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+                Text(stringResource(R.string.ui_037), color = c.sub, fontSize = 11.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
                 Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     val ev = engine.prefs.s(PreferenceKeys.FUEL_TYPE, "E10") == "EV"
-                    for ((kind, name) in listOfNotNull(if (ev) null else "fuel" to "Fuel", "charging" to "Charger", "coffee" to "Coffee", "food" to "Food", "services" to "Services", "toilets" to "Toilets"))
+                    for ((kind, name) in listOfNotNull(if (ev) null else "fuel" to stringResource(R.string.ui_084), "charging" to stringResource(R.string.ui_085), "coffee" to stringResource(R.string.ui_086), "food" to stringResource(R.string.ui_087), "services" to stringResource(R.string.ui_088), "toilets" to stringResource(R.string.ui_089)))
                         Pill(name, false, { engine.addBestStop(kind); onClose() })
                 }
             }
             // your own places, added to the list below (then Update route)
-            val mine = remember { listOfNotNull(engine.places.slot("home")?.let { "Home" to it }, engine.places.slot("work")?.let { "Work" to it }) +
+            val mine = remember { listOfNotNull(engine.places.slot("home")?.let { Lang.t("Zuhause", "Home") to it }, engine.places.slot("work")?.let { Lang.t("Arbeit", "Work") to it }) +
                 engine.places.favourites().take(4).map { "★ " + it.name to it } }
             if (mine.isNotEmpty()) {
-                Text("YOUR PLACES", color = c.sub, fontSize = 11.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+                Text(stringResource(R.string.ui_068), color = c.sub, fontSize = 11.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
                 Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     for ((name, p) in mine) Pill(name, false, { stops = (stops + p).take(8) })
                 }
             }
             TextField(
                 value = q, onValueChange = { q = it }, singleLine = true,
-                placeholder = { Text("Search for a stop to add") },
+                placeholder = { Text(stringResource(R.string.ui_043)) },
                 leadingIcon = { Icon(Icons.Rounded.Search, null, tint = c.sub) },
                 trailingIcon = { if (busy) CircularProgressIndicator(Modifier.size(20.dp), color = c.accent, strokeWidth = 2.dp) },
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
@@ -385,11 +393,11 @@ fun StopsDialog(engine: NavEngine, onClose: () -> Unit) {
                             Text("${i + 1}", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Bold)
                         }
                         Text(p.name, color = c.text, fontSize = 16.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f).padding(start = 12.dp))
-                        Icon(Icons.Rounded.KeyboardArrowUp, "Earlier", tint = if (i > 0) c.text else c.sub.copy(alpha = 0.3f),
+                        Icon(Icons.Rounded.KeyboardArrowUp, Lang.t("Früher", "Earlier"), tint = if (i > 0) c.text else c.sub.copy(alpha = 0.3f),
                             modifier = Modifier.size(36.dp).clickable(enabled = i > 0) { stops = stops.toMutableList().also { l -> val t = l[i]; l[i] = l[i - 1]; l[i - 1] = t } })
-                        Icon(Icons.Rounded.KeyboardArrowDown, "Later", tint = if (i < stops.size - 1) c.text else c.sub.copy(alpha = 0.3f),
+                        Icon(Icons.Rounded.KeyboardArrowDown, Lang.t("Später", "Later"), tint = if (i < stops.size - 1) c.text else c.sub.copy(alpha = 0.3f),
                             modifier = Modifier.size(36.dp).clickable(enabled = i < stops.size - 1) { stops = stops.toMutableList().also { l -> val t = l[i]; l[i] = l[i + 1]; l[i + 1] = t } })
-                        Icon(Icons.Rounded.Close, "Remove", tint = Bad, modifier = Modifier.padding(start = 6.dp).size(30.dp).clickable { stops = stops.filterIndexed { n, _ -> n != i } })
+                        Icon(Icons.Rounded.Close, Lang.t("Entfernen", "Remove"), tint = Bad, modifier = Modifier.padding(start = 6.dp).size(30.dp).clickable { stops = stops.filterIndexed { n, _ -> n != i } })
                     }
                 }
             }
@@ -397,12 +405,12 @@ fun StopsDialog(engine: NavEngine, onClose: () -> Unit) {
                 Box(Modifier.size(30.dp).clip(CircleShape).background(Color(0xFFEA4335)), contentAlignment = Alignment.Center) {
                     Icon(Icons.Rounded.Flag, null, tint = Color.White, modifier = Modifier.size(18.dp))
                 }
-                Text(engine.dest?.name ?: "Destination", color = c.text, fontSize = 16.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f).padding(start = 12.dp))
+                Text(engine.dest?.name ?: Lang.t("Ziel", "Destination"), color = c.text, fontSize = 16.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f).padding(start = 12.dp))
             }
-            if (stops.isEmpty()) Text("No stops yet. Search above to add one; the route goes through them in this order.", color = c.sub, fontSize = 13.sp)
+            if (stops.isEmpty()) Text(stringResource(R.string.ui_036), color = c.sub, fontSize = 13.sp)
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.padding(top = 4.dp)) {
-                Pill("Update route", true, { engine.setStops(stops); onClose() })
-                Pill("Cancel", false, onClose)
+                Pill(stringResource(R.string.ui_097), true, { engine.setStops(stops); onClose() })
+                Pill(Lang.t("Abbrechen", "Cancel"), false, onClose)
             }
         }
     }
@@ -419,8 +427,15 @@ fun ZonesRow(engine: NavEngine) {
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         Icon(Icons.Rounded.Eco, null, tint = Warn, modifier = Modifier.size(20.dp))
-        Text("Goes into " + z.joinToString(", ") + ". A charge may apply.", color = c.text, fontSize = 13.sp, maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))
-        if (!engine.prefs.b(PreferenceKeys.AVOIDZONES, false)) Pill("Avoid zones", false, { engine.prefs.put(PreferenceKeys.AVOIDZONES, true); engine.dest?.let { engine.startRoute(it, engine.departMin, true) } })
+        val cs = engine.routeZoneCountries
+        val note = when {
+            cs == setOf("DE") -> Lang.t(". Nur mit grüner Plakette.", ". Green sticker required.")
+            cs == setOf("GB") -> Lang.t(". Es kann eine Gebühr anfallen.", ". A charge may apply.")
+            cs == setOf("FR") -> Lang.t(". Crit'Air-Vignette nötig.", ". Crit'Air sticker required.")
+            else -> Lang.t(". Regeln vor Ort beachten.", ". Check the local rules.")
+        }
+        Text(Lang.t("Führt durch ", "Goes into ") + z.joinToString(", ") + note, color = c.text, fontSize = 13.sp, maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))
+        if (!engine.prefs.b(PreferenceKeys.AVOIDZONES, false)) Pill(Lang.t("Zonen meiden", "Avoid zones"), false, { engine.prefs.put(PreferenceKeys.AVOIDZONES, true); engine.dest?.let { engine.startRoute(it, engine.departMin, true) } })
     }
 }
 
@@ -463,7 +478,7 @@ fun ArriveByDialog(engine: NavEngine, onClose: () -> Unit) {
     val f = java.text.SimpleDateFormat("EEE HH:mm", java.util.Locale.UK)
     Dialog(onDismissRequest = onClose) {
         Column(Modifier.widthIn(max = 460.dp).fillMaxWidth().clip(RoundedCornerShape(26.dp)).background(c.panel).padding(22.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
-            Text("Arrive by", color = c.text, fontSize = 22.sp, fontWeight = FontWeight.Bold)
+            Text(stringResource(R.string.ui_005), color = c.text, fontSize = 22.sp, fontWeight = FontWeight.Bold)
             Text(engine.dest?.name ?: "", color = c.sub, fontSize = 14.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
                 Pill("−15", false, { ms -= 15 * 60_000L })
@@ -473,14 +488,14 @@ fun ArriveByDialog(engine: NavEngine, onClose: () -> Unit) {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Pill("+1 h", false, { ms += 3_600_000L })
                 Pill("−1 h", false, { ms -= 3_600_000L })
-                Pill("Tomorrow 9:00", false, {
+                Pill(Lang.t("Morgen 9:00", "Tomorrow 9:00"), false, {
                     ms = java.util.Calendar.getInstance().apply { add(java.util.Calendar.DAY_OF_YEAR, 1); set(java.util.Calendar.HOUR_OF_DAY, 9); set(java.util.Calendar.MINUTE, 0); set(java.util.Calendar.SECOND, 0) }.timeInMillis
                 })
             }
-            Text("Horizon Nav works out when to leave with the traffic expected then, checks again half an hour before, and reminds you 10 minutes before and when it's time to go (while the app is open).", color = c.sub, fontSize = 12.sp)
+            Text(stringResource(R.string.ui_027), color = c.sub, fontSize = 12.sp)
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                Pill("Plan it", true, { if (ms > System.currentTimeMillis()) { engine.planArriveBy(ms); onClose() } })
-                Pill("Cancel", false, onClose)
+                Pill(Lang.t("Planen", "Plan it"), true, { if (ms > System.currentTimeMillis()) { engine.planArriveBy(ms); onClose() } })
+                Pill(Lang.t("Abbrechen", "Cancel"), false, onClose)
             }
         }
     }
@@ -502,54 +517,112 @@ fun PlannedCard(engine: NavEngine) {
     ) {
         val fg = if (mins <= 10) Color.White else c.text
         Column(Modifier.weight(1f)) {
-            Text(if (mins <= 0) "Time to leave for ${p.dest.name}" else "Leave by ${f.format(java.util.Date(p.leaveBy))} for ${p.dest.name}", color = fg, fontSize = 16.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            Text("Arrive by ${f.format(java.util.Date(p.arriveBy))}" + (if (mins in 1..120) " · in $mins min" else ""), color = if (mins <= 10) Color.White.copy(alpha = 0.85f) else c.sub, fontSize = 12.sp)
+            Text(if (mins <= 0) Lang.t("Zeit zum Losfahren nach ${p.dest.name}", "Time to leave for ${p.dest.name}") else Lang.t("Losfahren bis ${f.format(java.util.Date(p.leaveBy))} nach ${p.dest.name}", "Leave by ${f.format(java.util.Date(p.leaveBy))} for ${p.dest.name}"), color = fg, fontSize = 16.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(Lang.t("Ankunft bis ${f.format(java.util.Date(p.arriveBy))}", "Arrive by ${f.format(java.util.Date(p.arriveBy))}") + (if (mins in 1..120) Lang.t(" · in $mins Min.", " · in $mins min") else ""), color = if (mins <= 10) Color.White.copy(alpha = 0.85f) else c.sub, fontSize = 12.sp)
         }
-        Text("Go", color = fg, fontSize = 16.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 10.dp))
-        Icon(Icons.Rounded.Close, "Cancel", tint = fg, modifier = Modifier.size(24.dp).clickable { engine.cancelPlanned() })
+        Text(stringResource(R.string.ui_019), color = fg, fontSize = 16.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 10.dp))
+        Icon(Icons.Rounded.Close, Lang.t("Abbrechen", "Cancel"), tint = fg, modifier = Modifier.size(24.dp).clickable { engine.cancelPlanned() })
+    }
+}
+
+/** Electric trip: the charging stops it needs, with the charge on arrival and the time to charge, or a warning if it can't be done. */
+@Composable
+fun EvStopsRow(engine: NavEngine, planned: List<com.headunit.launcher.EvStop>? = null) {
+    // with [planned]: just list those stops (already on the route), without the "add stops" button or the warning
+    val stops = planned ?: engine.evStops; val warn = if (planned != null) null else engine.evWarning
+    if (stops.isEmpty() && warn == null) return
+    val c = LocalVw.current
+    val many = if (stops.size > 1) "s" else ""
+    Row(
+        Modifier.floating(50.dp).padding(start = 16.dp, end = 6.dp, top = 6.dp, bottom = 6.dp),
+        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        Column(Modifier.weight(1f, fill = false).widthIn(max = 460.dp)) {
+            if (stops.isEmpty()) Text(warn ?: "", color = Bad, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+            else {
+                Text(if (planned != null) Lang.t("${stops.size} Ladestopp$many geplant", "${stops.size} charging stop$many planned") else Lang.t("${stops.size} Ladestopp$many nötig", "${stops.size} charging stop$many needed"), color = Good, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                // up to two stops are simply listed; from three on the list is as tall as the first two (plus a sliver of
+                // the third, so it shows there is more) and scrolls by itself
+                val scrollList = stops.size >= 3
+                val density = androidx.compose.ui.platform.LocalDensity.current
+                // (not keyed on the stops: a new list with the same rows would empty it, and onSizeChanged does not fire again for
+                // rows whose size didn't change, which left the list stuck at the 80 dp fallback; the heights only steer the cap)
+                val itemH = remember { androidx.compose.runtime.mutableStateMapOf<Int, Int>() }
+                val twoPx = (itemH[0] ?: 0) + (itemH[1] ?: 0)
+                val listCap = if (twoPx > 0) with(density) { twoPx.toDp() } + 10.dp else 80.dp
+                Column(if (scrollList) Modifier.heightIn(max = listCap).verticalScroll(rememberScrollState()) else Modifier) {
+                    stops.forEachIndexed { i, s ->
+                        // the network first (unless the name already says it), and a star for one of the operators preferred in Settings
+                        val op = com.headunit.launcher.ChargeOperators.label(s.n)?.takeUnless { s.n.place.name.contains(it, ignoreCase = true) }
+                        Text(
+                            "${i + 1}. " + (if (s.preferred) "★ " else "") + (op?.let { "$it · " } ?: "") + "${s.n.place.name} · ${Geo.fmtDist(s.n.dist, engine.imperial)} · " + (s.n.kw?.let { "$it kW · " } ?: "") +
+                                Lang.t("Ankunft ${s.arrPct} %, laden auf ${s.toPct} % (${s.minutes} Min.)", "arrive ${s.arrPct}%, charge to ${s.toPct}% (${s.minutes} min)"),
+                            color = c.text, fontSize = 13.sp, maxLines = 2, overflow = TextOverflow.Ellipsis,
+                            modifier = if (scrollList && i < 2) Modifier.onSizeChanged { if (itemH[i] != it.height) itemH[i] = it.height } else Modifier,
+                        )
+                    }
+                }
+                if (warn != null) Text(warn, color = Bad, fontSize = 12.sp)
+            }
+        }
+        if (planned == null && stops.isNotEmpty()) Pill(Lang.t("Stopps hinzufügen", "Add stops"), false, { engine.addStops(stops) })
     }
 }
 
 /** Route options row: a good place to fill up on a long trip. */
 @Composable
 fun FuelSuggestionRow(engine: NavEngine) {
+    if (engine.prefs.s(PreferenceKeys.FUEL_TYPE, "E10") == "EV") { EvStopsRow(engine); return }
     val n = engine.fuelSuggestion ?: return
     val c = LocalVw.current
     Row(
         Modifier.floating(50.dp).padding(start = 16.dp, end = 6.dp, top = 6.dp, bottom = 6.dp),
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        Text(if (engine.prefs.s(PreferenceKeys.FUEL_TYPE, "E10") == "EV") "Charging stop" else "Fuel stop", color = Good, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+        Text(if (engine.prefs.s(PreferenceKeys.FUEL_TYPE, "E10") == "EV") stringResource(R.string.ui_090) else stringResource(R.string.ui_091), color = Good, fontSize = 13.sp, fontWeight = FontWeight.Bold)
         Text(
-            n.place.name + " · " + Geo.fmtDist(n.dist, engine.imperial) + " in" + (if (n.price != null) " · " + com.headunit.launcher.fmtFuelPrice(n.price, n.unit) else "") + (if (n.detourMin >= 0) " · +${n.detourMin} min" else "") + (if (n.extra.startsWith("arrive")) " · " + n.extra else ""),
+            n.place.name + " · " + Geo.fmtDist(n.dist, engine.imperial) + Lang.t(" entfernt", " in") + (if (n.price != null) " · " + com.headunit.launcher.fmtFuelPrice(n.price, n.unit) else "") + (if (n.detourMin >= 0) Lang.t(" · +${n.detourMin} Min.", " · +${n.detourMin} min") else "") + (if (n.extra.startsWith("arrive")) " · " + n.extra else ""),
             color = c.text, fontSize = 13.sp, maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.widthIn(max = 420.dp),
         )
-        Pill("Add stop", false, { engine.addStop(n.place); engine.fuelSuggestion = null })
+        Pill(Lang.t("Stopp hinzufügen", "Add stop"), false, { engine.addStop(n.place); engine.fuelSuggestion = null })
     }
 }
 
 // ------------------------------------------------------------------ UK road signs
 
 private val ukRefRx = Regex("\\b([MAB][0-9]{1,4})(\\s?\\(M\\))?\\b")
+// German numbers, with or without the space: "A 5", "A5", "B 27"
+private val deRefRx = Regex("\\b([AB])\\s?([0-9]{1,3})\\b")
 
 /**
  * The direction sign for the junction, drawn the way UK gantries look: blue with white text for motorways,
  * green with yellow road numbers for primary roads, white with black text for local roads. The junction number
  * sits in its own black box, and road numbers of a different class get their own coloured panel.
+ * In Germany (the country you're in) the German colours: blue with white text for the Autobahn, yellow with black text for
+ * a Bundesstraße, and the numbers written "A 5", "B 27".
  */
 @Composable
 fun UkSign(sign: String, junction: String, street: String, modifier: Modifier = Modifier) {
     val text = sign.ifBlank { street }
-    val refs = ukRefRx.findAll(text).map { it.groupValues[1] + (if (it.groupValues[2].isNotBlank()) " (M)" else "") }.distinct().toList()
+    val de = com.headunit.launcher.RoadRefs.country.uppercase() == "DE"
+    val rx = if (de) deRefRx else ukRefRx
+    val refs = if (de) deRefRx.findAll(text).map { it.groupValues[1] + " " + it.groupValues[2] }.distinct().toList()
+        else ukRefRx.findAll(text).map { it.groupValues[1] + (if (it.groupValues[2].isNotBlank()) " (M)" else "") }.distinct().toList()
     // (Mapbox writes "M27: Salisbury, Ringwood": the colon after the road number is split off too, so it never shows as ": Salisbury")
-    val dests = text.split(',', '/', ';', '|', ':').map { ukRefRx.replace(it, "").replace(Regex("[()]"), "").trim().trim(':', '-', '–', ' ') }.filter { it.length >= 3 && it.any { ch -> ch.isLetter() } }.distinct().take(3)
-    val motorway = refs.any { it.startsWith("M") || it.endsWith("(M)") } || (junction.isNotBlank() && refs.none { it.startsWith("A") || it.startsWith("B") })
-    val primary = !motorway && refs.any { it.startsWith("A") }
-    val bg = when { motorway -> Color(0xFF0065B3); primary -> Color(0xFF00703C); else -> Color.White }
-    val fg = if (motorway || primary) Color.White else Color(0xFF111111)
+    val dests = text.split(',', '/', ';', '|', ':').map { rx.replace(it, "").replace(Regex("[()]"), "").trim().trim(':', '-', '–', ' ') }.filter { it.length >= 3 && it.any { ch -> ch.isLetter() } }.distinct().take(3)
+    // the motorway class (M roads / Autobahn) and the primary class (A roads / Bundesstraßen)
+    fun isMot(r: String) = if (de) r.startsWith("A") else r.startsWith("M") || r.endsWith("(M)")
+    fun isPri(r: String) = !isMot(r) && r.startsWith(if (de) "B" else "A")
+    val motorway = refs.any { isMot(it) } || (junction.isNotBlank() && refs.none { isPri(it) || it.startsWith("B") })
+    val primary = !motorway && refs.any { isPri(it) }
+    val motBg = Color(0xFF0065B3)
+    val priBg = if (de) Color(0xFFFFD200) else Color(0xFF00703C)
+    val priNum = if (de) Color(0xFF111111) else Color(0xFFFFD200)   // the numbers on a primary sign: black (DE), yellow (UK)
+    val bg = when { motorway -> motBg; primary -> priBg; else -> Color.White }
+    val fg = if (motorway || (primary && !de)) Color.White else Color(0xFF111111)
     val shape = RoundedCornerShape(8.dp)
     Row(
-        modifier.clip(shape).background(bg).border(2.dp, if (motorway || primary) Color.White else Color(0xFF111111), shape).padding(horizontal = 10.dp, vertical = 7.dp),
+        modifier.clip(shape).background(bg).border(2.dp, if (motorway || (primary && !de)) Color.White else Color(0xFF111111), shape).padding(horizontal = 10.dp, vertical = 7.dp),
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         if (junction.isNotBlank()) Text(junction, color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold, maxLines = 1,
@@ -559,17 +632,17 @@ fun UkSign(sign: String, junction: String, street: String, modifier: Modifier = 
             else if (refs.isEmpty()) Text(text, color = fg, fontSize = 17.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
         refs.take(2).forEach { r ->
-            val isM = r.startsWith("M") || r.endsWith("(M)")
-            val isA = r.startsWith("A") && !isM
+            val isM = isMot(r)
+            val isA = isPri(r)
             when {
-                // a road of the sign's own class: plain (yellow numbers on green signs)
+                // a road of the sign's own class: plain (yellow numbers on green UK signs, black on yellow German ones)
                 isM && motorway -> Text(r, color = Color.White, fontSize = 17.sp, fontWeight = FontWeight.Bold, maxLines = 1)
-                isA && primary -> Text(r, color = Color(0xFFFFD200), fontSize = 17.sp, fontWeight = FontWeight.Bold, maxLines = 1)
+                isA && primary -> Text(r, color = priNum, fontSize = 17.sp, fontWeight = FontWeight.Bold, maxLines = 1)
                 // a different class gets its own panel
                 isM -> Text(r, color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.Bold, maxLines = 1,
-                    modifier = Modifier.clip(RoundedCornerShape(3.dp)).background(Color(0xFF0065B3)).padding(horizontal = 6.dp, vertical = 1.dp))
-                isA -> Text(r, color = Color(0xFFFFD200), fontSize = 15.sp, fontWeight = FontWeight.Bold, maxLines = 1,
-                    modifier = Modifier.clip(RoundedCornerShape(3.dp)).background(Color(0xFF00703C)).padding(horizontal = 6.dp, vertical = 1.dp))
+                    modifier = Modifier.clip(RoundedCornerShape(3.dp)).background(motBg).padding(horizontal = 6.dp, vertical = 1.dp))
+                isA -> Text(r, color = priNum, fontSize = 15.sp, fontWeight = FontWeight.Bold, maxLines = 1,
+                    modifier = Modifier.clip(RoundedCornerShape(3.dp)).background(priBg).padding(horizontal = 6.dp, vertical = 1.dp))
                 else -> Text("($r)", color = fg, fontSize = 15.sp, fontWeight = FontWeight.Bold, maxLines = 1)
             }
         }
@@ -612,11 +685,11 @@ fun HazardRadar(engine: NavEngine, modifier: Modifier = Modifier) {
     val shape = RoundedCornerShape(22.dp)
     Column(modifier.widthIn(max = 540.dp).fillMaxWidth().panel(8.dp, shape, c.surface).padding(start = 16.dp, end = 16.dp, top = 9.dp, bottom = 10.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(radarIcon(near.kind), null, tint = radarColor(near.kind), modifier = Modifier.size(20.dp).graphicsFlip(near.kind == "bend" && near.label.endsWith("left")))
+            Icon(radarIcon(near.kind), null, tint = radarColor(near.kind), modifier = Modifier.size(20.dp).graphicsFlip(near.kind == "bend" && (near.label.endsWith("left") || near.label.startsWith("Links"))))
             Text(near.label, color = c.text, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(start = 8.dp), maxLines = 1, overflow = TextOverflow.Ellipsis)
-            Text(" · " + (if (near.dist < 20) "now" else "in " + Geo.fmtDist(near.dist, engine.imperial)), color = c.sub, fontSize = 14.sp, maxLines = 1)
+            Text(" · " + (if (near.dist < 20) Lang.t("jetzt", "now") else Lang.t("in ", "in ") + Geo.fmtDist(near.dist, engine.imperial)), color = c.sub, fontSize = 14.sp, maxLines = 1)
             Box(Modifier.weight(1f))
-            Text(if (engine.imperial) "next 2 mi" else "next 3 km", color = c.sub, fontSize = 11.sp)
+            Text(if (engine.imperial) Lang.t("nächste 2 mi", "next 2 mi") else Lang.t("nächste 3 km", "next 3 km"), color = c.sub, fontSize = 11.sp)
         }
         BoxWithConstraints(Modifier.fillMaxWidth().padding(top = 8.dp).height(30.dp)) {
             val w = maxWidth
@@ -628,7 +701,7 @@ fun HazardRadar(engine: NavEngine, modifier: Modifier = Modifier) {
                 val f = (it.dist / reach).toFloat().coerceIn(0f, 1f)
                 val x = (w - 26.dp) * f + 4.dp
                 Box(Modifier.offset(x = x).align(Alignment.CenterStart).size(26.dp).clip(CircleShape).background(c.surface2).border(2.dp, radarColor(it.kind), CircleShape), contentAlignment = Alignment.Center) {
-                    Icon(radarIcon(it.kind), null, tint = radarColor(it.kind), modifier = Modifier.size(15.dp).graphicsFlip(it.kind == "bend" && it.label.endsWith("left")))
+                    Icon(radarIcon(it.kind), null, tint = radarColor(it.kind), modifier = Modifier.size(15.dp).graphicsFlip(it.kind == "bend" && (it.label.endsWith("left") || it.label.startsWith("Links"))))
                 }
             }
         }
@@ -656,11 +729,11 @@ fun DataUpdateCard(engine: NavEngine) {
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         Column(Modifier.weight(1f)) {
-            Text("New map data for $name" + if (more > 0) " (+$more more)" else "", color = c.text, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            Text(if (wifi) "Only what's changed downloads" else "Only what's changed downloads · best on Wi-Fi", color = c.sub, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(Lang.t("Neue Kartendaten für $name", "New map data for $name") + if (more > 0) Lang.t(" (+$more weitere)", " (+$more more)") else "", color = c.text, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(if (wifi) Lang.t("Nur Änderungen werden geladen", "Only what's changed downloads") else Lang.t("Nur Änderungen werden geladen · am besten im WLAN", "Only what's changed downloads · best on Wi-Fi"), color = c.sub, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
-        Pill("Update", true, { engine.updateData(id) })
-        Pill("Later", false, { engine.snoozeDataUpdates() })
+        Pill(Lang.t("Aktualisieren", "Update"), true, { engine.updateData(id) })
+        Pill(Lang.t("Später", "Later"), false, { engine.snoozeDataUpdates() })
     }
 }
 
@@ -681,11 +754,11 @@ fun PackAgeCard(engine: NavEngine) {
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         Column(Modifier.weight(1f)) {
-            Text("Offline map is $months months old", color = c.text, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
-            Text(if (wifi) "Update it now for new roads and junctions" else "Update on Wi-Fi for new roads and junctions", color = c.sub, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(Lang.t("Die Offline-Karte ist $months Monate alt", "Offline map is $months months old"), color = c.text, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+            Text(if (wifi) Lang.t("Jetzt aktualisieren für neue Straßen und Kreuzungen", "Update it now for new roads and junctions") else Lang.t("Im WLAN aktualisieren für neue Straßen und Kreuzungen", "Update on Wi-Fi for new roads and junctions"), color = c.sub, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
-        if (wifi) Pill("Update", true, { engine.updatePack(); hidden = true })
-        Pill("Later", false, { engine.snoozePackUpdate(); hidden = true })
+        if (wifi) Pill(Lang.t("Aktualisieren", "Update"), true, { engine.updatePack(); hidden = true })
+        Pill(Lang.t("Später", "Later"), false, { engine.snoozePackUpdate(); hidden = true })
     }
 }
 
@@ -695,31 +768,40 @@ fun AppUpdateCard(engine: NavEngine) {
     val u = engine.appUpdate ?: return
     val c = LocalVw.current
     val shape = RoundedCornerShape(22.dp)
-    Row(
-        Modifier.fillMaxWidth().panel(8.dp, shape, c.surface).padding(start = 16.dp, end = 8.dp, top = 10.dp, bottom = 10.dp),
-        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp),
+    // text on top and the buttons in their own row underneath: side by side, a narrow phone squeezed the title to a few letters a line
+    Column(
+        Modifier.fillMaxWidth().panel(8.dp, shape, c.surface).padding(start = 16.dp, end = 12.dp, top = 10.dp, bottom = 10.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        Column(Modifier.weight(1f)) {
-            Text("Horizon Nav update available", color = c.text, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
-            Text("Installed ${com.headunit.launcher.BuildConfig.VERSION_NAME}  →  Available ${u.version}", color = c.sub, fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            Text(if (engine.updateBusy || engine.updateStatus.isNotBlank()) engine.updateStatus else "Update now: your settings and places are kept",
+        Column(Modifier.fillMaxWidth()) {
+            Text(stringResource(R.string.ui_025), color = c.text, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+            Text(Lang.t("Installiert ${com.headunit.launcher.BuildConfig.VERSION_NAME}  →  Verfügbar ${u.version}", "Installed ${com.headunit.launcher.BuildConfig.VERSION_NAME}  →  Available ${u.version}"), color = c.sub, fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(if (engine.updateBusy || engine.updateStatus.isNotBlank()) engine.updateStatus else Lang.t("Jetzt aktualisieren: Einstellungen und Orte bleiben erhalten", "Update now: your settings and places are kept"),
                 color = c.sub, fontSize = 12.sp, maxLines = 2, overflow = TextOverflow.Ellipsis)
             if (u.releaseNotes.isNotBlank() && !engine.updateBusy) {
-                Text(u.releaseNotes, color = c.sub, fontSize = 11.sp, maxLines = 3, overflow = TextOverflow.Ellipsis)
+                Text(plainNotes(u.releaseNotes), color = c.sub, fontSize = 11.sp, maxLines = 3, overflow = TextOverflow.Ellipsis)
             }
             // Horizon Nav isn't on Google Play, so "installed by Google Play" means a tool like AAEnabler installed it to get it into
             // Android Auto. Android Auto drops apps that update themselves, so say so before they find it missing in the car.
             val ctx = androidx.compose.ui.platform.LocalContext.current
             val viaAaTool = remember { com.headunit.launcher.Updater.installedViaAaTool(ctx) }
             if (viaAaTool && !engine.updateBusy && engine.updateStatus.isBlank()) Text(
-                if (android.os.Build.VERSION.SDK_INT >= 29) "Installed with AAEnabler: Update saves the new version to your Downloads, so you can install it with AAEnabler and keep it in Android Auto."
-                else "Installed with AAEnabler (or similar)? Updating here takes it out of Android Auto: install the new version with AAEnabler again afterwards.",
+                if (android.os.Build.VERSION.SDK_INT >= 29) Lang.t("Mit AAEnabler installiert: Aktualisieren speichert die neue Version in Downloads, damit du sie mit AAEnabler installieren kannst und sie in Android Auto bleibt.", "Installed with AAEnabler: Update saves the new version to your Downloads, so you can install it with AAEnabler and keep it in Android Auto.")
+                else Lang.t("Mit AAEnabler (o. Ä.) installiert? Ein Update hier nimmt die App aus Android Auto: Installiere die neue Version danach wieder mit AAEnabler.", "Installed with AAEnabler (or similar)? Updating here takes it out of Android Auto: install the new version with AAEnabler again afterwards."),
                 color = Warn, fontSize = 11.sp, maxLines = 3, overflow = TextOverflow.Ellipsis)
         }
-        if (!engine.updateBusy) Pill("Update", true, { engine.installAppUpdate() })
-        if (!engine.updateBusy) Pill("Later", false, { engine.snoozeAppUpdate() })
+        if (!engine.updateBusy) Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)) {
+            Pill(Lang.t("Später", "Later"), false, { engine.snoozeAppUpdate() })
+            Pill(Lang.t("Aktualisieren", "Update"), true, { engine.installAppUpdate() })
+        }
     }
 }
+
+/** Release notes are Markdown ("## Horizon Nav 1.0.1055", "- **Neu:** …"): shown as plain text, the version heading left out. */
+private fun plainNotes(md: String): String = md.lines()
+    .map { it.trim() }
+    .filter { it.isNotEmpty() && !it.startsWith("#") }
+    .joinToString(" ") { l -> l.removePrefix("- ").removePrefix("* ").replace("**", "").replace("`", "") }
 
 // ------------------------------------------------------------------ your own saved places
 
@@ -743,8 +825,8 @@ fun AddPlaceDialog(engine: NavEngine, preset: Place?, slot: String? = null, onCl
     Dialog(onDismissRequest = { close() }) {
         Column(Modifier.widthIn(max = 520.dp).fillMaxWidth().clip(RoundedCornerShape(26.dp)).background(c.panel).border(1.dp, c.line, RoundedCornerShape(26.dp)).padding(22.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             // [slot] "home" or "work": setting Home or Work from Settings (no name to type, it's saved straight into that slot)
-            Text(if (slot == "home") "Set Home" else if (slot == "work") "Set Work" else if (preset != null) "Save this place" else "Add a place", color = c.text, fontSize = 22.sp, fontWeight = FontWeight.Bold)
-            if (slot == null) SField(label, { label = it.take(24) }, placeholder = "Name, e.g. Mum's, Gym, Office 2", width = 476.dp, fill = true)
+            Text(if (slot == "home") Lang.t("Zuhause festlegen", "Set Home") else if (slot == "work") Lang.t("Arbeit festlegen", "Set Work") else if (preset != null) Lang.t("Diesen Ort speichern", "Save this place") else Lang.t("Ort hinzufügen", "Add a place"), color = c.text, fontSize = 22.sp, fontWeight = FontWeight.Bold)
+            if (slot == null) SField(label, { label = it.take(24) }, placeholder = Lang.t("Name, z. B. Mama, Fitnessstudio, Büro 2", "Name, e.g. Mum's, Gym, Office 2"), width = 476.dp, fill = true)
             val pk = picked
             if (pk != null) Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(c.tile).padding(horizontal = 14.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
                 Icon(Icons.Rounded.Place, null, tint = c.accent, modifier = Modifier.size(22.dp))
@@ -752,9 +834,9 @@ fun AddPlaceDialog(engine: NavEngine, preset: Place?, slot: String? = null, onCl
                     Text(pk.name, color = c.text, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     if (pk.sub.isNotBlank()) Text(pk.sub, color = c.sub, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
-                if (preset == null) Text("Change", color = c.accent, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.clickable { picked = null; q = "" })
+                if (preset == null) Text(stringResource(R.string.ui_008), color = c.accent, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.clickable { picked = null; q = "" })
             } else {
-                SField(q, { q = it }, placeholder = "Search for the address or postcode", width = 476.dp, fill = true)
+                SField(q, { q = it }, placeholder = Lang.t("Adresse oder Postleitzahl suchen", "Search for the address or postcode"), width = 476.dp, fill = true)
                 LazyColumn(Modifier.heightIn(max = 240.dp)) {
                     itemsIndexed(found.take(6)) { _, p ->
                         Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).clickable {
@@ -767,12 +849,12 @@ fun AddPlaceDialog(engine: NavEngine, preset: Place?, slot: String? = null, onCl
                 }
             }
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                Pill("Save", pk != null, {
+                Pill(Lang.t("Speichern", "Save"), pk != null, {
                     val p = picked
-                    if (p != null && slot != null) { engine.places.setSlot(slot, p); engine.toast(if (slot == "home") "Home saved" else "Work saved", 2500); close() }
-                    else if (p != null) { engine.places.addCustom(label, p); engine.toast("Saved as ${label.trim().ifBlank { p.name }}", 2500); close() }
+                    if (p != null && slot != null) { engine.places.setSlot(slot, p); engine.toast(if (slot == "home") Lang.t("Zuhause gespeichert", "Home saved") else Lang.t("Arbeit gespeichert", "Work saved"), 2500); close() }
+                    else if (p != null) { engine.places.addCustom(label, p); engine.toast(engine.str(R.string.rest_1371, label.trim().ifBlank { p.name }), 2500); close() }
                 })
-                Pill("Cancel", false, { close() })
+                Pill(Lang.t("Abbrechen", "Cancel"), false, { close() })
             }
         }
     }
@@ -783,28 +865,29 @@ fun AddPlaceDialog(engine: NavEngine, preset: Place?, slot: String? = null, onCl
  * (filled in already if one was saved before). Skipping it is fine: it can be added later in Settings › Keys & accounts.
  */
 @Composable
-fun MapboxKeyDialog(prefs: com.headunit.launcher.Prefs, refused: Boolean = false, onClose: () -> Unit) {
+fun MapboxKeyDialog(prefs: com.headunit.launcher.Prefs, refused: Boolean = false, why: String = "", onClose: () -> Unit) {
     val c = LocalVw.current
     var k by remember { mutableStateOf(prefs.s(PreferenceKeys.MAPBOX_TOKEN, "")) }
     Dialog(onDismissRequest = {}) {
         Column(Modifier.widthIn(max = 560.dp).fillMaxWidth().clip(RoundedCornerShape(26.dp)).background(c.panel).padding(22.dp)
             .verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Text(if (refused) "Mapbox turned down your key" else "Add your Mapbox key", color = c.text, fontSize = 22.sp, fontWeight = FontWeight.Bold)
-            if (refused) Text("Mapbox answered \"401\" for the key you saved, so the map can't load. Make a fresh one at account.mapbox.com › Tokens › " +
-                "Create a token: name it Horizon Nav, leave the public scopes ticked and the secret ones unticked, then paste it below.", color = Warn, fontSize = 14.sp)
-            Text("Horizon Nav now draws its map with Mapbox. Your free Mapbox key adds the 3D map with buildings, trees and lane markings, " +
-                "live traffic on your route, and better search and speed limits.", color = c.text, fontSize = 15.sp)
-            Text("Get it at account.mapbox.com › Tokens: copy the Default public token (it starts pk.).", color = c.sub, fontSize = 13.sp)
-            SField(k, { k = it }, placeholder = "Mapbox access token (pk.…)", width = 500.dp, fill = true)
+            Text(if (refused) Lang.t("Mapbox hat deinen Schlüssel abgelehnt", "Mapbox turned down your key") else Lang.t("Mapbox-Schlüssel eintragen", "Add your Mapbox key"), color = c.text, fontSize = 22.sp, fontWeight = FontWeight.Bold)
+            if (refused) Text(why.ifBlank { Lang.t("Mapbox hat deinen Schlüssel mit „401“ abgelehnt, darum lädt die Karte nicht. Erstelle einen neuen auf account.mapbox.com › Tokens › ", "Mapbox answered \"401\" for the key you saved, so the map can't load. Make a fresh one at account.mapbox.com › Tokens › ") +
+                Lang.t("Create a token: Nenne ihn Horizon Nav, lass die öffentlichen Berechtigungen angehakt und die geheimen nicht, und füge ihn unten ein.", "Create a token: name it Horizon Nav, leave the public scopes ticked and the secret ones unticked, then paste it below.") }, color = Warn, fontSize = 14.sp)
+            Text(Lang.t("Horizon Nav zeichnet die Karte mit Mapbox. Dein kostenloser Mapbox-Schlüssel bringt die 3D-Karte mit Gebäuden, Bäumen und Fahrbahnmarkierungen, ", "Horizon Nav now draws its map with Mapbox. Your free Mapbox key adds the 3D map with buildings, trees and lane markings, ") +
+                Lang.t("Live-Verkehr auf der Route sowie bessere Suche und Tempolimits.", "live traffic on your route, and better search and speed limits."), color = c.text, fontSize = 15.sp)
+            Text(stringResource(R.string.ui_018), color = c.sub, fontSize = 13.sp)
+            SField(k, { k = it }, placeholder = Lang.t("Mapbox-Zugangsschlüssel (pk.…)", "Mapbox access token (pk.…)"), width = 500.dp, fill = true)
             val t = com.headunit.launcher.MapboxRest.clean(k)
             when {
-                t.startsWith("sk.") -> Text("That's a secret token: use the public one (pk.) here.", color = Warn, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
-                t.isNotEmpty() && !com.headunit.launcher.MapboxRest.looksValid(t) -> Text("That doesn't look like a whole token yet: it's a long code starting pk.", color = Warn, fontSize = 13.sp)
-                t.isEmpty() -> Text("Without it the map stays blank, but routes and search still work from your offline pack.", color = c.sub, fontSize = 13.sp)
+                t.startsWith("sk.") -> Text(stringResource(R.string.ui_057), color = Warn, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                t.isNotEmpty() && !com.headunit.launcher.MapboxRest.looksValid(t) -> Text(stringResource(R.string.ui_056), color = Warn, fontSize = 13.sp)
+                t.isNotEmpty() && !com.headunit.launcher.MapboxRest.looksWhole(t) -> Text(Lang.t("Ein Teil dieses Schlüssels scheint zu fehlen oder vertippt zu sein. Kopiere ihn noch einmal mit dem Kopieren-Knopf auf account.mapbox.com › Tokens.", "Part of that token looks missing or mistyped. Copy it again with the copy button at account.mapbox.com › Tokens."), color = Warn, fontSize = 13.sp)
+                t.isEmpty() -> Text(stringResource(R.string.ui_066), color = c.sub, fontSize = 13.sp)
             }
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                Pill("Save", true, { if (t.isNotEmpty() && !t.startsWith("sk.")) { prefs.put(PreferenceKeys.MAPBOX_TOKEN, t); onClose() } })
-                Pill("Later", false, onClose)
+                Pill(Lang.t("Speichern", "Save"), true, { if (t.isNotEmpty() && !t.startsWith("sk.")) { prefs.put(PreferenceKeys.MAPBOX_TOKEN, t); onClose() } })
+                Pill(Lang.t("Später", "Later"), false, onClose)
             }
         }
     }
@@ -854,7 +937,7 @@ fun JunctionSign(t: com.headunit.launcher.TurnInfo, modifier: Modifier = Modifie
 fun RoundaboutView(engine: NavEngine, t: com.headunit.launcher.TurnInfo, modifier: Modifier = Modifier) {
     if (!t.maneuver.uppercase().startsWith("ROUNDABOUT") || t.rbIn < 0 || t.rbOut < 0 || t.dist > 800.0) return
     val c = navVw(LocalVw.current)
-    val clockwise = !engine.mirrored
+    val clockwise = engine.leftTraffic
     // angles on screen: the way you come in points up, so the road you enter from is at the bottom
     fun rel(b: Double) = ((b - t.rbIn) % 360.0 + 360.0) % 360.0
     val exitA = rel(t.rbOut)
@@ -890,7 +973,7 @@ fun RoundaboutView(engine: NavEngine, t: com.headunit.launcher.TurnInfo, modifie
     }
 }
 
-/** A short, quiet note about the conditions ("Heavy rain · take it steady, 50 limit"). */
+/** A short, quiet note about the conditions (Lang.t("Starkregen · vorsichtig fahren, Tempo 50", "Heavy rain · take it steady, 50 limit")). */
 @Composable
 fun AdvicePill(text: String, modifier: Modifier = Modifier) {
     val c = navVw(LocalVw.current)

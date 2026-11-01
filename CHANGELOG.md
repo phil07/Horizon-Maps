@@ -1,87 +1,109 @@
 # Changelog
 
-Add user-facing Horizon Nav changes under **Unreleased** before publishing each build, under ### New, ### Improved or ### Fixed headings, each written as "Headline: what it does" (the What's new card shows the headline in bold with the rest underneath). Keep entries focused on features, improvements, and fixes in the app—not GitHub Actions or release-publishing maintenance. There is no need to delete entries after publishing: notes that an earlier release already included are left out of the next one automatically.
+Add user-facing Horizon Nav changes under **Unreleased** before publishing each build, in German (the app shows them as they are), under ### Neu, ### Verbessert or ### Behoben headings, each written as "Überschrift: was es tut" (the What's new card shows the headline in bold with the rest underneath). Keep entries focused on features, improvements, and fixes in the app—not GitHub Actions or release-publishing maintenance. There is no need to delete entries after publishing: notes that an earlier release already included are left out of the next one automatically.
 
 ## Unreleased
 
-- Fix lane guidance pushing the route line and lane strips off the road at ordinary junctions. Lanes are now lined up with the road only on motorway and trunk carriageways; elsewhere the lane to be in is drawn under the route line, and lane strips are only painted on the last stretch before the junction.
-- Add alternative-route line colour customisation, with a pale blue-grey default for better contrast against grey roads.
-- Improve Android package-installer access to downloaded update APKs by explicitly granting the content URI through ClipData as well as intent flags.
-- Fix the map zooming in and out far too slowly while driving (it could take 10 seconds or more to close in for a turn), and the map starting zoomed out twice as far as intended.
-- Fix roundabout arrows pointing the wrong way: they now show the direction the real exit goes, rather than guessing from the exit number.
-- The "Look for updates by itself" switch works again, and automatic update and map-data checks run at most every half hour instead of every time the app opens or the connection comes back.
-- Changing the alternative-route colour now applies straight away.
-- The car screen's "Navigation arrow size" now sizes the arrow on the map (as on the phone) instead of the turn card.
-- Left-hand drive: the speedometer moves back to the bottom left (the cards are on the right), so the turn card no longer covers it; the speed limit sign stays on the screen side of it. The exit banner no longer repeats what the road sign on the turn card already says.
-- Smoother map drawing: the map is no longer capped at 30 frames a second on top of the camera's own pacing, which made it judder.
-- Android Auto with left-hand drive: your arrow no longer hides under the turn and trip cards, and the speed limit sign no longer runs off the right-hand edge of the screen.
-- Android Auto: the speedometer sits down in the bottom-right corner again, level with the trip card, instead of floating halfway up the screen.
-- Android Auto, tidier screen: hazards ahead now sit along the bottom of the turn card, the sound button has moved onto the trip card, the "Use the right lane" line is gone where the lane arrows already show it, the trip card has a slimmer progress bar and bigger labels, and while the next turn is far away the turn card shrinks to one line.
-- Android Auto: the car arrow and route line are a little bigger, so they stand out from the buildings.
-- Traffic on the roads around you now stays on the map while you navigate (it used to vanish as soon as a route started). Settings > Map can still limit it to your route.
-- Adding a TomTom key no longer switches the map to TomTom's flat map, which made the 3D buildings and models disappear. Maps that were switched that way go back to the 3D Mapbox map once (TomTom's map can still be picked in Settings).
-- Satellite view now works with the downloaded map chosen, and stays visible at night instead of going almost black.
-- When the map can't load for want of a working Mapbox key (missing, pasted with hidden characters, or turned down by Mapbox), a box now says so and lets you paste a new one, instead of a blank map with stars. Stray spaces and invisible characters are now taken out of pasted keys.
-- Big 3D buildings beside the road no longer vanish as you drive past them (the clear-view area round your arrow is tighter).
-- Offline maps > Around home is no longer squashed to one side.
-- Spoken directions: a new Voice channel setting (Settings > Sound) for head units where the beeps sound but the voice doesn't; a clear message when there's no text-to-speech voice or language installed; and alerts no longer cut a direction off half way.
-- Outside the UK and Ireland, motorway exits are now called "exit 12" rather than "junction 12".
-- If the app fails to start several times in a row (for example when the graphics driver crashes), it starts with the heaviest 3D features turned down and says so.
-- Android Auto: fixed a black car screen when Android Auto starts the app before it has been opened on the phone (after an update, for example); the turn card uses the compact lane strip so it no longer grows huge at junctions; Settings explains how to get the app into Android Auto, and the update card warns AAEnabler users that updating removes it from Android Auto.
-- The What's new card after an update now shows the changes straight away, even with no connection: the notes are built into the app instead of fetched from GitHub, which often refused.
-- New "Say road names" setting (Settings > Sound): turn it off for just the directions, e.g. "In 200 metres, turn left".
-- Bioethanol (E85) as a fuel type: the fuel list then shows stations mapped as selling E85, with prices in France.
-- Live fuel prices outside the UK: France and Austria by themselves, and Germany with a free Tankerkönig key (Settings > Fuel). Prices show the local way, e.g. €1.789.
-- Avoid tolls in chosen countries only (Settings > Routes): a route that would pay a toll in one of them is planned without toll roads.
-- Road name size: a slider for the name of the road you're on, under your arrow (Settings > Display, and for Android Auto in the car-screen sizes).
-- Car type for the car arrow: saloon, hatchback, estate, SUV, pickup, van or sports, in any colour (Settings > Your arrow).
-- New option (Settings > Map, off unless chosen): free-flowing main roads in green on the traffic map, as well as slow traffic in amber and red.
-- Stop signs on your route are shown on the map, with a short chime before each one, where OpenStreetMap has them.
-- Home and Work can be set or changed from Settings, and favourites can be renamed or made Home or Work.
-- Easier stops: one-tap buttons in the stops box add the best fuel, charger, coffee, food, services or toilets along the route, plus your saved places; holding on the map while driving adds it as a stop.
-- Electric cars: set your battery level and the least you want to arrive with on the route options; a charging stop is suggested when the trip needs one (with the charge you'll arrive at it with), the trip card shows the battery you'll arrive with and a Chargers ahead button, and Eco route uses TomTom's electric eco routing.
-- No TomTom key is built into the app any more (anyone could pull it out of a shared APK); paste your own in Settings if you use TomTom search.
+### Neu
+- Stau melden: Unter „Hier melden“ gibt es jetzt auch „Stau“, auf dem Handy und in Android Auto. Die Meldung erscheint als orangefarbenes Symbol auf der Karte und gilt 30 Minuten; wie bei den anderen Meldungen wirst du vorher gewarnt.
+- Meldungen teilen: Deine Meldungen (Polizei, Unfall, Gefahr, Panne, mobiler Blitzer, Stau) gehen anonym an andere Horizon-Fahrer, nur Art, Ort und Zeit. Du siehst ihre Meldungen im Umkreis von 30 km und entlang deiner Route und wirst gewarnt wie bei deinen eigenen. Fährst du an einer vorbei, fragt die App kurz „Noch da?“: Mit „Weg“ verschwindet sie. Abschaltbar unter Einstellungen > Warnungen > Deine Meldungen > „Meldungen teilen“ (dann ohne jede Verbindung zum Server), dort steht auch, ob der Server erreichbar ist.
+- Dein Elektroauto: Unter Einstellungen > Kraftstoff > Dein Elektroauto > „Dein Fahrzeug“ wählst du dein Auto aus einer offenen Fahrzeugliste (Open EV Data), die beim ersten Öffnen einmal heruntergeladen wird. Horizon Nav schlägt das passende Modell aus dem Text des Akku-Widgets vor (z. B. „ID.7 Pro“), die genaue Variante bestätigst du selbst oder suchst sie von Hand. Mit Akkugröße und Ladekurve des Autos und der Leistung der Ladesäule werden die Ladezeiten an den Ladestopps genau.
+- Ladestopps automatisch: Braucht die Fahrt einen Ladestopp, baut die App die Ladesäulen gleich als Zwischenziele in die Route ein und zeigt sie auf der Karte mit einem Blitz-Symbol (andere Stopps mit einem grauen Punkt). Entfernst du sie unter „Stopps bearbeiten“, kommen sie für dieses Ziel nicht wieder. Änderst du Akku oder Reserve, plant die App die Ladestopps neu.
+- Aufgeräumte Routenübersicht: Abfahrt, Akku, Reserve am Ziel, Öko-Route und Stopps liegen jetzt hinter „Optionen ▾“; die Zeile daneben fasst zusammen, was eingestellt ist (z. B. „Abfahrt jetzt · Akku 80 % · 2 Ladestopps · 45 Min. laden“). Das Wetter steht klein unter den Routen. Solange die Optionen offen sind oder Ladestopps gesucht werden, startet die Navigation nicht von selbst.
+- Bevorzugte Ladeanbieter: Unter Einstellungen > Kraftstoff > Dein Elektroauto wählst du im Menü „Bevorzugte Ladeanbieter“ deine Ladenetze, z. B. IONITY, EnBW oder Tesla Supercharger. Die Ladestopps nutzen dann ihre Säulen, solange die Fahrt dadurch höchstens 10 Minuten länger dauert (unter „Umweg für bevorzugte Anbieter“ auf 5 bis 20 Minuten einstellbar) und keinen zusätzlichen Stopp braucht. Die Liste der Stopps zeigt den Anbieter jeder Säule und markiert bevorzugte mit ★.
+- Ladeleistung und Betreiber online: Fehlen bei einer Ladesäule Leistung oder Betreiber, sucht die App sie online. In Deutschland nutzt sie das Ladesäulenregister der Bundesnetzagentur, ohne Schlüssel. Weltweit nutzt sie Open Charge Map, wenn du unter Einstellungen > Kraftstoff > Dein Elektroauto einen eigenen kostenlosen Schlüssel einträgst. Schnelllader aus dem Register, die TomTom nicht kennt, kommen als weitere Kandidaten in die Planung. Bei „Alle“ ergänzt das Register auch die Leistung normaler Ladesäulen. Mit „Ladesäulen-Daten prüfen“ testest du den Open-Charge-Map-Schlüssel und siehst, was die letzte Abfrage gefunden hat. Ladedaten: Bundesnetzagentur.de (CC BY 4.0), Open Charge Map (CC BY-SA 4.0).
+- Schnelllader für Ladestopps: Unter Einstellungen > Kraftstoff wählst du, welche Ladesäulen als Stopp infrage kommen: alle, ab 50, ab 150 oder ab 300 kW (Standard ab 50 kW). Säulen ohne bekannte Leistung nimmt die Planung nur, wenn keine passende in Reichweite ist. Die Liste der Stopps zeigt die Leistung jeder Säule.
+- Reichweite für Ladestopps: Horizon Nav liest die Restreichweite aus dem Widget deiner Auto-App (z. B. „212 km“) und zeigt sie über der Geschwindigkeit. Die Route plant Ladestopps automatisch so, dass du am Ziel mit der eingestellten Reichweite ankommst (Standard 50 km, unter Einstellungen > Kraftstoff änderbar). Jeder Stopp wird nur so weit geladen, wie es bis zum nächsten Stopp reicht. An jeder Ladesäule bleiben mindestens 30 km Reserve (einstellbar), falls die Säule belegt ist.
+- Akku auf der Karte: Bei Elektroautos steht der Ladestand (aus dem Widget oder direkt vom Auto) über der Geschwindigkeit, mit Alter ab 10 Minuten. Unter 20 % wird er gelb, unter 10 % rot.
+- Akkustand direkt vom Auto: Über Android Auto liest Horizon Nav den Ladestand direkt vom Fahrzeug, wenn es ihn teilt (beim ersten Mal fragt Android Auto um Erlaubnis). Das Widget dient dann nur noch als Ersatz.
+- Ladestand aus dem Widget deiner Auto-App: Unter Einstellungen > Kraftstoff > Dein Elektroauto > „Ladestand aus Widget“ das Widget deiner Auto-App wählen. Horizon Nav liest daraus den Prozentwert, sobald sich das Widget aktualisiert, und nutzt ihn für den Akku bei Ankunft und Ladestopps.
+- Deutsche Sprachbefehle: Tippe aufs Mikrofon und sag z. B. „Bring mich nach Hause“, „Fahr nach München“, „Nächste Tankstelle“, „Günstige Tankstelle“, „Wann komme ich an?“, „Ton aus“, „Navigation beenden“, „Melde Blitzer“ oder „Autobahnen vermeiden“. Englische Befehle funktionieren weiterhin.
+- Eigener Standard-Zoom: Lege fest, wie nah die Karte ohne Route zeigt. Mit + und − zoomen und „Als Standard verwenden“ tippen, oder den Regler unter Einstellungen > Kartenansicht nutzen, wo „Zurücksetzen“ ihn wiederherstellt. Der Auto-Zoom zoomt bei Tempo weiter heraus und an Kreuzungen hinein, ausgehend von deiner Einstellung.
+- Verkehrsübersicht im Stand: Nach 30 Sekunden Stillstand an der Ampel oder im Stau zeigt die Karte den Verkehr um dich herum von oben und kehrt zurück, sobald du losfährst. Standardmäßig an, abschaltbar unter Einstellungen > Auf der Karte.
+- Wo du geparkt hast: Wenn Android Auto sich trennt, merkt sich das Handy, wo das Auto steht. Eine Karte „Dein Auto“ zeigt, wie lange her und wie weit weg, mit Fußweg-Button und Auto-Pin auf der Karte – für 2 Tage oder bis du wieder im Auto sitzt.
+- Ziele vom Handy senden: Handy einmal mit dem Radio koppeln (Einstellungen > Orte & Fahrten), dann „An Auto senden“ im Routenbildschirm des Handys. Das Radio bietet das Ziel beim nächsten Einschalten (innerhalb von 12 Stunden) an und startet es nach ein paar Sekunden. Die Ziele laufen verschlüsselt mit deinem Kopplungscode über einen kostenlosen Nachrichtendienst.
+- Spenden: Horizon Nav ist kostenlos und werbefrei. Unterstützen kannst du es jetzt unter Einstellungen > Über > Spenden, per QR-Code fürs Handy oder PayPal-Button. Etwa einen Tag nach der Installation fragt einmalig eine Karte danach (nie während der Fahrt).
+- 2D / 3D in Android Auto: Ein 2D/3D-Button bei den Android-Auto-Buttons, wie in der App.
+- Straßennamen ansagen: Neue Einstellung unter Einstellungen > Ton. Ausgeschaltet hörst du nur die Richtung, z. B. „In 200 Metern links abbiegen“.
+- Bioethanol (E85) als Kraftstoff: Die Tankstellenliste zeigt dann Stationen mit E85, in Frankreich mit Preisen.
+- Live-Spritpreise: Frankreich und Österreich automatisch, Deutschland mit einem kostenlosen Tankerkönig-Schlüssel (Einstellungen > Kraftstoff). Preise im landesüblichen Format, z. B. 1,789 €.
+- Maut nur in bestimmten Ländern meiden: Unter Einstellungen > Routen. Eine Route, die dort Maut kosten würde, wird ohne Mautstraßen geplant.
+- Größe des Straßennamens: Ein Regler für den Namen der Straße unter deinem Pfeil (Einstellungen > Anzeige, für Android Auto bei den Größen des Autobildschirms).
+- Fahrzeugtyp für den Pfeil: Limousine, Kompaktwagen, Kombi, SUV, Pickup, Transporter oder Sportwagen, in jeder Farbe (Einstellungen > Dein Pfeil).
+- Freie Straßen in Grün: Neue Option unter Einstellungen > Karte (standardmäßig aus) zeigt fließenden Verkehr auf Hauptstraßen grün, zusätzlich zu Gelb und Rot für Stau.
+- Stoppschilder: Stoppschilder auf deiner Route erscheinen auf der Karte, mit kurzem Ton vor jedem, wo OpenStreetMap sie kennt.
+- Farbe der Alternativroute: Einstellbar, standardmäßig ein helles Blaugrau, das sich besser von grauen Straßen abhebt.
+- Zuhause und Arbeit: Lassen sich in den Einstellungen festlegen oder ändern, und Favoriten können umbenannt oder zu Zuhause/Arbeit gemacht werden.
+- Einfachere Zwischenstopps: Buttons im Stopp-Fenster fügen mit einem Tipp die beste Tankstelle, Ladesäule, Kaffee, Essen, Raststätte oder Toilette entlang der Route hinzu, dazu deine gespeicherten Orte. Langes Drücken auf die Karte während der Fahrt fügt einen Stopp hinzu.
+- Elektroautos: Akkustand und gewünschten Mindest-Akku bei Ankunft in den Routenoptionen eingeben. Ein Ladestopp wird vorgeschlagen, wenn die Fahrt einen braucht, die Fahrtkarte zeigt den Akku bei Ankunft und einen Button für Ladesäulen voraus, und die Eco-Route nutzt TomToms E-Routing.
 
-### Fixed
-- Road name overlap: driving with no route, the road name under your arrow no longer sits on top of the "Heading NW" pill at the bottom (the pill already shows the road, so the one under the arrow steps aside while it's up).
-- Junctions: the view now flattens towards 2D as you reach turns and roundabouts as intended, instead of swinging low enough to fill the screen with horizon. The junction close-up only applies at slip roads, exits and forks, where it moves closer and a little flatter.
-- Android Auto trip card on wide screens: it no longer stretches right across a very wide car screen with its sound and end-route buttons hidden under Android Auto's own buttons; it's now just as wide as its figures and buttons.
-- Fuel, parking and other nearby searches: they now use Mapbox's category search, which finds the nearest places of that kind, instead of a text search that often came back empty and fell through to the busy free OpenStreetMap servers ("HTTP 429", "HTTP 502"). Along a route, when those servers are busy, Mapbox is asked instead, and errors are in plain words.
-- 2D / 3D is remembered: the map no longer starts in 3D every time if you'd left it in 2D.
-- Adding a stop on the way (fuel, coffee and so on) no longer hangs: along the route Mapbox is asked first, a few points at once, and a search that gets stuck on a slow server now gives up after 30 seconds as it should (it could spin for minutes).
-- Head units that restart while Horizon Nav is open (reported on a built-in Android 9 unit): the app now notices when the whole unit restarted soon after opening it or while driving, and after two it switches to safer drawing one step at a time, starting with drawing the map in the app's own window, which is gentler on some built-in units. What happened just before goes in the feedback report. The background journey-time suggestion also no longer runs the offline router, which loads large files into memory.
-- Updating with AAEnabler: if you installed Horizon Nav with AAEnabler, Update now saves the new version to your Downloads folder to install with AAEnabler, so it stays in Android Auto (updating inside the app used to take it out).
-- Missing 3D buildings: the clear area kept round your arrow no longer cuts through buildings. With no route there's no longer a straight strip ahead (it went through buildings on bends), and on a route the strip is narrower, so buildings in narrow streets stay.
-- The offline maps page now points to Settings > Keys & accounts for the Mapbox token (it still said "Search & keys").
-- Road name under your arrow: it no longer jumps to a side road for a moment at junctions (a new name now has to be confirmed, unless you've clearly turned), it clears in car parks and when it's out of date instead of showing the last road, and after an unnamed slip road it no longer shows the exit sign's text as the road name.
-- Trees on Android Auto: the car map is now drawn at close to the phone's zoom, so Mapbox's 3D trees and other close-up detail show there too (it used to sit so far out that they never appeared). Map text on the car screen is a little smaller as a result.
-- The traffic view when stopped no longer kicks in while you wait at a turn, and "Your car" is only saved when the car has stopped (switching apps on the car screen mid-drive could save it).
-- Closer to 3D lane guidance: where the real painted lanes are found, the lit-up lanes now start 150 m before the junction (was 110 m), the route line sits in your lane from there and bends through the junction, and a small lane bubble rides on the road just ahead of your arrow showing the lanes to use. Where the real lanes can't be matched, the overhead lane sign is shown instead.
-- Mapbox's lane data on TomTom routes: Mapbox draws the lanes on the map, so its own lane list suits them best. With a Mapbox token, a TomTom route now gets Mapbox's lane list in the background, junction by junction, wherever Mapbox's route goes the same way (other junctions keep TomTom's). It uses one extra Mapbox request per route and can be switched off in Settings > Turn card. The feedback report says which lane list was used.
-- Lane sign over the road: coming up to a junction with lane guidance, a sign now stands over the road at the junction, like a motorway gantry, with the lanes to use lit up. It replaces the lane strips painted across the road, which often sat a lane or two out from the real lanes. Where the map has real lane data that matches the lanes you need (on many motorways), the lanes are still painted on the road, exactly over the real ones, with the route line through them. With Demo mode on, a short message says which was used (also in the feedback report).
-- Where lanes are painted on the road, the route line runs through the lit-up lanes right up to the junction and carries smoothly into the turn arrow, then eases back onto the road over the next 25 m, with no gap or step where the lane guidance ends.
+### Verbessert
+- Ruhige Karte im Stand: An der Ampel oder geparkt wandern und drehen sich Pfeil und Karte nicht mehr mit dem GPS-Rauschen.
+- Zoom gemerkt: Der Zoom, den du ohne Route mit + und − einstellst, bleibt fürs nächste Mal (Handy und Android Auto getrennt). „Zentrieren“ auf einer Route stellt wieder automatisch ein.
+- Routen von TomTom und Mapbox zugleich: Mit beiden Schlüsseln (und Routen auf „Automatisch“) fragt die App bei einer neuen Route beide und nimmt die schnellere; eine andere Strecke des zweiten Dienstes bleibt als Alternative.
+- Mapbox-Schlüssel abgelehnt (401): Die App fragt Mapbox nach dem Grund und sagt ihn klar, versucht es kurz erneut und schaltet die Karte nicht mehr sofort ab.
+- Android Auto: „Melden“-Knopf (Polizei, Unfall, Gefahr, Panne, mobiler Blitzer); die Suche steht jetzt unter „Orte“. Autos, die ihre Bildschirmgröße falsch melden (z. B. Uconnect 8.4), schieben den Pfeil nicht mehr unter die Karten.
+- Autobahn ohne Tempolimit: Wo auf deutschen Autobahnen keine Begrenzung gilt, zeigt die App das Schild „Ende aller Streckenverbote“ statt einer leeren Stelle (bei Wechselverkehrszeichen bleibt es leer).
+- Autobahnkreuze und Ausfahrten mit Namen: Abbiegekarte und Ansage nennen Kreuze, Dreiecke und Ausfahrten, z. B. „In 2 Kilometern am Frankfurter Kreuz rechts halten auf die A 3 in Richtung Köln“ oder „Ausfahrt 17 Weiterstadt nehmen“ (aus OpenStreetMap, wo der Router keinen Namen liefert).
+- Umweltzonen im Ausland: „Nur mit grüner Plakette“ gilt nur noch für deutsche Zonen; in Frankreich weist die App auf die Crit'Air-Vignette hin, sonst auf die Regeln vor Ort.
+- Deutsche Straßen und Regeln: Routen nennen deutsche Straßennummern wie auf den Schildern („über A 5, A 7“ statt „über E 40“), Wegweiser zeigen Autobahnen blau und Bundesstraßen gelb. Auf Autobahnen ohne Tempolimit erscheint kein Limit mehr (130 ist nur Richtgeschwindigkeit), „DE:rural“ gilt als 100 km/h. Ansagen auf Deutsch korrigiert („In einem Kilometer“, „im Kreisverkehr die zweite Ausfahrt“, „Das Ziel liegt links“). Umweltzonen in Deutschland werden mit „Nur mit grüner Plakette“ angesagt. Kreisverkehre und Wendespuren richten sich nach dem Land, nicht nach der Lenkradseite.
+- Routenübersicht: „Navigation starten“ passt ganz in den Knopf, „Akku jetzt“ entfällt, wenn der Akku vom Widget kommt, „Abfahrt jetzt“ steht nicht mehr in der Zusammenfassung, „Ankunft“ statt „arrive“. Bis zu 2 Ladestopps passen ohne Scrollen.
+- Verkehr in der Umgebung: Bleibt jetzt während der Navigation auf der Karte (er verschwand früher beim Routenstart). Unter Einstellungen > Karte lässt er sich auf die Route beschränken.
+- Flüssigere Karte: Die Karte ist nicht mehr zusätzlich auf 30 Bilder pro Sekunde begrenzt, was sie ruckeln ließ.
+- Schnellerer Zoom: Die Karte zoomt während der Fahrt nicht mehr viel zu langsam (bis zu 10 Sekunden vor einer Abbiegung) und startet nicht mehr doppelt so weit herausgezoomt wie gedacht.
+- Automatische Update-Suche: Der Schalter „Selbst nach Updates suchen“ funktioniert wieder, und Updates und Kartendaten werden höchstens alle halbe Stunde geprüft statt bei jedem Öffnen.
+- Neue-Version-Karte: Zeigt die Änderungen sofort, auch ohne Verbindung, weil die Hinweise in der App stecken. Jede Änderung hat eine eigene Karte mit Symbol, Überschrift und kurzer Beschreibung, sortiert nach Neu, Verbessert und Behoben. Im Querformat verteilt sie sich über den Bildschirm.
+- Ansagen: Neue Einstellung „Sprachkanal“ (Einstellungen > Ton) für Radios, bei denen Töne zu hören sind, die Stimme aber nicht. Eine klare Meldung, wenn keine Sprachausgabe oder Sprache installiert ist, und Warnungen schneiden eine Ansage nicht mehr mittendrin ab.
+- Ausfahrten: Außerhalb von Großbritannien und Irland heißen Autobahnausfahrten jetzt „Ausfahrt 12“.
+- Sicherer Start: Stürzt die App mehrmals hintereinander beim Start ab (z. B. durch den Grafiktreiber), startet sie mit reduzierten 3D-Effekten und sagt das auch.
+- Mapbox-Schlüssel: Kann die Karte ohne gültigen Schlüssel nicht laden, erklärt ein Hinweis das und lässt dich einen neuen einfügen, statt einer leeren Karte mit Sternen. Leerzeichen und unsichtbare Zeichen werden aus eingefügten Schlüsseln entfernt.
+- TomTom-Schlüssel: Ein TomTom-Schlüssel schaltet die Karte nicht mehr auf TomToms flache Karte um, auf der 3D-Gebäude fehlten. Es ist kein TomTom-Schlüssel mehr in die App eingebaut; trage deinen eigenen in den Einstellungen ein, wenn du die TomTom-Suche nutzt.
+- Satellitenansicht: Funktioniert jetzt auch mit der heruntergeladenen Karte und bleibt nachts sichtbar, statt fast schwarz zu werden.
+- Pfeil in der Mitte der freien Karte: Ohne Navigation sitzt dein Pfeil mittig zwischen Suchfeld und Buttons statt dahinter.
+- Aufgeräumte Kartenseite: Zuhause und Arbeit als zwei Kacheln mit Fahrzeit, Tankstelle, Laden, Essen, Kaffee und Parken als fünf runde Buttons. „Gespeichert & zuletzt“ zeigt drei Orte und „Alle“ für den Rest.
+- Weniger Buttons beim Fahren: Nur Kompass und Kartenoptionen bleiben sichtbar. Zoom erscheint beim Berühren der Karte oder im Stand, Sprache und Ton sind auf der Fahrtkarte.
+- Kartenoptionen neu gestaltet: Standard oder Satellit als zwei Bildkarten, ein schneller Auto/Tag/Nacht-Schalter und die Kartenebenen als Kacheln.
+- Einstellungen neu sortiert: 15 kleinere Bereiche in vier Gruppen (Karte, Fahren, Du, Gerät), Android Auto mit eigenem Bereich. Die Suche findet weiterhin jede Einstellung.
+- 3D-Modelle für alle Fahrzeugtypen: Kompaktwagen, Kombi, SUV, Pickup, Transporter und Sportwagen haben jetzt eigene 3D-Modelle.
+- Navigationspfeil-Größe im Auto: Die Einstellung ändert jetzt den Pfeil auf der Karte statt der Abbiegekarte.
+- Linkslenker: Der Tacho sitzt wieder unten links, damit die Abbiegekarte ihn nicht verdeckt. Das Ausfahrtsbanner wiederholt nicht mehr, was das Schild auf der Abbiegekarte schon zeigt.
+- Android Auto, aufgeräumter Bildschirm: Gefahren voraus stehen unten auf der Abbiegekarte, der Ton-Button ist auf der Fahrtkarte, die Fahrtkarte hat einen schmaleren Fortschrittsbalken und größere Schrift, und bei weit entfernter Abbiegung schrumpft die Abbiegekarte auf eine Zeile.
+- Android Auto, Kartenseite wie in der App: Zuhause- und Arbeit-Kacheln mit Fahrzeit, fünf runde Buttons und „Gespeichert & zuletzt“ mit „Alle“ für den Rest.
+- Android Auto, Pfeil und Route: Pfeil und Routenlinie sind etwas größer und heben sich besser von Gebäuden ab.
+- Android Auto, Tempolimit-Schild: Sitzt direkt am Bildschirmrand, wenn die Android-Auto-Buttons ausgeblendet sind, sonst daneben.
+- Android Auto, Bäume: Die Karte wird fast so nah wie auf dem Handy gezeichnet, sodass auch 3D-Bäume erscheinen. Die Kartenschrift ist dadurch etwas kleiner.
+- Spurführung näher an echtem 3D: Wo die echten Fahrstreifen bekannt sind, leuchten die Spuren 150 m vor der Kreuzung auf, die Routenlinie liegt in deiner Spur, und eine kleine Spurblase vor deinem Pfeil zeigt die richtigen Spuren. Sonst erscheint ein Spurschild über der Straße wie eine Autobahnbrücke.
+- Spurdaten von Mapbox auch auf TomTom-Routen: Mit Mapbox-Schlüssel bekommt eine TomTom-Route im Hintergrund die Spurdaten von Mapbox. Abschaltbar unter Einstellungen > Abbiegekarte.
 
-### New
-- Default zoom: set your own normal zoom for when you're not on a route. Zoom with + and − on the map and tap "Make this my default", or use the slider in Settings > Map look, where Reset puts it back. Auto zoom still pulls out at speed and moves in at junctions, round your setting.
-- Traffic overview when stopped: after 30 seconds stopped at lights or in a queue, the map pulls back to a top-down view of the traffic round you, and goes back as soon as you move off. On by default; switch it off in Settings > On the map.
-- Where you parked: when Android Auto disconnects, the phone remembers where the car was. A "Your car" card shows how long ago and how far, with a Walk button and a car pin on the map, for 2 days or until you're back in the car.
-- Send places from your phone: pair the phone with the head unit once (Settings > Places & trips), then "Send to car" on the phone's route screen. The head unit offers it the next time it's on (within 12 hours) and starts it after a few seconds. Places go through a free message relay, scrambled with your pairing code.
-- Donate: Horizon Nav is free with no ads, and you can now support it with a donation: Settings > About > Donate, with a QR code to scan on your phone or a button to open PayPal. A one-off card also asks, a day or so after installing (never while you're driving).
-- 2D / 3D on Android Auto: a 2D / 3D button in Android Auto's own buttons, as in the app (while navigating it takes the Demo button's place unless Demo is switched on in Settings).
-
-### Improved
-- The arrow in the search bar that folds Saved & recent away is back, and Android Auto has it too.
-- Android Auto map page matches the app: Home and Work tiles with the drive time, five round buttons for fuel, charging, food, coffee and parking, and Saved & recent with your first few places (as many as fit) and "All" for the rest, in place of the long scrolling row of chips. Your arrow also sits in the middle of the clear map there when you're not navigating.
-- Android Auto speed sign: it sits right up against the edge of the screen when Android Auto's buttons hide, and just beside them when they show.
-- Arrow centred in the clear map: when you're not navigating, your arrow sits in the middle of the map between the search panel and the buttons, instead of dead centre behind them.
-- Settings reorganised: 15 smaller sections in four groups (Map, Driving, You, Device), each split into short headed lists, with Android Auto in a section of its own. Search still finds every setting.
-- What's new card redesigned: each change on its own card with an icon, a headline and a short description, sorted under New, Improved and Fixed.
-- What's new in landscape: the card now spreads across the screen, with the title and Let's go button on the left and the changes in two columns on the right.
-- Tidier map page: Home and Work are two tiles showing the drive time, and fuel, charging, food, coffee and parking are five round buttons that always fit. Saved & recent shows three places with "All" for the rest, and your own saved places are in it too.
-- Fewer buttons on the map: just the compass and map options stay up while you drive. Zoom appears when you touch the map or stop, voice and sound are on the trip card, 3D / 2D and sound are quick switches at the top of map options, and Settings is beside the buttons when you're not navigating (and in map options at any time).
-- Car types for the real 3D model: the hatchback, estate, SUV, pickup, van and sports car now have their own 3D models too, not just the saloon, and the car type picker shows for the real 3D car.
-- Map options redesigned: Standard or Satellite as two picture cards, a quick Auto / Day / Night switch, and the map layers as tiles that light up when on. Reports fit on one row, and in landscape the panel is wider, in two columns, so nothing needs scrolling.
-
+### Behoben
+- Absturz beim Start unter Android 16 behoben, ausgelöst durch die Abfrage des Akku-Widgets. Horizon Nav kann das Widget einer anderen App nicht selbst aktualisieren. Unter Einstellungen > Kraftstoff öffnet der Knopf „App öffnen“ die Auto-App, damit sie den Stand neu lädt.
+- Ladestand aus dem Widget überschreibt nicht mehr deinen Zielwert „Ladung auf“. Prüfe ihn nach dem Update einmal, er steht eventuell auf dem alten Akkustand.
+- Widget-Auswahl: Widgets anderer Apps (z. B. der Auto-App) erscheinen jetzt in der Liste für den Ladestand, auch wenn Android sie sonst ausblendet.
+- Update nach Abbruch: Wurde die Installation eines Updates abgebrochen, meldete ein erneuter Versuch „Problem beim Parsen des Pakets“. Jeder Versuch lädt jetzt in eine neue Datei, und der Installer bekommt genau die geprüfte Datei.
+- Spurführung: Routenlinie und Spuren rutschen an normalen Kreuzungen nicht mehr neben die Straße.
+- Kreisverkehr-Pfeile: Zeigen jetzt die Richtung der echten Ausfahrt, statt sie aus der Ausfahrtnummer zu raten.
+- Kreuzungen: Die Ansicht wird vor Abbiegungen flacher, statt so tief zu schwenken, dass der Horizont den Bildschirm füllt.
+- Fehlende 3D-Gebäude: Der freie Bereich um deinen Pfeil schneidet keine Gebäude mehr weg, auch große Gebäude neben der Straße verschwinden nicht mehr beim Vorbeifahren.
+- Farbe der Alternativroute: Eine Änderung wirkt jetzt sofort.
+- Straßenname unter dem Pfeil: Springt an Kreuzungen nicht mehr kurz auf eine Nebenstraße, verschwindet auf Parkplätzen und zeigt nach einer namenlosen Auffahrt nicht mehr den Schildtext als Straßennamen. Er überdeckt auch nicht mehr die Richtungsanzeige unten.
+- Suche nach Tankstellen, Parkplätzen & Co.: Nutzt jetzt die Kategoriesuche von Mapbox und findet die nächsten Orte zuverlässig, statt oft leer zu bleiben oder mit „HTTP 429“ zu scheitern.
+- Zwischenstopp hinzufügen: Hängt nicht mehr fest. Eine Suche bei einem langsamen Server bricht nach 30 Sekunden ab.
+- 2D / 3D wird gemerkt: Die Karte startet nicht mehr jedes Mal in 3D.
+- Offline-Karten > Rund um Zuhause: Wird nicht mehr zur Seite gequetscht.
+- Mapbox-Hinweis: Die Offline-Kartenseite verweist jetzt auf Einstellungen > Schlüssel & Konten.
+- Verkehrsübersicht im Stand: Springt nicht mehr beim Warten an einer Abbiegung an, und „Dein Auto“ wird nur gespeichert, wenn das Auto steht.
+- Neustarts mancher Radios: Startet das ganze Radio kurz nach dem Öffnen oder während der Fahrt neu, wechselt die App nach zwei Malen schrittweise auf schonenderes Zeichnen.
+- Android Auto, schwarzer Bildschirm: Behoben, wenn Android Auto die App startet, bevor sie auf dem Handy geöffnet wurde (z. B. nach einem Update).
+- Android Auto, Linkslenker: Dein Pfeil liegt nicht mehr unter den Karten, und das Tempolimit-Schild ragt nicht mehr über den rechten Rand.
+- Android Auto, Tacho: Sitzt wieder unten rechts neben der Fahrtkarte statt mitten auf dem Bildschirm.
+- Android Auto, breite Bildschirme: Die Fahrtkarte zieht sich nicht mehr über den ganzen Bildschirm.
+- Updates mit AAEnabler: Wurde Horizon Nav mit AAEnabler installiert, speichert „Aktualisieren“ die neue Version im Download-Ordner, damit sie in Android Auto bleibt.
+- Verkehrsbanner: Der Hinweis „Verkehr in deiner Nähe“ verschwindet nach 5 Sekunden und bleibt nicht mehr dauerhaft stehen.
+- Verkehrsübersicht im Stand: Die lange Erklärung erscheint nicht mehr bei jedem Anhalten und Losfahren.
+- Kategorien auf Deutsch: Tankstellen, Ladesäulen, Essen, Kaffee, Parkplätze, Toiletten und Raststätten heißen in der Suche, den Kartenoptionen und in Android Auto jetzt deutsch, ebenso Meldungen wie Gefahr, Panne und mobiler Blitzer.
+- Alles auf Deutsch: Meldungen, Ansagen, Schaltflächen, Warnungen, Kartenoptionen, Offline-Karten, Update-Hinweise und Android Auto sind jetzt deutsch (auf englisch eingestellten Geräten bleibt es englisch).
+- Neu-Karte nach mehreren Updates: Zeigt keine internen Zeichen wie „(1023, ###“ mehr, wenn du eine Version übersprungen hast.
+- Einrichtung: Die Auswahl des Suchbereichs („Nur in Deutschland“ / „Überall“) wird wieder vollständig angezeigt.
 
 ## 1.0.246 — 2026-10-28
 

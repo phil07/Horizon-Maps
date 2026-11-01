@@ -9,11 +9,12 @@ import java.net.URLEncoder
 
 /** A place found nearby or along the route. [price] is pence per litre (fuel), [detourMin] the rough extra time to call there (-1 when not known). */
 /** [price] is in pence or cents a litre; [unit] says which ("p" or "€"), so it can be shown the local way (139.9p, €1.789). */
-data class Nearby(val place: Place, val dist: Double, val extra: String, val price: Double? = null, val detourMin: Int = -1, val ahead: Boolean = false, val unit: String = "p")
+data class Nearby(val place: Place, val dist: Double, val extra: String, val price: Double? = null, val detourMin: Int = -1, val ahead: Boolean = false, val unit: String = "p", val kw: Int? = null, val op: String? = null)
 
-/** A fuel price the local way: "139.9p" in the UK, "€1.789" in the euro countries. [price] is in pence or cents a litre. */
+/** A fuel price the local way: "139.9p" in the UK, "1,789 €" in Germany ("€1.789" in English). [price] is in pence or cents a litre. */
 fun fmtFuelPrice(price: Double, unit: String): String =
-    if (unit == "€") String.format(java.util.Locale.UK, "€%.3f", price / 100.0) else String.format(java.util.Locale.UK, "%.1fp", price)
+    if (unit == "€") (if (Lang.de) String.format(java.util.Locale.GERMANY, "%.3f €", price / 100.0) else String.format(java.util.Locale.UK, "€%.3f", price / 100.0))
+    else String.format(java.util.Locale.UK, "%.1fp", price)
 
 /** Free OpenStreetMap queries: speed limits, speed cameras and nearby fuel / charging / parking. */
 object Overpass {
@@ -106,7 +107,9 @@ object Overpass {
      * [names] holds its name and road numbers (to check another source is talking about the same road), and [sure] says the
      * road was matched closely and runs the way you are heading.
      */
-    class Limit(val ms: Double, val estimated: Boolean, val road: String = "", val wayId: Long = 0L, val names: List<String> = emptyList(), val sure: Boolean = false)
+    class Limit(val ms: Double, val estimated: Boolean, val road: String = "", val wayId: Long = 0L, val names: List<String> = emptyList(), val sure: Boolean = false,
+                /** No general limit at all (maxspeed=none, or an Autobahn in Germany with no limit posted): shown as the "end of all restrictions" sign. */
+                val noLimit: Boolean = false)
 
     /** Set when the last speed-limit lookup failed (no network, server busy…), null when it worked. */
     @Volatile var lastError: String? = null
@@ -135,6 +138,17 @@ object Overpass {
                 "living_street" -> 20 * mph
                 "service" -> 10 * mph
                 else -> 30 * mph
+            }
+            // Germany: 50 km/h in towns, 100 km/h outside; no general limit on the Autobahn or on other roads outside towns with
+            // two lanes each way split by a central reserve (130 km/h there is only the advised speed, never a limit to show)
+            "DE" -> when (base) {
+                "motorway" -> if (link) 60 * kmh else null
+                "trunk", "primary" -> if (link) 60 * kmh else if (lit) 50 * kmh
+                    else if (oneway || (tags.optString("lanes").toIntOrNull() ?: 0) >= 4) null else 100 * kmh
+                "secondary", "tertiary", "unclassified" -> if (link) 50 * kmh else if (lit) 50 * kmh else 100 * kmh
+                "residential" -> 30 * kmh
+                "living_street" -> 10 * kmh
+                else -> 50 * kmh
             }
             "US" -> when (base) {
                 "motorway" -> if (link) 45 * mph else 65 * mph
@@ -245,6 +259,12 @@ object Overpass {
             val t = w.tags
             // a limit that differs by direction: forward is the way the road is drawn
             val dirKey = if (heading >= 0 && bDiff > 90.0) "maxspeed:backward" else "maxspeed:forward"
+            // "none" (no limit, as on much of the Autobahn), "signals"/"variable" (overhead signs that change): there is no fixed
+            // number to show, and guessing one from the road type would put a made-up limit (130 on an Autobahn) on the sign
+            val rawMs = t.optString(dirKey).ifBlank { t.optString("maxspeed") }.trim().lowercase()
+            val noNumber = setOf("none", "signals", "variable", "de:motorway")
+            val unposted = rawMs in noNumber ||
+                (rawMs.isBlank() && t.optString("maxspeed:type").ifBlank { t.optString("source:maxspeed") }.trim().lowercase() in noNumber)
             val posted = parseSpeed(t.optString(dirKey), country)
                 ?: parseSpeed(t.optString("maxspeed"), country)
                 ?: parseSpeed(t.optString("maxspeed:type"), country)
@@ -256,9 +276,16 @@ object Overpass {
             val road = if (major && ref.isNotBlank()) ref else nm.ifBlank { ref }
             val names = (listOf(nm) + t.optString("ref").split(";").map { it.trim() }).filter { it.isNotBlank() }
             val sure = bDist <= 18.0 && bAligned
+            // explicitly no limit ("none" anywhere, "DE:motorway" in Germany); "signals"/"variable" stay unknown (the overhead signs decide)
+            val unType = if (rawMs.isBlank()) t.optString("maxspeed:type").ifBlank { t.optString("source:maxspeed") }.trim().lowercase() else rawMs
+            // (only really in Germany: the country can lag at a border, and Austrian or Swiss motorways do have a limit)
+            val inDe = country == "DE" && Zones.inGermany(p)
+            val none = unType == "none" || (unType == "de:motorway" && inDe)
             if (posted != null) Limit(posted, false, road, w.id, names, sure)
+            else if (unposted) Limit(-1.0, false, road, w.id, names, sure, noLimit = none)
             else estimate(t, country)?.let { Limit(if (country == "GB") snapGb(it) else it, true, road, w.id, names, sure) }
-                ?: Limit(-1.0, true, road, w.id, names, sure)
+                // a German Autobahn with no limit mapped: no general limit there
+                ?: Limit(-1.0, true, road, w.id, names, sure, noLimit = inDe && t.optString("highway") == "motorway")
         }
     } catch (e: Exception) { lastError = e.message ?: e.javaClass.simpleName; null }
 
@@ -271,9 +298,11 @@ object Overpass {
         if (country == "GB" || country == "US") return null
         return when (kind) {
             "urban" -> 50.0 / 3.6
-            "living_street" -> 20.0 / 3.6
+            "living_street" -> when (country) { "DE", "AT" -> null; else -> 20.0 / 3.6 }   // Germany/Austria: walking pace, no number
             "motorway" -> when (country) { "DE" -> null; else -> 130.0 / 3.6 }
-            else -> null      // "rural" differs too much between countries to guess
+            // "rural" differs too much between countries to guess, except where the law sets it
+            "rural" -> when (country) { "DE", "AT" -> 100.0 / 3.6; else -> null }
+            else -> null
         }
     }
 
@@ -354,6 +383,14 @@ object Overpass {
         }
     }
 
+    /** Stop signs (true) and give-way signs (false) inside a box. */
+    fun yieldSigns(minLat: Double, minLon: Double, maxLat: Double, maxLon: Double): List<Pair<LL, Boolean>> = run("[out:json][timeout:15];node($minLat,$minLon,$maxLat,$maxLon)[\"highway\"~\"^(stop|give_way)$\"];out body;", 10000, 20000, 2).let { els ->
+        (0 until els.length()).map {
+            val e = els.getJSONObject(it)
+            LL(e.getDouble("lat"), e.getDouble("lon")) to (e.getJSONObject("tags").getString("highway") == "stop")
+        }
+    }
+
     /**
      * Which way each known speed camera checks traffic (degrees, 0 = north), from OpenStreetMap's direction tag, keyed by [camKey].
      * Cameras without one aren't in here (they count for both directions).
@@ -429,8 +466,9 @@ object Overpass {
     }
 
     fun kindLabel(kind: String): String = when (kind) {
-        "fuel" -> "Fuel station"; "fuel_e85" -> "E85 station"; "charging" -> "Charging point"; "food" -> "Food"; "coffee" -> "Coffee"
-        "toilets" -> "Toilets"; "services" -> "Services"; else -> "Car park"
+        "fuel" -> Lang.t("Tankstelle", "Fuel station"); "fuel_e85" -> Lang.t("E85-Tankstelle", "E85 station"); "charging" -> Lang.t("Ladesäule", "Charging point")
+        "food" -> Lang.t("Essen", "Food"); "coffee" -> Lang.t("Kaffee", "Coffee")
+        "toilets" -> Lang.t("Toiletten", "Toilets"); "services" -> Lang.t("Raststätte", "Services"); else -> Lang.t("Parkplatz", "Car park")
     }
 
     /** kind: "fuel", "charging", "parking", "food", "coffee", "toilets" or "services". */
@@ -459,6 +497,8 @@ object Overpass {
             val label = kindLabel(kind)
             val name = tags.optString("name").ifBlank { tags.optString("brand") }.ifBlank { tags.optString("operator") }.ifBlank { label }
             val extra = ArrayList<String>()
+            var kw: Int? = null
+            var op: String? = null
             when (kind) {
                 "fuel", "fuel_e85" -> {
                     tags.optString("brand").takeIf { it.isNotBlank() && it != name }?.let { extra += it }
@@ -476,28 +516,62 @@ object Overpass {
                         }
                     }
                     if (sockets.isNotEmpty()) extra += sockets.take(3).joinToString(", ")
-                    tags.optString("capacity").takeIf { it.isNotBlank() }?.let { extra += "$it points" }
+                    tags.optString("capacity").takeIf { it.isNotBlank() }?.let { extra += Lang.t("$it Ladepunkte", "$it points") }
                     tags.optString("operator").takeIf { it.isNotBlank() && it != name }?.let { extra += it }
+                    kw = maxKw(tags)
+                    // who runs it, for preferred operators and the charge price: operator, else the brand or network it is sold under
+                    op = listOf("operator", "brand", "network").map { k -> tags.optString(k).trim() }.firstOrNull { v -> v.isNotEmpty() }
                 }
                 "parking" -> {
-                    when (tags.optString("fee")) { "yes" -> extra += "Paid"; "no" -> extra += "Free" }
-                    tags.optString("capacity").takeIf { it.isNotBlank() }?.let { extra += "$it spaces" }
-                    when (tags.optString("parking")) { "multi-storey" -> extra += "Multi-storey"; "underground" -> extra += "Underground" }
+                    when (tags.optString("fee")) { "yes" -> extra += Lang.t("Kostenpflichtig", "Paid"); "no" -> extra += Lang.t("Kostenlos", "Free") }
+                    tags.optString("capacity").takeIf { it.isNotBlank() }?.let { extra += Lang.t("$it Stellplätze", "$it spaces") }
+                    when (tags.optString("parking")) { "multi-storey" -> extra += Lang.t("Parkhaus", "Multi-storey"); "underground" -> extra += Lang.t("Tiefgarage", "Underground") }
                 }
                 "food", "coffee" -> {
                     tags.optString("cuisine").takeIf { it.isNotBlank() }?.let { extra += it.replace("_", " ").replace(";", ", ") }
                     tags.optString("opening_hours").takeIf { it.isNotBlank() }?.let { extra += it }
                 }
                 "toilets" -> {
-                    when (tags.optString("fee")) { "yes" -> extra += "Paid"; "no" -> extra += "Free" }
-                    if (tags.optString("wheelchair") == "yes") extra += "Accessible"
+                    when (tags.optString("fee")) { "yes" -> extra += Lang.t("Kostenpflichtig", "Paid"); "no" -> extra += Lang.t("Kostenlos", "Free") }
+                    if (tags.optString("wheelchair") == "yes") extra += Lang.t("Barrierefrei", "Accessible")
                 }
                 else -> {
                     tags.optString("operator").takeIf { it.isNotBlank() && it != name }?.let { extra += it }
                 }
             }
-            out += Nearby(Place(name, tags.optString("addr:street"), pos), Geo.dist(c, pos), extra.joinToString(" · "))
+            out += Nearby(Place(name, tags.optString("addr:street"), pos), Geo.dist(c, pos), extra.joinToString(" · "), kw = kw, op = op)
         }
         return out
+    }
+
+    // (a number followed by "x" is a count, as in "2x150 kW")
+    private val KW_RE = Regex("([0-9]+(?:[.,][0-9]+)?)\\s*(kw|mw|w)?(?![0-9x×])", RegexOption.IGNORE_CASE)
+
+    /** A charging station's top power (kW) from its tags, or null if none is mapped. Values come as "150 kW", "150kW;50 kW" or "50000 W". */
+    private fun maxKw(tags: JSONObject): Int? {
+        var best = 0.0
+        val keys = tags.keys()
+        while (keys.hasNext()) {
+            val k = keys.next()
+            val power = k == "charging_station:output" || k == "maxpower" || (k.startsWith("socket:") && k.endsWith(":output"))
+            if (!power) continue
+            for (part in tags.optString(k).split(';')) {
+                for (m in KW_RE.findAll(part.trim())) {
+                    val unit = m.groupValues[2].lowercase()
+                    val raw = m.groupValues[1]
+                    // "50,000 W" / "50.000 W": a separator before exactly three digits groups thousands
+                    val n = (if (unit != "kw" && unit != "mw" && Regex("^[0-9]{1,3}[.,][0-9]{3}$").matches(raw)) raw.replace(",", "").replace(".", "") else raw.replace(',', '.')).toDoubleOrNull() ?: continue
+                    val kwv = when (unit) {
+                        "w" -> n / 1000.0
+                        "mw" -> n * 1000.0
+                        "kw" -> n
+                        // no unit: a big number is surely watts
+                        else -> if (n > 1000) n / 1000.0 else n
+                    }
+                    if (kwv in 1.0..1500.0 && kwv > best) best = kwv
+                }
+            }
+        }
+        return if (best > 0) Math.round(best).toInt() else null
     }
 }

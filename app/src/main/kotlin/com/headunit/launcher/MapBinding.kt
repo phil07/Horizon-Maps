@@ -1,5 +1,8 @@
 package com.headunit.launcher
 
+import com.headunit.launcher.R
+import androidx.compose.ui.res.stringResource
+
 import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.min
@@ -107,6 +110,8 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
     private var main: List<LL> = emptyList()
     private var alts: List<List<LL>> = emptyList()
     private var dest: LL? = null
+    /** Stops on the way, in order, each with whether it's a charging stop (drawn with a lightning bolt). */
+    private var via: List<Pair<LL, Boolean>> = emptyList()
     private var me: LL? = null
     private var meHeading = 0.0
 
@@ -154,7 +159,7 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
         val opts = MapInitOptions(
             context = ctx,
             mapOptions = MapOptions.Builder().applyDefaultParams(ctx).pixelRatio(pr).build(),
-            cameraOptions = CameraOptions.Builder().center(Point.fromLngLat(-0.1276, 51.5072)).zoom(14.0).pitch(55.0).build(),
+            cameraOptions = CameraOptions.Builder().center(Point.fromLngLat(13.4050, 52.5200)).zoom(14.0).pitch(55.0).build(),
             // the phone moves the map between pages (texture view, can be clipped to round corners); the car draws straight to a surface
             textureView = !fast,
             // no style yet: it's chosen by the engine (and needs a token first)
@@ -430,7 +435,7 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
                 try { install(st) } catch (e: Throwable) { android.util.Log.w("MapBinding", "install failed", e) }
                 onStyleLoaded?.invoke()
             }
-        } catch (e: Throwable) { onError?.invoke(e.message ?: "Map failed to load") }
+        } catch (e: Throwable) { onError?.invoke(e.message ?: Lang.t("Karte konnte nicht geladen werden", "Map failed to load")) }
     }
 
     /** Adds a picture to the map at the size MapLibre gave it (its pixels at the bitmap's own density). */
@@ -497,8 +502,9 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
     }
 
     /** Google-style destination pin: red teardrop with a white centre. */
-    /** Where you parked, shown on the map ("Your car"), or null for none. */
+    /** Where you parked, shown on the map (Lang.t("Dein Auto", "Your car")), or null for none. */
     @Volatile private var parkedAt: LL? = null
+
     fun setParked(p: LL?) {
         if (p == parkedAt || (p != null && parkedAt != null && Geo.dist(p, parkedAt!!) < 1.0)) return
         parkedAt = p
@@ -624,6 +630,32 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
         c.drawPath(path, Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xFFEA4335.toInt(); style = Paint.Style.FILL })
         c.drawCircle(48f, 44f, 13f, Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xFF8C1D18.toInt() })
         c.drawCircle(48f, 44f, 11f, Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xFFFFFFFF.toInt() })
+        return bmp
+    }
+
+    /** A charging stop on the way: a teal disc with a white lightning bolt (ring and shadow like the other markers). */
+    private fun viaEvBitmap(): Bitmap {
+        val bmp = Bitmap.createBitmap(96, 96, Bitmap.Config.ARGB_8888)
+        val c = Canvas(bmp)
+        c.drawCircle(48f, 50f, 42f, Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0x55000000 })
+        c.drawCircle(48f, 48f, 42f, Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xFFFFFFFF.toInt() })
+        c.drawCircle(48f, 48f, 35f, Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xFF00A884.toInt() })
+        val bolt = Path().apply {
+            moveTo(55f, 16f); lineTo(29f, 53f); lineTo(45f, 53f); lineTo(39f, 80f)
+            lineTo(67f, 41f); lineTo(51f, 41f); lineTo(58f, 16f); close()
+        }
+        c.drawPath(bolt, Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xFFFFFFFF.toInt(); style = Paint.Style.FILL })
+        return bmp
+    }
+
+    /** Any other stop on the way: a smaller neutral grey disc with a white centre, so it doesn't compete with the destination pin. */
+    private fun viaStopBitmap(): Bitmap {
+        val bmp = Bitmap.createBitmap(64, 64, Bitmap.Config.ARGB_8888)
+        val c = Canvas(bmp)
+        c.drawCircle(32f, 34f, 27f, Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0x55000000 })
+        c.drawCircle(32f, 32f, 27f, Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xFFFFFFFF.toInt() })
+        c.drawCircle(32f, 32f, 21f, Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xFF5F6368.toInt() })
+        c.drawCircle(32f, 32f, 8f, Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xFFFFFFFF.toInt() })
         return bmp
     }
 
@@ -852,7 +884,7 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
         c.drawPath(octagon(35f), Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xFFFFFFFF.toInt() })
         c.drawPath(octagon(30f), Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xFFC8102E.toInt() })
         val tp = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xFFFFFFFF.toInt(); textSize = 18f; typeface = android.graphics.Typeface.DEFAULT_BOLD; textAlign = Paint.Align.CENTER }
-        c.drawText("STOP", s / 2f, s / 2f - (tp.descent() + tp.ascent()) / 2f, tp)
+        c.drawText(ctx.getString(R.string.ui_042), s / 2f, s / 2f - (tp.descent() + tp.ascent()) / 2f, tp)
         return bmp
     }
 
@@ -1117,7 +1149,7 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
     var lampGap = 40.0
         private set
     /** What the lamps are doing now, for Settings. */
-    @Volatile var lampStage = "waiting for the map"
+    @Volatile var lampStage = Lang.t("warte auf die Karte", "waiting for the map")
     fun lampInfo(): String = if (!lampsOn) "off" else lampStage
 
     /** Streets lamps stand along (not motorways or tunnels), from the last look at the roads on screen. */
@@ -1154,7 +1186,7 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
         // the lamp post itself, and its lamp (lit up at night)
         addL(st, Furniture.layer("dl-lamp-post", "dl-lamps", Furniture.LAMP, if (night) 0.3 else 0.0, 15.0, lampSize()).inSlot(MID))
         addL(st, Furniture.layer("dl-lamp-light", "dl-lamps", Furniture.LAMP_LENS, if (night) 1.0 else 0.15, 15.0, lampSize()).inSlot(MID))
-        lampStage = "waiting for the map"
+        lampStage = Lang.t("warte auf die Karte", "waiting for the map")
         main0.postDelayed({ refreshLamps(true) }, 300L)
     }
 
@@ -1162,11 +1194,11 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
     private fun refreshLamps(force: Boolean = false) {
         if (lampsBusy) return
         val st = style ?: return
-        val wantLamps = lampsOn && st.styleSourceExists("dl-lamps")
+        val wantLamps = prefs.b(PreferenceKeys.LAMPS, false) && st.styleSourceExists("dl-lamps")
         val wantLights = signalsOn && st.styleSourceExists("dl-signals-near")
         if (!wantLamps && !wantLights) return
         val cam = try { mbMap.cameraState } catch (e: Throwable) { return }
-        if (cam.zoom < 14.0) { if (wantLamps) lampStage = "zoom in closer to see them"; return }
+        if (cam.zoom < 14.0) { if (wantLamps) lampStage = Lang.t("näher heranzoomen, um sie zu sehen", "zoom in closer to see them"); return }
         val c = LL(cam.center.latitude(), cam.center.longitude())
         val now = android.os.SystemClock.uptimeMillis()
         val last = lampsCentre
@@ -1246,12 +1278,12 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
         val pools = kept.map { val h = Furniture.offset(LL(it[0], it[1]), it[2], 2.5); Feature.fromGeometry(Point.fromLngLat(h.lon, h.lat)) }
         val placedOnRoads = kept.size - minOf(kept.size, near.size)
         val note = when {
-            kept.isEmpty() && roads.isEmpty() -> "no streets read from the map here yet"
-            kept.isEmpty() -> "none here"
-            mapped.isNotEmpty() && placedOnRoads > 0 -> "${kept.size} shown (${near.size} mapped, $placedOnRoads placed along the streets)"
-            mapped.isNotEmpty() -> "${kept.size} shown, from your offline pack"
-            !OfflineRouter.hasLamps(ctx) -> "${kept.size} placed along the streets (your offline pack has no lamp list)"
-            else -> "${kept.size} placed along the streets (none mapped here)"
+            kept.isEmpty() && roads.isEmpty() -> Lang.t("hier noch keine Straßen aus der Karte gelesen", "no streets read from the map here yet")
+            kept.isEmpty() -> Lang.t("hier keine", "none here")
+            mapped.isNotEmpty() && placedOnRoads > 0 -> Lang.t("${kept.size} angezeigt (${near.size} erfasst, $placedOnRoads entlang der Straßen gesetzt)", "${kept.size} shown (${near.size} mapped, $placedOnRoads placed along the streets)")
+            mapped.isNotEmpty() -> Lang.t("${kept.size} angezeigt, aus deinem Offline-Paket", "${kept.size} shown, from your offline pack")
+            !OfflineRouter.hasLamps(ctx) -> Lang.t("${kept.size} entlang der Straßen gesetzt (dein Offline-Paket hat keine Laternenliste)", "${kept.size} placed along the streets (your offline pack has no lamp list)")
+            else -> Lang.t("${kept.size} entlang der Straßen gesetzt (hier keine erfasst)", "${kept.size} placed along the streets (none mapped here)")
         }
         return Triple(posts, pools, note)
     }
@@ -1327,7 +1359,7 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
     var signalsOn = true
     @Volatile private var signalPts: List<LL> = emptyList()
     @Volatile private var signalErr = ""
-    @Volatile private var signalStage = "not started"
+    @Volatile private var signalStage = Lang.t("nicht gestartet", "not started")
     @Volatile private var signalToken = 0
     @Volatile private var signalBusy = false
     private var sigRoute: List<LL>? = null
@@ -1344,7 +1376,7 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
     /** One line for the settings page: how many lights are known and whether the last fetch worked. */
     fun signalInfo(): String {
         if (!signalsOn) return "off"
-        if (main.size < 2) return "no route (lights only show on your route)"
+        if (main.size < 2) return Lang.t("keine Route (Ampeln erscheinen nur auf deiner Route)", "no route (lights only show on your route)")
         val onR = signalShown
         return "$onR on the drawn route, ${signalPts.size} found along it" + (if (signalErr.isNotEmpty()) ", last error: $signalErr" else "") + ", status: $signalStage"
     }
@@ -1352,7 +1384,7 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
     /** A short version for the performance meter. */
     fun signalShort(): String {
         if (!signalsOn) return "off"
-        if (main.size < 2) return "no route"
+        if (main.size < 2) return Lang.t("keine Route", "no route")
         val onR = signalShown
         return "$onR shown/${signalPts.size} found" + (if (signalErr.isNotEmpty()) " ($signalErr)" else "") + " · $signalStage"
     }
@@ -1519,7 +1551,7 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
         if (route.size < 2 || route === sigRoute) return
         sigRoute = route
         val token = ++signalToken
-        signalBusy = true; signalErr = ""; signalStage = "finding lights along the route…"
+        signalBusy = true; signalErr = ""; signalStage = Lang.t("suche Ampeln entlang der Route…", "finding lights along the route…")
         Thread {
             try {
                 // points every ~50 m along the route
@@ -1551,7 +1583,7 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
                 for (ch in chunks) {
                     if (token != signalToken) return@Thread
                     n++
-                    signalStage = "finding lights along the route ($n of ${chunks.size})…"
+                    signalStage = Lang.t("suche Ampeln entlang der Route ($n von ${chunks.size})…", "finding lights along the route ($n of ${chunks.size})…")
                     val cells = HashSet<Long>()
                     for (i in 0 until ch.size - 1) cellsAlong(ch[i], ch[i + 1], cells)
                     var found: List<LL>? = null
@@ -1619,7 +1651,7 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
                 main0.post {
                     if (token == signalToken) {
                         signalPts = snap; pushSignals(); signalBusy = false
-                        signalStage = if (signalErr.isEmpty()) "route searched (${if (usedPack) "downloaded area" else Overpass.lastNote})" else "some of the route couldn't be searched, will retry"
+                        signalStage = if (signalErr.isEmpty()) "route searched (${if (usedPack) "downloaded area" else Overpass.lastNote})" else Lang.t("ein Teil der Route konnte nicht durchsucht werden, neuer Versuch folgt", "some of the route couldn't be searched, will retry")
                     }
                 }
             } catch (e: Throwable) {
@@ -1718,6 +1750,7 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
         addS(st, GeoJsonSource.Builder("dl-flow").featureCollection(empty()).lineMetrics(true).build())
         addS(st, GeoJsonSource.Builder("dl-done").featureCollection(empty()).build())
         addS(st, GeoJsonSource.Builder("dl-dest").featureCollection(empty()).build())
+        addS(st, GeoJsonSource.Builder("dl-via").featureCollection(empty()).build())
         addS(st, GeoJsonSource.Builder("dl-hazards").featureCollection(empty()).build())
         addS(st, GeoJsonSource.Builder("dl-me").featureCollection(empty()).build())
         // the arrow at the next turn, drawn on the route; no simplification, so small shapes keep their corners
@@ -1741,7 +1774,7 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
         for ((id, side) in listOf("dl-avg-edge-l" to -1.0, "dl-avg-edge-r" to 1.0)) addL(st, LineLayer(id, "dl-avg").inSlot(MID).lineEmissiveStrength(1.0)
             .lineCap(LineCap.BUTT).lineJoin(LineJoin.ROUND).lineColor("#FFCC00").lineOpacity(0.95)
             .lineWidth(zoomed(2.0, 12 to 1.2, 16 to 2.6, 20 to 8.0)).lineDasharray(listOf(3.0, 2.2))
-            .lineOffset(zoomed(2.0, 12 to 4.0 * side, 16 to 15.0 * side, 20 to 240.0 * side)))
+            .lineOffset(zoomed(2.0, 12 to 4.0 * side, 16 to 15.0 * side, 20 to 150.0 * side)))
         // zebra crossings on the route: white stripes painted across the road, with Belisha beacons at each side (close in only)
         addImg(st, "dl-zebra", zebraBitmap()); addImg(st, "dl-beacon", beaconBitmap())
         addS(st, GeoJsonSource.Builder("dl-zebras").featureCollection(FeatureCollection.fromFeatures(zebraFeats())).build())
@@ -1876,6 +1909,14 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
             .iconSize(zoomed(1.0, 13 to 0.3, 16 to 0.46, 18 to 0.6)))
         addL(st, SymbolLayer("dl-parked-l", "dl-parked").iconImage("dl-car-pin").iconAllowOverlap(true).iconIgnorePlacement(true)
             .iconPitchAlignment(IconPitchAlignment.VIEWPORT).iconEmissiveStrength(1.0).iconSize(zoomed(1.0, 10 to 0.4, 15 to 0.55, 18 to 0.7)))
+        // the stops on the way (under the destination, so the pin stays on top where they meet). Pictures in both looks:
+        // a charging stop has to read as one at a glance, which a plain dot can't do
+        addImg(st, "dl-via-ev", viaEvBitmap())
+        addImg(st, "dl-via-stop", viaStopBitmap())
+        addL(st, SymbolLayer("dl-via-l", "dl-via")
+            .iconImage(Expression.get("img")).iconEmissiveStrength(1.0)
+            .iconAllowOverlap(true).iconIgnorePlacement(true).iconPitchAlignment(IconPitchAlignment.VIEWPORT)
+            .iconSize(zoomed(1.0, 8 to 0.4, 13 to 0.5, 16 to 0.62, 18 to 0.72)))
         if (im) {
             addImg(st, "dl-pin", pinBitmap())
             addL(st, SymbolLayer("dl-dest-dot", "dl-dest")
@@ -2132,7 +2173,7 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
 
     private fun pushAll() {
         pushLive(); pushRadar(); pushTurn()
-        pushRoute(); pushDest(); pushMe(); pushHazards(); pushCams(); pushSignals()
+        pushRoute(); pushDest(); pushVia(); pushMe(); pushHazards(); pushCams(); pushSignals()
     }
 
     private var cams: List<LL> = emptyList()
@@ -2221,8 +2262,8 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
     }
 
     private var hazards: List<Pair<LL, Int>> = emptyList()
-    /** Map icons by kind: camera, roadworks, closure, police, accident, hazard, breakdown, mobile camera. */
-    private val hazardNames = arrayOf("dl-hz-cam", "dl-hz-work", "dl-hz-closed", "dl-hz-police", "dl-hz-accident", "dl-hz-hazard", "dl-hz-breakdown", "dl-hz-mobilecam")
+    /** Map icons by kind: camera, roadworks, closure, police, accident, hazard, breakdown, mobile camera, traffic jam. */
+    private val hazardNames = arrayOf("dl-hz-cam", "dl-hz-work", "dl-hz-closed", "dl-hz-police", "dl-hz-accident", "dl-hz-hazard", "dl-hz-breakdown", "dl-hz-mobilecam", "dl-hz-jam")
 
     /** Icons for speed cameras (0), roadworks (1) and closures (2) along the route. */
     fun setHazards(list: List<Pair<LL, Int>>) { hazards = list; pushHazards() }
@@ -2288,6 +2329,18 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
                 c.drawRoundRect(android.graphics.RectF(cx - 11f, cx - 13f, cx + 11f, cx - 2f), 5f, 5f, p(0xFFFFFFFF.toInt()))
                 c.drawCircle(cx - 10f, cx + 11f, 4.5f, p(0xFF37474F.toInt()))
                 c.drawCircle(cx + 10f, cx + 11f, 4.5f, p(0xFF37474F.toInt()))
+            }
+            8 -> {
+                badge(0xFFBF360C.toInt(), 0xFFF4511E.toInt(), "")
+                // a queue: two small cars one behind the other, the back one a little faded
+                val back = p(0xCCFFFFFF.toInt())
+                c.drawRoundRect(android.graphics.RectF(cx - 20f, cx - 17f, cx + 2f, cx - 7f), 4f, 4f, back)
+                c.drawRoundRect(android.graphics.RectF(cx - 15f, cx - 23f, cx - 3f, cx - 15f), 4f, 4f, back)
+                val front = p(0xFFFFFFFF.toInt())
+                c.drawRoundRect(android.graphics.RectF(cx - 6f, cx + 1f, cx + 20f, cx + 12f), 4f, 4f, front)
+                c.drawRoundRect(android.graphics.RectF(cx, cx - 6f, cx + 14f, cx + 3f), 4f, 4f, front)
+                c.drawCircle(cx - 1f, cx + 14f, 3.8f, p(0xFF37474F.toInt()))
+                c.drawCircle(cx + 15f, cx + 14f, 3.8f, p(0xFF37474F.toInt()))
             }
             7 -> {
                 c.drawCircle(cx, cx + 2f, 38f, p(0x55000000))
@@ -2432,7 +2485,7 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
     fun setRoute(mainPts: List<LL>, altPts: List<List<LL>>, sev: IntArray? = null) {
         main = mainPts; alts = altPts; mainSev = sev; mainOff = 0; pushRoute(); pushSignals()
         if (mainPts.isEmpty()) { setAvgZones(emptyList(), emptyList()); setTunnels(emptyList()); setCrossings(emptyList()); setStopSigns(emptyList()) }
-        if (mainPts.size >= 2) loadSignalsAlong(mainPts) else { sigRoute = null; signalToken++; signalBusy = false; signalStage = "no route" }
+        if (mainPts.size >= 2) loadSignalsAlong(mainPts) else { sigRoute = null; signalToken++; signalBusy = false; signalStage = Lang.t("keine Route", "no route") }
         val on = mainPts.isNotEmpty()
         if (on != routing) { routing = on; applyTraffic(); applyNearLook() }
         syncFlow()
@@ -2452,8 +2505,8 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
      */
     private fun bubbleBitmap(diff: Int, traffic: Int = 0): Bitmap {
         val d = mapView.resources.displayMetrics.density * 2f
-        val top = if (diff < 0) "${-diff} min faster" else if (diff > 0) "$diff min slower" else "Same time"
-        val sub = when (traffic) { -1 -> "Less traffic"; 1 -> "More traffic"; else -> "Similar traffic" }
+        val top = if (diff < 0) Lang.t("${-diff} Min. schneller", "${-diff} min faster") else if (diff > 0) Lang.t("$diff Min. langsamer", "$diff min slower") else Lang.t("Gleiche Zeit", "Same time")
+        val sub = when (traffic) { -1 -> Lang.t("Weniger Verkehr", "Less traffic"); 1 -> Lang.t("Mehr Verkehr", "More traffic"); else -> Lang.t("Ähnlicher Verkehr", "Similar traffic") }
         // day: a light card with dark writing, like the rest of the day look; night: the dark card. A faster way is green in both
         val day = !nightStyle
         val green = diff < 0
@@ -3490,6 +3543,8 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
         pushSignals()
     }
     fun setDest(p: LL?) { dest = p; pushDest() }
+    /** The stops on the way, in order; true = a charging stop. Kept, so they're drawn again after a style change. */
+    fun setVia(stops: List<Pair<LL, Boolean>>) { via = stops; pushVia() }
     private var meAnim: android.animation.ValueAnimator? = null
     private var lastMePush = 0L
 
@@ -3539,6 +3594,13 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
         val s = src("dl-dest") ?: return
         val d = dest
         if (d != null) s.feature(Feature.fromGeometry(Point.fromLngLat(d.lon, d.lat))) else s.featureCollection(empty())
+    }
+
+    private fun pushVia() {
+        val s = src("dl-via") ?: return
+        s.featureCollection(FeatureCollection.fromFeatures(via.map { (p, ev) ->
+            Feature.fromGeometry(Point.fromLngLat(p.lon, p.lat)).also { it.addStringProperty("img", if (ev) "dl-via-ev" else "dl-via-stop") }
+        }))
     }
 
     private var meShownFlat = false

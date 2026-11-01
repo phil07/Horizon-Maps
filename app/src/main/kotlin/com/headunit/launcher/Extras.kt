@@ -38,6 +38,6 @@ class HabitStore(private val prefs: Prefs) {
         if (best.size < 3) return null
         val r = best.last()
         val avg = best.map { minutes(it.t) }.average().toInt()
-        return Place(r.name, "Usually around %02d:%02d".format(avg / 60, avg % 60), LL(r.lat, r.lon))
+        return Place(r.name, Lang.t("Meist gegen %02d:%02d", "Usually around %02d:%02d").format(avg / 60, avg % 60), LL(r.lat, r.lon))
     }
 }

@@ -1,5 +1,9 @@
 package com.headunit.launcher.ui
 
+import com.headunit.launcher.R
+import com.headunit.launcher.Lang
+import androidx.compose.ui.res.stringResource
+
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
@@ -96,6 +100,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
@@ -122,6 +127,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.headunit.launcher.Geo
+import com.headunit.launcher.Junctions
 import com.headunit.launcher.LL
 import com.headunit.launcher.NavEngine
 import kotlinx.coroutines.delay
@@ -199,7 +205,7 @@ private fun MapScreen(engine: NavEngine, onSettings: () -> Unit) {
     var q by rememberSaveable { mutableStateOf("") }
     var sheet by remember { mutableStateOf(false) }
     // voice: "take me to…", "share my ETA", "avoid this road", "mute"… anything else is searched for
-    val voice = rememberVoiceInput("Say a destination or a command") { said ->
+    val voice = rememberVoiceInput(Lang.t("Sag ein Ziel oder einen Befehl", "Say a destination or a command")) { said ->
         when (val r = engine.handleVoice(said)) {
             null -> { q = said; engine.search(said) }
             "share" -> shareEta()
@@ -316,8 +322,8 @@ private fun MapScreen(engine: NavEngine, onSettings: () -> Unit) {
             // are on the trip card while navigating, Settings is beside these when you're not (and in map options' header when you are)
             val railItems = ArrayList<@Composable () -> Unit>()
             railItems.add(@Composable { ImmCompass(engine) })
-            railItems.add(@Composable { ImmIcon(Icons.Rounded.Layers, { sheet = !sheet }, active = sheet, desc = "Map options") })
-            if (!simple && (engine.prefs.b(PreferenceKeys.DEMO, false) || engine.simMode != 0)) railItems.add(@Composable { ImmIcon(Icons.Rounded.PlayArrow, { engine.cycleSim() }, active = engine.simMode != 0, desc = "Demo drive") })
+            railItems.add(@Composable { ImmIcon(Icons.Rounded.Layers, { sheet = !sheet }, active = sheet, desc = Lang.t("Kartenoptionen", "Map options")) })
+            if (!simple && (engine.prefs.b(PreferenceKeys.DEMO, false) || engine.simMode != 0)) railItems.add(@Composable { ImmIcon(Icons.Rounded.PlayArrow, { engine.cycleSim() }, active = engine.simMode != 0, desc = Lang.t("Demofahrt", "Demo drive")) })
             // zoom: hidden while the map is following you on the move (it zooms itself); back as soon as you touch or zoom the map, or
             // whenever you're stopped. (A little hysteresis on the speed, so it doesn't flicker at walking pace.)
             var stopped by remember { mutableStateOf(true) }
@@ -349,13 +355,13 @@ private fun MapScreen(engine: NavEngine, onSettings: () -> Unit) {
                 val zoom: @Composable () -> Unit = {
                     AnimatedVisibility(showZoom, enter = fadeIn(tween(200)) + androidx.compose.animation.expandVertically(tween(220)), exit = fadeOut(tween(250)) + androidx.compose.animation.shrinkVertically(tween(260))) {
                         Column(Modifier.panel(6.dp, RoundedCornerShape(26.dp), c.surface), horizontalAlignment = Alignment.CenterHorizontally) {
-                            Box(Modifier.size(52.dp).pressClick { engine.zoom(1.0) }, contentAlignment = Alignment.Center) { Icon(Icons.Rounded.Add, "Zoom in", tint = c.text, modifier = Modifier.size(26.dp)) }
+                            Box(Modifier.size(52.dp).pressClick { engine.zoom(1.0) }, contentAlignment = Alignment.Center) { Icon(Icons.Rounded.Add, Lang.t("Hineinzoomen", "Zoom in"), tint = c.text, modifier = Modifier.size(26.dp)) }
                             Box(Modifier.width(26.dp).height(1.dp).background(c.line))
-                            Box(Modifier.size(52.dp).pressClick { engine.zoom(-1.0) }, contentAlignment = Alignment.Center) { Icon(Icons.Rounded.Remove, "Zoom out", tint = c.text, modifier = Modifier.size(26.dp)) }
+                            Box(Modifier.size(52.dp).pressClick { engine.zoom(-1.0) }, contentAlignment = Alignment.Center) { Icon(Icons.Rounded.Remove, Lang.t("Herauszoomen", "Zoom out"), tint = c.text, modifier = Modifier.size(26.dp)) }
                         }
                     }
                 }
-                val settings: @Composable () -> Unit = { if (showSettings) ImmIcon(Icons.Rounded.Settings, { sheet = false; onSettings() }, desc = "Settings") }
+                val settings: @Composable () -> Unit = { if (showSettings) ImmIcon(Icons.Rounded.Settings, { sheet = false; onSettings() }, desc = Lang.t("Einstellungen", "Settings")) }
                 // the panel against the screen edge with zoom under it (or beside it), in as many columns as it needs
                 val panelAndZoom: @Composable () -> Unit = {
                     Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.Top) {
@@ -390,7 +396,13 @@ private fun MapScreen(engine: NavEngine, onSettings: () -> Unit) {
             val baseSpeedDensity = LocalDensity.current
             // (sized by Settings > Screen & sizes > Speed limit and speedometer size, inside ImmSpeed)
             val speedSize = 1f
-            CompositionLocalProvider(LocalDensity provides Density(baseSpeedDensity.density * speedSize, baseSpeedDensity.fontScale)) { ImmSpeed(engine) }
+            CompositionLocalProvider(LocalDensity provides Density(baseSpeedDensity.density * speedSize, baseSpeedDensity.fontScale)) {
+                // the car's battery level sits right above the speed, on the same side
+                Column(horizontalAlignment = if (engine.mirrored) Alignment.Start else Alignment.End) {
+                    EvNowChip(engine)
+                    ImmSpeed(engine)
+                }
+            }
         }
 
         // ---- bottom left: hazards and the trip card
@@ -412,18 +424,24 @@ private fun MapScreen(engine: NavEngine, onSettings: () -> Unit) {
             enter = fadeIn(tween(200)) + androidx.compose.animation.scaleIn(tween(220), initialScale = 0.85f), exit = fadeOut(tween(150)) + androidx.compose.animation.scaleOut(tween(150), targetScale = 0.9f),
         ) {
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
-                ImmPill("Re-centre", { engine.recenter() }, Icons.Rounded.MyLocation, filled = true)
+                ImmPill(stringResource(R.string.ui_082), { engine.recenter(byUser = true) }, Icons.Rounded.MyLocation, filled = true)
                 // zoomed with + and - while following you, with no route: keep this as your normal zoom
-                if (!routing && engine.following && kotlin.math.abs(engine.zoomOffset) > 0.01) ImmPill("Make this my default", { engine.saveZoomAsDefault() }, Icons.Rounded.ZoomIn)
+                if (!routing && engine.following && kotlin.math.abs(engine.zoomOffset) > 0.01) ImmPill(Lang.t("Als Standard verwenden", "Make this my default"), { engine.saveZoomAsDefault() }, Icons.Rounded.ZoomIn)
             }
         }
 
         // ---- top centre: the traffic view while you're stopped (it goes back by itself when you move off)
-        AnimatedVisibility(engine.stoppedOverview && !previewing, modifier = Modifier.align(Alignment.TopCenter).padding(top = 16.dp),
+        // shown for 5 seconds when the traffic view comes on, then gone (the view stays until you move)
+        var stoppedHint by remember { mutableStateOf(false) }
+        LaunchedEffect(engine.stoppedOverview) {
+            stoppedHint = engine.stoppedOverview
+            if (engine.stoppedOverview) { delay(5000); stoppedHint = false }
+        }
+        AnimatedVisibility(stoppedHint && engine.stoppedOverview && !previewing, modifier = Modifier.align(Alignment.TopCenter).padding(top = 16.dp),
             enter = fadeIn(tween(300)), exit = fadeOut(tween(250))) {
             Row(Modifier.panel(6.dp, RoundedCornerShape(20.dp), c.surface).padding(horizontal = 14.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
                 Icon(Icons.Rounded.Traffic, null, tint = c.accent, modifier = Modifier.size(18.dp))
-                Text("Traffic round you · back when you move", color = c.text, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(start = 8.dp))
+                Text(stringResource(R.string.ui_060), color = c.text, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(start = 8.dp))
             }
         }
 
@@ -446,11 +464,30 @@ private fun MapScreen(engine: NavEngine, onSettings: () -> Unit) {
             ) {
                 Box(Modifier.size(44.dp).clip(CircleShape).background(Good.copy(alpha = 0.18f)), contentAlignment = Alignment.Center) { Icon(Icons.Rounded.Route, null, tint = Good, modifier = Modifier.size(24.dp)) }
                 Column {
-                    Text("Faster route found", color = c.text, fontSize = 18.sp, fontWeight = FontWeight.Bold)
-                    Text("Saves about ${fr.savedMin} min", color = Good, fontSize = 14.sp, fontWeight = FontWeight.Medium)
+                    Text(stringResource(R.string.ui_015), color = c.text, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                    Text(Lang.t("Spart etwa ${fr.savedMin} Min.", "Saves about ${fr.savedMin} min"), color = Good, fontSize = 14.sp, fontWeight = FontWeight.Medium)
                 }
-                ImmPill("Switch", { engine.acceptFaster() }, filled = true)
-                ImmPill("Keep", { engine.dismissFaster() })
+                ImmPill(Lang.t("Wechseln", "Switch"), { engine.acceptFaster() }, filled = true)
+                ImmPill(Lang.t("Behalten", "Keep"), { engine.dismissFaster() })
+            }
+        }
+
+        // passing another driver's shared report: "Stau noch da?" with Noch da / Weg (it goes by itself after 12 s; above the faster
+        // route card when that is up too)
+        engine.votePrompt?.takeIf { !previewing && engine.arrival == null }?.let { vp ->
+            Row(
+                Modifier.align(Alignment.BottomCenter).padding(start = 16.dp, end = 16.dp, bottom = (if (narrow) tripH + 10.dp else 84.dp) + (if (engine.faster != null) 92.dp else 0.dp))
+                    .widthIn(max = 540.dp).panel(10.dp, RoundedCornerShape(24.dp), c.surface).padding(horizontal = 18.dp, vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                Box(Modifier.size(40.dp).clip(CircleShape).background(Warn.copy(alpha = 0.18f)), contentAlignment = Alignment.Center) { Icon(Icons.Rounded.NotificationsActive, null, tint = Warn, modifier = Modifier.size(22.dp)) }
+                Text(Lang.t("${vp.name} noch da?", "${vp.name} still there?"), color = c.text, fontSize = 17.sp, fontWeight = FontWeight.Bold, maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))
+                ImmPill(Lang.t("Noch da", "Still there"), { engine.answerVote(true) }, filled = true)
+                ImmPill(Lang.t("Weg", "Gone"), { engine.answerVote(false) })
+                // closes the question without a vote
+                Box(Modifier.size(34.dp).clip(CircleShape).pressClick { engine.dismissVote() }, contentAlignment = Alignment.Center) {
+                    Icon(Icons.Rounded.Close, Lang.t("Schließen", "Close"), tint = c.sub, modifier = Modifier.size(18.dp))
+                }
             }
         }
 
@@ -493,42 +530,42 @@ private fun OptionsSheet(engine: NavEngine, shareEta: () -> Unit, wide: Boolean 
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Text("Map options", color = c.text, fontSize = 20.sp, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
-            ImmIcon(Icons.Rounded.Settings, onSettings, size = 42.dp, desc = "Settings")
+            Text(stringResource(R.string.ui_033), color = c.text, fontSize = 20.sp, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
+            ImmIcon(Icons.Rounded.Settings, onSettings, size = 42.dp, desc = Lang.t("Einstellungen", "Settings"))
             Spacer(Modifier.width(8.dp))
-            ImmIcon(Icons.Rounded.Close, close, size = 42.dp, desc = "Close")
+            ImmIcon(Icons.Rounded.Close, close, size = 42.dp, desc = Lang.t("Schließen", "Close"))
         }
         val mapPart: @Composable () -> Unit = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 // quick rows: the view and the sound (they were round buttons on the map)
-                SheetHeading("View")
+                SheetHeading(Lang.t("Ansicht", "View"))
                 Segments(listOf("2D", "3D"), if (engine.tilt3d) 1 else 0) { i -> if ((i == 1) != engine.tilt3d) engine.toggleTilt() }
-                SheetHeading("Sound")
-                Segments(listOf("Voice", "Alerts only", "Mute"), engine.soundMode) { i -> p.put(PreferenceKeys.SOUND_MODE, i) }
-                SheetHeading("Map")
+                SheetHeading(Lang.t("Ton", "Sound"))
+                Segments(listOf(Lang.t("Sprache", "Voice"), Lang.t("Nur Warnungen", "Alerts only"), Lang.t("Stumm", "Mute")), engine.soundMode) { i -> p.put(PreferenceKeys.SOUND_MODE, i) }
+                SheetHeading(Lang.t("Karte", "Map"))
                 // the map's look: two picture cards, then day and night
                 val sat = p.b(PreferenceKeys.SATELLITE, false)
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     LookCard(Modifier.weight(1f), "Standard", false, !sat) { p.put(PreferenceKeys.SATELLITE, false) }
-                    LookCard(Modifier.weight(1f), "Satellite", true, sat) { p.put(PreferenceKeys.SATELLITE, true) }
+                    LookCard(Modifier.weight(1f), Lang.t("Satellit", "Satellite"), true, sat) { p.put(PreferenceKeys.SATELLITE, true) }
                 }
                 // Auto covers every automatic choice in Settings (headlights, sun times, your own times): tapping it while one of those
                 // is on leaves it as it is
                 val theme = p.s(PreferenceKeys.THEME, "auto")
                 val seg = when (theme) { "day" -> 1; "night" -> 2; else -> 0 }
-                Segments(listOf("Auto", "Day", "Night"), seg) { i -> if (i != seg) p.put(PreferenceKeys.THEME, listOf("auto", "day", "night")[i]) }
-                SheetHeading("On the map")
+                Segments(listOf("Auto", Lang.t("Tag", "Day"), Lang.t("Nacht", "Night")), seg) { i -> if (i != seg) p.put(PreferenceKeys.THEME, listOf("auto", "day", "night")[i]) }
+                SheetHeading(Lang.t("Auf der Karte", "On the map"))
                 fun tog(key: String, def: Boolean): Pair<Boolean, () -> Unit> { val on = p.b(key, def); return on to { p.put(key, !on) } }
                 val layers = listOf(
-                    Triple(Icons.Rounded.Traffic, "Traffic", tog(PreferenceKeys.TRAFFIC, true)),
-                    Triple(Icons.Rounded.Apartment, "3D buildings", tog(PreferenceKeys.BUILDINGS_3D, true)),
-                    Triple(Icons.Rounded.Traffic, "Traffic lights", tog(PreferenceKeys.SIGNALS, true)),
-                    Triple(Icons.Rounded.CameraAlt, "Cameras", tog(PreferenceKeys.HAZARD_ICONS, true)),
-                    Triple(Icons.Rounded.Lightbulb, "Street lamps", tog(PreferenceKeys.LAMPS, true)),
-                    Triple(Icons.Rounded.Park, "Trees", tog(PreferenceKeys.TREES, true)),
-                    Triple(Icons.Rounded.DirectionsWalk, "Footpaths", tog(PreferenceKeys.PATHS, true)),
-                    Triple(Icons.Rounded.WaterDrop, "Rain radar", tog(PreferenceKeys.RAIN_RADAR, false)),
-                    Triple(Icons.Rounded.AcUnit, "Weather", tog(PreferenceKeys.RAIN_EFFECTS, false)),
+                    Triple(Icons.Rounded.Traffic, Lang.t("Verkehr", "Traffic"), tog(PreferenceKeys.TRAFFIC, true)),
+                    Triple(Icons.Rounded.Apartment, Lang.t("3D-Gebäude", "3D buildings"), tog(PreferenceKeys.BUILDINGS_3D, true)),
+                    Triple(Icons.Rounded.Traffic, Lang.t("Ampeln", "Traffic lights"), tog(PreferenceKeys.SIGNALS, true)),
+                    Triple(Icons.Rounded.CameraAlt, Lang.t("Blitzer", "Cameras"), tog(PreferenceKeys.HAZARD_ICONS, true)),
+                    Triple(Icons.Rounded.Lightbulb, Lang.t("Straßenlaternen", "Street lamps"), tog(PreferenceKeys.LAMPS, false)),
+                    Triple(Icons.Rounded.Park, Lang.t("Bäume", "Trees"), tog(PreferenceKeys.TREES, true)),
+                    Triple(Icons.Rounded.DirectionsWalk, Lang.t("Fußwege", "Footpaths"), tog(PreferenceKeys.PATHS, true)),
+                    Triple(Icons.Rounded.WaterDrop, Lang.t("Regenradar", "Rain radar"), tog(PreferenceKeys.RAIN_RADAR, false)),
+                    Triple(Icons.Rounded.AcUnit, Lang.t("Wetter", "Weather"), tog(PreferenceKeys.RAIN_EFFECTS, false)),
                 )
                 for (row in layers.chunked(3)) Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     for ((icon, label, st) in row) ToggleTile(Modifier.weight(1f), icon, label, st.first, st.second)
@@ -538,38 +575,39 @@ private fun OptionsSheet(engine: NavEngine, shareEta: () -> Unit, wide: Boolean 
         }
         val tripPart: @Composable () -> Unit = {
             if (routing) Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                SheetHeading("This trip")
+                SheetHeading(Lang.t("Diese Fahrt", "This trip"))
                 WideTiles(4, listOf(
-                    TileSpec(Icons.Rounded.Add, if (engine.via.isEmpty()) "Add stop" else "Stops", c.accent, { engine.stopsEditor = true; close() }),
-                    TileSpec(Icons.Rounded.DoNotDisturbOn, "Avoid road", Warn, { engine.avoidRoadAhead(); close() }),
-                    TileSpec(Icons.Rounded.Route, "Overview", c.accent, { engine.overview(); close() }),
-                    TileSpec(Icons.Rounded.Share, "Share ETA", Good, { shareEta(); close() }),
+                    TileSpec(Icons.Rounded.Add, if (engine.via.isEmpty()) Lang.t("Stopp hinzufügen", "Add stop") else Lang.t("Stopps", "Stops"), c.accent, { engine.stopsEditor = true; close() }),
+                    TileSpec(Icons.Rounded.DoNotDisturbOn, Lang.t("Straße meiden", "Avoid road"), Warn, { engine.avoidRoadAhead(); close() }),
+                    TileSpec(Icons.Rounded.Route, Lang.t("Übersicht", "Overview"), c.accent, { engine.overview(); close() }),
+                    TileSpec(Icons.Rounded.Share, Lang.t("Ankunftszeit teilen", "Share ETA"), Good, { shareEta(); close() }),
                 ))
             }
         }
         val restPart: @Composable () -> Unit = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                SheetHeading("Report here")
-                WideTiles(5, listOf(
-                    TileSpec(Icons.Rounded.LocalPolice, "Police", Color(0xFF1E66F5), { engine.report("police"); close() }),
-                    TileSpec(Icons.Rounded.CarCrash, "Crash", Bad, { engine.report("accident"); close() }),
-                    TileSpec(Icons.Rounded.PriorityHigh, "Hazard", Warn, { engine.report("hazard"); close() }),
-                    TileSpec(Icons.Rounded.Build, "Broken down", Color(0xFFFB8C00), { engine.report("breakdown"); close() }),
-                    TileSpec(Icons.Rounded.CameraAlt, "Mobile cam", Color(0xFF1E66F5), { engine.report("mobilecam"); close() }),
+                SheetHeading(Lang.t("Hier melden", "Report here"))
+                WideTiles(3, listOf(
+                    TileSpec(Icons.Rounded.LocalPolice, Lang.t("Polizei", "Police"), Color(0xFF1E66F5), { engine.report("police"); close() }),
+                    TileSpec(Icons.Rounded.CarCrash, Lang.t("Unfall", "Crash"), Bad, { engine.report("accident"); close() }),
+                    TileSpec(Icons.Rounded.PriorityHigh, Lang.t("Gefahr", "Hazard"), Warn, { engine.report("hazard"); close() }),
+                    TileSpec(Icons.Rounded.Build, Lang.t("Panne", "Broken down"), Color(0xFFFB8C00), { engine.report("breakdown"); close() }),
+                    TileSpec(Icons.Rounded.CameraAlt, Lang.t("Mobiler Blitzer", "Mobile cam"), Color(0xFF1E66F5), { engine.report("mobilecam"); close() }),
+                    TileSpec(Icons.Rounded.DirectionsCar, Lang.t("Stau", "Traffic jam"), Color(0xFFF4511E), { engine.report("jam"); close() }),
                 ), compact = true)
                 // with no route the map page already has fuel, charging, food, coffee and parking, so only the rest are here
                 fun find(kind: String): () -> Unit = { engine.loadNearby(kind, false); close() }
                 val finds = listOfNotNull(
-                    if (engine.route != null) TileSpec(Icons.Rounded.LocalGasStation, "Fuel", Color(0xFFEA4335), find("fuel")) else null,
-                    if (engine.route != null) TileSpec(Icons.Rounded.EvStation, "Charging", Color(0xFF34A853), find("charging")) else null,
-                    if (engine.route != null) TileSpec(Icons.Rounded.Restaurant, "Food", Color(0xFFF29900), find("food")) else null,
-                    if (engine.route != null) TileSpec(Icons.Rounded.LocalCafe, "Coffee", Color(0xFFA56BFF), find("coffee")) else null,
-                    TileSpec(Icons.Rounded.Wc, "Toilets", Color(0xFF4C8DFF), find("toilets")),
-                    if (engine.route != null) TileSpec(Icons.Rounded.LocalParking, "Parking", Color(0xFF4C8DFF), find("parking")) else null,
-                    if (engine.route != null) TileSpec(Icons.Rounded.Apartment, "Services", Color(0xFF12A4B4), find("services")) else null,
-                    if (engine.dest != null) TileSpec(Icons.Rounded.Place, "Park at end", Color(0xFFEA4335), { engine.loadNearby("parking", true); close() }) else null,
+                    if (engine.route != null) TileSpec(Icons.Rounded.LocalGasStation, Lang.t("Tanken", "Fuel"), Color(0xFFEA4335), find("fuel")) else null,
+                    if (engine.route != null) TileSpec(Icons.Rounded.EvStation, Lang.t("Laden", "Charging"), Color(0xFF34A853), find("charging")) else null,
+                    if (engine.route != null) TileSpec(Icons.Rounded.Restaurant, Lang.t("Essen", "Food"), Color(0xFFF29900), find("food")) else null,
+                    if (engine.route != null) TileSpec(Icons.Rounded.LocalCafe, Lang.t("Kaffee", "Coffee"), Color(0xFFA56BFF), find("coffee")) else null,
+                    TileSpec(Icons.Rounded.Wc, Lang.t("Toiletten", "Toilets"), Color(0xFF4C8DFF), find("toilets")),
+                    if (engine.route != null) TileSpec(Icons.Rounded.LocalParking, Lang.t("Parken", "Parking"), Color(0xFF4C8DFF), find("parking")) else null,
+                    if (engine.route != null) TileSpec(Icons.Rounded.Apartment, Lang.t("Raststätten", "Services"), Color(0xFF12A4B4), find("services")) else null,
+                    if (engine.dest != null) TileSpec(Icons.Rounded.Place, Lang.t("Parken am Ziel", "Park at end"), Color(0xFFEA4335), { engine.loadNearby("parking", true); close() }) else null,
                 )
-                SheetHeading(if (engine.route != null) "Find along the route" else "Find nearby")
+                SheetHeading(if (engine.route != null) Lang.t("Entlang der Route finden", "Find along the route") else Lang.t("In der Nähe finden", "Find nearby"))
                 WideTiles(4, finds)
             }
         }
@@ -633,7 +671,7 @@ private fun ToggleTile(modifier: Modifier, icon: ImageVector, label: String, on:
     Column(modifier.clip(shape).background(if (on) c.accent.copy(alpha = 0.2f) else c.tile)
         .border(if (on) 1.5.dp else 0.dp, if (on) c.accent else Color.Transparent, shape).pressClick(onClick).padding(vertical = 10.dp, horizontal = 4.dp),
         horizontalAlignment = Alignment.CenterHorizontally) {
-        Icon(icon, if (on) "$label on" else "$label off", tint = if (on) c.accent else c.sub, modifier = Modifier.size(24.dp))
+        Icon(icon, if (on) Lang.t("$label an", "$label on") else Lang.t("$label aus", "$label off"), tint = if (on) c.accent else c.sub, modifier = Modifier.size(24.dp))
         Text(label, color = if (on) c.text else c.sub, fontSize = 12.sp, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = 5.dp))
     }
 }
@@ -674,7 +712,7 @@ private fun TripArea(engine: NavEngine, shareEta: () -> Unit, narrow: Boolean = 
         if (radarOn) HazardRadar(engine)
         else if ((inc != null && engine.alert?.kind != "incident") || (cam != null && engine.alert?.kind != "camera")) Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             if (inc != null && engine.alert?.kind != "incident") HazardBadge("incident", inc.label, Geo.fmtDist(inc.dist, engine.imperial))
-            if (cam != null && engine.alert?.kind != "camera") HazardBadge("camera", "Speed camera", Geo.fmtDist(cam.toDouble(), engine.imperial))
+            if (cam != null && engine.alert?.kind != "camera") HazardBadge("camera", Lang.t("Blitzer", "Speed camera"), Geo.fmtDist(cam.toDouble(), engine.imperial))
         }
         eta?.let { e ->
             val dc = if (e.delayMin >= 10) Bad else if (e.delayMin >= 1) Warn else Good
@@ -695,19 +733,19 @@ private fun TripArea(engine: NavEngine, shareEta: () -> Unit, narrow: Boolean = 
                 val evPct = engine.evArrivalPct()
                 val evCol = if (evPct == null) c.text else if (evPct < 10) Bad else if (evPct < 20) Warn else Good
                 val stats: @Composable () -> Unit = {
-                    ImmStat(Geo.fmtDur(e.secs), if (e.delayMin >= 1) "+${e.delayMin} min traffic" else "time left", dc)
+                    ImmStat(Geo.fmtDur(e.secs), if (e.delayMin >= 1) Lang.t("+${e.delayMin} Min. Verkehr", "+${e.delayMin} min traffic") else Lang.t("Restzeit", "time left"), dc)
                     ImmStat(e.arrive, "arrival", c.text)
-                    ImmStat(Geo.fmtDist(e.dist, engine.imperial), "to go", c.text)
-                    if (evPct != null) ImmStat("$evPct%", "battery at arrival", evCol)
+                    ImmStat(Geo.fmtDist(e.dist, engine.imperial), Lang.t("verbleibend", "to go"), c.text)
+                    if (evPct != null) ImmStat("$evPct%", Lang.t("Akku bei Ankunft", "battery at arrival"), evCol)
                 }
                 val buttons: @Composable () -> Unit = {
                     // electric: chargers along the route from here
-                    if (evPct != null) ImmCircle({ engine.loadNearby("charging", false) }, 40.dp) { Icon(Icons.Rounded.EvStation, "Chargers ahead", tint = Good, modifier = Modifier.size(20.dp)) }
-                    ImmCircle({ voice() }, 40.dp) { Icon(Icons.Rounded.Mic, "Voice", tint = c.text, modifier = Modifier.size(20.dp)) }
-                    ImmCircle({ engine.cycleSound() }, 40.dp) { Icon(soundIcon(engine.soundMode), "Sound", tint = if (engine.soundMode == 2) Bad else c.text, modifier = Modifier.size(20.dp)) }
-                    ImmCircle({ engine.stopsEditor = true }, 40.dp) { Icon(Icons.Rounded.Add, "Stops", tint = c.text, modifier = Modifier.size(21.dp)) }
+                    if (evPct != null) ImmCircle({ engine.loadNearby("charging", false) }, 40.dp) { Icon(Icons.Rounded.EvStation, Lang.t("Ladesäulen voraus", "Chargers ahead"), tint = Good, modifier = Modifier.size(20.dp)) }
+                    ImmCircle({ voice() }, 40.dp) { Icon(Icons.Rounded.Mic, Lang.t("Sprache", "Voice"), tint = c.text, modifier = Modifier.size(20.dp)) }
+                    ImmCircle({ engine.cycleSound() }, 40.dp) { Icon(soundIcon(engine.soundMode), Lang.t("Ton", "Sound"), tint = if (engine.soundMode == 2) Bad else c.text, modifier = Modifier.size(20.dp)) }
+                    ImmCircle({ engine.stopsEditor = true }, 40.dp) { Icon(Icons.Rounded.Add, Lang.t("Stopps", "Stops"), tint = c.text, modifier = Modifier.size(21.dp)) }
                     Box(Modifier.size(40.dp).shadow(6.dp, CircleShape).clip(CircleShape).background(Bad).pressClick { engine.endRoute() }, contentAlignment = Alignment.Center) {
-                        Icon(Icons.Rounded.Close, "End route", tint = Color.White, modifier = Modifier.size(21.dp))
+                        Icon(Icons.Rounded.Close, Lang.t("Route beenden", "End route"), tint = Color.White, modifier = Modifier.size(21.dp))
                     }
                 }
                 if (!narrow) Row(
@@ -716,24 +754,23 @@ private fun TripArea(engine: NavEngine, shareEta: () -> Unit, narrow: Boolean = 
                 ) {
                     stats()
                     Row(Modifier.padding(start = 4.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) { buttons() }
-                } else Row(
-                    // portrait: one compact line (figures, then the buttons), so the card stays low and clear of your arrow
-                    Modifier.fillMaxWidth().padding(start = 14.dp, end = 8.dp, top = 6.dp, bottom = 7.dp),
-                    verticalAlignment = Alignment.CenterVertically,
+                } else Column(
+                    // portrait: the figures get the full width (time and arrival never clipped), the buttons sit in a row under them
+                    Modifier.fillMaxWidth().padding(start = 14.dp, end = 14.dp, top = 6.dp, bottom = 7.dp),
                 ) {
-                    Row(Modifier.weight(1f), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                        ImmStat(Geo.fmtDur(e.secs), if (e.delayMin >= 1) "+${e.delayMin} min" else "time left", dc, compact = true)
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                        ImmStat(Geo.fmtDur(e.secs), if (e.delayMin >= 1) Lang.t("+${e.delayMin} Min.", "+${e.delayMin} min") else Lang.t("Restzeit", "time left"), dc, compact = true)
                         ImmStat(e.arrive, "arrival", c.text, compact = true)
-                        ImmStat(Geo.fmtDist(e.dist, engine.imperial), "to go", c.text, compact = true)
+                        ImmStat(Geo.fmtDist(e.dist, engine.imperial), Lang.t("verbleibend", "to go"), c.text, compact = true)
                         if (evPct != null) ImmStat("$evPct%", "battery", evCol, compact = true)
                     }
-                    Row(Modifier.padding(start = 12.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        if (evPct != null) ImmCircle({ engine.loadNearby("charging", false) }, 36.dp) { Icon(Icons.Rounded.EvStation, "Chargers ahead", tint = Good, modifier = Modifier.size(19.dp)) }
-                        ImmCircle({ voice() }, 36.dp) { Icon(Icons.Rounded.Mic, "Voice", tint = c.text, modifier = Modifier.size(19.dp)) }
-                        ImmCircle({ engine.cycleSound() }, 36.dp) { Icon(soundIcon(engine.soundMode), "Sound", tint = if (engine.soundMode == 2) Bad else c.text, modifier = Modifier.size(19.dp)) }
-                        ImmCircle({ engine.stopsEditor = true }, 36.dp) { Icon(Icons.Rounded.Add, "Stops", tint = c.text, modifier = Modifier.size(20.dp)) }
+                    Row(Modifier.fillMaxWidth().padding(top = 6.dp), horizontalArrangement = Arrangement.SpaceEvenly) {
+                        if (evPct != null) ImmCircle({ engine.loadNearby("charging", false) }, 36.dp) { Icon(Icons.Rounded.EvStation, Lang.t("Ladesäulen voraus", "Chargers ahead"), tint = Good, modifier = Modifier.size(19.dp)) }
+                        ImmCircle({ voice() }, 36.dp) { Icon(Icons.Rounded.Mic, Lang.t("Sprache", "Voice"), tint = c.text, modifier = Modifier.size(19.dp)) }
+                        ImmCircle({ engine.cycleSound() }, 36.dp) { Icon(soundIcon(engine.soundMode), Lang.t("Ton", "Sound"), tint = if (engine.soundMode == 2) Bad else c.text, modifier = Modifier.size(19.dp)) }
+                        ImmCircle({ engine.stopsEditor = true }, 36.dp) { Icon(Icons.Rounded.Add, Lang.t("Stopps", "Stops"), tint = c.text, modifier = Modifier.size(20.dp)) }
                         Box(Modifier.size(36.dp).shadow(6.dp, CircleShape).clip(CircleShape).background(Bad).pressClick { engine.endRoute() }, contentAlignment = Alignment.Center) {
-                            Icon(Icons.Rounded.Close, "End route", tint = Color.White, modifier = Modifier.size(20.dp))
+                            Icon(Icons.Rounded.Close, Lang.t("Route beenden", "End route"), tint = Color.White, modifier = Modifier.size(20.dp))
                         }
                     }
                 }
@@ -756,6 +793,26 @@ private fun ImmCompass(engine: NavEngine) {
     }
 }
 
+/**
+ * The electric car's battery level, above the speed: green, amber under 20 %, red under 10 %. It shows its age once it's
+ * more than 10 minutes old, and turns amber then too after an hour. Hidden without a reading.
+ */
+@Composable
+internal fun EvNowChip(engine: NavEngine) {
+    val pct = engine.evNowPct() ?: return
+    val age = engine.evNowAgeMin() ?: 0L
+    val col = if (pct < 10) Bad else if (pct < 20) Warn else Good
+    Row(
+        Modifier.padding(bottom = 6.dp).clip(RoundedCornerShape(50)).background(Color(0xCC0B0F16)).padding(horizontal = 10.dp, vertical = 5.dp),
+        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        Box(Modifier.size(8.dp).clip(CircleShape).background(col))
+        Text("$pct %", color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+        engine.evNowKm()?.let { Text("· $it km", color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Bold) }
+        if (age >= 10) Text("· $age Min.", color = if (age > 60) Warn else Color(0xFFC3CAD5), fontSize = 12.sp)
+    }
+}
+
 /** Speed limit sign beside a large readout of your current speed. */
 @Composable
 internal fun ImmSpeed(engine: NavEngine) {
@@ -773,13 +830,15 @@ private fun SpeedBlock(engine: NavEngine) {
     val c = LocalVw.current
     val show = engine.prefs.b(PreferenceKeys.MAPSPEED, true)
     val lim = engine.speedLimit
-    if (lim == null && !show) return
+    // a sign to show: a limit, or the "no limit" sign of an unrestricted Autobahn
+    val sign = lim != null || engine.noLimit
+    if (!sign && !show) return
     val k = if (engine.imperial) 2.23694 else 3.6
     if (engine.prefs.b(PreferenceKeys.SPEEDRING, true)) { SpeedRing(engine, show, k); return }
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
         // Keep the speed cluster in the same screen position, but mirror the sign's
         // relationship to the speed readout for left-hand-drive layouts.
-        if (show && engine.mirrored && !engine.isCar && lim != null) SpeedLimitSign(engine, 70.dp)
+        if (show && engine.mirrored && !engine.isCar && sign) SpeedLimitSign(engine, 70.dp)
         if (show) Column(
             Modifier.width(78.dp).panel(8.dp, RoundedCornerShape(24.dp), c.surface).padding(vertical = 8.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
@@ -787,7 +846,7 @@ private fun SpeedBlock(engine: NavEngine) {
             Text("${Math.round((engine.fix?.speed ?: 0.0) * k)}", color = speedTint(engine) ?: c.text, fontSize = 30.sp, fontWeight = FontWeight.Bold, maxLines = 1)
             Text(if (engine.imperial) "mph" else "km/h", color = c.sub, fontSize = 12.sp)
         }
-        if (lim != null && !(show && engine.mirrored && !engine.isCar)) SpeedLimitSign(engine, 70.dp)
+        if (sign && !(show && engine.mirrored && !engine.isCar)) SpeedLimitSign(engine, 70.dp)
     }
 }
 
@@ -800,7 +859,8 @@ private fun SpeedRing(engine: NavEngine, show: Boolean, k: Double) {
     val c = LocalVw.current
     val lim = engine.speedLimit
     val sp = engine.fix?.speed ?: 0.0
-    val full = if (lim != null && lim > 0) lim * 1.2 else 31.3          // the ring is full at 20% over the limit (or 70 mph with no limit)
+    // the ring is full at 20% over the limit; with no limit (an Autobahn) at 200 km/h, or 70 mph where miles are used
+    val full = if (lim != null && lim > 0) lim * 1.2 else if (engine.imperial) 31.3 else 55.6
     val target = (sp / full).toFloat().coerceIn(0f, 1f)
     val frac by androidx.compose.animation.core.animateFloatAsState(target, androidx.compose.animation.core.tween(350), label = "ring")
     val ratio = if (lim != null && lim > 0 && !engine.limitEstimated) (sp / lim).toFloat() else 0f
@@ -844,9 +904,10 @@ private fun SpeedRing(engine: NavEngine, show: Boolean, k: Double) {
         // app is mirrored for left-hand drive (the speed is then on the left edge). Android Auto never mirrors: its speed is
         // always on the right.
         val signRight = engine.mirrored && !engine.isCar
-        if (lim != null) Box(
+        if (lim != null || engine.noLimit) Box(
             Modifier.align(if (!show) Alignment.Center else if (signRight) Alignment.TopEnd else Alignment.TopStart)
-                .offset(x = if (!show) 0.dp else if (signRight) 30.dp else (-30).dp, y = if (show) (-18).dp else 0.dp)
+                // beside the ring's upper corner, just clear of it (raised over the top it covered the battery chip above and the ring)
+                .offset(x = if (!show) 0.dp else if (signRight) 48.dp else (-48).dp, y = 0.dp)
         ) {
             SpeedLimitSign(engine, if (show) 50.dp else 70.dp)
         }
@@ -897,18 +958,25 @@ internal fun ImmTurnCard(
             .clickable { engine.itineraryOpen = true },
     ) {
         if (slim) Row(Modifier.padding(horizontal = 14.dp, vertical = 9.dp), verticalAlignment = Alignment.CenterVertically) {
-            ManeuverArrow(t.maneuver, Geo.maneuverAngle(t.maneuver), Modifier.size(34.dp), roundaboutExit = t.exit, roundaboutClockwise = !engine.mirrored, exitAngle = roundaboutTurn(t.rbIn, t.rbOut))
+            ManeuverArrow(t.maneuver, Geo.maneuverAngle(t.maneuver), Modifier.size(34.dp), roundaboutExit = t.exit, roundaboutClockwise = engine.leftTraffic, exitAngle = roundaboutTurn(t.rbIn, t.rbOut))
             RollText(Geo.fmtDist(t.dist, engine.imperial), Color.White, 25.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(start = 10.dp))
             Text(t.street, color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(start = 12.dp))
         } else {
         val thenIcon = t.thenManeuver != null && engine.prefs.s(PreferenceKeys.THEN_STYLE, "row") == "icon"
         Row(Modifier.padding(start = if (compact) 12.dp else 18.dp, end = if (compact) 12.dp else 16.dp, top = if (compact) 9.dp else 16.dp, bottom = if (compact) 8.dp else 12.dp), verticalAlignment = Alignment.CenterVertically) {
-            ManeuverArrow(t.maneuver, Geo.maneuverAngle(t.maneuver), Modifier.size(if (compact) 42.dp else 60.dp), roundaboutExit = t.exit, roundaboutClockwise = !engine.mirrored, exitAngle = roundaboutTurn(t.rbIn, t.rbOut))
+            ManeuverArrow(t.maneuver, Geo.maneuverAngle(t.maneuver), Modifier.size(if (compact) 42.dp else 60.dp), roundaboutExit = t.exit, roundaboutClockwise = engine.leftTraffic, exitAngle = roundaboutTurn(t.rbIn, t.rbOut))
             Column(Modifier.padding(start = if (compact) 9.dp else 16.dp).weight(1f)) {
                 RollText(Geo.fmtDist(t.dist, engine.imperial), Color.White, if (compact) 28.sp else 38.sp, fontWeight = FontWeight.Bold)
-                val ukSign = engine.prefs.b(PreferenceKeys.UKSIGNS, true) && (t.sign.isNotBlank() && t.sign != t.street || t.tag.startsWith("Exit"))
+                // (the tag of a motorway exit is "Ausfahrt 17", from Geo.stepTag; older builds wrote "Exit 17")
+                val exitTag = t.tag.startsWith("Exit") || t.tag.startsWith("Ausfahrt ")
+                val ukSign = engine.prefs.b(PreferenceKeys.UKSIGNS, true) && (t.sign.isNotBlank() && t.sign != t.street || exitTag)
+                // a motorway junction's name takes the tag's place: "Frankfurter Kreuz", "Ausfahrt 17 Weiterstadt" (just the name when the sign
+                // below already carries the exit number)
+                val jctChip = if (t.junction.isBlank() || t.maneuver.uppercase().startsWith("ROUNDABOUT")) "" else if (ukSign && exitTag) t.junctionName else t.junction
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    if (t.tag.isNotBlank() && !(ukSign && t.tag.startsWith("Exit"))) Text(t.tag, color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Bold, maxLines = 1,
+                    if (jctChip.isNotBlank()) Text(jctChip, color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.widthIn(max = 190.dp).clip(RoundedCornerShape(6.dp)).background(Color.White.copy(alpha = 0.18f)).padding(horizontal = 7.dp, vertical = 2.dp))
+                    else if (t.tag.isNotBlank() && !(ukSign && exitTag)) Text(t.tag, color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Bold, maxLines = 1,
                         modifier = Modifier.clip(RoundedCornerShape(6.dp)).background(Color.White.copy(alpha = 0.18f)).padding(horizontal = 7.dp, vertical = 2.dp))
                     if (!ukSign && t.sign.isNotBlank() && t.sign != t.street) Text(t.sign, color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.widthIn(max = 130.dp).clip(RoundedCornerShape(6.dp)).background(Color(0xFF1E8E55)).padding(horizontal = 7.dp, vertical = 2.dp))
@@ -918,26 +986,30 @@ internal fun ImmTurnCard(
             // the turn straight after, as a small arrow (the "Then" line below is used instead when that style is chosen)
             if (thenIcon && t.thenManeuver != null) Column(Modifier.padding(start = 10.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                 Box(Modifier.size(44.dp).clip(RoundedCornerShape(12.dp)).background(TealDeep), contentAlignment = Alignment.Center) {
-                    ManeuverArrow(t.thenManeuver, Geo.maneuverAngle(t.thenManeuver), Modifier.size(28.dp), roundaboutExit = t.thenExit, roundaboutClockwise = !engine.mirrored)
+                    ManeuverArrow(t.thenManeuver, Geo.maneuverAngle(t.thenManeuver), Modifier.size(28.dp), roundaboutExit = t.thenExit, roundaboutClockwise = engine.leftTraffic)
                 }
-                Text("then", color = Color.White.copy(alpha = 0.85f), fontSize = 11.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(top = 2.dp))
+                Text(Lang.t("dann", "then"), color = Color.White.copy(alpha = 0.85f), fontSize = 11.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(top = 2.dp))
             }
         }
         // Explicit slip-road / motorway-exit cue. Lane guidance alone can be ambiguous on
         // fast roads, so make the exit manoeuvre visible in the turn card as well.
         val maneuverUpper = t.maneuver.uppercase()
+        val exitTag = t.tag.startsWith("Exit", ignoreCase = true) || t.tag.startsWith("Ausfahrt ")
         val exitLike = t.exitNo.isNotBlank() ||
-            t.tag.startsWith("Exit", ignoreCase = true) ||
+            exitTag ||
             maneuverUpper.contains("EXIT") ||
             maneuverUpper.contains("OFF_RAMP") ||
             maneuverUpper == "TAKE_EXIT" ||
             maneuverUpper.startsWith("MOTORWAY_EXIT")
         // Only when the UK road sign below isn't shown: it already carries the exit, and the same thing twice on the card is clutter.
-        val signShown = engine.prefs.b(PreferenceKeys.UKSIGNS, true) && (t.sign.isNotBlank() && t.sign != t.street || t.tag.startsWith("Exit"))
+        val signShown = engine.prefs.b(PreferenceKeys.UKSIGNS, true) && (t.sign.isNotBlank() && t.sign != t.street || exitTag)
         if (exitLike && !signShown && !maneuverUpper.startsWith("ROUNDABOUT")) {
-            val exitLabel = t.exitNo.ifBlank {
-                t.tag.replaceFirst(Regex("^Exit\\s*", RegexOption.IGNORE_CASE), "").trim().takeIf { it.isNotBlank() }.orEmpty()
+            val exitNum = t.exitNo.ifBlank {
+                t.tag.replaceFirst(Regex("^(Exit|Ausfahrt)\\s*", RegexOption.IGNORE_CASE), "").trim().takeIf { it.isNotBlank() }.orEmpty()
             }
+            // a plain exit's name goes with its number ("AUSFAHRT  17 Weiterstadt"); an interchange's name is on the chip above
+            val exitLabel = if (t.junctionName.isNotBlank() && !Junctions.isInterchange(t.junctionName))
+                t.junction.replaceFirst(Regex("^(Exit|Ausfahrt)\\s*", RegexOption.IGNORE_CASE), "").trim() else exitNum
             Row(
                 Modifier.fillMaxWidth()
                     .padding(start = if (compact) 12.dp else 16.dp, end = if (compact) 12.dp else 16.dp, bottom = 6.dp)
@@ -948,7 +1020,7 @@ internal fun ImmTurnCard(
             ) {
                 Text("↗", color = Color.White, fontSize = if (compact) 19.sp else 22.sp, fontWeight = FontWeight.ExtraBold)
                 Text(
-                    if (exitLabel.isNotBlank()) "EXIT  $exitLabel" else "EXIT / SLIP ROAD",
+                    if (exitLabel.isNotBlank()) Lang.t("AUSFAHRT  $exitLabel", "EXIT  $exitLabel") else Lang.t("AUSFAHRT", "EXIT / SLIP ROAD"),
                     color = Color.White,
                     fontSize = if (compact) 13.sp else 15.sp,
                     fontWeight = FontWeight.ExtraBold,
@@ -961,8 +1033,8 @@ internal fun ImmTurnCard(
             }
         }
         // A proper UK direction sign: blue for motorways, green for primary roads, white for local roads.
-        if (engine.prefs.b(PreferenceKeys.UKSIGNS, true) && (t.sign.isNotBlank() && t.sign != t.street || t.tag.startsWith("Exit")))
-            UkSign(t.sign, t.tag.removePrefix("Exit ").takeIf { t.tag.startsWith("Exit") }.orEmpty(), t.street, Modifier.padding(start = if (compact) 12.dp else 16.dp, end = if (compact) 12.dp else 16.dp, bottom = if (compact) 5.dp else 12.dp))
+        if (signShown)
+            UkSign(t.sign, (t.exitNo.ifBlank { t.tag.removePrefix("Exit ").removePrefix("Ausfahrt ") }).takeIf { exitTag }.orEmpty(), t.street, Modifier.padding(start = if (compact) 12.dp else 16.dp, end = if (compact) 12.dp else 16.dp, bottom = if (compact) 5.dp else 12.dp))
         if (!compact && engine.prefs.b(PreferenceKeys.LANE_STRIP, true)) t.lanes?.let { ls ->
             // lane hero view: before a complex junction the lanes grow into a big picture with yours lit; simple ones keep the strip
             // (not in Android Auto: the big lane picture made the card grow to fill much of a car screen as soon as a junction came up)
@@ -974,7 +1046,7 @@ internal fun ImmTurnCard(
         if (!compact && !heroShown && !(car && t.lanes != null && engine.prefs.b(PreferenceKeys.LANE_STRIP, true))) t.laneAdvice?.let { Text(it, color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.fillMaxWidth().background(TealDeep).padding(horizontal = 18.dp, vertical = 6.dp)) }
         if (!compact && t.thenManeuver != null && !thenIcon) {
             Row(Modifier.fillMaxWidth().background(TealDeep).padding(horizontal = 18.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-                ManeuverArrow(t.thenManeuver, Geo.maneuverAngle(t.thenManeuver), Modifier.size(22.dp), roundaboutExit = t.thenExit, roundaboutClockwise = !engine.mirrored)
+                ManeuverArrow(t.thenManeuver, Geo.maneuverAngle(t.thenManeuver), Modifier.size(22.dp), roundaboutExit = t.thenExit, roundaboutClockwise = engine.leftTraffic)
                 Text(t.thenText, color = Color.White.copy(alpha = 0.92f), fontSize = 14.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(start = 10.dp))
             }
         }
@@ -993,18 +1065,18 @@ private fun ImmSearch(engine: NavEngine, q: String, onQ: (String) -> Unit, locke
     Box(Modifier.fillMaxWidth().height(60.dp).panel(10.dp, shape, c.surface)) {
         TextField(
             value = q, onValueChange = onQ, enabled = !locked,
-            placeholder = { Text(if (locked) "Tap the mic to search while driving" else "Where to?", fontSize = if (locked) 15.sp else 18.sp) },
+            placeholder = { Text(if (locked) stringResource(R.string.ui_081) else stringResource(R.string.ui_064), fontSize = if (locked) 15.sp else 18.sp) },
             leadingIcon = { Icon(Icons.Rounded.Search, null, tint = c.sub) },
             trailingIcon = {
-                if (q.isNotEmpty()) Icon(Icons.Rounded.Close, "Clear", tint = c.sub, modifier = Modifier.padding(end = 8.dp).clickable { onQ(""); engine.results = emptyList() })
+                if (q.isNotEmpty()) Icon(Icons.Rounded.Close, Lang.t("Löschen", "Clear"), tint = c.sub, modifier = Modifier.padding(end = 8.dp).clickable { onQ(""); engine.results = emptyList() })
                 else Row(verticalAlignment = Alignment.CenterVertically) {
                     // folds Saved & recent up under the bar, and back down again
                     val open = engine.prefs.b(PreferenceKeys.QUICKLIST, true)
                     Box(Modifier.padding(end = 4.dp).size(40.dp).clip(CircleShape).clickable { engine.prefs.put(PreferenceKeys.QUICKLIST, !open) }, contentAlignment = Alignment.Center) {
-                        Icon(if (open) Icons.Rounded.KeyboardArrowUp else Icons.Rounded.KeyboardArrowDown, if (open) "Hide saved and recent" else "Show saved and recent", tint = c.sub, modifier = Modifier.size(26.dp))
+                        Icon(if (open) Icons.Rounded.KeyboardArrowUp else Icons.Rounded.KeyboardArrowDown, if (open) Lang.t("Gespeichert & zuletzt ausblenden", "Hide saved and recent") else Lang.t("Gespeichert & zuletzt einblenden", "Show saved and recent"), tint = c.sub, modifier = Modifier.size(26.dp))
                     }
                     Box(Modifier.padding(end = 8.dp).size(44.dp).clip(CircleShape).background(c.accent).pressClick { voice() }, contentAlignment = Alignment.Center) {
-                        Icon(Icons.Rounded.Mic, "Voice search", tint = Color.White, modifier = Modifier.size(23.dp))
+                        Icon(Icons.Rounded.Mic, Lang.t("Sprachsuche", "Voice search"), tint = Color.White, modifier = Modifier.size(23.dp))
                     }
                 }
             },
@@ -1067,20 +1139,20 @@ private fun ImmChips(engine: NavEngine, focusSearch: () -> Unit) {
     LaunchedEffect(Unit) { while (true) { engine.refreshSlotTimes(); delay(60_000) } }
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            PlaceTile(engine, Modifier.weight(1f), Icons.Rounded.Home, Color(0xFF4C8DFF), "Home", home, engine.slotMins["home"]) {
-                if (home != null) engine.startRoute(home) else { engine.pendingSave = "home"; engine.toast("Search for your home address", 3500); focusSearch() }
+            PlaceTile(engine, Modifier.weight(1f), Icons.Rounded.Home, Color(0xFF4C8DFF), Lang.t("Zuhause", "Home"), home, engine.slotMins["home"]) {
+                if (home != null) engine.startRoute(home) else { engine.pendingSave = "home"; engine.toast(engine.str(R.string.rest_1198), 3500); focusSearch() }
             }
-            PlaceTile(engine, Modifier.weight(1f), Icons.Rounded.Work, Color(0xFFF29900), "Work", work, engine.slotMins["work"]) {
-                if (work != null) engine.startRoute(work) else { engine.pendingSave = "work"; engine.toast("Search for your work address", 3500); focusSearch() }
+            PlaceTile(engine, Modifier.weight(1f), Icons.Rounded.Work, Color(0xFFF29900), Lang.t("Arbeit", "Work"), work, engine.slotMins["work"]) {
+                if (work != null) engine.startRoute(work) else { engine.pendingSave = "work"; engine.toast(engine.str(R.string.rest_1197), 3500); focusSearch() }
             }
         }
         // things to find nearby: always all five on show, no scrolling sideways to find them
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            FindButton(Icons.Rounded.LocalGasStation, Color(0xFFEA4335), "Fuel nearby") { engine.loadNearby("fuel", false) }
-            FindButton(Icons.Rounded.EvStation, Color(0xFF34A853), "Charging nearby") { engine.loadNearby("charging", false) }
-            FindButton(Icons.Rounded.Restaurant, Color(0xFFF29900), "Food nearby") { engine.loadNearby("food", false) }
-            FindButton(Icons.Rounded.LocalCafe, Color(0xFFA56BFF), "Coffee nearby") { engine.loadNearby("coffee", false) }
-            FindButton(Icons.Rounded.LocalParking, Color(0xFF4C8DFF), "Parking nearby") { engine.loadNearby("parking", false) }
+            FindButton(Icons.Rounded.LocalGasStation, Color(0xFFEA4335), Lang.t("Tankstellen in der Nähe", "Fuel nearby")) { engine.loadNearby("fuel", false) }
+            FindButton(Icons.Rounded.EvStation, Color(0xFF34A853), Lang.t("Ladesäulen in der Nähe", "Charging nearby")) { engine.loadNearby("charging", false) }
+            FindButton(Icons.Rounded.Restaurant, Color(0xFFF29900), Lang.t("Essen in der Nähe", "Food nearby")) { engine.loadNearby("food", false) }
+            FindButton(Icons.Rounded.LocalCafe, Color(0xFFA56BFF), Lang.t("Kaffee in der Nähe", "Coffee nearby")) { engine.loadNearby("coffee", false) }
+            FindButton(Icons.Rounded.LocalParking, Color(0xFF4C8DFF), Lang.t("Parkplätze in der Nähe", "Parking nearby")) { engine.loadNearby("parking", false) }
         }
     }
 }
@@ -1090,8 +1162,8 @@ private fun PlaceTile(engine: NavEngine, modifier: Modifier, icon: ImageVector, 
     val c = LocalVw.current
     val here = engine.fix?.pos
     val sub = when {
-        place == null -> "Tap to set"
-        mins == 0 -> "You're here"
+        place == null -> stringResource(R.string.ui_098)
+        mins == 0 -> stringResource(R.string.ui_102)
         mins != null && mins > 0 -> Geo.fmtDur(mins * 60.0)
         here != null -> Geo.fmtDist(Geo.dist(here, place.pos), engine.imperial)
         else -> place.sub
@@ -1100,7 +1172,7 @@ private fun PlaceTile(engine: NavEngine, modifier: Modifier, icon: ImageVector, 
         verticalAlignment = Alignment.CenterVertically) {
         Box(Modifier.size(36.dp).clip(CircleShape).background(tint.copy(alpha = 0.18f)), contentAlignment = Alignment.Center) { Icon(icon, null, tint = tint, modifier = Modifier.size(20.dp)) }
         Column(Modifier.padding(start = 10.dp).weight(1f)) {
-            Text(if (place == null) "Set ${label.lowercase()}" else label, color = c.text, fontSize = 16.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(if (place == null) stringResource(R.string.ui_099, label.lowercase()) else label, color = c.text, fontSize = 16.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
             Text(sub, color = c.sub, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
     }
@@ -1114,7 +1186,7 @@ private fun FindButton(icon: ImageVector, tint: Color, desc: String, onClick: ()
     }
 }
 
-/** A place sent from your phone: starts by itself after 8 seconds unless you tap "Not now". */
+/** A place sent from your phone: starts by itself after 8 seconds unless you tap Lang.t("Nicht jetzt", "Not now"). */
 @Composable
 private fun PhoneDestCard(engine: NavEngine, p: com.headunit.launcher.Place) {
     val c = LocalVw.current
@@ -1126,11 +1198,11 @@ private fun PhoneDestCard(engine: NavEngine, p: com.headunit.launcher.Place) {
             Icon(Icons.Rounded.PhoneAndroid, null, tint = c.accent, modifier = Modifier.size(21.dp))
         }
         Column(Modifier.weight(1f)) {
-            Text("From your phone: ${p.name}", color = c.text, fontSize = 16.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            Text("Starting in $left s", color = c.sub, fontSize = 13.sp)
+            Text(Lang.t("Vom Handy: ${p.name}", "From your phone: ${p.name}"), color = c.text, fontSize = 16.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(Lang.t("Start in $left s", "Starting in $left s"), color = c.sub, fontSize = 13.sp)
         }
-        ImmPill("Go", { engine.takePhoneDest(true) }, filled = true)
-        ImmPill("Not now", { engine.takePhoneDest(false) })
+        ImmPill(Lang.t("Los", "Go"), { engine.takePhoneDest(true) }, filled = true)
+        ImmPill(Lang.t("Nicht jetzt", "Not now"), { engine.takePhoneDest(false) })
     }
 }
 
@@ -1146,26 +1218,26 @@ private fun ParkedCard(engine: NavEngine) {
     if (ageMin > 48 * 60) return
     val ctx = androidx.compose.ui.platform.LocalContext.current
     val here = engine.fix?.pos
-    val ago = when { ageMin < 1 -> "just now"; ageMin < 60 -> "$ageMin min ago"; ageMin < 24 * 60 -> "${ageMin / 60} h ago"; else -> "yesterday" }
+    val ago = when { ageMin < 1 -> Lang.t("gerade eben", "just now"); ageMin < 60 -> Lang.t("vor $ageMin Min.", "$ageMin min ago"); ageMin < 24 * 60 -> "${ageMin / 60} h ago"; else -> "yesterday" }
     Row(Modifier.fillMaxWidth().panel(10.dp, RoundedCornerShape(22.dp), c.surface).padding(start = 14.dp, end = 8.dp, top = 10.dp, bottom = 10.dp),
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
         Box(Modifier.size(38.dp).clip(CircleShape).background(c.accent.copy(alpha = 0.18f)), contentAlignment = Alignment.Center) {
             Icon(Icons.Rounded.DirectionsCar, null, tint = c.accent, modifier = Modifier.size(21.dp))
         }
         Column(Modifier.weight(1f)) {
-            Text("Your car", color = c.text, fontSize = 16.sp, fontWeight = FontWeight.Bold)
-            Text("Parked $ago" + (if (here != null) " · " + Geo.fmtDist(Geo.dist(here, spot), engine.imperial) else ""), color = c.sub, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(stringResource(R.string.ui_073), color = c.text, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+            Text(Lang.t("Geparkt $ago", "Parked $ago") + (if (here != null) " · " + Geo.fmtDist(Geo.dist(here, spot), engine.imperial) else ""), color = c.sub, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
         // walking directions in the phone's maps app (Horizon Nav plans driving routes); just the spot if there's none
-        ImmPill("Walk", {
+        ImmPill(Lang.t("Zu Fuß", "Walk"), {
             val walk = android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(String.format(java.util.Locale.US, "google.navigation:q=%.6f,%.6f&mode=w", spot.lat, spot.lon)))
                 .addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
             val geo = android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(String.format(java.util.Locale.US, "geo:%.6f,%.6f?q=%.6f,%.6f(Your car)", spot.lat, spot.lon, spot.lat, spot.lon)))
                 .addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
-            try { ctx.startActivity(walk) } catch (e: Exception) { try { ctx.startActivity(geo) } catch (x: Exception) { engine.toast("No walking maps app on this phone", 3000) } }
+            try { ctx.startActivity(walk) } catch (e: Exception) { try { ctx.startActivity(geo) } catch (x: Exception) { engine.toast(engine.str(R.string.rest_1199), 3000) } }
         }, filled = true)
         Box(Modifier.size(40.dp).clip(CircleShape).clickable { engine.prefs.put(PreferenceKeys.PARKED_SPOT, "") }, contentAlignment = Alignment.Center) {
-            Icon(Icons.Rounded.Close, "Forget where you parked", tint = c.sub, modifier = Modifier.size(22.dp))
+            Icon(Icons.Rounded.Close, Lang.t("Parkplatz vergessen", "Forget where you parked"), tint = c.sub, modifier = Modifier.size(22.dp))
         }
     }
 }
@@ -1197,10 +1269,10 @@ private fun ImmQuick(engine: NavEngine, showSaved: Boolean = true) {
             ) {
                 Icon(Icons.Rounded.Route, null, tint = Color.White, modifier = Modifier.size(26.dp))
                 Column(Modifier.padding(start = 12.dp).weight(1f)) {
-                    Text("Resume trip to ${rp.name}", color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                    Text("You hadn't arrived when the app closed", color = Color.White.copy(alpha = 0.8f), fontSize = 12.sp)
+                    Text(Lang.t("Fahrt nach ${rp.name} fortsetzen", "Resume trip to ${rp.name}"), color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Text(stringResource(R.string.ui_070), color = Color.White.copy(alpha = 0.8f), fontSize = 12.sp)
                 }
-                Icon(Icons.Rounded.Close, "Dismiss", tint = Color.White, modifier = Modifier.padding(start = 8.dp).size(24.dp).clickable { engine.resume = null; engine.prefs.put(PreferenceKeys.RESUME, "{}") })
+                Icon(Icons.Rounded.Close, Lang.t("Schließen", "Dismiss"), tint = Color.White, modifier = Modifier.padding(start = 8.dp).size(24.dp).clickable { engine.resume = null; engine.prefs.put(PreferenceKeys.RESUME, "{}") })
             }
         }
         // predictive destination with the live journey time (checked again every few minutes while the map is idle)
@@ -1210,14 +1282,14 @@ private fun ImmQuick(engine: NavEngine, showSaved: Boolean = true) {
             Modifier.fillMaxWidth().shadow(8.dp, RoundedCornerShape(22.dp)).clip(RoundedCornerShape(22.dp)).background(Teal).clickable { engine.startRoute(pr.place) }.padding(horizontal = 16.dp, vertical = 13.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Icon(when (pr.title) { "Home" -> Icons.Rounded.Home; "Work" -> Icons.Rounded.Work; else -> Icons.Rounded.History }, null, tint = Color.White, modifier = Modifier.size(26.dp))
+            Icon(when (pr.title) { Lang.t("Zuhause", "Home") -> Icons.Rounded.Home; Lang.t("Arbeit", "Work") -> Icons.Rounded.Work; else -> Icons.Rounded.History }, null, tint = Color.White, modifier = Modifier.size(26.dp))
             Column(Modifier.padding(start = 12.dp).weight(1f)) {
                 Text(listOfNotNull(pr.title, if (pr.mins >= 0) Geo.fmtDur(pr.mins * 60.0) else null, pr.note.ifBlank { null }).joinToString(" · "),
                     color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                val arrive = if (pr.mins >= 0) "Arrive about " + java.text.SimpleDateFormat("HH:mm", java.util.Locale.UK).format(java.util.Date(System.currentTimeMillis() + pr.mins * 60_000L)) else pr.place.sub
-                Text(if (pr.delayMin >= 3) "$arrive · +${pr.delayMin} min delays" else arrive, color = Color.White.copy(alpha = 0.85f), fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                val arrive = if (pr.mins >= 0) Lang.t("Ankunft etwa ", "Arrive about ") + java.text.SimpleDateFormat("HH:mm", java.util.Locale.UK).format(java.util.Date(System.currentTimeMillis() + pr.mins * 60_000L)) else pr.place.sub
+                Text(if (pr.delayMin >= 3) Lang.t("$arrive · +${pr.delayMin} Min. Verzögerung", "$arrive · +${pr.delayMin} min delays") else arrive, color = Color.White.copy(alpha = 0.85f), fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
-            Text("Go", color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+            Text(stringResource(R.string.ui_019), color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold)
         }
         val suggestion = remember { engine.habits.suggest(System.currentTimeMillis()) }
         if (pr == null && suggestion != null) Row(
@@ -1226,25 +1298,25 @@ private fun ImmQuick(engine: NavEngine, showSaved: Boolean = true) {
         ) {
             Icon(Icons.Rounded.History, null, tint = Color.White, modifier = Modifier.size(26.dp))
             Column(Modifier.padding(start = 12.dp).weight(1f)) {
-                Text("Going to ${suggestion.name}?", color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(Lang.t("Fährst du nach ${suggestion.name}?", "Going to ${suggestion.name}?"), color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 if (suggestion.sub.isNotBlank()) Text(suggestion.sub, color = Color.White.copy(alpha = 0.8f), fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
-            Text("Go", color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+            Text(stringResource(R.string.ui_019), color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold)
         }
         // three places on show to keep the map clear; "All" opens the rest (it used to be a list up to five tall)
         AnimatedVisibility(showSaved && engine.prefs.b(PreferenceKeys.QUICKLIST, true),
             enter = fadeIn(tween(200)) + androidx.compose.animation.expandVertically(tween(240)), exit = fadeOut(tween(140)) + androidx.compose.animation.shrinkVertically(tween(200))) {
         Column(Modifier.fillMaxWidth().panel(10.dp, RoundedCornerShape(26.dp), c.surface).padding(vertical = 6.dp)) {
             Row(Modifier.fillMaxWidth().padding(start = 18.dp, end = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-                Text("SAVED & RECENT", color = c.sub, fontSize = 11.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.2.sp, modifier = Modifier.weight(1f))
-                if (saved.size > 3) Text(if (showAll) "Less" else "All ${saved.size}", color = c.accent, fontSize = 14.sp, fontWeight = FontWeight.SemiBold,
+                Text(stringResource(R.string.ui_040), color = c.sub, fontSize = 11.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.2.sp, modifier = Modifier.weight(1f))
+                if (saved.size > 3) Text(if (showAll) Lang.t("Weniger", "Less") else Lang.t("Alle ${saved.size}", "All ${saved.size}"), color = c.accent, fontSize = 14.sp, fontWeight = FontWeight.SemiBold,
                     modifier = Modifier.clip(RoundedCornerShape(12.dp)).clickable { showAll = !showAll }.padding(horizontal = 10.dp, vertical = 8.dp))
                 Row(Modifier.clip(RoundedCornerShape(12.dp)).clickable { adding = true }.padding(horizontal = 10.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Rounded.Add, null, tint = c.accent, modifier = Modifier.size(18.dp))
-                    Text("Add", color = c.accent, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(start = 2.dp))
+                    Text(stringResource(R.string.ui_003), color = c.accent, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(start = 2.dp))
                 }
             }
-            if (saved.isEmpty()) Text("Places you save or drive to show up here", color = c.sub, fontSize = 13.sp, modifier = Modifier.padding(start = 18.dp, end = 18.dp, bottom = 8.dp))
+            if (saved.isEmpty()) Text(stringResource(R.string.ui_039), color = c.sub, fontSize = 13.sp, modifier = Modifier.padding(start = 18.dp, end = 18.dp, bottom = 8.dp))
             LazyColumn(Modifier.heightIn(max = 250.dp)) {
                 items(if (showAll) saved else saved.take(3)) { (p, kind, label) ->
                     val fav = kind != 2
@@ -1257,9 +1329,9 @@ private fun ImmQuick(engine: NavEngine, showSaved: Boolean = true) {
                             detectHorizontalDragGestures(
                                 onDragEnd = {
                                     if (kotlin.math.abs(dx) > w * 0.35f) when (kind) {
-                                        0 -> { engine.places.removeCustom(label); engine.toast("Removed $label", 2000) }
-                                        1 -> { engine.places.toggleFavourite(p); engine.toast("Removed from favourites", 2000) }
-                                        else -> { engine.places.removeRecent(p); engine.toast("Removed from recent places", 2000) }
+                                        0 -> { engine.places.removeCustom(label); engine.toast(engine.str(R.string.rest_1216, label), 2000) }
+                                        1 -> { engine.places.toggleFavourite(p); engine.toast(engine.str(R.string.rest_1201), 2000) }
+                                        else -> { engine.places.removeRecent(p); engine.toast(engine.str(R.string.rest_1200), 2000) }
                                     }
                                     dx = 0f
                                 },
@@ -1304,13 +1376,13 @@ private fun ItineraryCard(engine: NavEngine) {
     Column(Modifier.fillMaxWidth().shadow(12.dp, shape).clip(shape).background(Teal).border(1.5.dp, Color.White.copy(alpha = 0.18f), shape)) {
         Row(Modifier.fillMaxWidth().padding(start = 18.dp, end = 10.dp, top = 12.dp, bottom = 8.dp), verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
-                Text("Your route", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+                Text(stringResource(R.string.ui_074), color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold)
                 val e = engine.eta
-                Text("${rows.size} ${if (rows.size == 1) "step" else "steps"}" + (if (e != null) " · " + Geo.fmtDist(e.dist, engine.imperial) + " · arrive " + e.arrive else ""),
+                Text("${rows.size} ${if (rows.size == 1) Lang.t("Schritt", "step") else Lang.t("Schritte", "steps")}" + (if (e != null) " · " + Geo.fmtDist(e.dist, engine.imperial) + Lang.t(" · Ankunft ", " · arrive ") + e.arrive else ""),
                     color = Color.White.copy(alpha = 0.8f), fontSize = 13.sp)
             }
             Box(Modifier.size(44.dp).clip(CircleShape).background(TealDeep).clickable { engine.closeItinerary() }, contentAlignment = Alignment.Center) {
-                Icon(Icons.Rounded.Close, "Close", tint = Color.White, modifier = Modifier.size(22.dp))
+                Icon(Icons.Rounded.Close, Lang.t("Schließen", "Close"), tint = Color.White, modifier = Modifier.size(22.dp))
             }
         }
         LazyColumn(Modifier.fillMaxWidth().heightIn(max = 420.dp).background(TealDeep), state = listState) {
@@ -1319,15 +1391,15 @@ private fun ItineraryCard(engine: NavEngine) {
                 Column(Modifier.fillMaxWidth().background(if (sel) Color.White.copy(alpha = 0.10f) else Color.Transparent)
                     .clickable { touched++; picked = row.index; engine.previewTurn(row) }.padding(horizontal = 16.dp, vertical = 10.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        ManeuverArrow(row.maneuver, Geo.maneuverAngle(row.maneuver), Modifier.size(30.dp), roundaboutExit = row.exit, roundaboutClockwise = !engine.mirrored)
+                        ManeuverArrow(row.maneuver, Geo.maneuverAngle(row.maneuver), Modifier.size(30.dp), roundaboutExit = row.exit, roundaboutClockwise = engine.leftTraffic)
                         Column(Modifier.padding(start = 14.dp).weight(1f)) {
                             Text(row.text, color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Medium, maxLines = 2, overflow = TextOverflow.Ellipsis)
-                            Text(listOfNotNull(row.tag.ifBlank { null }, "about " + row.arrive).joinToString(" · "), color = Color.White.copy(alpha = 0.75f), fontSize = 12.sp, maxLines = 1)
+                            Text(listOfNotNull(row.tag.ifBlank { null }, Lang.t("ca. ", "about ") + row.arrive).joinToString(" · "), color = Color.White.copy(alpha = 0.75f), fontSize = 12.sp, maxLines = 1)
                         }
                         Text(Geo.fmtDist(row.dist, engine.imperial), color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(start = 10.dp))
                     }
                     if (sel && row.road.isNotBlank()) Row(Modifier.padding(start = 44.dp, top = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text("Avoid ${row.road}", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.SemiBold,
+                        Text(Lang.t("${row.road} meiden", "Avoid ${row.road}"), color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.SemiBold,
                             modifier = Modifier.clip(RoundedCornerShape(50)).background(Color.White.copy(alpha = 0.18f)).clickable { engine.avoidTurnRoad(row) }.padding(horizontal = 14.dp, vertical = 7.dp))
                     }
                 }

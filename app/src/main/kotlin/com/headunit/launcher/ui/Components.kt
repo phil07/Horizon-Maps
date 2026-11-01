@@ -1,5 +1,7 @@
 package com.headunit.launcher.ui
 
+import com.headunit.launcher.Lang
+
 import android.view.ViewGroup
 import android.widget.FrameLayout
 import androidx.compose.foundation.Canvas
@@ -348,7 +350,7 @@ fun rememberVoiceInput(prompt: String, onResult: (String) -> Unit): () -> Unit {
                     .putExtra(android.speech.RecognizerIntent.EXTRA_PROMPT, prompt),
             )
         } catch (e: Exception) {
-            android.widget.Toast.makeText(ctx, "No voice recognition app found on this device", android.widget.Toast.LENGTH_LONG).show()
+            android.widget.Toast.makeText(ctx, Lang.t("Keine Spracherkennungs-App auf diesem Gerät gefunden", "No voice recognition app found on this device"), android.widget.Toast.LENGTH_LONG).show()
         }
     }
 }

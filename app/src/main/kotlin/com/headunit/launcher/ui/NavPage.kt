@@ -1,5 +1,9 @@
 package com.headunit.launcher.ui
 
+import com.headunit.launcher.R
+import com.headunit.launcher.Lang
+import androidx.compose.ui.res.stringResource
+
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.core.animateDpAsState
@@ -111,14 +115,31 @@ import com.headunit.launcher.PreferenceKeys
 @Composable
 fun NavOverlays(engine: NavEngine, onSettings: () -> Unit) = ImmersiveNav(engine, onSettings)
 
+/**
+ * The main roads of a route for its card: the one or two roads it follows longest, in the order you drive them ("A 5, A 7").
+ * Road numbers (the national ones, as signed) come before street names when they carry a fair share of the trip.
+ */
 internal fun viaOf(r: com.headunit.launcher.Route): String {
-    var best = ""
-    var bl = 0.0
+    // total length on each road and where it first comes up
+    val len = LinkedHashMap<String, Double>()
+    val first = HashMap<String, Int>()
     for (i in r.steps.indices) {
-        val len = (r.steps.getOrNull(i + 1)?.off ?: r.len) - r.steps[i].off
-        if (len > bl && r.steps[i].street.isNotBlank()) { bl = len; best = r.steps[i].street }
+        val s = r.steps[i]
+        if (s.maneuver.uppercase().startsWith("ARRIVE")) continue
+        val name = s.street.trim()
+        if (name.isEmpty()) continue
+        val l = ((r.steps.getOrNull(i + 1)?.off ?: r.len) - s.off).coerceAtLeast(0.0)
+        len[name] = (len[name] ?: 0.0) + l
+        if (name !in first) first[name] = i
     }
-    return best
+    if (len.isEmpty()) return ""
+    val total = r.len.coerceAtLeast(1.0)
+    val refs = len.entries.filter { com.headunit.launcher.RoadRefs.isRef(it.key) && !com.headunit.launcher.RoadRefs.isEuro(it.key) }
+    val pool = (if (refs.isNotEmpty() && refs.maxOf { it.value } >= total * 0.2) refs else len.entries.toList()).sortedByDescending { it.value }
+    val top = pool.first()
+    // a second road only when it is a real part of the trip, not a few hundred metres of it
+    val second = pool.getOrNull(1)?.takeIf { it.value >= total * 0.15 && it.value >= top.value * 0.25 }
+    return listOfNotNull(top, second).sortedBy { first[it.key] ?: 0 }.joinToString(", ") { it.key }
 }
 
 /** Journey overview: route options plus a Start button that fills up and starts by itself after 5 s. */
@@ -130,9 +151,15 @@ internal fun BoxScope.RoutePreview(engine: NavEngine) {
     val fastest = rs.indices.minByOrNull { rs[it].time } ?: 0
     val shortest = rs.indices.minByOrNull { rs[it].len } ?: 0
     val progress = remember { Animatable(0f) }
-    // planning an arrive-by trip (or having the picker open) stops the countdown: you are not leaving now
+    // planning an arrive-by trip (or having the picker open) stops the countdown: you are not leaving now.
+    // So does opening the options: the trip must not start while you are still choosing.
     var arriveBy by remember { mutableStateOf(false) }
-    val hold = arriveBy || engine.flyingOver || engine.planned?.dest?.let { p -> engine.dest?.let { d -> Geo.dist(p.pos, d.pos) < 50.0 } } == true
+    var showOpts by remember { mutableStateOf(false) }
+    val plannedHere = engine.planned?.dest?.let { p -> engine.dest?.let { d -> Geo.dist(p.pos, d.pos) < 50.0 } } == true
+    val planHold = arriveBy || plannedHere
+    // and while the route is still being worked out or its charging stops planned: they may be put on it in a moment
+    // (re-routing it), and a trip started from the old route would be thrown back into this preview when the new one arrives
+    val hold = planHold || showOpts || engine.flyingOver || engine.busy || engine.evPlanning
     val autoStart = engine.prefs.b(PreferenceKeys.AUTO_START_ROUTE, true)
     val countdownMs = engine.prefs.i(PreferenceKeys.AUTO_START_SECONDS, 10).coerceIn(3, 30) * 1000
     LaunchedEffect(engine.active, engine.routes, hold, autoStart, countdownMs) {
@@ -151,88 +178,117 @@ internal fun BoxScope.RoutePreview(engine: NavEngine) {
     val mpg = engine.prefs.s(if (ev) "evmpk" else "fuelmpg", "").toDoubleOrNull()?.takeIf { it > 0 }
     val ppl = engine.prefs.s(if (ev) "evppk" else "fuelppl", "").toDoubleOrNull()?.takeIf { it > 0 }
     val costText = if (mpg != null && ppl != null && selRoute != null)
-        (if (ev) "Charging about " else "Fuel about ") + java.text.NumberFormat.getCurrencyInstance(java.util.Locale.UK).format(
+        (if (ev) Lang.t("Laden etwa ", "Charging about ") else Lang.t("Sprit etwa ", "Fuel about ")) + java.text.NumberFormat.getCurrencyInstance(java.util.Locale.UK).format(
             if (ev) selRoute.len / 1609.344 / mpg * ppl / 100.0 else selRoute.len / 1609.344 / mpg * 4.54609 * ppl / 100.0) else null
+    val eco = engine.prefs.b(PreferenceKeys.ROUTE_ECO, false)
+    val evPlan = if (ev) engine.evPlanned else emptyList()
     ZonesRow(engine)
-    if (engine.routeWx.isNotEmpty()) {
-        val fahr = isImperial(engine.prefs)
-        Row(
-            Modifier.floating(50.dp).horizontalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 8.dp),
-            verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(18.dp),
-        ) {
-            Text("Weather on route", color = c.sub, fontSize = 13.sp)
-            engine.routeWx.forEach { w ->
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(wxIcon(w.code), null, tint = wxTint(w.code), modifier = Modifier.size(24.dp))
-                    Column(Modifier.padding(start = 6.dp)) {
-                        Text((if (fahr) Math.round(w.temp * 9 / 5 + 32) else Math.round(w.temp)).toString() + "°", color = c.text, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
-                        Text("in ${if (w.minutes >= 60) "${w.minutes / 60} h ${w.minutes % 60} min" else "${w.minutes} min"}" + (if (w.rain >= 40) " · ${w.rain}%" else ""), color = if (w.rain >= 60) Warn else c.sub, fontSize = 11.sp)
-                    }
-                }
+    // one compact row: the "Options" button and a one-line summary of what is chosen; the rain warning stays visible
+    val summary = buildList {
+        val m = engine.departMin
+        // leaving now is the normal case: only a later departure or a planned arrival is worth mentioning
+        when {
+            plannedHere -> add(Lang.t("Ankunft geplant", "Arrival planned"))
+            m <= 0 -> {}
+            m % 60 == 0 -> add(Lang.t("Abfahrt +${m / 60} h", "Leave +${m / 60} h"))
+            else -> add(Lang.t("Abfahrt +$m Min.", "Leave +$m min"))
+        }
+        if (ev) {
+            val pctNow = engine.evNowPct() ?: engine.prefs.i(PreferenceKeys.EV_CHARGE_PCT, 80).coerceIn(5, 100)
+            add(Lang.t("Akku $pctNow %", "Battery $pctNow%"))
+            if (evPlan.isNotEmpty()) {
+                add(if (evPlan.size == 1) Lang.t("1 Ladestopp", "1 charging stop") else Lang.t("${evPlan.size} Ladestopps", "${evPlan.size} charging stops"))
+                val cm = engine.evChargeMinutes()
+                if (cm > 0) add(Lang.t("$cm Min. laden", "$cm min charging"))
             }
         }
+        // the planned charging stops are on the route as stops too: count only the others here
+        val others = engine.via.count { v -> evPlan.none { Geo.dist(it.n.place.pos, v.pos) < 30.0 } }
+        if (others > 0) add(if (others == 1) Lang.t("1 Stopp", "1 stop") else Lang.t("$others Stopps", "$others stops"))
+        if (ev && eco) add(Lang.t("Öko-Route", "Eco route"))
+    }.joinToString(" · ")
+    Row(
+        Modifier.floating(50.dp).padding(6.dp),
+        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        Pill(if (showOpts) Lang.t("Optionen ▴", "Options ▴") else Lang.t("Optionen ▾", "Options ▾"), showOpts, { showOpts = !showOpts })
+        Column(Modifier.weight(1f, fill = false).padding(end = 8.dp)) {
+            if (summary.isNotEmpty()) Text(summary, color = c.sub, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            engine.destRain?.let { Text(it, color = Warn, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis) }
+        }
     }
+    // a short (car / landscape) screen: at most 40 % of its height, so the route cards and Start stay in view (the options
+    // scroll then). A tall screen has room for all of it; the cap there is only a safety net (a long list of charging
+    // stops scrolls by itself, see EvStopsRow), so normally nothing scrolls.
+    val screenH = androidx.compose.ui.platform.LocalConfiguration.current.screenHeightDp
+    val optsMaxH = (screenH * (if (screenH < 600) 0.4f else 0.6f)).dp
+    if (showOpts) Column(Modifier.fillMaxWidth().heightIn(max = optsMaxH).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
     Row(
         Modifier.floating(50.dp).horizontalScroll(rememberScrollState()).padding(6.dp),
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp),
     ) {
-        Text("Stops", color = c.sub, fontSize = 13.sp, modifier = Modifier.padding(horizontal = 10.dp))
-        Pill("+ Fuel", engine.stopMode && engine.nearbyKind == "fuel", { engine.stopMode = true; engine.loadNearby("fuel", false) })
-        Pill("+ Charger", engine.stopMode && engine.nearbyKind == "charging", { engine.stopMode = true; engine.loadNearby("charging", false) })
-        Pill(if (engine.via.isEmpty()) "+ Stop" else "Edit stops", false, { engine.stopsEditor = true })
+        Text(stringResource(R.string.ui_054), color = c.sub, fontSize = 13.sp, modifier = Modifier.padding(horizontal = 10.dp))
+        Pill(Lang.t("+ Tanken", "+ Fuel"), engine.stopMode && engine.nearbyKind == "fuel", { engine.stopMode = true; engine.loadNearby("fuel", false) })
+        Pill(Lang.t("+ Ladesäule", "+ Charger"), engine.stopMode && engine.nearbyKind == "charging", { engine.stopMode = true; engine.loadNearby("charging", false) })
+        Pill(if (engine.via.isEmpty()) Lang.t("+ Stopp", "+ Stop") else Lang.t("Stopps bearbeiten", "Edit stops"), false, { engine.stopsEditor = true })
         if (engine.via.isNotEmpty()) Text(engine.via.joinToString(" › ") { it.name }, color = c.text, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.widthIn(max = 220.dp))
         if (costText != null) Text(costText, color = c.sub, fontSize = 13.sp, modifier = Modifier.padding(horizontal = 8.dp))
-        engine.destRain?.let { Text(it, color = Warn, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(horizontal = 8.dp)) }
     }
     Row(
         Modifier.floating(50.dp).horizontalScroll(rememberScrollState()).padding(6.dp),
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp),
     ) {
-        Text("Leave", color = c.sub, fontSize = 13.sp, modifier = Modifier.padding(horizontal = 10.dp))
-        for ((label, m) in listOf("Now" to 0, "+15 min" to 15, "+30 min" to 30, "+1 h" to 60, "+2 h" to 120)) {
+        Text(stringResource(R.string.ui_030), color = c.sub, fontSize = 13.sp, modifier = Modifier.padding(horizontal = 10.dp))
+        for ((label, m) in listOf(Lang.t("Jetzt", "Now") to 0, Lang.t("+15 Min.", "+15 min") to 15, Lang.t("+30 Min.", "+30 min") to 30, "+1 h" to 60, "+2 h" to 120)) {
             Pill(label, engine.departMin == m, { if (engine.departMin != m) engine.setDeparture(m) })
         }
-        Pill("Arrive by…", hold, { arriveBy = true })
+        Pill(Lang.t("Ankunft bis…", "Arrive by…"), planHold, { arriveBy = true })
     }
-    // electric: the battery now, the least you want to arrive with, and the eco route; a charging stop is then suggested
-    // below if the trip needs one
+    // electric: the battery now, the least you want to arrive with, and the eco route; charging stops are then planned.
+    // A fresh reading from the battery widget makes the "battery now" setting pointless: then only the other two are shown.
     if (ev) Row(
         Modifier.floating(50.dp).horizontalScroll(rememberScrollState()).padding(6.dp),
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         val pct = engine.prefs.i(PreferenceKeys.EV_CHARGE_PCT, 80).coerceIn(5, 100)
-        val minArr = engine.prefs.i(PreferenceKeys.EV_MIN_ARRIVE, 20)
-        Text("Battery now", color = c.sub, fontSize = 13.sp, modifier = Modifier.padding(horizontal = 10.dp))
-        Pill("−", false, { engine.prefs.put(PreferenceKeys.EV_CHARGE_PCT, (pct - 10).coerceAtLeast(5)); engine.refreshEvPlan() })
-        Text("$pct%", color = c.text, fontSize = 16.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 4.dp))
-        Pill("+", false, { engine.prefs.put(PreferenceKeys.EV_CHARGE_PCT, (pct + 10).coerceAtMost(100)); engine.refreshEvPlan() })
-        Text("Arrive with at least", color = c.sub, fontSize = 13.sp, modifier = Modifier.padding(start = 14.dp, end = 4.dp))
-        for (m in listOf(10, 20, 30)) Pill("$m%", minArr == m, { engine.prefs.put(PreferenceKeys.EV_MIN_ARRIVE, m); engine.refreshEvPlan() })
-        val eco = engine.prefs.b(PreferenceKeys.ROUTE_ECO, false)
-        Pill(if (eco) "Eco route ✓" else "Eco route", eco, { engine.prefs.put(PreferenceKeys.ROUTE_ECO, !eco); engine.rerouteForSettings() })
+        val destKm = engine.prefs.i(PreferenceKeys.EV_DEST_KM, 50)
+        val fromWidget = engine.evNowPct() != null
+        if (!fromWidget) {
+            Text(stringResource(R.string.ui_007), color = c.sub, fontSize = 13.sp, modifier = Modifier.padding(horizontal = 10.dp))
+            Pill("−", false, { engine.prefs.put(PreferenceKeys.EV_CHARGE_PCT, (pct - 10).coerceAtLeast(5)); engine.refreshEvPlan() })
+            Text("$pct%", color = c.text, fontSize = 16.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 4.dp))
+            Pill("+", false, { engine.prefs.put(PreferenceKeys.EV_CHARGE_PCT, (pct + 10).coerceAtMost(100)); engine.refreshEvPlan() })
+        }
+        Text(Lang.t("Am Ziel mind.", "At destination, at least"), color = c.sub, fontSize = 13.sp, modifier = Modifier.padding(start = if (fromWidget) 10.dp else 14.dp, end = 4.dp))
+        for (km in listOf(30, 50, 100)) Pill("$km km", destKm == km, { engine.prefs.put(PreferenceKeys.EV_DEST_KM, km); engine.refreshEvPlan() })
+        Pill(if (eco) Lang.t("Öko-Route ✓", "Eco route ✓") else Lang.t("Öko-Route", "Eco route"), eco, { engine.prefs.put(PreferenceKeys.ROUTE_ECO, !eco); engine.rerouteForSettings() })
     }
+    // the charging stops already planned into the route, with charge on arrival, charge-to and minutes
+    if (evPlan.isNotEmpty()) EvStopsRow(engine, evPlan)
+    }
+    // outside the options: a fuel stop suggestion, or (electric) a warning / charging stops not yet added
     FuelSuggestionRow(engine)
     // landscape: everything in one row. Portrait (narrow): destination on top, the route choices across, Start underneath.
     val narrowP = androidx.compose.ui.platform.LocalConfiguration.current.screenWidthDp < 720
     val destPart: @Composable (Modifier) -> Unit = { m ->
         Column(m) {
-            Text("Destination", color = c.sub, fontSize = 12.sp)
+            Text(stringResource(R.string.ui_012), color = c.sub, fontSize = 12.sp)
             Text(engine.dest?.name ?: "", color = c.text, fontSize = 17.sp, fontWeight = FontWeight.Bold, maxLines = 2, overflow = TextOverflow.Ellipsis)
             val d = engine.dest
             if (d != null) Row(Modifier.padding(top = 4.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 val fav = engine.places.isFavourite(d)
-                Icon(if (fav) Icons.Rounded.Star else Icons.Rounded.StarBorder, "Favourite", tint = if (fav) Warn else c.sub,
-                    modifier = Modifier.size(26.dp).clickable { engine.toast(if (engine.places.toggleFavourite(d)) "Saved to favourites" else "Removed from favourites", 2000) })
-                Icon(Icons.Rounded.Home, "Set as home", tint = c.sub,
-                    modifier = Modifier.size(26.dp).clickable { engine.places.setSlot("home", d); engine.toast("Home set to ${d.name}", 2500) })
-                Icon(Icons.Rounded.Work, "Set as work", tint = c.sub,
-                    modifier = Modifier.size(26.dp).clickable { engine.places.setSlot("work", d); engine.toast("Work set to ${d.name}", 2500) })
+                Icon(if (fav) Icons.Rounded.Star else Icons.Rounded.StarBorder, Lang.t("Favorit", "Favourite"), tint = if (fav) Warn else c.sub,
+                    modifier = Modifier.size(26.dp).clickable { engine.toast(if (engine.places.toggleFavourite(d)) engine.str(R.string.toast_065) else engine.str(R.string.rest_1253), 2000) })
+                Icon(Icons.Rounded.Home, Lang.t("Als Zuhause festlegen", "Set as home"), tint = c.sub,
+                    modifier = Modifier.size(26.dp).clickable { engine.places.setSlot("home", d); engine.toast(engine.str(R.string.rest_1263, d.name), 2500) })
+                Icon(Icons.Rounded.Work, Lang.t("Als Arbeit festlegen", "Set as work"), tint = c.sub,
+                    modifier = Modifier.size(26.dp).clickable { engine.places.setSlot("work", d); engine.toast(engine.str(R.string.rest_1262, d.name), 2500) })
                 var saving by remember { mutableStateOf(false) }
                 val mine = engine.places.customAt(d) != null
-                Icon(Icons.Rounded.BookmarkAdd, "Save with a name", tint = if (mine) c.accent else c.sub, modifier = Modifier.size(26.dp).clickable { saving = true })
+                Icon(Icons.Rounded.BookmarkAdd, Lang.t("Mit Namen speichern", "Save with a name"), tint = if (mine) c.accent else c.sub, modifier = Modifier.size(26.dp).clickable { saving = true })
                 // paired with your car (Settings > Places & trips): send it there instead of driving it from here
                 if (engine.prefs.s(PreferenceKeys.LINK_ROLE, "") == "phone" && engine.prefs.s(PreferenceKeys.LINK_CODE, "").isNotBlank())
-                    Icon(Icons.Rounded.DirectionsCar, "Send to car", tint = c.accent, modifier = Modifier.size(26.dp).clickable { engine.sendToCar(d) })
+                    Icon(Icons.Rounded.DirectionsCar, Lang.t("An Auto senden", "Send to car"), tint = c.accent, modifier = Modifier.size(26.dp).clickable { engine.sendToCar(d) })
                 if (saving) AddPlaceDialog(engine, d) { saving = false }
             }
         }
@@ -241,18 +297,18 @@ internal fun BoxScope.RoutePreview(engine: NavEngine) {
         rs.forEachIndexed { i, r ->
             val sel = i == engine.active
             val shape = RoundedCornerShape(18.dp)
-            val label = if (i == fastest) "Fastest" else if (i == shortest) "Shortest" else "Alternative"
+            val label = if (i == fastest) Lang.t("Schnellste", "Fastest") else if (i == shortest) Lang.t("Kürzeste", "Shortest") else Lang.t("Alternative", "Alternative")
             Column(
                 Modifier.weight(1f).inset(18.dp, if (sel) c.accent else null)
                                         .clickable { engine.selectRoute(i) }.padding(horizontal = 14.dp, vertical = 9.dp),
             ) {
                 Text(label.uppercase(), color = if (sel) c.accent else c.sub, fontSize = 11.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
                 Text(Geo.fmtDur(r.time), color = c.text, fontSize = 22.sp, fontWeight = FontWeight.Bold)
-                Text("${Geo.fmtDist(r.len, engine.imperial)} · arrive ${fmt.format(java.util.Date(baseMs + (r.time * 1000).toLong()))}", color = c.sub, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text("${Geo.fmtDist(r.len, engine.imperial)} · ${Lang.t("Ankunft", "arrive")} ${fmt.format(java.util.Date(baseMs + (r.time * 1000).toLong()))}", color = c.sub, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 val via = viaOf(r)
                 val delayMin = Math.round(r.delay / 60.0).toInt()
                 Text(
-                    if (delayMin >= 1) "+$delayMin min traffic" else if (via.isNotEmpty()) "via $via" else "No delays",
+                    if (delayMin >= 1) Lang.t("+$delayMin Min. Verkehr", "+$delayMin min traffic") else if (via.isNotEmpty()) Lang.t("über $via", "via $via") else Lang.t("Keine Verzögerungen", "No delays"),
                     color = if (delayMin >= 10) Bad else if (delayMin >= 1) Warn else c.sub, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis,
                 )
             }
@@ -265,46 +321,79 @@ internal fun BoxScope.RoutePreview(engine: NavEngine) {
             contentAlignment = Alignment.Center,
         ) {
             Box(Modifier.align(Alignment.CenterStart).fillMaxHeight().fillMaxWidth(progress.value).background(c.accent))
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text("Start navigation", color = Color.White, fontSize = 17.sp, fontWeight = FontWeight.Bold)
-                Text(if (hold) "Planned for later" else if (autoStart) "Starting in ${kotlin.math.ceil((1f - progress.value) * (countdownMs / 1000f)).toInt()} s" else "Tap to start", color = Color.White.copy(alpha = 0.85f), fontSize = 12.sp)
+            // always one line: if "Navigation starten" does not fit (narrow phone, large font setting) the text gets smaller
+            // instead of being cut off at both ends
+            var startFs by remember(narrowP) { mutableStateOf(17f) }
+            Column(Modifier.padding(horizontal = 12.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(stringResource(R.string.ui_052), color = Color.White, fontSize = startFs.sp, fontWeight = FontWeight.Bold, maxLines = 1, softWrap = false,
+                    onTextLayout = { if (it.hasVisualOverflow && startFs > 11f) startFs -= 1f })
+                Text(if (planHold) Lang.t("Für später geplant", "Planned for later") else if (hold) Lang.t("Zum Starten tippen", "Tap to start") else if (autoStart) Lang.t("Start in ${kotlin.math.ceil((1f - progress.value) * (countdownMs / 1000f)).toInt()} s", "Starting in ${kotlin.math.ceil((1f - progress.value) * (countdownMs / 1000f)).toInt()} s") else Lang.t("Zum Starten tippen", "Tap to start"), color = Color.White.copy(alpha = 0.85f), fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
         }
     }
-    if (!narrowP) Row(
-        Modifier.fillMaxWidth().floating(28.dp).padding(12.dp),
-        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp),
-    ) {
-        destPart(Modifier.width(150.dp))
-        routeCards()
-        if (engine.prefs.b(PreferenceKeys.FLYOVER, true)) FlyOverBtn(engine)
-        startBtn(Modifier.width(210.dp))
-        RoundBtn(Icons.Rounded.Close, { engine.endRoute() }, size = 46.dp)
+    // the weather along the route, small: up to three points, icon + temperature + when
+    val wxLine: @Composable () -> Unit = {
+        if (engine.routeWx.isNotEmpty()) {
+            val fahr = isImperial(engine.prefs)
+            Row(
+                Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 4.dp),
+                verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp),
+            ) {
+                engine.routeWx.take(3).forEach { w ->
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(wxIcon(w.code), null, tint = wxTint(w.code), modifier = Modifier.size(18.dp))
+                        Text((if (fahr) Math.round(w.temp * 9 / 5 + 32) else Math.round(w.temp)).toString() + "°", color = c.text, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, modifier = Modifier.padding(start = 4.dp))
+                        val whenTxt = if (w.minutes >= 60) "in ${w.minutes / 60} h ${"%02d".format(w.minutes % 60)}" else Lang.t("in ${w.minutes} Min.", "in ${w.minutes} min")
+                        Text(whenTxt + (if (w.rain >= 40) " · ${w.rain}%" else ""), color = if (w.rain >= 60) Warn else c.sub, fontSize = 11.sp, maxLines = 1, modifier = Modifier.padding(start = 4.dp))
+                    }
+                }
+            }
+        }
+    }
+    if (!narrowP) Column(Modifier.fillMaxWidth().floating(28.dp).padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(
+            Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            destPart(Modifier.width(150.dp))
+            routeCards()
+            // a car screen (800–1000 dp wide) has little room left for the route cards (weighted, so measured last): compact there too
+            if (engine.prefs.b(PreferenceKeys.FLYOVER, true)) FlyOverBtn(engine, compact = androidx.compose.ui.platform.LocalConfiguration.current.screenWidthDp < 1100)
+            startBtn(Modifier.width(210.dp))
+            RoundBtn(Icons.Rounded.Close, { engine.endRoute() }, size = 46.dp)
+        }
+        wxLine()
     } else Column(Modifier.fillMaxWidth().floating(28.dp).padding(12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             destPart(Modifier.weight(1f))
             RoundBtn(Icons.Rounded.Close, { engine.endRoute() }, size = 46.dp)
         }
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) { routeCards() }
+        wxLine()
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-            if (engine.prefs.b(PreferenceKeys.FLYOVER, true)) FlyOverBtn(engine)
+            // compact next to Start, so Start keeps most of the width
+            if (engine.prefs.b(PreferenceKeys.FLYOVER, true)) FlyOverBtn(engine, compact = true)
             startBtn(Modifier.weight(1f))
         }
     }
     }
 }
 
-/** "Fly over route": a 3D flight along the whole drive before you set off. */
+/** "Route überfliegen": a 3D flight along the whole drive before you set off. [compact] (portrait, next to Start): just "Überflug". */
 @Composable
-private fun FlyOverBtn(engine: NavEngine) {
+private fun FlyOverBtn(engine: NavEngine, compact: Boolean = false) {
     val c = LocalVw.current
     Row(
         Modifier.height(72.dp).clip(RoundedCornerShape(36.dp)).background(c.accent.copy(alpha = 0.14f))
-            .clickable(enabled = !engine.flyingOver) { engine.flyOver() }.padding(horizontal = 16.dp),
+            .clickable(enabled = !engine.flyingOver) { engine.flyOver() }.padding(horizontal = if (compact) 12.dp else 16.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Icon(Icons.Rounded.PlayArrow, null, tint = c.accent, modifier = Modifier.size(24.dp))
-        Text(if (engine.flyingOver) "Flying…" else "Fly over route", color = c.accent, fontSize = 15.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(start = 6.dp))
+        Icon(Icons.Rounded.PlayArrow, Lang.t("Route überfliegen", "Fly over route"), tint = c.accent, modifier = Modifier.size(24.dp))
+        Text(
+            if (engine.flyingOver) Lang.t("Überflug…", "Flying…") else if (compact) Lang.t("Überflug", "Fly over") else Lang.t("Route überfliegen", "Fly over route"),
+            color = c.accent, fontSize = if (compact) 14.sp else 15.sp, fontWeight = FontWeight.Bold, maxLines = 1, softWrap = false,
+            modifier = Modifier.padding(start = if (compact) 4.dp else 6.dp),
+        )
     }
 }
 
@@ -330,13 +419,13 @@ internal fun ArrivalCard(engine: NavEngine, a: ArrivalInfo, modifier: Modifier =
         Box(Modifier.size(64.dp).clip(androidx.compose.foundation.shape.CircleShape).background(Good.copy(alpha = 0.18f)), contentAlignment = Alignment.Center) {
             Icon(Icons.Rounded.Check, null, tint = Good, modifier = Modifier.size(38.dp))
         }
-        Text("You've arrived", color = c.sub, fontSize = 14.sp)
+        Text(stringResource(R.string.ui_072), color = c.sub, fontSize = 14.sp)
         Text(a.name, color = c.text, fontSize = 24.sp, fontWeight = FontWeight.Bold, maxLines = 2, overflow = TextOverflow.Ellipsis)
-        if (a.side.isNotEmpty()) Text("On the ${a.side}", color = c.accent, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+        if (a.side.isNotEmpty()) Text(Lang.t("Ziel liegt ${a.side}", "On the " + (if (a.side == "links") "left" else "right")), color = c.accent, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
         Row(Modifier.fillMaxWidth().padding(vertical = 6.dp), horizontalArrangement = Arrangement.SpaceEvenly) {
-            ArrivalStat(Geo.fmtDist(a.dist, imp), "distance")
-            ArrivalStat(Geo.fmtDur(a.secs), "time")
-            ArrivalStat("${Math.round(a.avgMs * k)} ${if (imp) "mph" else "km/h"}", "average")
+            ArrivalStat(Geo.fmtDist(a.dist, imp), stringResource(R.string.ui_093))
+            ArrivalStat(Geo.fmtDur(a.secs), stringResource(R.string.ui_092))
+            ArrivalStat("${Math.round(a.avgMs * k)} ${if (imp) stringResource(R.string.ui_094) else stringResource(R.string.ui_095)}", stringResource(R.string.ui_096))
         }
         engine.arrivalParking?.let { pk ->
             Row(
@@ -345,21 +434,21 @@ internal fun ArrivalCard(engine: NavEngine, a: ArrivalInfo, modifier: Modifier =
             ) {
                 Icon(Icons.Rounded.LocalParking, null, tint = Color(0xFF4C8DFF), modifier = Modifier.size(26.dp))
                 Column(Modifier.padding(start = 12.dp).weight(1f)) {
-                    Text("Nearest parking", color = c.sub, fontSize = 12.sp)
+                    Text(stringResource(R.string.ui_034), color = c.sub, fontSize = 12.sp)
                     Text(pk.place.name, color = c.text, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
                 Text(Geo.fmtDist(pk.dist, imp), color = c.sub, fontSize = 13.sp, modifier = Modifier.padding(horizontal = 8.dp))
-                Text("Go", color = c.accent, fontSize = 15.sp, fontWeight = FontWeight.Bold)
+                Text(stringResource(R.string.ui_019), color = c.accent, fontSize = 15.sp, fontWeight = FontWeight.Bold)
             }
         }
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             a.place?.let { p ->
                 var fav by remember { mutableStateOf(engine.places.isFavourite(p)) }
-                Pill(if (fav) "Saved" else "Save place", fav, { fav = engine.places.toggleFavourite(p) })
+                Pill(if (fav) Lang.t("Gespeichert", "Saved") else Lang.t("Ort speichern", "Save place"), fav, { fav = engine.places.toggleFavourite(p) })
             }
             // the way back to where this trip started (home, if it started there)
-            if (engine.tripFrom != null && engine.prefs.b(PreferenceKeys.ROUTEBACK, true)) Pill("Route back", false, { engine.routeBack() })
-            Pill("Done", true, { engine.dismissArrival() })
+            if (engine.tripFrom != null && engine.prefs.b(PreferenceKeys.ROUTEBACK, true)) Pill(Lang.t("Rückweg", "Route back"), false, { engine.routeBack() })
+            Pill(Lang.t("Fertig", "Done"), true, { engine.dismissArrival() })
         }
     }
 }
@@ -374,8 +463,9 @@ private fun nearbyIcon(kind: String?): androidx.compose.ui.graphics.vector.Image
 }
 
 private fun nearbyTitle(kind: String?): String = when (kind) {
-    "fuel" -> "Fuel stations"; "charging" -> "Charging points"; "food" -> "Food"; "coffee" -> "Coffee"
-    "toilets" -> "Toilets"; "services" -> "Services"; else -> "Car parks"
+    "fuel" -> Lang.t("Tankstellen", "Fuel stations"); "charging" -> Lang.t("Ladesäulen", "Charging points")
+    "food" -> Lang.t("Essen", "Food"); "coffee" -> Lang.t("Kaffee", "Coffee")
+    "toilets" -> Lang.t("Toiletten", "Toilets"); "services" -> Lang.t("Raststätten", "Services"); else -> Lang.t("Parkplätze", "Car parks")
 }
 
 @Composable
@@ -383,18 +473,18 @@ internal fun NearbyCard(engine: NavEngine) {
     val c = LocalVw.current
     val adding = engine.stopMode || engine.route != null
     val along = engine.nearby.any { it.ahead }
-    val title = (if (adding) "Add a stop: " else "") + nearbyTitle(engine.nearbyKind) + (if (along) " ahead" else "")
+    val title = (if (adding) Lang.t("Stopp hinzufügen: ", "Add a stop: ") else "") + nearbyTitle(engine.nearbyKind) + (if (along) Lang.t(" voraus", " ahead") else "")
     val hasPrices = engine.nearby.any { it.price != null }
     Column(Modifier.floating(24.dp).padding(14.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             IconBadge(nearbyIcon(engine.nearbyKind), c.accent, Modifier.padding(end = 12.dp), 36.dp)
             Text(title, color = c.text, fontSize = 16.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
             if (engine.nearbyBusy) CircularProgressIndicator(Modifier.size(18.dp), color = c.accent, strokeWidth = 2.dp)
-            Icon(Icons.Rounded.Close, "Close", tint = c.sub, modifier = Modifier.padding(start = 12.dp).size(22.dp).clickable { engine.clearNearby() })
+            Icon(Icons.Rounded.Close, Lang.t("Schließen", "Close"), tint = c.sub, modifier = Modifier.padding(start = 12.dp).size(22.dp).clickable { engine.clearNearby() })
         }
         if (hasPrices) Row(Modifier.padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
-            Pill(if (along) "Soonest" else "Nearest", engine.nearbySort != "cheap", { engine.changeNearbySort("near") })
-            Pill("Cheapest", engine.nearbySort == "cheap", { engine.changeNearbySort("cheap") })
+            Pill(if (along) Lang.t("Am frühesten", "Soonest") else Lang.t("Am nächsten", "Nearest"), engine.nearbySort != "cheap", { engine.changeNearbySort("near") })
+            Pill(Lang.t("Am günstigsten", "Cheapest"), engine.nearbySort == "cheap", { engine.changeNearbySort("cheap") })
             Text(com.headunit.launcher.FuelFinder.fuelName(engine.prefs.s(PreferenceKeys.FUEL_TYPE, "E10")), color = c.sub, fontSize = 12.sp, modifier = Modifier.padding(start = 6.dp))
         }
         LazyColumn(Modifier.heightIn(max = 230.dp).padding(top = 6.dp)) {
@@ -411,12 +501,12 @@ internal fun NearbyCard(engine: NavEngine) {
                     if (n.price != null) Text(com.headunit.launcher.fmtFuelPrice(n.price, n.unit), color = c.text, fontSize = 16.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(start = 8.dp))
                     Column(horizontalAlignment = Alignment.End, modifier = Modifier.padding(start = 10.dp)) {
                         Text(Geo.fmtDist(n.dist, engine.imperial), color = c.accent, fontSize = 14.sp, fontWeight = FontWeight.Bold, modifier = Modifier.clip(RoundedCornerShape(50)).background(c.accent.copy(alpha = 0.14f)).padding(horizontal = 10.dp, vertical = 4.dp))
-                        if (n.detourMin >= 0) Text("+${n.detourMin} min", color = c.sub, fontSize = 11.sp, modifier = Modifier.padding(top = 2.dp))
+                        if (n.detourMin >= 0) Text(Lang.t("+${n.detourMin} Min.", "+${n.detourMin} min"), color = c.sub, fontSize = 11.sp, modifier = Modifier.padding(top = 2.dp))
                     }
                 }
             }
         }
-        if (hasPrices) Text("Prices: Fuel Finder (gov.uk)", color = c.sub, fontSize = 10.sp, modifier = Modifier.padding(top = 4.dp))
+        if (hasPrices) Text(Lang.t("Preise: Fuel Finder (gov.uk)", "Prices: Fuel Finder (gov.uk)"), color = c.sub, fontSize = 10.sp, modifier = Modifier.padding(top = 4.dp))
     }
 }
 
