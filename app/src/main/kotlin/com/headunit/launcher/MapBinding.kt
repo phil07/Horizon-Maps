@@ -505,6 +505,23 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
     /** Where you parked, shown on the map (Lang.t("Dein Auto", "Your car")), or null for none. */
     @Volatile private var parkedAt: LL? = null
     fun setParked(p: LL?) {
+    }
+
+    /** Crowd-sourced reports shown on the map as warning icons. */
+    fun setCrowdReports(reports: List<CrowdReport>) {
+        main0.post {
+            try {
+                val src = src("dl-crowd") ?: return@post
+                val features = reports.map { r ->
+                    Feature.fromGeometry(Point.fromLngLat(r.pos.lon, r.pos.lat))
+                        .withProperty("kind", r.kind)
+                }
+                src.featureCollection(FeatureCollection.fromFeatures(features))
+            } catch (e: Throwable) { }
+        }
+    }
+
+    fun setParked(p: LL?) {
         if (p == parkedAt || (p != null && parkedAt != null && Geo.dist(p, parkedAt!!) < 1.0)) return
         parkedAt = p
         main0.post {

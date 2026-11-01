@@ -152,6 +152,13 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
     var faster by mutableStateOf<FasterRoute?>(null)
     var liveAlts by mutableStateOf<List<LiveAlt>>(emptyList())
     var radar by mutableStateOf<List<RadarItem>>(emptyList())
+    // crowd-sourced reports
+    @Volatile private var crowdReports: List<CrowdReport> = emptyList()
+    @Volatile private var lastReportSentAt = 0L
+    @Volatile private var lastReportKind = ""
+    @Volatile private var lastReportPos: LL? = null
+    var crowdReportsUi by mutableStateOf<List<CrowdReport>>(emptyList())
+    var pendingFeedbackReport by mutableStateOf<CrowdReport?>(null)
     private var radarSig = 0
     private var bendsFor: Route? = null
     private var bends: List<Pair<Double, Int>> = emptyList()
@@ -599,6 +606,33 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         Overpass.localWays = { p -> OfflineLimits.waysNear(ctx, p) }
         // the phone and car screens share the trip (joined a moment after start, once this engine is fully set up)
         scope.launch { delay(1500); RouteSync.register(this@NavEngine) }
+        // crowd-sourced reports sync
+        scope.launch {
+            while (true) {
+                delay(60_000)
+                try { syncReports() } catch (e: Exception) { }
+            }
+        }
+        // update map with crowd reports
+        scope.launch {
+            snapshotFlow { crowdReportsUi }.collect { reports ->
+                map.setCrowdReports(reports)
+            }
+        }
+        // check for reports to give feedback on
+        scope.launch {
+            while (true) {
+                delay(5_000)
+                val pos = fix?.pos ?: continue
+                val now = System.currentTimeMillis()
+                crowdReportsUi.find { r ->
+                    Geo.dist(r.pos, pos) < 200 && now - r.ts < 30 * 60_000L
+                }?.let { report ->
+                    // Trigger UI feedback request
+                    pendingFeedbackReport = report
+                }
+            }
+        }
         // a place sent from your phone (Settings > Places & trips): looked for shortly after starting, then every minute
         scope.launch {
             delay(6000)
@@ -5196,6 +5230,65 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         while (i < r.pts.size && r.cum[i] < prog) { pts += r.pts[i]; i++ }
         pts += pointAt(r, prog).first
         map.setDone(pts); doneShown = true
+    }
+
+    /** Send a crowd report (traffic, camera, police) to the worker. */
+    fun reportTraffic(kind: String) {
+        if (!prefs.b(PreferenceKeys.SHARE_REPORTS, false)) return
+        val pos = fix?.pos ?: return
+        val now = System.currentTimeMillis()
+        if (now - lastReportSentAt < 5 * 60_000L) return
+        lastReportPos?.let { if (Geo.dist(it, pos) < 300) return }
+        val workerUrl = prefs.s(PreferenceKeys.WORKER_URL, "").ifBlank { return }
+        scope.launch(Dispatchers.IO) {
+            try {
+                val url = java.net.URL("$workerUrl/report")
+                val conn = url.openConnection() as java.net.HttpURLConnection
+                conn.requestMethod = "POST"
+                conn.doOutput = true
+                conn.setRequestProperty("Content-Type", "application/json")
+                val payload = """{"kind":"$kind","lat":${pos.lat},"lon":${pos.lon},"ts":$now}"""
+                conn.outputStream.use { it.write(payload.toByteArray()) }
+                if (conn.responseCode == 200) {
+                    lastReportSentAt = now
+                    lastReportKind = kind
+                    lastReportPos = pos
+                }
+            } catch (e: Exception) { }
+        }
+    }
+
+    /** Send feedback for an existing report (still there / gone). */
+    fun reportFeedback(reportId: String, stillThere: Boolean) {
+        if (!prefs.b(PreferenceKeys.SHARE_REPORTS, false)) return
+        val workerUrl = prefs.s(PreferenceKeys.WORKER_URL, "").ifBlank { return }
+        scope.launch(Dispatchers.IO) {
+            try {
+                val url = java.net.URL("$workerUrl/feedback")
+                val conn = url.openConnection() as java.net.HttpURLConnection
+                conn.requestMethod = "POST"
+                conn.doOutput = true
+                conn.setRequestProperty("Content-Type", "application/json")
+                val payload = """{"id":"$reportId","stillThere":$stillThere}"""
+                conn.outputStream.use { it.write(payload.toByteArray()) }
+            } catch (e: Exception) { }
+        }
+    }
+
+    /** Sync crowd reports from the worker and update the UI list. */
+    suspend fun syncReports() {
+        if (!prefs.b(PreferenceKeys.SHARE_REPORTS, false)) return
+        val workerUrl = prefs.s(PreferenceKeys.WORKER_URL, "").ifBlank { return }
+        try {
+            val url = java.net.URL("$workerUrl/reports")
+            val conn = url.openConnection() as java.net.HttpURLConnection
+            conn.requestMethod = "GET"
+            if (conn.responseCode == 200) {
+                val json = conn.inputStream.bufferedReader().use { it.readText() }
+                // TODO: parse JSON and filter by route proximity
+                // crowdReportsUi = parsedReports.filter { ... }
+            }
+        } catch (e: Exception) { }
     }
 
     private fun pointAt(r: Route, d: Double): Pair<LL, Double> {
