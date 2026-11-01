@@ -3300,7 +3300,8 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
                 }
                 val out = ArrayList<Pair<LL, Double>>()
                 for (c in cams) {
-                    var bestD = 45.0; var off = -1.0
+                    // within 25 m of the route line (was 45 m): a camera in the next village, just off the road, is not on the route
+                    var bestD = 25.0; var off = -1.0
                     val k = key(c.lat, c.lon)
                     var bi = -1
                     for (dy in -1..1) for (dx in -1..1) grid[k + dy * 1000003L + dx]?.forEach { i ->
