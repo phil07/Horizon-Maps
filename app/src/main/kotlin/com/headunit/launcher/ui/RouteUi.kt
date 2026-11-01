@@ -34,6 +34,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.EvStation
 import androidx.compose.ui.draw.scale
 import androidx.compose.material.icons.rounded.Warning
 import androidx.compose.material.icons.rounded.TurnSlightRight
@@ -109,6 +110,7 @@ private fun barIcon(kind: String): ImageVector = when (kind) {
     "services" -> Icons.Rounded.LocalCafe
     "avg" -> Icons.Rounded.Speed
     "stop" -> Icons.Rounded.Place
+    "charge" -> Icons.Rounded.EvStation
     "zone" -> Icons.Rounded.Eco
     else -> Icons.Rounded.Flag
 }
@@ -118,6 +120,7 @@ private fun barColor(kind: String): Color = when (kind) {
     "works", "incident" -> Warn
     "services" -> Color(0xFF4C8DFF)
     "zone" -> Good
+    "charge" -> Color(0xFF14B8A6)
     else -> Color(0xFF8E5CF0)
 }
 

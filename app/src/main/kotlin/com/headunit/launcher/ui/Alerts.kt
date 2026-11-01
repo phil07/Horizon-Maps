@@ -77,18 +77,18 @@ private fun alertLabel(kind: String): String = when (kind) {
     "camera" -> Lang.t("BLITZER", "SPEED CAMERA")
     "limit" -> Lang.t("TEMPOLIMIT", "SPEED LIMIT")
     "incident" -> Lang.t("GEFAHR VORAUS", "HAZARD AHEAD")
-    "rain" -> "WEATHER"
+    "rain" -> Lang.t("WETTER", "WEATHER")
     "break" -> Lang.t("PAUSE MACHEN", "TAKE A BREAK")
     "avg" -> Lang.t("ABSCHNITTSKONTROLLE", "AVERAGE SPEED CHECK")
     "bump" -> Lang.t("BODENWELLE", "SPEED BUMP")
     "rail" -> Lang.t("BAHNÜBERGANG", "LEVEL CROSSING")
-    "ford" -> "FORD"
-    "school" -> "SCHOOL"
+    "ford" -> Lang.t("FURT", "FORD")
+    "school" -> Lang.t("SCHULE", "SCHOOL")
     "zone" -> Lang.t("UMWELTZONE", "CLEAN AIR ZONE")
     "report" -> Lang.t("GEMELDET VORAUS", "REPORTED AHEAD")
     "wrongway" -> Lang.t("FALSCHE RICHTUNG", "WRONG WAY")
     "plan" -> Lang.t("GEPLANTE FAHRT", "PLANNED TRIP")
-    else -> "ALERT"
+    else -> Lang.t("HINWEIS", "ALERT")
 }
 
 private fun alertIcon(a: AlertInfo): ImageVector {

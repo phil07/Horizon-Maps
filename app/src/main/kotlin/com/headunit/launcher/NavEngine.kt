@@ -1700,8 +1700,11 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         try { route?.let { r -> MapboxOffline.autoSaveRoute(ctx, prefs, offlineRouteName(), r.pts, onWifi()) } } catch (e: Throwable) { }
         routeWx.firstOrNull { it.code in 51..67 || it.code in 80..82 || it.code in 95..99 || it.code in 71..77 || it.code in 85..86 || it.rain >= 70 }?.let {
             val snow = it.code in 71..77 || it.code in 85..86
-            raiseAlert("rain", (if (snow) Lang.t("Schnee", "Snow") else Lang.t("Regen", "Rain")) + Lang.t(" in etwa ${it.minutes} Min. auf deiner Route erwartet", " expected in about ${it.minutes} min on your route"), 6000)
-            speak((if (snow) Lang.t("Schnee", "Snow") else Lang.t("Regen", "Rain")) + Lang.t(" in etwa ${it.minutes} Minuten auf deiner Route erwartet", " expected in about ${it.minutes} minutes on your route"), true)
+            val inT = if (it.minutes >= 60) "${it.minutes / 60} h ${it.minutes % 60} Min." else "${it.minutes} Min."
+            raiseAlert("rain", (if (snow) Lang.t("Schnee", "Snow") else Lang.t("Regen", "Rain")) + Lang.t(" in etwa $inT auf deiner Route erwartet", " expected in about ${inT.replace("Min.", "min")} on your route"), 6000)
+            val h = it.minutes / 60; val m = it.minutes % 60
+            val said = if (h == 0) Lang.t("$m Minuten", "$m minutes") else Lang.t("$h ${if (h == 1) "Stunde" else "Stunden"}" + (if (m > 0) " $m Minuten" else ""), "$h ${if (h == 1) "hour" else "hours"}" + (if (m > 0) " $m minutes" else ""))
+            speak((if (snow) Lang.t("Schnee", "Snow") else Lang.t("Regen", "Rain")) + Lang.t(" in etwa $said auf deiner Route erwartet", " expected in about $said on your route"), true)
         }
         val f = fix
         if (f != null) onPosition(f, true)
@@ -4499,7 +4502,9 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
             for ((inc, off, _) in incMatches) ev += BarEvent(off, if (inc.cat.contains("work", true)) "works" else "incident")
             for (s in pl.services) if (s.side < 400.0) ev += BarEvent(s.off, "services")
             for (a in pl.avg) ev += BarEvent(a.start, "avg")
-            for (o in pl.stops) ev += BarEvent(o, "stop")
+            // charging stops get the lightning marker, as on the map
+            val chargeOffs = evPlanned.mapNotNull { RouteExtras.project(r, it.n.place.pos, 300.0)?.first }
+            for (o in pl.stops) ev += BarEvent(o, if (chargeOffs.any { Math.abs(it - o) < 150.0 }) "charge" else "stop")
             for ((_, o) in pl.zones) ev += BarEvent(o, "zone")
             val shown = ev.filter { it.off >= progress - 30.0 && it.off <= span }
             var bs = shown.size
