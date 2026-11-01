@@ -133,7 +133,7 @@ object EvWidget {
     /** Live battery level from the car (Android Auto). Takes precedence over the widget for a while. */
     fun liveReading(p: Prefs, pct: Int) {
         liveAt = System.currentTimeMillis()
-        p.put(PreferenceKeys.EV_CHARGE_PCT, pct)
+        p.put(PreferenceKeys.EV_NOW_PCT, pct.toString())
         p.put(TAG_AT, liveAt.toString()); p.put(TAG_SRC, "car")
         lastPct = pct; lastAt = liveAt
     }
@@ -144,7 +144,7 @@ object EvWidget {
         // the car's own live value wins for 10 minutes after it last arrived
         if (System.currentTimeMillis() - liveAt < 10 * 60_000L) return
         lastPct = pct; lastAt = System.currentTimeMillis()
-        p.put(PreferenceKeys.EV_CHARGE_PCT, pct)
+        p.put(PreferenceKeys.EV_NOW_PCT, pct.toString())
         p.put(TAG_AT, lastAt.toString()); p.put(TAG_SRC, "widget")
     }
 

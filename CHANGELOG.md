@@ -5,6 +5,7 @@ Add user-facing Horizon Nav changes under **Unreleased** before publishing each 
 ## Unreleased
 
 ### Neu
+- Akku auf der Karte: Bei Elektroautos steht der Ladestand (aus dem Widget oder direkt vom Auto) über der Geschwindigkeit, mit Alter ab 10 Minuten. Unter 20 % wird er gelb, unter 10 % rot.
 - Akkustand direkt vom Auto: Über Android Auto liest Horizon Nav den Ladestand direkt vom Fahrzeug, wenn es ihn teilt (beim ersten Mal fragt Android Auto um Erlaubnis). Das Widget dient dann nur noch als Ersatz.
 - Ladestand aus dem Widget deiner Auto-App: Unter Einstellungen > Kraftstoff > Dein Elektroauto > „Ladestand aus Widget“ das Widget deiner Auto-App wählen. Horizon Nav liest daraus den Prozentwert, sobald sich das Widget aktualisiert, und nutzt ihn für den Akku bei Ankunft und Ladestopps.
 - Deutsche Sprachbefehle: Tippe aufs Mikrofon und sag z. B. „Bring mich nach Hause“, „Fahr nach München“, „Nächste Tankstelle“, „Günstige Tankstelle“, „Wann komme ich an?“, „Ton aus“, „Navigation beenden“, „Melde Blitzer“ oder „Autobahnen vermeiden“. Englische Befehle funktionieren weiterhin.
@@ -56,6 +57,7 @@ Add user-facing Horizon Nav changes under **Unreleased** before publishing each 
 - Spurdaten von Mapbox auch auf TomTom-Routen: Mit Mapbox-Schlüssel bekommt eine TomTom-Route im Hintergrund die Spurdaten von Mapbox. Abschaltbar unter Einstellungen > Abbiegekarte.
 
 ### Behoben
+- Ladestand aus dem Widget überschreibt nicht mehr deinen Zielwert „Ladung auf“. Prüfe ihn nach dem Update einmal, er steht eventuell auf dem alten Akkustand.
 - Widget-Auswahl: Widgets anderer Apps (z. B. der Auto-App) erscheinen jetzt in der Liste für den Ladestand, auch wenn Android sie sonst ausblendet.
 - Update nach Abbruch: Wurde die Installation eines Updates abgebrochen, meldete ein erneuter Versuch „Problem beim Parsen des Pakets“. Jeder Versuch lädt jetzt in eine neue Datei, und der Installer bekommt genau die geprüfte Datei.
 - Spurführung: Routenlinie und Spuren rutschen an normalen Kreuzungen nicht mehr neben die Straße.

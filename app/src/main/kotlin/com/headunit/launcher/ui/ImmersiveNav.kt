@@ -394,7 +394,13 @@ private fun MapScreen(engine: NavEngine, onSettings: () -> Unit) {
             val baseSpeedDensity = LocalDensity.current
             // (sized by Settings > Screen & sizes > Speed limit and speedometer size, inside ImmSpeed)
             val speedSize = 1f
-            CompositionLocalProvider(LocalDensity provides Density(baseSpeedDensity.density * speedSize, baseSpeedDensity.fontScale)) { ImmSpeed(engine) }
+            CompositionLocalProvider(LocalDensity provides Density(baseSpeedDensity.density * speedSize, baseSpeedDensity.fontScale)) {
+                // the car's battery level sits right above the speed, on the same side
+                Column(horizontalAlignment = if (engine.mirrored) Alignment.Start else Alignment.End) {
+                    EvNowChip(engine)
+                    ImmSpeed(engine)
+                }
+            }
         }
 
         // ---- bottom left: hazards and the trip card
@@ -763,6 +769,25 @@ private fun ImmCompass(engine: NavEngine) {
             Box(Modifier.size(width = 4.dp, height = 8.dp).clip(RoundedCornerShape(2.dp)).background(Bad))
             Text("N", color = if (engine.northUp) c.accent else c.text, fontSize = 15.sp, fontWeight = FontWeight.Bold)
         }
+    }
+}
+
+/**
+ * The electric car's battery level, above the speed: green, amber under 20 %, red under 10 %. It shows its age once it's
+ * more than 10 minutes old, and turns amber then too after an hour. Hidden without a reading.
+ */
+@Composable
+internal fun EvNowChip(engine: NavEngine) {
+    val pct = engine.evNowPct() ?: return
+    val age = engine.evNowAgeMin() ?: 0L
+    val col = if (pct < 10) Bad else if (pct < 20) Warn else Good
+    Row(
+        Modifier.padding(bottom = 6.dp).clip(RoundedCornerShape(50)).background(Color(0xCC0B0F16)).padding(horizontal = 10.dp, vertical = 5.dp),
+        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        Box(Modifier.size(8.dp).clip(CircleShape).background(col))
+        Text("$pct %", color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+        if (age >= 10) Text("· $age Min.", color = if (age > 60) Warn else Color(0xFFC3CAD5), fontSize = 12.sp)
     }
 }
 

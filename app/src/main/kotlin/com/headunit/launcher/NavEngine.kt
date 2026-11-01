@@ -3861,10 +3861,23 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
     /** kWh used per km: from the efficiency in Settings > Fuel (miles per kWh), or a typical 0.18. */
     private fun evKwhPerKm(): Double = prefs.s(PreferenceKeys.EVMPK, "").toDoubleOrNull()?.takeIf { it in 1.0..8.0 }?.let { 1.0 / (it * 1.609344) } ?: 0.18
     /** Roughly how much battery (%) you'll arrive with: the charge you set before the trip, less what's been driven and what's left. */
+    /** The battery level (%) the car reported, if it was read in the last 6 hours, or null. */
+    fun evNowPct(): Int? {
+        if (!isEv) return null
+        val v = prefs.s(PreferenceKeys.EV_NOW_PCT, "").toIntOrNull() ?: return null
+        val age = evNowAgeMin() ?: return null
+        return if (age <= 360) v.coerceIn(0, 100) else null
+    }
+
+    /** Minutes since the battery level was last read, or null. */
+    fun evNowAgeMin(): Long? = EvWidget.readAt(prefs).takeIf { it > 0 }?.let { (System.currentTimeMillis() - it) / 60_000L }
+
     fun evArrivalPct(): Int? {
         if (!isEv) return null
         val e = eta ?: return null
-        val start = prefs.i(PreferenceKeys.EV_CHARGE_PCT, 80).coerceIn(1, 100)
+        // starts from the battery as the car reported it (up to an hour old), else from the charge you set before the trip
+        val now = evNowPct()?.takeIf { (evNowAgeMin() ?: Long.MAX_VALUE) <= 60 }
+        val start = (now ?: prefs.i(PreferenceKeys.EV_CHARGE_PCT, 80)).coerceIn(1, 100)
         val driven = if (navStartMs > 0) max(0.0, tripDist - navStartDist) else 0.0
         val usedPct = (driven + e.dist) / 1000.0 * evKwhPerKm() / evBatteryKwh() * 100.0
         return Math.round(start - usedPct).toInt().coerceIn(-50, 100)

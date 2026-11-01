@@ -217,6 +217,8 @@ internal object PreferenceKeys {
     const val STOP_SIGNS = "stopsigns"
     const val EV_BATTERY_KWH = "evbatt"
     const val EV_CHARGE_PCT = "evcharge"
+    /** The car's battery level now (from the widget or Android Auto). Separate from the charge you want to arrive with. */
+    const val EV_NOW_PCT = "evnow"
     const val EV_MIN_ARRIVE = "evminarr"
 }
 
