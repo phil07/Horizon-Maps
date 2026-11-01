@@ -6,6 +6,12 @@
 
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" tools:node="remove" />
     <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES" tools:node="remove" />
+    <!-- The Play build has no background download service (Play asks for a declaration for every foreground service type).
+         Offline maps download while the app is open. -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" tools:node="remove" />
+    <application>
+        <service android:name=".OfflineDownloadService" tools:node="remove" />
+    </application>
 
     <!-- The apps of car makers that show a battery level in a home-screen widget (EvCars / EvWidget). Play hides every other
          installed app from the widget list, so each maker's app is named here. Only the apps listed are visible. -->
