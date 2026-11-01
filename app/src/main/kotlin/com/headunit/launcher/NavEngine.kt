@@ -2290,7 +2290,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
             if (p.speed > tripTop) tripTop = p.speed
             val lp = tripPts.lastOrNull()
             if ((lp == null || Geo.dist(lp, p.pos) > 80) && tripPts.size < 3000) tripPts.add(p.pos)
-            if (tripMoveSec >= breakNext && prefs.b(PreferenceKeys.BREAKREMIND, true)) {
+            if (tripMoveSec >= breakNext && prefs.b(PreferenceKeys.BREAKREMIND, false)) {
                 val hrs = breakNext / 3600
                 breakNext += 7200
                 raiseAlert("break", Lang.t("Du fährst seit $hrs Stunden. Zeit für eine Pause?", "You have been driving for $hrs hours. Time for a break?"), 8000)
@@ -3591,8 +3591,8 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
                 yieldNear = try { Overpass.yieldSigns(p.lat - 0.005, p.lon - 0.007, p.lat + 0.005, p.lon + 0.007) } catch (e: Exception) { emptyList() }
             }.start()
         }
-        // stop signs and "give way" signs have their own switches; "give way" is off by default
-        val stopOn = prefs.b(PreferenceKeys.STOP_SIGNS, true)
+        // stop signs and "give way" signs have their own switches; both are off by default
+        val stopOn = prefs.b(PreferenceKeys.STOP_SIGNS, false)
         val giveWayOn = prefs.b(PreferenceKeys.GIVE_WAY, false)
         val hit = yieldNear.firstOrNull { (s, stop) ->
             (if (stop) stopOn else giveWayOn) && s !in yieldAlerted && Geo.dist(p, s) < 200.0 && abs(angDiff(Geo.bearing(p, s), heading)) <= 60.0
@@ -4186,11 +4186,11 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         if (prefs.b(PreferenceKeys.AVGZONES, true)) for (a in pl.avg) add("avg", a.start, Lang.t("Abschnittskontrolle", "Average speed check"))
         val school = RouteExtras.schoolTime(System.currentTimeMillis())
         for (h in pl.hz) when (h.poi.kind) {
-            "bump" -> if (prefs.b(PreferenceKeys.BUMPS, true)) add("bump", h.off, Lang.t("Bodenwelle", "Speed bump"))
-            "school" -> if (prefs.b(PreferenceKeys.SCHOOLS, true)) add("school", h.off, if (school) Lang.t("Schule · Schulweg", "School · school run") else Lang.t("Schule", "School"))
+            "bump" -> if (prefs.b(PreferenceKeys.BUMPS, false)) add("bump", h.off, Lang.t("Bodenwelle", "Speed bump"))
+            "school" -> if (prefs.b(PreferenceKeys.SCHOOLS, false)) add("school", h.off, if (school) Lang.t("Schule · Schulweg", "School · school run") else Lang.t("Schule", "School"))
             "crossing" -> add("crossing", h.off, Lang.t("Fußgängerüberweg", "Crossing"))
-            "rail" -> if (prefs.b(PreferenceKeys.RAILFORD, true)) add("rail", h.off, Lang.t("Bahnübergang", "Level crossing"))
-            "ford" -> if (prefs.b(PreferenceKeys.RAILFORD, true)) add("ford", h.off, Lang.t("Furt", "Ford"))
+            "rail" -> if (prefs.b(PreferenceKeys.RAILFORD, false)) add("rail", h.off, Lang.t("Bahnübergang", "Level crossing"))
+            "ford" -> if (prefs.b(PreferenceKeys.RAILFORD, false)) add("ford", h.off, Lang.t("Furt", "Ford"))
         }
         for ((o, dir) in bends) add("bend", o, if (dir < 0) Lang.t("Linkskurve", "Bend left") else Lang.t("Rechtskurve", "Bend right"))
         out.sortBy { it.dist }
@@ -4831,7 +4831,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         // speed bumps, schools and average speed checks: a window of the next 20 km, fetched again before you reach its end
         // (and motorway junction names, outside the UK and Ireland: they come in the same request)
         val wantJct = jctCountry()
-        val wantHz = prefs.b(PreferenceKeys.BUMPS, true) || prefs.b(PreferenceKeys.SCHOOLS, true) || prefs.b(PreferenceKeys.AVGZONES, true) || wantJct
+        val wantHz = prefs.b(PreferenceKeys.BUMPS, false) || prefs.b(PreferenceKeys.SCHOOLS, false) || prefs.b(PreferenceKeys.AVGZONES, true) || wantJct
         // (a new route after a reroute is looked up again, but not more than once every 45 seconds)
         if (wantHz && !hzBusy && (progress + 6000.0 > hzWinEnd || (hzWinRoute !== r && now - hzLastAt > 45_000L)) && now > hzRetryAt && online()) {
             hzBusy = true; hzLastAt = now
@@ -4894,7 +4894,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
                     map.setCrossings(if (prefs.b(PreferenceKeys.ZEBRAS, true)) pl.hz.filter { it.poi.kind == "crossing" && it.poi.name in setOf("zebra", "marked", "uncontrolled") }
                         .take(300).map { Triple(it.poi.pos, pointAt(r, it.off).second, it.poi.name == "zebra") } else emptyList())
                     // stop signs on the route
-                    map.setStopSigns(if (prefs.b(PreferenceKeys.STOP_SIGNS, true)) pl.hz.filter { it.poi.kind == "stop" }.take(300).map { it.poi.pos } else emptyList())
+                    map.setStopSigns(if (prefs.b(PreferenceKeys.STOP_SIGNS, false)) pl.hz.filter { it.poi.kind == "stop" }.take(300).map { it.poi.pos } else emptyList())
                 } catch (e: Exception) { placedSig = sig } finally { placing = false }
             }
         }
@@ -4967,7 +4967,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         }
 
         // stop signs on the route just ahead: a short chime and a pill (Settings > Junctions and lanes > Stop signs)
-        if (prefs.b(PreferenceKeys.STOP_SIGNS, true)) for (h in pl.hz) {
+        if (prefs.b(PreferenceKeys.STOP_SIGNS, false)) for (h in pl.hz) {
             if (h.poi.kind != "stop") continue
             val ahead = h.off - progress
             if (ahead < 0.0 || ahead > max(80.0, sp * 6.0)) continue
@@ -4978,7 +4978,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         }
 
         // level crossings and fords just ahead: a sign and a spoken warning
-        if (prefs.b(PreferenceKeys.RAILFORD, true)) for (h in pl.hz) {
+        if (prefs.b(PreferenceKeys.RAILFORD, false)) for (h in pl.hz) {
             if (h.poi.kind != "rail" && h.poi.kind != "ford") continue
             val ahead = h.off - progress
             if (ahead < 0.0 || ahead > max(220.0, sp * 9.0)) continue
@@ -4994,12 +4994,12 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
             if (ahead < 0.0 || ahead > 320.0 || h.poi.kind == "crossing" || h.poi.kind == "rail" || h.poi.kind == "ford" || h.poi.kind == "stop") continue
             val key = "${h.poi.kind}${Math.round(h.poi.pos.lat * 1e5)},${Math.round(h.poi.pos.lon * 1e5)}"
             if (h.poi.kind == "bump") {
-                if (prefs.b(PreferenceKeys.BUMPS, true) && sp > 6.7 && ahead < max(70.0, sp * 6.0) && now - lastBumpAt > 25_000L && hzAlerted.add(key)) {
+                if (prefs.b(PreferenceKeys.BUMPS, false) && sp > 6.7 && ahead < max(70.0, sp * 6.0) && now - lastBumpAt > 25_000L && hzAlerted.add(key)) {
                     lastBumpAt = now
                     chime(android.media.ToneGenerator.TONE_PROP_ACK)
                     raiseAlert("bump", Lang.t("Bodenwelle voraus", "Speed bump ahead"), 3500)
                 }
-            } else if (prefs.b(PreferenceKeys.SCHOOLS, true) && ahead < 300.0 && RouteExtras.schoolTime(now) && hzAlerted.add(key)) {
+            } else if (prefs.b(PreferenceKeys.SCHOOLS, false) && ahead < 300.0 && RouteExtras.schoolTime(now) && hzAlerted.add(key)) {
                 raiseAlert("school", Lang.t("Schule voraus: ${h.poi.name}", "School ahead: ${h.poi.name}"), 5000)
                 speak(Lang.t("Schule voraus", "School ahead"), true)
             }

@@ -299,7 +299,7 @@ private fun OnTheMapSection(prefs: Prefs, engine: NavEngine) {
         SToggle(prefs, "Ampeln", "signals", true, if (prefs.b(PreferenceKeys.SIGNALS, true)) "Nur Ampeln auf deiner Route. Aktuell: " + engine.map.signalInfo() else null)
         SToggle(prefs, "Blitzer und Baustellen", "hazardicons", true)
         SToggle(prefs, "Zebrastreifen", "zebras", true, "Zebrastreifen auf deiner Route auf der Straße gezeichnet")
-        SToggle(prefs, "Stoppschilder", PreferenceKeys.STOP_SIGNS, true, "Stoppschilder auf deiner Route mit kurzem Ton")
+        SToggle(prefs, "Stoppschilder", PreferenceKeys.STOP_SIGNS, false, "Stoppschilder auf deiner Route mit kurzem Ton")
         SToggle(prefs, "Hinweis „Vorfahrt gewähren“", PreferenceKeys.GIVE_WAY, false, "Warnt vor Schildern „Vorfahrt gewähren“. Standardmäßig aus")
     }
     SGroup("3D-Straßenausstattung") {
@@ -515,11 +515,11 @@ private fun AlertsSection(prefs: Prefs, engine: NavEngine) {
     SGroup("Unterwegs", footer = "Informationen stammen aus OpenStreetMap.") {
         SToggle(prefs, "Baustellen und Ereignisse", "incidents", true)
         SToggle(prefs, "Geisterfahrer-Warnung", "wrongway", true, "Warnung beim falschen Einbiegen in Einbahnstraßen")
-        SToggle(prefs, "Bremsschwellen", "bumps", true)
-        SToggle(prefs, "Schulen zu Schulzeiten", "schools", true)
+        SToggle(prefs, "Bremsschwellen", "bumps", false)
+        SToggle(prefs, "Schulen zu Schulzeiten", "schools", false)
         SToggle(prefs, "Umweltzonen", "zonewarn", true)
-        SToggle(prefs, "Pausenerinnerung nach 2 Stunden", "breakremind", true)
-        SToggle(prefs, "Bahnübergänge und Furten", "railford", true, "Warnschild und Sprachwarnung")
+        SToggle(prefs, "Pausenerinnerung nach 2 Stunden", "breakremind", false)
+        SToggle(prefs, "Bahnübergänge und Furten", "railford", false, "Warnschild und Sprachwarnung")
         SToggle(prefs, "Wetterhinweise", "wxadvice", true, "Hinweis bei Regen, Schnee, Nebel oder Glätte")
     }
     SGroup(Lang.t("Deine Meldungen", "Your reports"), footer = Lang.t("Meldungen über die Optionen-Taste auf der Karte erstellen.", "Create reports with the options button on the map.")) {
