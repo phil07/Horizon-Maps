@@ -570,6 +570,14 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
     private var offCount = 0
     /** Off-route strikes before the route is recalculated: 2 (was 3) so a wrong turn is caught sooner. */
     private val REROUTE_STRIKES = 2
+    /**
+     * A sudden jump onto the road next to the route (GPS reflections between buildings, two roads side by side) is not believed
+     * at once: while you keep driving in the route's direction it is held for [SIDE_HOLD_MS], with the arrow kept on the route and
+     * no reroute. A real wrong turn goes off at an angle and is noticed straight away; a road that really carries on beside the
+     * route (a missed exit) is believed after the wait.
+     */
+    private val SIDE_HOLD_MS = 8000L
+    private var sideSince = 0L
     /** How far along the route you last were for certain, and when: a jump far beyond it is a different road, not progress. */
     private var trustProg = -1.0
     private var trustAt = 0L
@@ -2849,7 +2857,14 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         // (standing still, e.g. in a car park next to the road, the arrow is only put on the route when the route is really
         // where you are: it used to be pulled up to 30 m onto the route line as soon as a route was worked out)
         val joinLim = if (isStill) max(10.0, min(p.acc, 15.0)) else 30.0
-        val onR = r != null && s != null && !jump && s.dist < (if (glideOnRoute) offLim + 12.0 else joinLim)
+        // the road next to the route: off the route, but still going the route's way (within 35 degrees), at a moderate distance,
+        // having been on the route just before. Held for a while instead of believed (see SIDE_HOLD_MS)
+        val sideJump = r != null && s != null && !jump && glideOnRoute && gpsReliableForReroute && p.speed > 3.0 &&
+            s.dist > offLim && s.dist < 120.0 &&
+            abs(angDiff(Geo.bearing(r.pts[s.segmentIndex], r.pts[min(s.segmentIndex + 1, r.pts.size - 1)]), p.heading)) < 35.0
+        if (newFix) { if (sideJump) { if (sideSince == 0L) sideSince = nowT } else sideSince = 0L }
+        val holdSide = sideJump && sideSince > 0L && nowT - sideSince < SIDE_HOLD_MS
+        val onR = r != null && s != null && !jump && (holdSide || s.dist < (if (glideOnRoute) offLim + 12.0 else joinLim))
         if (onR && s != null && newFix && s.dist <= offLim) { trustProg = s.progress; trustAt = nowT }
         if (newFix) {
             mAt = tNow; mSpeed = sp
@@ -2888,7 +2903,9 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         }
         if (previewing) return
         if (r == null || r.pts.size < 2 || s == null) return
-        if (gpsReliableForReroute && (s.dist > offLim || jump)) {
+        if (holdSide) {
+            // (the road next to the route, not believed yet: no strike towards a reroute)
+        } else if (gpsReliableForReroute && (s.dist > offLim || jump)) {
             if (newFix) {
                 // well off the route counts double, so a wrong turn is noticed in about two seconds instead of four or more
                 offCount += NavigationPolicy.offRouteStrikeCount(jump, s.dist, offLim)
