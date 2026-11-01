@@ -4369,7 +4369,8 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
     fun evNowKm(): Int? {
         if (!isEv) return null
         val v = prefs.s(PreferenceKeys.EV_NOW_KM, "").toIntOrNull() ?: return null
-        return if ((evNowAgeMin() ?: Long.MAX_VALUE) <= 60) v.coerceIn(0, 1500) else null
+        // a range under 5 km is no real reading (the car or widget sent 0 or nothing usable): treat it as unknown
+        return if ((evNowAgeMin() ?: Long.MAX_VALUE) <= 60 && v >= 5) v.coerceAtMost(1500) else null
     }
 
     /** The range now and the full range, in km: the widget's own figures when they're fresh, else from the battery and efficiency. */
@@ -4391,13 +4392,14 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         // with the widget's range: what's left after the trip, as a share of the full range
         if (evNowKm() != null) {
             val (start, full) = evRangeKm()
-            return Math.round((start - (driven + e.dist) / 1000.0) / full * 100.0).toInt().coerceIn(-50, 100)
+            // a trip longer than the range shows 0 %, never a negative battery level
+            return Math.round((start - (driven + e.dist) / 1000.0) / full * 100.0).toInt().coerceIn(0, 100)
         }
         // else from the battery level (up to an hour old), or from the charge you set before the trip
         val now = evNowPct()?.takeIf { (evNowAgeMin() ?: Long.MAX_VALUE) <= 60 }
         val start = (now ?: prefs.i(PreferenceKeys.EV_CHARGE_PCT, 80)).coerceIn(1, 100)
         val usedPct = (driven + e.dist) / 1000.0 * evKwhPerKm() / evBatteryKwh() * 100.0
-        return Math.round(start - usedPct).toInt().coerceIn(-50, 100)
+        return Math.round(start - usedPct).toInt().coerceIn(0, 100)
     }
 
     /** The battery level or the charge to arrive with changed on the route options: look again for a charging stop. */
