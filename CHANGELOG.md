@@ -58,7 +58,7 @@ Add user-facing Horizon Nav changes under **Unreleased** before publishing each 
 - Spurdaten von Mapbox auch auf TomTom-Routen: Mit Mapbox-Schlüssel bekommt eine TomTom-Route im Hintergrund die Spurdaten von Mapbox. Abschaltbar unter Einstellungen > Abbiegekarte.
 
 ### Behoben
-- Absturz beim Start unter Android 16 behoben, ausgelöst durch die Abfrage des Akku-Widgets. Horizon Nav kann das Widget einer anderen App nicht selbst aktualisieren. Unter Einstellungen > Kraftstoff öffnet der Knopf „Auto-App öffnen“ die Auto-App, damit sie den Stand neu lädt.
+- Absturz beim Start unter Android 16 behoben, ausgelöst durch die Abfrage des Akku-Widgets. Horizon Nav kann das Widget einer anderen App nicht selbst aktualisieren. Unter Einstellungen > Kraftstoff öffnet der Knopf „App öffnen“ die Auto-App, damit sie den Stand neu lädt.
 - Ladestand aus dem Widget überschreibt nicht mehr deinen Zielwert „Ladung auf“. Prüfe ihn nach dem Update einmal, er steht eventuell auf dem alten Akkustand.
 - Widget-Auswahl: Widgets anderer Apps (z. B. der Auto-App) erscheinen jetzt in der Liste für den Ladestand, auch wenn Android sie sonst ausblendet.
 - Update nach Abbruch: Wurde die Installation eines Updates abgebrochen, meldete ein erneuter Versuch „Problem beim Parsen des Pakets“. Jeder Versuch lädt jetzt in eine neue Datei, und der Installer bekommt genau die geprüfte Datei.

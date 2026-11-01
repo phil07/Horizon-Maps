@@ -1068,18 +1068,19 @@ private fun EvWidgetItem(prefs: Prefs) {
     SItem("Ladestand aus Widget", sub)
     // (scrolls sideways rather than squeezing a button down to one letter on a narrow screen)
     Row(Modifier.fillMaxWidth().padding(bottom = 8.dp).horizontalScroll(androidx.compose.foundation.rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        if (id >= 0) SButton("Auto-App öffnen") {
+        // short labels, so all three fit on one line on a phone
+        if (id >= 0) SButton("App öffnen") {
             if (!com.headunit.launcher.EvWidget.openProvider(ctx, prefs))
                 android.widget.Toast.makeText(ctx, "Die Auto-App lässt sich nicht öffnen.", android.widget.Toast.LENGTH_LONG).show()
         }
-        if (id >= 0) SButton("Entfernen", danger = true) { com.headunit.launcher.EvWidget.remove(ctx, prefs) }
         SButton(if (id >= 0) "Ändern" else "Widget wählen", primary = id < 0) { picking = true }
+        if (id >= 0) SButton("Entfernen", danger = true) { com.headunit.launcher.EvWidget.remove(ctx, prefs) }
     }
     // while no value has been read: the texts the widget shows, so it's visible whether a percentage is among them
     if (id >= 0 && at == 0L) {
         val texts = com.headunit.launcher.EvWidget.lastTexts
         Text(
-            if (texts.isEmpty()) "Vom Widget ist noch kein Text angekommen. Erst nach „Auto-App öffnen“ und einer Aktualisierung des Widgets."
+            if (texts.isEmpty()) "Vom Widget ist noch kein Text angekommen. Erst nach „App öffnen“ und einer Aktualisierung des Widgets."
             else "Text im Widget: " + texts.joinToString("  |  "),
             color = LocalVw.current.sub, fontSize = 12.sp, modifier = Modifier.padding(bottom = 10.dp),
         )
