@@ -501,7 +501,10 @@ private fun AlertsSection(prefs: Prefs, engine: NavEngine) {
         if (prefs.b(PreferenceKeys.SPEEDWARN, true)) SChoice("Warnen ab Überschreitung um", listOf("0", "5", "10").map { it to it + if (engine.imperial) " mph" else " km/h" }, prefs.s(PreferenceKeys.TRAFFIC_WARNING, "5")) { prefs.put(PreferenceKeys.TRAFFIC_WARNING, it) }
         SToggle(prefs, "Limitänderung ansagen", "limitchange", true)
         SToggle(prefs, "Geschätzte Limits anzeigen", "limitest", false, "Übliches Limit anzeigen, wo keins kartiert ist")
-        SToggle(prefs, "Blitzer", "cameras", false)
+        // where you are bans camera warnings and "Off where banned" is on: say so here, or it looks as if the switch doesn't work
+        val banned = com.headunit.launcher.CAMERA_BANNED[engine.detectedCountry]
+        val camOff = banned != null && prefs.b(PreferenceKeys.CAMERA_WARNINGS, false) && prefs.b(PreferenceKeys.CAMBANOBEY, true)
+        SToggle(prefs, "Blitzer", "cameras", false, if (camOff) "Gerade aus: in $banned nicht erlaubt (siehe „Aus, wo verboten“)" else null)
         if (prefs.b(PreferenceKeys.CAMERA_WARNINGS, false)) SToggle(prefs, "Aus, wo verboten", "cambanobey", true, "Schaltet sich in Ländern wie Deutschland, Frankreich und der Schweiz automatisch aus")
         SToggle(prefs, "Sektionskontrollen (Abschnittskontrolle)", "avgzones", true, "Zeigt dein Durchschnittstempo im Vergleich zum Limit")
     }
