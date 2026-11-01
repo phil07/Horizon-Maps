@@ -5046,9 +5046,8 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         val ch = prefs.s(PreferenceKeys.VOICE_CHANNEL, "nav")
         if (ch != voiceChan) { voiceChan = ch; try { tts?.setAudioAttributes(speechAttrs) } catch (e: Exception) { } }
         duck()
-        // a direction cuts off whatever is being said; an alert waits its turn, so a speed limit or camera call can no longer
-        // cut a direction off half way (with limits changing often in town, some directions were never heard)
-        tts?.speak(text, if (alert) TextToSpeech.QUEUE_ADD else TextToSpeech.QUEUE_FLUSH, null, "nav")
+        // every announcement waits for the one before it to be finished (none cuts another off half way); the queue is played in order
+        tts?.speak(text, TextToSpeech.QUEUE_ADD, null, "nav")
     }
 
     // ---- demo drive ----
