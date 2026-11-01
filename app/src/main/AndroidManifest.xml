@@ -64,6 +64,10 @@
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
+                <!-- Android Auto's launcher lists the app only with the car launcher and navigation categories (as AABrowser does) -->
+                <category android:name="android.intent.category.CAR_LAUNCHER" />
+                <category android:name="androidx.car.app.category.NAVIGATION" />
+                <category android:name="android.intent.category.APP_MAPS" />
             </intent-filter>
             <!-- destinations shared from other apps: geo: and navigation links, Google Maps links and shared text -->
             <intent-filter>
