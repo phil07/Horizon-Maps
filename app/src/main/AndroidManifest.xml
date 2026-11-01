@@ -20,6 +20,10 @@
     <uses-feature android:name="android.hardware.location.gps" android:required="false" />
 
     <queries>
+        <!-- widgets of other apps (the car maker's app, for the battery level): Android 11+ hides widgets from apps it can't see -->
+        <intent>
+            <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+        </intent>
         <!-- voice search and the contact picker for sharing your ETA -->
         <intent>
             <action android:name="android.speech.action.RECOGNIZE_SPEECH" />
