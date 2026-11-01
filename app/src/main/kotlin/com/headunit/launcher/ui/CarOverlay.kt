@@ -216,7 +216,7 @@ private fun CarScreen(engine: NavEngine, a: android.graphics.Rect?, actions: Car
         // one slim line while the turn is far off (about 2 km), the full card as it comes up (a little either side, so it can't flicker)
         val slimHold = remember { booleanArrayOf(false) }
         if (t != null) slimHold[0] = if (t.dist > 2100.0) true else if (t.dist < 1900.0) false else slimHold[0]
-        if (showTurn && t != null) Box(Modifier.padding(start = left, top = top).width(if (portrait) topW else minOf(420.dp, maxWidth * 0.36f))
+        if (showTurn && t != null) Box(Modifier.padding(start = left, top = top).width(if (portrait) topW else if (slimHold[0]) minOf(560.dp, maxWidth * 0.44f) else minOf(420.dp, maxWidth * 0.36f))
             .onSizeChanged { turnH = it.height }.onGloballyPositioned { if (topShown) report(0, it.boundsInRoot()) }) {
             // the turn card, with the junction sign or roundabout diagram under it and any advice for the conditions, as on the head unit
             Column(verticalArrangement = Arrangement.spacedBy(if (compact) 4.dp else 8.dp)) {

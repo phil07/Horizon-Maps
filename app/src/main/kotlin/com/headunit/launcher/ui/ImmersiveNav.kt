@@ -959,10 +959,11 @@ internal fun ImmTurnCard(
             // tap for the list of every turn on the route
             .clickable { engine.itineraryOpen = true },
     ) {
-        if (slim) Row(Modifier.padding(horizontal = 14.dp, vertical = 9.dp), verticalAlignment = Alignment.CenterVertically) {
-            ManeuverArrow(t.maneuver, Geo.maneuverAngle(t.maneuver), Modifier.size(34.dp), roundaboutExit = t.exit, roundaboutClockwise = engine.leftTraffic, exitAngle = roundaboutTurn(t.rbIn, t.rbOut))
-            RollText(Geo.fmtDist(t.dist, engine.imperial), Color.White, 25.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(start = 10.dp))
-            Text(t.street, color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(start = 12.dp))
+        // (in the car as tall as Android Auto's own buttons beside it, "Beenden", with text to match)
+        if (slim) Row(Modifier.padding(horizontal = if (car) 20.dp else 14.dp, vertical = if (car) 14.dp else 9.dp), verticalAlignment = Alignment.CenterVertically) {
+            ManeuverArrow(t.maneuver, Geo.maneuverAngle(t.maneuver), Modifier.size(if (car) 50.dp else 34.dp), roundaboutExit = t.exit, roundaboutClockwise = engine.leftTraffic, exitAngle = roundaboutTurn(t.rbIn, t.rbOut))
+            RollText(Geo.fmtDist(t.dist, engine.imperial), Color.White, if (car) 36.sp else 25.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(start = if (car) 14.dp else 10.dp))
+            Text(t.street, color = Color.White, fontSize = if (car) 26.sp else 16.sp, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(start = 12.dp))
         } else {
         val thenIcon = t.thenManeuver != null && engine.prefs.s(PreferenceKeys.THEN_STYLE, "row") == "icon"
         Row(Modifier.padding(start = if (compact) 12.dp else 18.dp, end = if (compact) 12.dp else 16.dp, top = if (compact) 9.dp else 16.dp, bottom = if (compact) 8.dp else 12.dp), verticalAlignment = Alignment.CenterVertically) {
