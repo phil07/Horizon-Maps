@@ -236,32 +236,33 @@ private fun CarScreen(engine: NavEngine, a: android.graphics.Rect?, actions: Car
         // not navigating: the app's search bar and quick chips, top left (tap them as in the app)
         // as many saved places as fit above the sound pill / speed (0 to 3), so the list never runs into what's below it
         // (worked out here: the screen's height can't be read from inside the column below)
-        val savedRows = ((maxHeight - top - bottom - 242.dp - 96.dp) / 58.dp).toInt().coerceIn(0, 3)
+        val savedRows = ((maxHeight - top - bottom - 300.dp - 120.dp) / 74.dp).toInt().coerceIn(0, 3)
         if (engine.route == null && !arriving) Column(Modifier.padding(start = left, top = top).width(topW).onSizeChanged { topBlockH = it.height }.onGloballyPositioned { if (topShown) report(0, it.boundsInRoot()) },
             verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Row(Modifier.fillMaxWidth().height(60.dp).panel(10.dp, RoundedCornerShape(30.dp), c.surface).padding(end = 8.dp),
+            // sized like the car's own Melden button: big enough to hit and read while driving
+            Row(Modifier.fillMaxWidth().height(80.dp).panel(10.dp, RoundedCornerShape(40.dp), c.surface).padding(end = 10.dp),
                 verticalAlignment = Alignment.CenterVertically) {
                 // the bar opens the search; the arrow folds Saved & recent away and back (as in the app), so it has a tap area of its own
-                Row(Modifier.weight(1f).fillMaxHeight().carTap("search") { actions.search() }.padding(start = 18.dp), verticalAlignment = Alignment.CenterVertically) {
-                    androidx.compose.material3.Icon(androidx.compose.material.icons.Icons.Rounded.Search, null, tint = c.sub)
-                    Text(stringResource(R.string.ui_064), color = c.sub, fontSize = 18.sp, modifier = Modifier.padding(start = 12.dp))
+                Row(Modifier.weight(1f).fillMaxHeight().carTap("search") { actions.search() }.padding(start = 24.dp), verticalAlignment = Alignment.CenterVertically) {
+                    androidx.compose.material3.Icon(androidx.compose.material.icons.Icons.Rounded.Search, null, tint = c.sub, modifier = Modifier.size(32.dp))
+                    Text(stringResource(R.string.ui_064), color = c.sub, fontSize = 24.sp, modifier = Modifier.padding(start = 14.dp))
                 }
                 val open = engine.prefs.b(PreferenceKeys.QUICKLIST, true)
-                Box(Modifier.padding(end = 4.dp).size(44.dp).clip(androidx.compose.foundation.shape.CircleShape).carTap("fold") { engine.prefs.put(PreferenceKeys.QUICKLIST, !open) }, contentAlignment = Alignment.Center) {
-                    androidx.compose.material3.Icon(if (open) androidx.compose.material.icons.Icons.Rounded.KeyboardArrowUp else androidx.compose.material.icons.Icons.Rounded.KeyboardArrowDown, null, tint = c.sub, modifier = Modifier.size(28.dp))
+                Box(Modifier.padding(end = 6.dp).size(60.dp).clip(androidx.compose.foundation.shape.CircleShape).carTap("fold") { engine.prefs.put(PreferenceKeys.QUICKLIST, !open) }, contentAlignment = Alignment.Center) {
+                    androidx.compose.material3.Icon(if (open) androidx.compose.material.icons.Icons.Rounded.KeyboardArrowUp else androidx.compose.material.icons.Icons.Rounded.KeyboardArrowDown, null, tint = c.sub, modifier = Modifier.size(38.dp))
                 }
-                Box(Modifier.size(44.dp).clip(androidx.compose.foundation.shape.CircleShape).background(c.accent).carTap("search-mic") { actions.search() }, contentAlignment = Alignment.Center) {
-                    androidx.compose.material3.Icon(androidx.compose.material.icons.Icons.Rounded.Mic, null, tint = Color.White, modifier = Modifier.size(23.dp))
+                Box(Modifier.size(60.dp).clip(androidx.compose.foundation.shape.CircleShape).background(c.accent).carTap("search-mic") { actions.search() }, contentAlignment = Alignment.Center) {
+                    androidx.compose.material3.Icon(androidx.compose.material.icons.Icons.Rounded.Mic, null, tint = Color.White, modifier = Modifier.size(32.dp))
                 }
             }
             CarChips(engine, actions, savedRows)
             // battery and range from the car (or the widget), always on the map, not only during a route
             val evPct = engine.prefs.s(PreferenceKeys.EV_NOW_PCT, "").toIntOrNull()
             val evKm = engine.prefs.s(PreferenceKeys.EV_NOW_KM, "").toIntOrNull()
-            if (evPct != null) Row(Modifier.height(44.dp).panel(10.dp, RoundedCornerShape(22.dp), c.surface).padding(horizontal = 16.dp),
-                verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("$evPct %", color = if (evPct < 15) Bad else if (evPct < 30) Warn else c.text, fontSize = 18.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
-                if (evKm != null) Text("· $evKm km", color = c.text, fontSize = 18.sp, maxLines = 1)
+            if (evPct != null) Row(Modifier.height(64.dp).panel(10.dp, RoundedCornerShape(32.dp), c.surface).padding(horizontal = 22.dp),
+                verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Text("$evPct %", color = if (evPct < 15) Bad else if (evPct < 30) Warn else c.text, fontSize = 24.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
+                if (evKm != null) Text("· $evKm km", color = c.text, fontSize = 24.sp, maxLines = 1)
             }
         }
 
@@ -380,17 +381,17 @@ private fun SoundPill(engine: NavEngine) {
     val c = LocalVw.current
     val sm = engine.prefs.i(PreferenceKeys.SOUND_MODE, if (engine.prefs.b(PreferenceKeys.VOICE, true)) 0 else 2).coerceIn(0, 2)
     Row(
-        Modifier.height(46.dp).panel(6.dp, RoundedCornerShape(23.dp), c.surface).carTap("sound") { engine.cycleSound() }.padding(start = 10.dp, end = 16.dp),
+        Modifier.height(68.dp).panel(6.dp, RoundedCornerShape(34.dp), c.surface).carTap("sound") { engine.cycleSound() }.padding(start = 14.dp, end = 22.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         val tint = when (sm) { 0 -> c.accent; 1 -> Warn; else -> Bad }
-        Box(Modifier.size(30.dp).clip(androidx.compose.foundation.shape.CircleShape).background(tint.copy(alpha = 0.18f)), contentAlignment = Alignment.Center) {
+        Box(Modifier.size(44.dp).clip(androidx.compose.foundation.shape.CircleShape).background(tint.copy(alpha = 0.18f)), contentAlignment = Alignment.Center) {
             androidx.compose.material3.Icon(
                 when (sm) { 0 -> androidx.compose.material.icons.Icons.Rounded.VolumeUp; 1 -> androidx.compose.material.icons.Icons.Rounded.NotificationsActive; else -> androidx.compose.material.icons.Icons.Rounded.VolumeOff },
-                null, tint = tint, modifier = Modifier.size(18.dp),
+                null, tint = tint, modifier = Modifier.size(26.dp),
             )
         }
-        Text(when (sm) { 0 -> "Ton an"; 1 -> "Nur Warnungen"; else -> "Stumm" }, color = c.text, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, softWrap = false, modifier = Modifier.padding(start = 8.dp))
+        Text(when (sm) { 0 -> "Ton an"; 1 -> "Nur Warnungen"; else -> "Stumm" }, color = c.text, fontSize = 22.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, softWrap = false, modifier = Modifier.padding(start = 12.dp))
     }
 }
 
@@ -468,8 +469,8 @@ private fun CarHazardLine(kind: String, label: String, dist: String) {
 @Composable
 private fun ImmRound(icon: androidx.compose.ui.graphics.vector.ImageVector, id: String, action: () -> Unit, modifier: Modifier) {
     val c = LocalVw.current
-    Box(modifier.size(52.dp).panel(6.dp, androidx.compose.foundation.shape.CircleShape, c.surface).carTap(id, action), contentAlignment = Alignment.Center) {
-        androidx.compose.material3.Icon(icon, null, tint = c.text, modifier = Modifier.size(24.dp))
+    Box(modifier.size(68.dp).panel(6.dp, androidx.compose.foundation.shape.CircleShape, c.surface).carTap(id, action), contentAlignment = Alignment.Center) {
+        androidx.compose.material3.Icon(icon, null, tint = c.text, modifier = Modifier.size(34.dp))
     }
 }
 
@@ -575,20 +576,20 @@ private fun CarChips(engine: NavEngine, actions: CarActions, rows: Int) {
             here != null -> Geo.fmtDist(Geo.dist(here, place.pos), engine.imperial)
             else -> place.sub
         }
-        Row(m.height(58.dp).panel(6.dp, RoundedCornerShape(20.dp), c.surface).carTap(id) { if (place != null) engine.startRoute(place) else actions.search() }
-            .padding(horizontal = 10.dp), verticalAlignment = Alignment.CenterVertically) {
-            Box(Modifier.size(36.dp).clip(androidx.compose.foundation.shape.CircleShape).background(tint.copy(alpha = 0.18f)), contentAlignment = Alignment.Center) {
-                androidx.compose.material3.Icon(icon, null, tint = tint, modifier = Modifier.size(20.dp))
+        Row(m.height(74.dp).panel(6.dp, RoundedCornerShape(26.dp), c.surface).carTap(id) { if (place != null) engine.startRoute(place) else actions.search() }
+            .padding(horizontal = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+            Box(Modifier.size(50.dp).clip(androidx.compose.foundation.shape.CircleShape).background(tint.copy(alpha = 0.18f)), contentAlignment = Alignment.Center) {
+                androidx.compose.material3.Icon(icon, null, tint = tint, modifier = Modifier.size(28.dp))
             }
-            Column(Modifier.padding(start = 10.dp).weight(1f)) {
-                Text(if (place == null) stringResource(R.string.ui_099, label.lowercase()) else label, color = c.text, fontSize = 16.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                Text(sub, color = c.sub, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Column(Modifier.padding(start = 12.dp).weight(1f)) {
+                Text(if (place == null) stringResource(R.string.ui_099, label.lowercase()) else label, color = c.text, fontSize = 21.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(sub, color = c.sub, fontSize = 17.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
         }
     }
     @Composable fun find(kind: String, icon: androidx.compose.ui.graphics.vector.ImageVector, tint: Color) {
-        Box(Modifier.size(50.dp).panel(6.dp, androidx.compose.foundation.shape.CircleShape, c.surface).carTap("n-$kind") { actions.nearby(kind) }, contentAlignment = Alignment.Center) {
-            androidx.compose.material3.Icon(icon, null, tint = tint, modifier = Modifier.size(24.dp))
+        Box(Modifier.size(68.dp).panel(6.dp, androidx.compose.foundation.shape.CircleShape, c.surface).carTap("n-$kind") { actions.nearby(kind) }, contentAlignment = Alignment.Center) {
+            androidx.compose.material3.Icon(icon, null, tint = tint, modifier = Modifier.size(34.dp))
         }
     }
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
