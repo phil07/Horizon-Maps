@@ -3539,8 +3539,11 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
                 yieldNear = try { Overpass.yieldSigns(p.lat - 0.005, p.lon - 0.007, p.lat + 0.005, p.lon + 0.007) } catch (e: Exception) { emptyList() }
             }.start()
         }
-        val hit = yieldNear.firstOrNull { (s, _) ->
-            s !in yieldAlerted && Geo.dist(p, s) < 200.0 && abs(angDiff(Geo.bearing(p, s), heading)) <= 60.0
+        // stop signs and "give way" signs have their own switches; "give way" is off by default
+        val stopOn = prefs.b(PreferenceKeys.STOP_SIGNS, true)
+        val giveWayOn = prefs.b(PreferenceKeys.GIVE_WAY, false)
+        val hit = yieldNear.firstOrNull { (s, stop) ->
+            (if (stop) stopOn else giveWayOn) && s !in yieldAlerted && Geo.dist(p, s) < 200.0 && abs(angDiff(Geo.bearing(p, s), heading)) <= 60.0
         } ?: return
         yieldAlerted.add(hit.first)
         val text = if (hit.second) "Stoppschild voraus" else "Vorfahrt gewähren"

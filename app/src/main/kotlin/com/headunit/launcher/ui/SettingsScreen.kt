@@ -300,6 +300,7 @@ private fun OnTheMapSection(prefs: Prefs, engine: NavEngine) {
         SToggle(prefs, "Blitzer und Baustellen", "hazardicons", true)
         SToggle(prefs, "Zebrastreifen", "zebras", true, "Zebrastreifen auf deiner Route auf der Straße gezeichnet")
         SToggle(prefs, "Stoppschilder", PreferenceKeys.STOP_SIGNS, true, "Stoppschilder auf deiner Route mit kurzem Ton")
+        SToggle(prefs, "Hinweis „Vorfahrt gewähren“", PreferenceKeys.GIVE_WAY, false, "Warnt vor Schildern „Vorfahrt gewähren“. Standardmäßig aus")
     }
     SGroup("3D-Straßenausstattung") {
         SToggle(prefs, "3D-Straßenlaternen, Ampeln und Kameras", "furniture3d", true, "3D-Modelle in echter Größe")

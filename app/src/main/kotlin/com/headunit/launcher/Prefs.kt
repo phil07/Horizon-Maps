@@ -220,6 +220,8 @@ internal object PreferenceKeys {
     const val CAR_MODEL = "carmodel"
     const val TRAFFIC_GREEN = "trafficgreen"
     const val STOP_SIGNS = "stopsigns"
+    // "Vorfahrt gewähren" signs on the way: off by default
+    const val GIVE_WAY = "giveway"
     const val EV_BATTERY_KWH = "evbatt"
     const val EV_CHARGE_PCT = "evcharge"
     /** The car's battery level now (from the widget or Android Auto). Separate from the charge you want to arrive with. */
