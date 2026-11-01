@@ -500,7 +500,8 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
                         val pr = MapRouteGeometry.projectOn(r.pts, p) ?: continue
                         if (Geo.dist(pr.second, p) > 20.0) continue
                         val offTT = r.cum[pr.first] + Geo.dist(r.pts[pr.first], pr.second)
-                        val st = r.steps.firstOrNull { Math.abs(it.off - offTT) < 40.0 } ?: continue
+                        // (the nearest step: with two turns close together the first one within 40 m can be the wrong one)
+                        val st = r.steps.filter { Math.abs(it.off - offTT) < 40.0 }.minByOrNull { Math.abs(it.off - offTT) } ?: continue
                         // the same way through the junction: a lane Mapbox says to use must suit TomTom's turn here
                         if (ls.lanes.none { it.follow != null && laneHit(it.follow, st.maneuver) }) continue
                         out += LaneSec(max(0.0, offTT - (ls.end - ls.off)), offTT, ls.lanes)
@@ -3954,7 +3955,15 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
             // on motorways and dual carriageways the lanes are looked at (and shown, and spoken) much earlier, as there's further to move over
             val fastRoad = cur.exitNo.isNotBlank() || (fix?.let { f -> try { map.roadAt(f.pos, f.heading)?.cls } catch (e: Throwable) { null } }?.let { it.startsWith("motorway") || it.startsWith("trunk") } == true)
             laneFast = fastRoad
-            val realSec = if (d < (if (fastRoad) 1900 else 1000) && !arriving) r.lanes.filter { progress < it.end + 5 && abs(it.end - cur.off) < 200 }.sortedWith(compareByDescending<LaneSec> { it.lanes.size }.thenBy { abs(it.end - cur.off) }).firstOrNull() else null
+            // only sections that belong to this junction: with a second turn close behind (right, then left 80 m on), that turn's
+            // lane section also ends within 200 m and often has more lanes, so it was shown too early (the left lane lit up where the right
+            // one is needed). A section belongs to the step its end is nearest to.
+            val prevOff = ins.getOrNull(k - 1)?.off
+            val nextOff = nxt?.off
+            val realSec = if (d < (if (fastRoad) 1900 else 1000) && !arriving) r.lanes.filter {
+                val dc = abs(it.end - cur.off)
+                progress < it.end + 5 && dc < 200 && (nextOff == null || dc <= abs(it.end - nextOff)) && (prevOff == null || dc <= abs(it.end - prevOff))
+            }.sortedWith(compareByDescending<LaneSec> { it.lanes.size }.thenBy { abs(it.end - cur.off) }).firstOrNull() else null
             val laneSec = realSec
             val laneAdv = laneSec?.let { Geo.laneAdvice(it, cur.maneuver) }
             // the early lane call on fast roads, about a mile out (once per junction): "In about a mile, move into the left two lanes"
