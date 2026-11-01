@@ -743,7 +743,8 @@ class MapScreen(carContext: CarContext, private val holder: CarHolder) : Screen(
                 else -> Maneuver.TYPE_UNKNOWN
             }
             val mb = Maneuver.Builder(type).setIcon(CarIcon.Builder(IconCompat.createWithResource(ctx, maneuverIcon(type))).build())
-            if (type == Maneuver.TYPE_ROUNDABOUT_ENTER_AND_EXIT_CW || type == Maneuver.TYPE_ROUNDABOUT_ENTER_AND_EXIT_CCW) mb.setRoundaboutExitNumber(t.exit.coerceAtLeast(1))
+            // the exit number only when it's known: a made-up "1st exit" would be wrong on the car's display
+            if ((type == Maneuver.TYPE_ROUNDABOUT_ENTER_AND_EXIT_CW || type == Maneuver.TYPE_ROUNDABOUT_ENTER_AND_EXIT_CCW) && t.exit > 0) mb.setRoundaboutExitNumber(t.exit)
             val what = when {
                 type == Maneuver.TYPE_ROUNDABOUT_ENTER_AND_EXIT_CW || type == Maneuver.TYPE_ROUNDABOUT_ENTER_AND_EXIT_CCW ->
                     if (t.exit > 0) Lang.t("Ausfahrt ${t.exit} nehmen", "Take exit ${t.exit}") else Lang.t("In den Kreisverkehr", "Enter the roundabout")
