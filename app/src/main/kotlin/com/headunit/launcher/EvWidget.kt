@@ -123,6 +123,17 @@ object EvWidget {
         }
     }
 
+    /**
+     * Asks the widget's app for a fresh reading (as a home screen does when it refreshes the widget). Whether the app fetches
+     * new data from its server is up to that app.
+     */
+    fun nudge(ctx: Context, p: Prefs) {
+        val id = widgetId(p); if (id < 0) return
+        val info = AppWidgetManager.getInstance(ctx).getAppWidgetInfo(id) ?: return
+        ctx.sendBroadcast(android.content.Intent(AppWidgetManager.ACTION_APPWIDGET_UPDATE).setComponent(info.provider)
+            .putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS, intArrayOf(id)))
+    }
+
     fun stop() {
         main.post {
             try { host?.stopListening() } catch (e: Exception) { }
