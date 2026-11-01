@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
@@ -1064,7 +1065,8 @@ private fun EvWidgetItem(prefs: Prefs) {
     }
     // the buttons sit on their own line: beside the title they squeeze the text into a narrow column
     SItem("Ladestand aus Widget", sub)
-    Row(Modifier.fillMaxWidth().padding(bottom = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+    // (scrolls sideways rather than squeezing a button down to one letter on a narrow screen)
+    Row(Modifier.fillMaxWidth().padding(bottom = 8.dp).horizontalScroll(androidx.compose.foundation.rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         if (id >= 0) SButton("Auto-App öffnen") {
             if (!com.headunit.launcher.EvWidget.openProvider(ctx, prefs))
                 android.widget.Toast.makeText(ctx, "Die Auto-App lässt sich nicht öffnen.", android.widget.Toast.LENGTH_LONG).show()
