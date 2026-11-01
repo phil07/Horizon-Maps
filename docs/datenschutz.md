@@ -2,12 +2,11 @@
 
 Stand: 1. November 2026
 
-> **Bitte vor der Veröffentlichung ausfüllen:** Name und Kontaktadresse unter „Verantwortlicher“. Ohne erreichbare Kontaktangabe akzeptiert Google Play die Erklärung nicht.
 
 ## Verantwortlicher
 
-[Vorname Nachname]
-[E-Mail-Adresse für Datenschutzanfragen]
+Philipp Fischer
+iphilipp07@gmail.com
 
 ## Grundsatz
 
