@@ -504,8 +504,6 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
     /** Google-style destination pin: red teardrop with a white centre. */
     /** Where you parked, shown on the map (Lang.t("Dein Auto", "Your car")), or null for none. */
     @Volatile private var parkedAt: LL? = null
-    fun setParked(p: LL?) {
-    }
 
     /** Crowd-sourced reports shown on the map as warning icons. */
     fun setCrowdReports(reports: List<CrowdReport>) {
@@ -514,7 +512,6 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
                 val src = src("dl-crowd") ?: return@post
                 val features = reports.map { r ->
                     Feature.fromGeometry(Point.fromLngLat(r.pos.lon, r.pos.lat))
-                        .withProperty("kind", r.kind)
                 }
                 src.featureCollection(FeatureCollection.fromFeatures(features))
             } catch (e: Throwable) { }

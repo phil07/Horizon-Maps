@@ -47,6 +47,9 @@ internal object PreferenceKeys {
     const val THEN_STYLE = "thenstyle"
     const val MAIN_CARD_SIZE = "maincardsize"
     const val MAIN_TEXT_SIZE = "maintextsize"
+    const val SHARE_REPORTS = "sharereports"
+    const val WORKER_URL = "workerurl"
+    const val REPORT_STATUS = "reportstatus"
     const val MAIN_SPEED_SIZE = "mainspeedsize"
     const val MAIN_BUTTON_SIZE = "mainbuttonsize"
     const val MAIN_ARROW_SIZE = "mainarrowsize"
@@ -245,6 +248,9 @@ internal object PreferenceKeys {
     const val EV_PREF_MIN = "evprefmin"
     /** Open Charge Map API key (optional): looks up the power and operator of chargers outside Germany's register. */
     const val OCM_KEY = "ocmkey"
+    const val SHARE_REPORTS = "sharereports"
+    const val WORKER_URL = "workerurl"
+    const val REPORT_STATUS = "reportstatus"
 }
 
 /**

@@ -2,6 +2,7 @@ package com.headunit.launcher.ui
 
 import com.headunit.launcher.R
 import com.headunit.launcher.Lang
+import com.headunit.launcher.CrowdReport
 import androidx.compose.ui.res.stringResource
 
 import androidx.activity.compose.BackHandler
@@ -100,6 +101,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
@@ -1399,13 +1401,12 @@ fun ReportCard(engine: NavEngine) {
     val context = LocalContext.current
     Box(Modifier.fillMaxWidth().padding(8.dp), contentAlignment = Alignment.CenterEnd) {
         Pill(
+            text = "Stau melden",
+            selected = false,
             onClick = {
                 engine.reportTraffic("traffic")
                 android.widget.Toast.makeText(context, "Meldung gesendet", android.widget.Toast.LENGTH_SHORT).show()
-            },
-            icon = androidx.compose.material.icons.Icons.Rounded.Warning,
-            text = "Stau melden",
-            background = Color(0xFFFF9800)
+            }
         )
     }
 }
@@ -1415,18 +1416,20 @@ fun FeedbackCard(engine: NavEngine, report: CrowdReport) {
     Box(Modifier.fillMaxWidth().padding(8.dp), contentAlignment = Alignment.Center) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Pill(
+                text = "Noch da",
+                selected = false,
                 onClick = {
                     engine.reportFeedback(report.id, true)
                     engine.pendingFeedbackReport = null
-                },
-                text = "Noch da"
+                }
             )
             Pill(
+                text = "Weg",
+                selected = false,
                 onClick = {
                     engine.reportFeedback(report.id, false)
                     engine.pendingFeedbackReport = null
-                },
-                text = "Weg"
+                }
             )
         }
     }
