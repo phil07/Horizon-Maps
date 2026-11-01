@@ -101,6 +101,8 @@ internal val settingsIndex = listOf(
     SettingRef("Wetterhinweise", "Hinweis bei starkem Regen, Schnee oder Nebel", "Unterwegs", 5),
     SettingRef("Vor Meldungen voraus warnen", "", "Deine Meldungen", 5),
     SettingRef("Aktive Meldungen", "Anzahl der angezeigten Meldungen", "Deine Meldungen", 5),
+    SettingRef("Meldungen teilen", "Meldungen teilen und anzeigen, anonym mit anderen Fahrern", "Deine Meldungen", 5),
+    SettingRef("Meldungs-Server", "Eigene Serveradresse für geteilte Meldungen", "Deine Meldungen", 5),
     SettingRef("Sprachführung", "", "Ton & Stimme", 6),
     SettingRef("Straßennamen ansagen", "Richtungen ohne Straßennamen ansagen", "Ton & Stimme", 6),
     SettingRef("Intelligente Anweisungen", "Anweisungen mit Ausfahrtsnummern und Schildern", "Ton & Stimme", 6),

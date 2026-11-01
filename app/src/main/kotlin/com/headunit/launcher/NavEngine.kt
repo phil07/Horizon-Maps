@@ -153,13 +153,6 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
     var faster by mutableStateOf<FasterRoute?>(null)
     var liveAlts by mutableStateOf<List<LiveAlt>>(emptyList())
     var radar by mutableStateOf<List<RadarItem>>(emptyList())
-    // crowd-sourced reports
-    @Volatile private var crowdReports: List<CrowdReport> = emptyList()
-    @Volatile private var lastReportSentAt = 0L
-    @Volatile private var lastReportKind = ""
-    @Volatile private var lastReportPos: LL? = null
-    var crowdReportsUi by mutableStateOf<List<CrowdReport>>(emptyList())
-    var pendingFeedbackReport by mutableStateOf<CrowdReport?>(null)
     private var radarSig = 0
     private var bendsFor: Route? = null
     private var bends: List<Pair<Double, Int>> = emptyList()
@@ -607,33 +600,6 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         Overpass.localWays = { p -> OfflineLimits.waysNear(ctx, p) }
         // the phone and car screens share the trip (joined a moment after start, once this engine is fully set up)
         scope.launch { delay(1500); RouteSync.register(this@NavEngine) }
-        // crowd-sourced reports sync
-        scope.launch {
-            while (true) {
-                delay(60_000)
-                try { syncReports() } catch (e: Exception) { }
-            }
-        }
-        // update map with crowd reports
-        scope.launch {
-            snapshotFlow { crowdReportsUi }.collect { reports ->
-                map.setCrowdReports(reports)
-            }
-        }
-        // check for reports to give feedback on
-        scope.launch {
-            while (true) {
-                delay(5_000)
-                val pos = fix?.pos ?: continue
-                val now = System.currentTimeMillis()
-                crowdReportsUi.find { r ->
-                    Geo.dist(r.pos, pos) < 200 && now - r.ts < 30 * 60_000L
-                }?.let { report ->
-                    // Trigger UI feedback request
-                    pendingFeedbackReport = report
-                }
-            }
-        }
         // a place sent from your phone (Settings > Places & trips): looked for shortly after starting, then every minute
         scope.launch {
             delay(6000)
@@ -3301,15 +3267,20 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         }
     }
 
-    /** A report you made from the map: what it is, where, and when. They are kept on this device only. */
-    class Report(val kind: String, val pos: LL, val t: Long)
+    /**
+     * A report on the map: what it is, where, and when. Your own are kept on this device ([sid] is its id on the shared reports
+     * server once it has been sent there, 0 before); [shared] ones come from other drivers through [SharedReports].
+     */
+    class Report(val kind: String, val pos: LL, val t: Long, val sid: Long = 0L, val shared: Boolean = false)
 
     /** How long each kind of report lasts, its map icon, and what is said when you come up to it. */
-    private fun reportLife(k: String) = when (k) { "hazard" -> 3_600_000L; "accident", "breakdown" -> 2 * 3_600_000L; "mobilecam" -> 4 * 3_600_000L; else -> 3 * 3_600_000L }
-    private fun reportIcon(k: String) = when (k) { "accident" -> 4; "hazard" -> 5; "breakdown" -> 6; "mobilecam" -> 7; else -> 3 }
-    fun reportName(k: String) = when (k) { "accident" -> str(R.string.ui_077); "hazard" -> str(R.string.ui_076); "breakdown" -> str(R.string.ui_078); "mobilecam" -> str(R.string.ui_079); else -> str(R.string.ui_075) }
+    private fun reportLife(k: String) = when (k) { "jam" -> 1_800_000L; "hazard" -> 3_600_000L; "accident", "breakdown" -> 2 * 3_600_000L; "mobilecam" -> 4 * 3_600_000L; else -> 3 * 3_600_000L }
+    private fun reportIcon(k: String) = when (k) { "accident" -> 4; "hazard" -> 5; "breakdown" -> 6; "mobilecam" -> 7; "jam" -> 8; else -> 3 }
+    fun reportName(k: String) = when (k) { "accident" -> str(R.string.ui_077); "hazard" -> str(R.string.ui_076); "breakdown" -> str(R.string.ui_078); "mobilecam" -> str(R.string.ui_079); "jam" -> str(R.string.ui_103); else -> str(R.string.ui_075) }
+    /** The kinds this version knows (a shared report of a kind added later is left out rather than shown as police). */
+    private val reportKinds = setOf("police", "accident", "hazard", "breakdown", "mobilecam", "jam")
 
-    /** Reports still in force (older police-only reports are read too). */
+    /** Your own reports still in force (older police-only reports are read too). Stored as "kind,lat,lon,time[,server id]". */
     fun reportsActive(): List<Report> {
         val now = System.currentTimeMillis()
         val out = ArrayList<Report>()
@@ -3322,38 +3293,189 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
             val q = r.split(",")
             val k = q.getOrNull(0).orEmpty()
             val la = q.getOrNull(1)?.toDoubleOrNull(); val lo = q.getOrNull(2)?.toDoubleOrNull(); val t = q.getOrNull(3)?.toLongOrNull()
-            if (k.isNotBlank() && la != null && lo != null && t != null && now - t < reportLife(k)) out += Report(k, LL(la, lo), t)
+            val sid = q.getOrNull(4)?.toLongOrNull() ?: 0L
+            if (k.isNotBlank() && la != null && lo != null && t != null && now - t < reportLife(k)) out += Report(k, LL(la, lo), t, sid)
         }
         return out
+    }
+
+    private fun saveReports(list: List<Report>) {
+        // (the server id is a fifth field only when there is one, so an older version reading it back still finds the first four)
+        prefs.put(PreferenceKeys.REPORTS, list.joinToString(";") { "${it.kind},${it.pos.lat},${it.pos.lon},${it.t}" + (if (it.sid > 0) ",${it.sid}" else "") })
     }
 
     fun report(kind: String) {
         val p = fix?.pos
         if (p == null) { toast(ctx.getString(R.string.toast_048), 2500); return }
         val keep = reportsActive().takeLast(29)
-        val list = keep + Report(kind, p, System.currentTimeMillis())
-        prefs.put(PreferenceKeys.REPORTS, list.joinToString(";") { "${it.kind},${it.pos.lat},${it.pos.lon},${it.t}" })
+        val mine = Report(kind, p, System.currentTimeMillis())
+        saveReports(keep + mine)
         prefs.put(PreferenceKeys.POLICEREP, "")
         toast(str(R.string.toast_067, reportName(kind)), 3000)
         pushHazards(hzProgress)
+        // shared with other drivers (Settings, on by default): the server's id is kept with the report, so the same report coming
+        // back from the server isn't shown twice
+        if (SharedReports.sharing(prefs)) scope.launch {
+            val sid = withContext(Dispatchers.IO) { SharedReports.send(prefs, kind, p) } ?: return@launch
+            SharedReports.markOwn(sid)
+            val cur = reportsActive()
+            if (cur.none { it.t == mine.t && it.kind == kind }) return@launch
+            saveReports(cur.map { if (it.t == mine.t && it.kind == kind && it.sid == 0L) Report(it.kind, it.pos, it.t, sid) else it })
+            policeSig = 0
+        }
     }
 
     fun reportPolice() = report("police")
 
     fun clearReports() { prefs.put(PreferenceKeys.REPORTS, ""); prefs.put(PreferenceKeys.POLICEREP, ""); pushHazards(hzProgress); toast(ctx.getString(R.string.toast_037), 2000) }
 
+    // ---- reports shared by other drivers ----
+    /** Other drivers' reports near you or along the route, from the last fetch (already narrowed down). */
+    @Volatile private var sharedShown: List<SharedReports.Item> = emptyList()
+    private var sharedAt = 0L
+    private var sharedRoute: Route? = null
+    @Volatile private var sharedBusy = false
+
+    /** "<Name> noch da?" for a shared report you are passing: answered with [answerVote], or gone by itself after 12 s. */
+    class VotePrompt(val id: Long, val kind: String, val name: String)
+    var votePrompt by mutableStateOf<VotePrompt?>(null)
+    private val votePrompted = HashSet<Long>()
+
+    /** Your own reports and the shared ones from others (each shown once: one that came back from the server as yours is left out). */
+    private fun allReports(): List<Report> {
+        val own = reportsActive()
+        val shared = sharedShown
+        if (shared.isEmpty() || !SharedReports.sharing(prefs)) return own
+        val mine = own.mapTo(HashSet()) { it.sid }
+        val now = System.currentTimeMillis()
+        val out = ArrayList<Report>(own)
+        for (s in shared) if (s.exp > now && !s.mine && s.kind in reportKinds && s.id !in mine && !SharedReports.isOwn(s.id) && !SharedReports.isGone(s.id))
+            out += Report(s.kind, s.pos, s.t, s.id, shared = true)
+        return out
+    }
+
+    /** Fetches the shared reports every 2 minutes, and at once when the route changes (a new one, a reroute, or none any more). */
+    private fun refreshShared(p: Fix) {
+        // sharing off (or no server): no requests at all, and nothing shared shown
+        if (!SharedReports.sharing(prefs)) { if (sharedShown.isNotEmpty()) { sharedShown = emptyList(); SharedReports.shownCount = 0 }; return }
+        val now = System.currentTimeMillis()
+        val r = route
+        if (sharedBusy || (r === sharedRoute && now - sharedAt < 120_000L)) return
+        sharedBusy = true; sharedAt = now; sharedRoute = r
+        val car = p.pos
+        scope.launch {
+            try {
+                val found = withContext(Dispatchers.IO) { try { fetchShared(car, r) } catch (e: Throwable) { null } }
+                if (found != null) { sharedShown = found; SharedReports.shownCount = found.size; policeSig = 0 }
+            } finally { sharedBusy = false }
+        }
+    }
+
+    /**
+     * The shared reports within 30 km of the car or within about 1 km of the route. The area asked for is the car's 30 km box and
+     * the route's box (1 km wider) together; when that is more than the server's 6 degrees a side, the route is asked for in parts
+     * instead. Null when every request failed.
+     */
+    private fun fetchShared(car: LL, r: Route?): List<SharedReports.Item>? {
+        fun padLon(lat: Double, m: Double) = m / (111_320.0 * max(0.15, cos(Math.toRadians(lat))))
+        fun grow(b: DoubleArray, m: Double): DoubleArray {
+            val dLat = m / 111_320.0
+            val dLon = padLon(if (abs(b[0]) > abs(b[2])) b[0] else b[2], m)
+            return doubleArrayOf((b[0] - dLat).coerceAtLeast(-90.0), (b[1] - dLon).coerceAtLeast(-180.0), (b[2] + dLat).coerceAtMost(90.0), (b[3] + dLon).coerceAtMost(180.0))
+        }
+        // boxes as south, west, north, east
+        val boxes = ArrayList<DoubleArray>()
+        boxes += grow(doubleArrayOf(car.lat, car.lon, car.lat, car.lon), 30_000.0)
+        if (r != null && r.pts.size >= 2) {
+            var cur: DoubleArray? = null
+            var prev: LL? = null
+            for (q in r.pts) {
+                val b = cur
+                if (b == null) { cur = doubleArrayOf(q.lat, q.lon, q.lat, q.lon); prev = q; continue }
+                val s = min(b[0], q.lat); val w = min(b[1], q.lon); val n = max(b[2], q.lat); val e = max(b[3], q.lon)
+                if (n - s > 4.0 || e - w > 4.0) {
+                    // this part is full: the next one starts at the last point, so the stretch in between is covered too
+                    boxes += grow(b, 1_000.0)
+                    val pv = prev ?: q
+                    cur = doubleArrayOf(min(pv.lat, q.lat), min(pv.lon, q.lon), max(pv.lat, q.lat), max(pv.lon, q.lon))
+                } else { b[0] = s; b[1] = w; b[2] = n; b[3] = e }
+                prev = q
+            }
+            cur?.let { boxes += grow(it, 1_000.0) }
+        }
+        val all = doubleArrayOf(boxes.minOf { it[0] }, boxes.minOf { it[1] }, boxes.maxOf { it[2] }, boxes.maxOf { it[3] })
+        val ask = if (all[2] - all[0] <= 6.0 && all[3] - all[1] <= 6.0) listOf(all) else boxes.take(16)
+        val byId = LinkedHashMap<Long, SharedReports.Item>()
+        var anyOk = false
+        for (b in ask) {
+            val got = SharedReports.fetch(prefs, b[0], b[1], b[2], b[3]) ?: continue
+            anyOk = true
+            for (x in got) byId[x.id] = x
+        }
+        if (!anyOk) return null
+        SharedReports.remember(byId.values.toList())
+        // the route as points about every 300 m, in a coarse grid (cells of roughly 2 km) so each report only checks the route nearby
+        val grid = HashMap<Long, ArrayList<LL>>()
+        fun key(lat: Double, lon: Double) = Math.floor(lat / 0.02).toLong() * 1000003L + Math.floor(lon / 0.03).toLong()
+        if (r != null) {
+            var last = -1e9
+            for (n in r.pts.indices) if (n < r.cum.size && (r.cum[n] - last >= 300.0 || n == r.pts.size - 1)) {
+                val q = r.pts[n]
+                grid.getOrPut(key(q.lat, q.lon)) { ArrayList() }.add(q)
+                last = r.cum[n]
+            }
+        }
+        val out = ArrayList<SharedReports.Item>()
+        for (x in byId.values) {
+            if (x.mine) continue
+            if (Geo.dist(car, x.pos) <= 30_000.0) { out += x; continue }
+            if (grid.isEmpty()) continue
+            val k = key(x.pos.lat, x.pos.lon)
+            var near = false
+            // (points 300 m apart: within 1.15 km of one is within about 1 km of the line between them)
+            for (dy in -1..1) for (dx in -1..1) {
+                if (!near && grid[k + dy * 1000003L + dx]?.any { q -> Geo.dist(q, x.pos) <= 1_150.0 } == true) near = true
+            }
+            if (near) out += x
+        }
+        return out
+    }
+
+    /** "Noch da" (true) or "Weg" (false) for the report in [votePrompt]. "Weg" takes it off the map at once. */
+    fun answerVote(still: Boolean) {
+        val vp = votePrompt ?: return
+        votePrompt = null
+        if (!still) { SharedReports.markGone(vp.id); policeSig = 0; pushHazards(hzProgress) }
+        scope.launch(Dispatchers.IO) { SharedReports.vote(prefs, vp.id, still) }
+    }
+
+    /** Closes the "noch da?" question without answering. */
+    fun dismissVote() { votePrompt = null }
+
     /** Refreshes the map icons when reports change or expire, and warns when one is just ahead. */
     private fun checkPolice(p: Fix) {
-        val list = reportsActive()
+        try { refreshShared(p) } catch (e: Exception) { }
+        val list = allReports()
         var sig = list.size
-        for (r in list) sig = sig * 31 + (r.t % 100000).toInt()
+        for (r in list) sig = sig * 31 + (r.t % 100000).toInt() + (r.sid % 100000).toInt()
         if (sig != policeSig) { policeSig = sig; pushHazards(hzProgress) }
+        // passing someone else's report: is it still there? (asked once per report, only while moving)
+        if (votePrompt == null && p.speed > 3.0 && SharedReports.sharing(prefs)) {
+            val hit = list.firstOrNull { it.shared && it.sid !in votePrompted && Geo.dist(p.pos, it.pos) < 150.0 }
+            if (hit != null) {
+                votePrompted.add(hit.sid)
+                val vp = VotePrompt(hit.sid, hit.kind, reportName(hit.kind))
+                votePrompt = vp
+                scope.launch { delay(12_000); if (votePrompt === vp) votePrompt = null }
+            }
+        }
         if (!prefs.b(PreferenceKeys.POLICEALERTS, true) || p.speed < 4.0) return
         for (r in list) {
             val d = Geo.dist(p.pos, r.pos)
             if (d < 40 || d > 600) continue
             val diff = abs(((Geo.bearing(p.pos, r.pos) - p.heading + 540.0) % 360.0) - 180.0)
-            if (diff < 50 && policeAlerted.add(r.t)) {
+            // (a shared report is remembered by its server id: two drivers' reports can carry the same time)
+            if (diff < 50 && policeAlerted.add(if (r.shared) -r.sid else r.t)) {
                 chime(android.media.ToneGenerator.TONE_PROP_PROMPT)
                 raiseAlert(if (r.kind == "mobilecam") "camera" else "report", str(R.string.toast_068, reportName(r.kind)))
                 speak(str(R.string.toast_068, reportName(r.kind)), true)
@@ -3366,7 +3488,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         hzProgress = progress
         val list = ArrayList<Pair<LL, Int>>()
         if (prefs.b(PreferenceKeys.HAZARD_ICONS, true)) {
-            for (r in reportsActive()) list += r.pos to reportIcon(r.kind)
+            for (r in allReports()) list += r.pos to reportIcon(r.kind)
             for ((inc, off, _) in incMatches) {
                 if (off <= progress - 20) continue
                 val k = when (inc.cat.lowercase()) { "roadclosed" -> 2; "roadworks", "laneclosed" -> 1; else -> -1 }
@@ -5231,65 +5353,6 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         while (i < r.pts.size && r.cum[i] < prog) { pts += r.pts[i]; i++ }
         pts += pointAt(r, prog).first
         map.setDone(pts); doneShown = true
-    }
-
-    /** Send a crowd report (traffic, camera, police) to the worker. */
-    fun reportTraffic(kind: String) {
-        if (!prefs.b(PreferenceKeys.SHARE_REPORTS, false)) return
-        val pos = fix?.pos ?: return
-        val now = System.currentTimeMillis()
-        if (now - lastReportSentAt < 5 * 60_000L) return
-        lastReportPos?.let { if (Geo.dist(it, pos) < 300) return }
-        val workerUrl = prefs.s(PreferenceKeys.WORKER_URL, "").ifBlank { return }
-        scope.launch(Dispatchers.IO) {
-            try {
-                val url = java.net.URL("$workerUrl/report")
-                val conn = url.openConnection() as java.net.HttpURLConnection
-                conn.requestMethod = "POST"
-                conn.doOutput = true
-                conn.setRequestProperty("Content-Type", "application/json")
-                val payload = """{"kind":"$kind","lat":${pos.lat},"lon":${pos.lon},"ts":$now}"""
-                conn.outputStream.use { it.write(payload.toByteArray()) }
-                if (conn.responseCode == 200) {
-                    lastReportSentAt = now
-                    lastReportKind = kind
-                    lastReportPos = pos
-                }
-            } catch (e: Exception) { }
-        }
-    }
-
-    /** Send feedback for an existing report (still there / gone). */
-    fun reportFeedback(reportId: String, stillThere: Boolean) {
-        if (!prefs.b(PreferenceKeys.SHARE_REPORTS, false)) return
-        val workerUrl = prefs.s(PreferenceKeys.WORKER_URL, "").ifBlank { return }
-        scope.launch(Dispatchers.IO) {
-            try {
-                val url = java.net.URL("$workerUrl/feedback")
-                val conn = url.openConnection() as java.net.HttpURLConnection
-                conn.requestMethod = "POST"
-                conn.doOutput = true
-                conn.setRequestProperty("Content-Type", "application/json")
-                val payload = """{"id":"$reportId","stillThere":$stillThere}"""
-                conn.outputStream.use { it.write(payload.toByteArray()) }
-            } catch (e: Exception) { }
-        }
-    }
-
-    /** Sync crowd reports from the worker and update the UI list. */
-    suspend fun syncReports() {
-        if (!prefs.b(PreferenceKeys.SHARE_REPORTS, false)) return
-        val workerUrl = prefs.s(PreferenceKeys.WORKER_URL, "").ifBlank { return }
-        try {
-            val url = java.net.URL("$workerUrl/reports")
-            val conn = url.openConnection() as java.net.HttpURLConnection
-            conn.requestMethod = "GET"
-            if (conn.responseCode == 200) {
-                val json = conn.inputStream.bufferedReader().use { it.readText() }
-                // TODO: parse JSON and filter by route proximity
-                // crowdReportsUi = parsedReports.filter { ... }
-            }
-        } catch (e: Exception) { }
     }
 
     private fun pointAt(r: Route, d: Double): Pair<LL, Double> {

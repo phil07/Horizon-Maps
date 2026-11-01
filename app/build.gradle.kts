@@ -7,6 +7,10 @@ plugins {
 val tomtomApiKey: String = ((findProperty("tomtomApiKey") as String?) ?: "")
     .takeUnless { it.isBlank() || it == "YOUR_TOMTOM_API_KEY" } ?: ""
 val escapedTomtomApiKey = tomtomApiKey.replace("\\", "\\\\").replace("\"", "\\\"")
+// the shared-reports server (Cloudflare Worker), passed in by the release workflow; empty = reports not shared
+// unless a URL is set in the app's settings. Not a secret.
+val reportsUrl: String = ((findProperty("reportsUrl") as String?) ?: "").trim()
+val escapedReportsUrl = reportsUrl.replace("\\", "\\\\").replace("\"", "\\\"")
 
 android {
     namespace = "com.headunit.launcher"
@@ -67,6 +71,8 @@ android {
             buildConfigField("String", "UPDATE_REPO", "\"phil07/Horizon-Maps\"")
             // the APK file the updater looks for in that release
             buildConfigField("String", "UPDATE_APK", "\"HorizonNav-public.apk\"")
+            // base URL of the shared-reports server, e.g. https://horizon-reports.<subdomain>.workers.dev (empty if not set up)
+            buildConfigField("String", "REPORTS_URL", "\"$escapedReportsUrl\"")
         }
     }
     compileOptions {

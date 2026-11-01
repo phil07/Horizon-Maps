@@ -2,7 +2,6 @@ package com.headunit.launcher.ui
 
 import com.headunit.launcher.R
 import com.headunit.launcher.Lang
-import com.headunit.launcher.CrowdReport
 import androidx.compose.ui.res.stringResource
 
 import androidx.activity.compose.BackHandler
@@ -314,12 +313,6 @@ private fun MapScreen(engine: NavEngine, onSettings: () -> Unit) {
                 }
             }
             if (engine.nearbyKind != null && (!previewing || engine.stopMode)) NearbyCard(engine)
-            if (previewing && engine.prefs.b(PreferenceKeys.SHARE_REPORTS, false)) {
-                ReportCard(engine)
-            }
-            engine.pendingFeedbackReport?.let { report ->
-                FeedbackCard(engine, report)
-            }
         }
 
         // ---- right side: the map buttons grouped in one panel at the top, zoom under it, and Settings beside it
@@ -479,6 +472,21 @@ private fun MapScreen(engine: NavEngine, onSettings: () -> Unit) {
             }
         }
 
+        // passing another driver's shared report: "Stau noch da?" with Noch da / Weg (it goes by itself after 12 s; above the faster
+        // route card when that is up too)
+        engine.votePrompt?.takeIf { !previewing && engine.arrival == null }?.let { vp ->
+            Row(
+                Modifier.align(Alignment.BottomCenter).padding(start = 16.dp, end = 16.dp, bottom = (if (narrow) tripH + 10.dp else 84.dp) + (if (engine.faster != null) 92.dp else 0.dp))
+                    .widthIn(max = 540.dp).panel(10.dp, RoundedCornerShape(24.dp), c.surface).padding(horizontal = 18.dp, vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                Box(Modifier.size(40.dp).clip(CircleShape).background(Warn.copy(alpha = 0.18f)), contentAlignment = Alignment.Center) { Icon(Icons.Rounded.NotificationsActive, null, tint = Warn, modifier = Modifier.size(22.dp)) }
+                Text(Lang.t("${vp.name} noch da?", "${vp.name} still there?"), color = c.text, fontSize = 17.sp, fontWeight = FontWeight.Bold, maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))
+                ImmPill(Lang.t("Noch da", "Still there"), { engine.answerVote(true) }, filled = true)
+                ImmPill(Lang.t("Weg", "Gone"), { engine.answerVote(false) })
+            }
+        }
+
         AnimatedVisibility(engine.busy, modifier = Modifier.align(Alignment.TopCenter).padding(top = 22.dp), enter = fadeIn(tween(160)) + androidx.compose.animation.scaleIn(tween(200), initialScale = 0.7f), exit = fadeOut(tween(160))) {
             Box(Modifier.size(44.dp).panel(6.dp, CircleShape, c.surface), contentAlignment = Alignment.Center) {
                 CircularProgressIndicator(Modifier.size(24.dp), color = c.accent, strokeWidth = 3.dp)
@@ -575,12 +583,13 @@ private fun OptionsSheet(engine: NavEngine, shareEta: () -> Unit, wide: Boolean 
         val restPart: @Composable () -> Unit = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 SheetHeading(Lang.t("Hier melden", "Report here"))
-                WideTiles(5, listOf(
+                WideTiles(3, listOf(
                     TileSpec(Icons.Rounded.LocalPolice, Lang.t("Polizei", "Police"), Color(0xFF1E66F5), { engine.report("police"); close() }),
                     TileSpec(Icons.Rounded.CarCrash, Lang.t("Unfall", "Crash"), Bad, { engine.report("accident"); close() }),
                     TileSpec(Icons.Rounded.PriorityHigh, Lang.t("Gefahr", "Hazard"), Warn, { engine.report("hazard"); close() }),
                     TileSpec(Icons.Rounded.Build, Lang.t("Panne", "Broken down"), Color(0xFFFB8C00), { engine.report("breakdown"); close() }),
                     TileSpec(Icons.Rounded.CameraAlt, Lang.t("Mobiler Blitzer", "Mobile cam"), Color(0xFF1E66F5), { engine.report("mobilecam"); close() }),
+                    TileSpec(Icons.Rounded.DirectionsCar, Lang.t("Stau", "Traffic jam"), Color(0xFFF4511E), { engine.report("jam"); close() }),
                 ), compact = true)
                 // with no route the map page already has fuel, charging, food, coffee and parking, so only the rest are here
                 fun find(kind: String): () -> Unit = { engine.loadNearby(kind, false); close() }
@@ -1392,45 +1401,6 @@ private fun ItineraryCard(engine: NavEngine) {
                     }
                 }
             }
-        }
-    }
-}
-
-@Composable
-fun ReportCard(engine: NavEngine) {
-    val context = LocalContext.current
-    Box(Modifier.fillMaxWidth().padding(8.dp), contentAlignment = Alignment.CenterEnd) {
-        Pill(
-            text = "Stau melden",
-            selected = false,
-            onClick = {
-                engine.reportTraffic("traffic")
-                android.widget.Toast.makeText(context, "Meldung gesendet", android.widget.Toast.LENGTH_SHORT).show()
-            }
-        )
-    }
-}
-
-@Composable
-fun FeedbackCard(engine: NavEngine, report: CrowdReport) {
-    Box(Modifier.fillMaxWidth().padding(8.dp), contentAlignment = Alignment.Center) {
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Pill(
-                text = "Noch da",
-                selected = false,
-                onClick = {
-                    engine.reportFeedback(report.id, true)
-                    engine.pendingFeedbackReport = null
-                }
-            )
-            Pill(
-                text = "Weg",
-                selected = false,
-                onClick = {
-                    engine.reportFeedback(report.id, false)
-                    engine.pendingFeedbackReport = null
-                }
-            )
         }
     }
 }

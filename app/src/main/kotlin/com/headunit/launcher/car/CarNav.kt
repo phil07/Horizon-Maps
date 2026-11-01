@@ -433,6 +433,8 @@ class MapScreen(carContext: CarContext, private val holder: CarHolder) : Screen(
     private var running = false
     private var lastSig = ""
     private var lastTrip = ""
+    /** The shared report last asked about in the car ("Stau noch da?"), so each is asked only once. */
+    private var lastVoteId = 0L
     private var navigating = false
     private var autoDrive = false
     /** Opens the car's quick settings (set by the session). */
@@ -494,7 +496,32 @@ class MapScreen(carContext: CarContext, private val holder: CarHolder) : Screen(
             lastTrip = tsig
             try { nav?.updateTrip(trip(e, t, eta)) } catch (x: Exception) { }
         }
+        // passing another driver's shared report: ask in the car too (Android Auto's alert with two buttons; car API 5 and newer)
+        val vp = e.votePrompt
+        if (vp != null && vp.id != lastVoteId) {
+            lastVoteId = vp.id
+            if (carContext.carAppApiLevel >= 5) try { showVoteAlert(e, vp) } catch (x: Exception) { }
+        }
         CarTicks.tick?.invoke()
+    }
+
+    private fun showVoteAlert(e: NavEngine, vp: NavEngine.VotePrompt) {
+        val am = carContext.getCarService(AppManager::class.java)
+        val alertId = (vp.id % Int.MAX_VALUE).toInt()
+        val still = Action.Builder().setTitle(Lang.t("Noch da", "Still there")).setOnClickListener {
+            e.answerVote(true); try { am.dismissAlert(alertId) } catch (x: Exception) { }
+        }.build()
+        val gone = Action.Builder().setTitle(Lang.t("Weg", "Gone")).setOnClickListener {
+            e.answerVote(false); try { am.dismissAlert(alertId) } catch (x: Exception) { }
+        }.build()
+        val alert = androidx.car.app.model.Alert.Builder(alertId, androidx.car.app.model.CarText.create(Lang.t("${vp.name} noch da?", "${vp.name} still there?")), 12_000L)
+            .addAction(still).addAction(gone)
+            .setCallback(object : androidx.car.app.model.AlertCallback {
+                override fun onCancel(reason: Int) { }
+                override fun onDismiss() { }
+            })
+            .build()
+        am.showAlert(alert)
     }
 
     private fun icon(res: Int) = CarIcon.Builder(IconCompat.createWithResource(carContext, res)).build()
@@ -811,7 +838,7 @@ class PlacesScreen(carContext: CarContext, private val holder: CarHolder) : Scre
     }
 }
 
-/** "Hier melden": Polizei, Unfall, Gefahr, Panne oder mobiler Blitzer, saved where you are (the same reports as the phone's). */
+/** "Hier melden": Polizei, Unfall, Gefahr, Panne, mobiler Blitzer oder Stau, saved where you are (the same reports as the phone's). */
 class ReportScreen(carContext: CarContext, private val holder: CarHolder) : Screen(carContext) {
     override fun onGetTemplate(): Template {
         val kinds = listOf(
@@ -820,6 +847,7 @@ class ReportScreen(carContext: CarContext, private val holder: CarHolder) : Scre
             Triple("hazard", Lang.t("Gefahr", "Hazard"), R.drawable.ic_car_report to 0xFFFBBC04.toInt()),
             Triple("breakdown", Lang.t("Panne", "Broken down"), R.drawable.ic_car_breakdown to 0xFFFCAD70.toInt()),
             Triple("mobilecam", Lang.t("Mobiler Blitzer", "Mobile camera"), R.drawable.ic_car_mobilecam to 0xFF8AB4F8.toInt()),
+            Triple("jam", Lang.t("Stau", "Traffic jam"), R.drawable.ic_car_jam to 0xFFFF8A65.toInt()),
         )
         val list = ItemList.Builder()
         for ((kind, label, ic) in kinds) list.addItem(

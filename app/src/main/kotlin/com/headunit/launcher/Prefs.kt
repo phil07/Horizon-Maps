@@ -47,9 +47,6 @@ internal object PreferenceKeys {
     const val THEN_STYLE = "thenstyle"
     const val MAIN_CARD_SIZE = "maincardsize"
     const val MAIN_TEXT_SIZE = "maintextsize"
-    const val SHARE_REPORTS = "sharereports"
-    const val WORKER_URL = "workerurl"
-    const val REPORT_STATUS = "reportstatus"
     const val MAIN_SPEED_SIZE = "mainspeedsize"
     const val MAIN_BUTTON_SIZE = "mainbuttonsize"
     const val MAIN_ARROW_SIZE = "mainarrowsize"
@@ -248,9 +245,12 @@ internal object PreferenceKeys {
     const val EV_PREF_MIN = "evprefmin"
     /** Open Charge Map API key (optional): looks up the power and operator of chargers outside Germany's register. */
     const val OCM_KEY = "ocmkey"
-    const val SHARE_REPORTS = "sharereports"
-    const val WORKER_URL = "workerurl"
-    const val REPORT_STATUS = "reportstatus"
+    /** Shared reports: send your own reports to the reports server (default on) and show other drivers' reports. */
+    const val REPORTS_SHARE = "reportsshare"
+    /** The reports server's address, overriding the one built into the app ("" = the built-in one). */
+    const val REPORTS_URL = "reportsurl"
+    /** A random id made once on this device, sent with every request to the reports server (anonymous, nothing else). */
+    const val REPORTS_DEVICE = "reportsdevice"
 }
 
 /**
@@ -282,7 +282,8 @@ class Prefs(ctx: Context) {
     /** Everything except the API key, as JSON text (settings, saved places, logs...). */
     fun exportJson(): String = synchronized(LOCK) {
         val o = JSONObject()
-        raw.forEach { (k, v) -> if (k != PreferenceKeys.API_KEY) o.put(k, v) }
+        // (nor the shared-reports device id: a backup restored on another phone must not make it the same "device")
+        raw.forEach { (k, v) -> if (k != PreferenceKeys.API_KEY && k != PreferenceKeys.REPORTS_DEVICE) o.put(k, v) }
         o.toString(2)
     }
 
@@ -296,7 +297,7 @@ class Prefs(ctx: Context) {
         while (keys.hasNext()) {
             val k = keys.next()
             require(k.isNotBlank() && k.length <= 200) { "Invalid setting name" }
-            if (k == PreferenceKeys.API_KEY) continue // API keys are intentionally never imported from backups.
+            if (k == PreferenceKeys.API_KEY || k == PreferenceKeys.REPORTS_DEVICE) continue // API keys (and the reports device id) are intentionally never imported from backups.
             val value = o.get(k)
             require(value !is JSONObject && value !is org.json.JSONArray) { "Invalid setting value" }
             pending[k] = if (value == JSONObject.NULL) "" else value.toString()

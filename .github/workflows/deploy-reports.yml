@@ -1,0 +1,116 @@
+# Deploys the shared-reports server (worker/) to Cloudflare: a Worker plus its D1 database.
+# Needs the repo secrets CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID (see worker/README.md).
+# The D1 database is created on the first run; its id is written into wrangler.toml on the runner only.
+name: Deploy reports server
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "worker/**"
+      - ".github/workflows/deploy-reports.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-reports
+  cancel-in-progress: false
+
+env:
+  WRANGLER: npx --yes wrangler@3.114.17
+  DB_NAME: horizon-reports
+  WORKER_NAME: horizon-reports
+
+jobs:
+  deploy:
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: worker
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Check the Cloudflare secrets
+        run: |
+          set -euo pipefail
+          missing=""
+          [ -n "$CLOUDFLARE_API_TOKEN" ] || missing="$missing CLOUDFLARE_API_TOKEN"
+          [ -n "$CLOUDFLARE_ACCOUNT_ID" ] || missing="$missing CLOUDFLARE_ACCOUNT_ID"
+          if [ -n "$missing" ]; then
+            echo "::error::Repo secret(s) missing:$missing. Add them under Settings > Secrets and variables > Actions (see worker/README.md)."
+            exit 1
+          fi
+
+      # workers_dev = true needs the account's workers.dev subdomain; Cloudflare only creates it once
+      # Workers & Pages has been opened in the dashboard
+      - name: Look up the workers.dev subdomain
+        id: sub
+        run: |
+          set -euo pipefail
+          RESP=$(curl -sS --max-time 30 \
+            -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
+            "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/workers/subdomain" || true)
+          SUB=$(printf '%s' "$RESP" | jq -r '.result.subdomain // empty' 2>/dev/null || true)
+          if [ -z "$SUB" ]; then
+            echo "Cloudflare answered: $RESP"
+            echo "::error::No workers.dev subdomain found for this account. Open dash.cloudflare.com > Workers & Pages once and pick a subdomain, then re-run this workflow. (If that is done already, check that the API token has the permissions listed in worker/README.md and that CLOUDFLARE_ACCOUNT_ID is right.)"
+            exit 1
+          fi
+          echo "subdomain=$SUB" >> "$GITHUB_OUTPUT"
+          echo "workers.dev subdomain: $SUB"
+
+      - name: Find or create the D1 database
+        run: |
+          set -euo pipefail
+          find_db() {
+            $WRANGLER d1 list --json | jq -r --arg n "$DB_NAME" '.[] | select(.name == $n) | .uuid' | head -n 1
+          }
+          DB_ID=$(find_db)
+          if [ -z "$DB_ID" ]; then
+            echo "Creating the D1 database $DB_NAME"
+            $WRANGLER d1 create "$DB_NAME"
+            DB_ID=$(find_db)
+          fi
+          if ! printf '%s' "$DB_ID" | grep -Eq '^[0-9a-fA-F-]{32,40}$'; then
+            echo "::error::Could not find or create the D1 database $DB_NAME (got '$DB_ID')."
+            exit 1
+          fi
+          echo "D1 database $DB_NAME: $DB_ID"
+          # on the runner only, never committed
+          sed -i "s/D1_DATABASE_ID_PLACEHOLDER/$DB_ID/" wrangler.toml
+          grep -q "$DB_ID" wrangler.toml
+
+      - name: Create or update the tables
+        run: $WRANGLER d1 execute "$DB_NAME" --remote --file=schema.sql
+
+      - name: Deploy the Worker
+        run: $WRANGLER deploy
+
+      - name: Check the server answers
+        env:
+          SUB: ${{ steps.sub.outputs.subdomain }}
+        run: |
+          set -euo pipefail
+          URL="https://$WORKER_NAME.$SUB.workers.dev"
+          echo "Reports server URL: $URL"
+          echo "### Reports server: $URL" >> "$GITHUB_STEP_SUMMARY"
+          # a brand-new workers.dev name can take a minute or two to answer
+          for i in $(seq 1 18); do
+            if BODY=$(curl -fsS --max-time 15 "$URL/v1/health") && printf '%s' "$BODY" | jq -e '.ok == true' > /dev/null; then
+              echo "Health check OK: $BODY"
+              exit 0
+            fi
+            echo "Not answering yet (try $i), waiting 10 s"
+            sleep 10
+          done
+          echo "::error::$URL/v1/health did not answer {\"ok\":true} within 3 minutes."
+          exit 1

@@ -1,0 +1,16 @@
+# Cloudflare Worker for the Horizon Nav shared reports.
+# Deployed by .github/workflows/deploy-reports.yml; that workflow fills in database_id on the runner only
+# (the placeholder below stays in the repo).
+name = "horizon-reports"
+main = "src/index.js"
+compatibility_date = "2025-06-01"
+workers_dev = true
+
+[[d1_databases]]
+binding = "DB"
+database_name = "horizon-reports"
+database_id = "D1_DATABASE_ID_PLACEHOLDER"
+
+# hourly clean-up of expired reports, their votes and old rate counters
+[triggers]
+crons = ["17 * * * *"]

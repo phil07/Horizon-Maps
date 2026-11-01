@@ -46,9 +46,6 @@ class LiveAlt(val route: Route, val diffMin: Int, val bubble: LL, val divergeOff
     fun line(): List<LL> = route.pts.subList(maxOf(0, divIdx), route.pts.size)
 }
 
-/** A crowd-sourced traffic report: type (traffic, camera, police), position, time, and an id for deduplication. */
-data class CrowdReport(val id: String, val kind: String, val pos: LL, val ts: Long, val ttl: Long = 30 * 60_000L)
-
 /** Something in the next couple of miles for the hazard radar: what it is and how far away (m). */
 class RadarItem(val kind: String, val dist: Double, val label: String)
 /** "Work · 23 min · light traffic": where you are probably going now, with the live time. */

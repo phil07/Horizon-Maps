@@ -522,6 +522,22 @@ private fun AlertsSection(prefs: Prefs, engine: NavEngine) {
     SGroup("Deine Meldungen", footer = "Meldungen über die Optionen-Taste auf der Karte erstellen.") {
         SToggle(prefs, "Vor Meldungen voraus warnen", "policealerts", true)
         SItem("Aktive Meldungen", "${engine.reportsActive().size}") { SButton("Löschen", danger = true) { engine.clearReports() } }
+        SToggle(prefs, "Meldungen teilen", PreferenceKeys.REPORTS_SHARE, true, "Meldungen teilen und anzeigen: deine gehen anonym an andere Fahrer (nur Art, Ort und Zeit), ihre siehst du auf der Karte. Aus: keine Verbindung zum Server.")
+        // the server's state, looked at again every few seconds while this page is open
+        var tick by remember { mutableStateOf(0) }
+        androidx.compose.runtime.LaunchedEffect(Unit) { while (true) { kotlinx.coroutines.delay(5000); tick++ } }
+        val status = tick.let {
+            val sr = com.headunit.launcher.SharedReports
+            when {
+                !sr.configured(prefs) -> "Kein Server eingerichtet"
+                !prefs.b(PreferenceKeys.REPORTS_SHARE, true) -> "Aus: keine Verbindung zum Server"
+                sr.lastError.isNotBlank() -> "Fehler: ${sr.lastError}"
+                sr.lastOkAt > 0 -> "Server verbunden · ${sr.shownCount} Meldungen in der Nähe"
+                else -> "Noch nicht verbunden: startet mit dem nächsten GPS-Signal"
+            }
+        }
+        SItem("Server für geteilte Meldungen", status)
+        SFieldItem("Meldungs-Server", prefs.s(PreferenceKeys.REPORTS_URL, ""), "Leer lassen für den eingebauten Server. Nur ändern, wenn du einen eigenen betreibst.", placeholder = "https://…") { prefs.put(PreferenceKeys.REPORTS_URL, it.trim()) }
     }
 }
 

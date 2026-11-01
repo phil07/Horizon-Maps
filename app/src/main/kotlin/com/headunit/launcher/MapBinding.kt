@@ -505,19 +505,6 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
     /** Where you parked, shown on the map (Lang.t("Dein Auto", "Your car")), or null for none. */
     @Volatile private var parkedAt: LL? = null
 
-    /** Crowd-sourced reports shown on the map as warning icons. */
-    fun setCrowdReports(reports: List<CrowdReport>) {
-        main0.post {
-            try {
-                val src = src("dl-crowd") ?: return@post
-                val features = reports.map { r ->
-                    Feature.fromGeometry(Point.fromLngLat(r.pos.lon, r.pos.lat))
-                }
-                src.featureCollection(FeatureCollection.fromFeatures(features))
-            } catch (e: Throwable) { }
-        }
-    }
-
     fun setParked(p: LL?) {
         if (p == parkedAt || (p != null && parkedAt != null && Geo.dist(p, parkedAt!!) < 1.0)) return
         parkedAt = p
@@ -2275,8 +2262,8 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
     }
 
     private var hazards: List<Pair<LL, Int>> = emptyList()
-    /** Map icons by kind: camera, roadworks, closure, police, accident, hazard, breakdown, mobile camera. */
-    private val hazardNames = arrayOf("dl-hz-cam", "dl-hz-work", "dl-hz-closed", "dl-hz-police", "dl-hz-accident", "dl-hz-hazard", "dl-hz-breakdown", "dl-hz-mobilecam")
+    /** Map icons by kind: camera, roadworks, closure, police, accident, hazard, breakdown, mobile camera, traffic jam. */
+    private val hazardNames = arrayOf("dl-hz-cam", "dl-hz-work", "dl-hz-closed", "dl-hz-police", "dl-hz-accident", "dl-hz-hazard", "dl-hz-breakdown", "dl-hz-mobilecam", "dl-hz-jam")
 
     /** Icons for speed cameras (0), roadworks (1) and closures (2) along the route. */
     fun setHazards(list: List<Pair<LL, Int>>) { hazards = list; pushHazards() }
@@ -2342,6 +2329,18 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
                 c.drawRoundRect(android.graphics.RectF(cx - 11f, cx - 13f, cx + 11f, cx - 2f), 5f, 5f, p(0xFFFFFFFF.toInt()))
                 c.drawCircle(cx - 10f, cx + 11f, 4.5f, p(0xFF37474F.toInt()))
                 c.drawCircle(cx + 10f, cx + 11f, 4.5f, p(0xFF37474F.toInt()))
+            }
+            8 -> {
+                badge(0xFFBF360C.toInt(), 0xFFF4511E.toInt(), "")
+                // a queue: two small cars one behind the other, the back one a little faded
+                val back = p(0xCCFFFFFF.toInt())
+                c.drawRoundRect(android.graphics.RectF(cx - 20f, cx - 17f, cx + 2f, cx - 7f), 4f, 4f, back)
+                c.drawRoundRect(android.graphics.RectF(cx - 15f, cx - 23f, cx - 3f, cx - 15f), 4f, 4f, back)
+                val front = p(0xFFFFFFFF.toInt())
+                c.drawRoundRect(android.graphics.RectF(cx - 6f, cx + 1f, cx + 20f, cx + 12f), 4f, 4f, front)
+                c.drawRoundRect(android.graphics.RectF(cx, cx - 6f, cx + 14f, cx + 3f), 4f, 4f, front)
+                c.drawCircle(cx - 1f, cx + 14f, 3.8f, p(0xFF37474F.toInt()))
+                c.drawCircle(cx + 15f, cx + 14f, 3.8f, p(0xFF37474F.toInt()))
             }
             7 -> {
                 c.drawCircle(cx, cx + 2f, 38f, p(0x55000000))
