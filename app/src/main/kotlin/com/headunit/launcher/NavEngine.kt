@@ -559,6 +559,13 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
     private var tts: TextToSpeech? = null
     private var ttsReady = false
     private val said = HashSet<String>()
+    /** The road point for a fix, when it is within reach of the fix (the GPS error plus a little), otherwise the fix itself. */
+    private fun snapNear(p: Fix): LL {
+        val s = Overpass.snapToRoad(p.pos, p.heading) ?: map.snapToRoad(p.pos, p.heading) ?: return p.pos
+        val reach = if (p.acc.isFinite() && p.acc > 0.0) max(15.0, p.acc * 1.5) else 25.0
+        return if (Geo.dist(s, p.pos) <= reach) s else p.pos
+    }
+
     private var lastIdx = 0
     private var offCount = 0
     /** Off-route strikes before the route is recalculated: 2 (was 3) so a wrong turn is caught sooner. */
@@ -2839,7 +2846,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
             speedMps = p.speed,
             elapsedSeconds = (nowT - trustAt) / 1000.0
         )
-        val onR = r != null && s != null && !jump && s.dist < (if (glideOnRoute) offLim + 12.0 else 45.0)
+        val onR = r != null && s != null && !jump && s.dist < (if (glideOnRoute) offLim + 12.0 else 30.0)
         if (onR && s != null && newFix && s.dist <= offLim) { trustProg = s.progress; trustAt = nowT }
         if (newFix) {
             mAt = tNow; mSpeed = sp
@@ -2852,7 +2859,8 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
                 glideRoute = null; glideOnRoute = false
                 // standing still: the arrow (and the map round it) stays where you stopped, facing the same way
                 val held = if (isStill) mPos else null
-                mPos = held ?: if (p.speed > 2.0 && prefs.b(PreferenceKeys.SNAPROAD, true)) (Overpass.snapToRoad(p.pos, p.heading) ?: map.snapToRoad(p.pos, p.heading) ?: p.pos) else p.pos
+                // snapped to the road only when the road is really next to you: the nearest road can be the route, far away
+                mPos = held ?: if (p.speed > 2.0 && prefs.b(PreferenceKeys.SNAPROAD, true)) snapNear(p) else p.pos
                 if (!isStill) mHead = p.heading
                 val gp = gPos
                 if (gp == null || Geo.dist(gp, p.pos) > 150.0) { gPos = p.pos; gHead = p.heading }
