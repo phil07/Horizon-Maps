@@ -391,8 +391,10 @@ object MapboxRest {
                     // "A 4; E 40": the national number, not the European one (see RoadRefs)
                     val street = if (type == "off ramp" && name.isBlank()) s.optString("destinations") else RoadRefs.street(name, listOf(s.optString("ref")), refCc)
                     val exit = if (man.startsWith("ROUNDABOUT")) m.optInt("exit", 0) else 0
+                    // (a junction's name comes with the step in some regions only; elsewhere it's looked up in OpenStreetMap, see Junctions)
                     steps += Step(at, man, street, m.optString("instruction"), exit, if (type == "off ramp") s.optString("exits").substringBefore(';') else "", s.optString("destinations"),
-                        rbIn = if (type == "roundabout" || type == "rotary") m.optDouble("bearing_before", -1.0) else -1.0)
+                        rbIn = if (type == "roundabout" || type == "rotary") m.optDouble("bearing_before", -1.0) else -1.0,
+                        jct = s.optString("junction_name").substringBefore(';').trim())
                     if (type == "roundabout" || type == "rotary") rbIdx = steps.size - 1
                     // the lanes at this junction: which go where, and the ones to be in
                     try {

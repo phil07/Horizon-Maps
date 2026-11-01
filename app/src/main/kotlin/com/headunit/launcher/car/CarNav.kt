@@ -704,6 +704,8 @@ class MapScreen(carContext: CarContext, private val holder: CarHolder) : Screen(
             val what = when {
                 type == Maneuver.TYPE_ROUNDABOUT_ENTER_AND_EXIT_CW || type == Maneuver.TYPE_ROUNDABOUT_ENTER_AND_EXIT_CCW -> Lang.t("Ausfahrt ${t.exit} nehmen", "Take exit ${t.exit}")
                 m.startsWith("ARRIVE") -> Lang.t("Ankunft", "Arrive")
+                // a motorway junction by name: "Frankfurter Kreuz", "Ausfahrt 17 Weiterstadt"
+                t.junction.isNotBlank() && !m.startsWith("ROUNDABOUT") -> t.junction
                 t.tag.isNotBlank() -> t.tag
                 else -> m.lowercase().replace('_', ' ').replaceFirstChar { it.uppercase() }
             }

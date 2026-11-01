@@ -107,7 +107,9 @@ object Overpass {
      * [names] holds its name and road numbers (to check another source is talking about the same road), and [sure] says the
      * road was matched closely and runs the way you are heading.
      */
-    class Limit(val ms: Double, val estimated: Boolean, val road: String = "", val wayId: Long = 0L, val names: List<String> = emptyList(), val sure: Boolean = false)
+    class Limit(val ms: Double, val estimated: Boolean, val road: String = "", val wayId: Long = 0L, val names: List<String> = emptyList(), val sure: Boolean = false,
+                /** No general limit at all (maxspeed=none, or an Autobahn in Germany with no limit posted): shown as the "end of all restrictions" sign. */
+                val noLimit: Boolean = false)
 
     /** Set when the last speed-limit lookup failed (no network, server busy…), null when it worked. */
     @Volatile var lastError: String? = null
@@ -274,10 +276,16 @@ object Overpass {
             val road = if (major && ref.isNotBlank()) ref else nm.ifBlank { ref }
             val names = (listOf(nm) + t.optString("ref").split(";").map { it.trim() }).filter { it.isNotBlank() }
             val sure = bDist <= 18.0 && bAligned
+            // explicitly no limit ("none" anywhere, "DE:motorway" in Germany); "signals"/"variable" stay unknown (the overhead signs decide)
+            val unType = if (rawMs.isBlank()) t.optString("maxspeed:type").ifBlank { t.optString("source:maxspeed") }.trim().lowercase() else rawMs
+            // (only really in Germany: the country can lag at a border, and Austrian or Swiss motorways do have a limit)
+            val inDe = country == "DE" && Zones.inGermany(p)
+            val none = unType == "none" || (unType == "de:motorway" && inDe)
             if (posted != null) Limit(posted, false, road, w.id, names, sure)
-            else if (unposted) Limit(-1.0, false, road, w.id, names, sure)
+            else if (unposted) Limit(-1.0, false, road, w.id, names, sure, noLimit = none)
             else estimate(t, country)?.let { Limit(if (country == "GB") snapGb(it) else it, true, road, w.id, names, sure) }
-                ?: Limit(-1.0, true, road, w.id, names, sure)
+                // a German Autobahn with no limit mapped: no general limit there
+                ?: Limit(-1.0, true, road, w.id, names, sure, noLimit = inDe && t.optString("highway") == "motorway")
         }
     } catch (e: Exception) { lastError = e.message ?: e.javaClass.simpleName; null }
 

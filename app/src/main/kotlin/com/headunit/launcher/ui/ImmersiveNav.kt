@@ -126,6 +126,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.headunit.launcher.Geo
+import com.headunit.launcher.Junctions
 import com.headunit.launcher.LL
 import com.headunit.launcher.NavEngine
 import kotlinx.coroutines.delay
@@ -809,13 +810,15 @@ private fun SpeedBlock(engine: NavEngine) {
     val c = LocalVw.current
     val show = engine.prefs.b(PreferenceKeys.MAPSPEED, true)
     val lim = engine.speedLimit
-    if (lim == null && !show) return
+    // a sign to show: a limit, or the "no limit" sign of an unrestricted Autobahn
+    val sign = lim != null || engine.noLimit
+    if (!sign && !show) return
     val k = if (engine.imperial) 2.23694 else 3.6
     if (engine.prefs.b(PreferenceKeys.SPEEDRING, true)) { SpeedRing(engine, show, k); return }
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
         // Keep the speed cluster in the same screen position, but mirror the sign's
         // relationship to the speed readout for left-hand-drive layouts.
-        if (show && engine.mirrored && !engine.isCar && lim != null) SpeedLimitSign(engine, 70.dp)
+        if (show && engine.mirrored && !engine.isCar && sign) SpeedLimitSign(engine, 70.dp)
         if (show) Column(
             Modifier.width(78.dp).panel(8.dp, RoundedCornerShape(24.dp), c.surface).padding(vertical = 8.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
@@ -823,7 +826,7 @@ private fun SpeedBlock(engine: NavEngine) {
             Text("${Math.round((engine.fix?.speed ?: 0.0) * k)}", color = speedTint(engine) ?: c.text, fontSize = 30.sp, fontWeight = FontWeight.Bold, maxLines = 1)
             Text(if (engine.imperial) "mph" else "km/h", color = c.sub, fontSize = 12.sp)
         }
-        if (lim != null && !(show && engine.mirrored && !engine.isCar)) SpeedLimitSign(engine, 70.dp)
+        if (sign && !(show && engine.mirrored && !engine.isCar)) SpeedLimitSign(engine, 70.dp)
     }
 }
 
@@ -881,7 +884,7 @@ private fun SpeedRing(engine: NavEngine, show: Boolean, k: Double) {
         // app is mirrored for left-hand drive (the speed is then on the left edge). Android Auto never mirrors: its speed is
         // always on the right.
         val signRight = engine.mirrored && !engine.isCar
-        if (lim != null) Box(
+        if (lim != null || engine.noLimit) Box(
             Modifier.align(if (!show) Alignment.Center else if (signRight) Alignment.TopEnd else Alignment.TopStart)
                 // beside the ring's upper corner, just clear of it (raised over the top it covered the battery chip above and the ring)
                 .offset(x = if (!show) 0.dp else if (signRight) 48.dp else (-48).dp, y = 0.dp)
@@ -947,8 +950,13 @@ internal fun ImmTurnCard(
                 // (the tag of a motorway exit is "Ausfahrt 17", from Geo.stepTag; older builds wrote "Exit 17")
                 val exitTag = t.tag.startsWith("Exit") || t.tag.startsWith("Ausfahrt ")
                 val ukSign = engine.prefs.b(PreferenceKeys.UKSIGNS, true) && (t.sign.isNotBlank() && t.sign != t.street || exitTag)
+                // a motorway junction's name takes the tag's place: "Frankfurter Kreuz", "Ausfahrt 17 Weiterstadt" (just the name when the sign
+                // below already carries the exit number)
+                val jctChip = if (t.junction.isBlank() || t.maneuver.uppercase().startsWith("ROUNDABOUT")) "" else if (ukSign && exitTag) t.junctionName else t.junction
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    if (t.tag.isNotBlank() && !(ukSign && exitTag)) Text(t.tag, color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Bold, maxLines = 1,
+                    if (jctChip.isNotBlank()) Text(jctChip, color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.widthIn(max = 190.dp).clip(RoundedCornerShape(6.dp)).background(Color.White.copy(alpha = 0.18f)).padding(horizontal = 7.dp, vertical = 2.dp))
+                    else if (t.tag.isNotBlank() && !(ukSign && exitTag)) Text(t.tag, color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Bold, maxLines = 1,
                         modifier = Modifier.clip(RoundedCornerShape(6.dp)).background(Color.White.copy(alpha = 0.18f)).padding(horizontal = 7.dp, vertical = 2.dp))
                     if (!ukSign && t.sign.isNotBlank() && t.sign != t.street) Text(t.sign, color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.widthIn(max = 130.dp).clip(RoundedCornerShape(6.dp)).background(Color(0xFF1E8E55)).padding(horizontal = 7.dp, vertical = 2.dp))
@@ -976,9 +984,12 @@ internal fun ImmTurnCard(
         // Only when the UK road sign below isn't shown: it already carries the exit, and the same thing twice on the card is clutter.
         val signShown = engine.prefs.b(PreferenceKeys.UKSIGNS, true) && (t.sign.isNotBlank() && t.sign != t.street || exitTag)
         if (exitLike && !signShown && !maneuverUpper.startsWith("ROUNDABOUT")) {
-            val exitLabel = t.exitNo.ifBlank {
+            val exitNum = t.exitNo.ifBlank {
                 t.tag.replaceFirst(Regex("^(Exit|Ausfahrt)\\s*", RegexOption.IGNORE_CASE), "").trim().takeIf { it.isNotBlank() }.orEmpty()
             }
+            // a plain exit's name goes with its number ("AUSFAHRT  17 Weiterstadt"); an interchange's name is on the chip above
+            val exitLabel = if (t.junctionName.isNotBlank() && !Junctions.isInterchange(t.junctionName))
+                t.junction.replaceFirst(Regex("^(Exit|Ausfahrt)\\s*", RegexOption.IGNORE_CASE), "").trim() else exitNum
             Row(
                 Modifier.fillMaxWidth()
                     .padding(start = if (compact) 12.dp else 16.dp, end = if (compact) 12.dp else 16.dp, bottom = 6.dp)

@@ -11,7 +11,9 @@ import kotlin.math.*
 data class LL(val lat: Double, val lon: Double)
 data class Step(val off: Double, val maneuver: String, val street: String, val msg: String, val roundExit: Int = 0, val exitNo: String = "", val sign: String = "",
     /** At a roundabout: the way you're heading as you come onto it, the way you leave it, and the other roads off it (degrees; -1 unknown). */
-    val rbIn: Double = -1.0, val rbOut: Double = -1.0, val rbExits: List<Double> = emptyList())
+    val rbIn: Double = -1.0, val rbOut: Double = -1.0, val rbExits: List<Double> = emptyList(),
+    /** The motorway junction's name when the route data has it ("Frankfurter Kreuz", "Weiterstadt"); else it comes from OpenStreetMap (see Junctions). */
+    val jct: String = "")
 data class Place(val name: String, val sub: String, val pos: LL)
 
 class Incident(val id: String, val cat: String, val text: String, val delaySec: Int, val pts: List<LL>)

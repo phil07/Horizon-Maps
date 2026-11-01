@@ -85,6 +85,8 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
     var departAtMs by mutableLongStateOf(0L)
     var speedLimit by mutableStateOf<Double?>(null)     // m/s
     var limitEstimated by mutableStateOf(false)
+    /** The road has no general limit (an unrestricted Autobahn): the "end of all restrictions" sign shows instead of a number. Only while [speedLimit] is null. */
+    var noLimit by mutableStateOf(false)
     private var limitOkAt = 0L
     private var limitOkPos: LL? = null
     private var limitFails = 0
@@ -185,6 +187,8 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
     var barProgress by mutableDoubleStateOf(0.0)
     /** Clean air / low emission zones the chosen route goes into (shown on the route options). */
     var routeZones by mutableStateOf<List<String>>(emptyList())
+    /** Countries of [routeZones] ("DE", "GB", "FR", or "" when unknown), to say which rules apply. */
+    var routeZoneCountries by mutableStateOf<Set<String>>(emptySet())
     /** True while the GPS has dropped out (a tunnel) and the position is being estimated along the route. */
     var deadReckoning by mutableStateOf(false)
     /** Text shared from another app, to be put in the search box. */
@@ -225,7 +229,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
 
     private class Placed(
         val route: Route, val services: List<PoiOnRoute>, val serviceFuel: Map<RoutePoi, String>, val hz: List<PoiOnRoute>,
-        val avg: List<AvgOnRoute>, val stops: List<Double>, val zones: List<Pair<String, Double>>,
+        val avg: List<AvgOnRoute>, val stops: List<Double>, val zones: List<Triple<String, Double, String>>,   // name, where, country
     )
     private var rawServices: List<RoutePoi> = emptyList()
     private var servicesFor: Place? = null
@@ -238,6 +242,12 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
     private var hzBusy = false
     private var hzRetryAt = 0L
     private var hzLastAt = 0L
+    // motorway junctions (names and numbers) from OpenStreetMap, found with the hazards, and where they are on the route
+    private var rawJcts: List<Jct> = emptyList()
+    @Volatile private var jctsOn: Pair<Route, List<JctOnRoute>>? = null
+    private var jctsSig = 0
+    private var jctsVersion = 0
+    private var jctsPlacing = false
     private var placed: Placed? = null
     private var placing = false
     private var placedSig = 0
@@ -1109,8 +1119,8 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
     private fun updateRouteZones() {
         val r = route ?: run { routeZones = emptyList(); return }
         scope.launch {
-            val names = withContext(Dispatchers.Default) { try { Zones.entries(r, Zones.all(ctx)).map { it.first.name }.distinct() } catch (e: Exception) { emptyList() } }
-            if (route === r) routeZones = names
+            val zs = withContext(Dispatchers.Default) { try { Zones.entries(r, Zones.all(ctx)).map { it.first } } catch (e: Exception) { emptyList() } }
+            if (route === r) { routeZones = zs.map { it.name }.distinct(); routeZoneCountries = zs.map { it.country }.toSet() }
         }
     }
 
@@ -1188,7 +1198,8 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
             val text = if (arriving) Lang.t("Ankunft: ", "Arrive at ") + (dest?.name ?: Lang.t("dein Ziel", "your destination"))
                        else Geo.maneuverText(s.maneuver, s.roundExit).replaceFirstChar { it.uppercase() } + (if (road.isNotBlank()) Lang.t(" auf $road", " onto $road") else "")
             val d = s.off - prog
-            out += ItinRow(i, s.maneuver, text, Geo.stepTag(s), d, fmt.format(Date(now + (secs * d / left * 1000).toLong())), s.off, if (arriving) "" else road, s.roundExit)
+            val tag = (if (arriving) null else junctionAt(r, s))?.let { Junctions.label(it.first, it.second) } ?: Geo.stepTag(s)
+            out += ItinRow(i, s.maneuver, text, tag, d, fmt.format(Date(now + (secs * d / left * 1000).toLong())), s.off, if (arriving) "" else road, s.roundExit)
         }
         return out
     }
@@ -1798,7 +1809,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         clearLiveAlts(); liveSaid.clear(); radar = emptyList(); radarSig = 0; bendsFor = null; bends = emptyList()
         flushRoads()
         sessionAvoid.clear(); routeZones = emptyList(); avgInfo = null; avgIn = null; servicesAhead = emptyList(); barEvents = emptyList()
-        rawServices = emptyList(); servicesFor = null; rawHz = emptyList(); rawAvg = emptyList(); hzWinRoute = null; hzWinEnd = -1.0
+        rawServices = emptyList(); servicesFor = null; rawHz = emptyList(); rawAvg = emptyList(); rawJcts = emptyList(); jctsOn = null; jctsSig = 0; hzWinRoute = null; hzWinEnd = -1.0
         placed = null; placedSig = 0; avgAlerted.clear(); hzAlerted.clear(); zoneAlerted.clear(); stopsEditor = false
         map.setRoute(emptyList(), emptyList()); map.setDest(null); map.setVia(emptyList()); map.setTurnPulse(false); laneKey = null; map.setLanes(emptyList()); map.setLaneSign(null, emptyList()); laneSignFor = -1.0; bubbleLanes = null; map.setLaneBubble(null, emptyList()); map.setRouteShift(emptyList()); laneLatAt = null; laneShiftEnd = 0.0
         map.highlightDestination(null)
@@ -1925,15 +1936,18 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
     private fun showLimit(r: Overpass.Limit, at: LL) {
         val showEst = prefs.b(PreferenceKeys.LIMITEST, false)
         val v = if (r.ms <= 0.0 || (r.estimated && !showEst)) -1.0 else r.ms
-        val cur = speedLimit ?: -1.0
-        if (abs(v - cur) > 0.3 || (v > 0 && r.estimated != limitEstimated)) {
-            if (!r.sure && speedLimit != null) {
-                if (abs(v - pendLimit) < 0.3) pendHits++ else { pendLimit = v; pendHits = 1 }
+        // no general limit (an unrestricted Autobahn) counts as its own value (-3), apart from no sign at all (-1)
+        val none = v <= 0.0 && r.noLimit
+        val key = if (none) -3.0 else v
+        val cur = speedLimit ?: if (noLimit) -3.0 else -1.0
+        if (abs(key - cur) > 0.3 || (v > 0 && r.estimated != limitEstimated)) {
+            if (!r.sure && (speedLimit != null || noLimit)) {
+                if (abs(key - pendLimit) < 0.3) pendHits++ else { pendLimit = key; pendHits = 1 }
                 if (pendHits < 2) return
             }
             pendHits = 0; pendLimit = -2.0
-            if (v <= 0.0) { speedLimit = null; limitEstimated = false }
-            else { speedLimit = v; limitEstimated = r.estimated }
+            if (v <= 0.0) { speedLimit = null; limitEstimated = false; noLimit = none }
+            else { speedLimit = v; limitEstimated = r.estimated; noLimit = false }
         }
         if (v > 0.0) checkLimitChange(v, r.estimated)
         limitOkAt = System.currentTimeMillis(); limitOkPos = at
@@ -1955,6 +1969,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         routeLimitAt = System.currentTimeMillis()
         pendHits = 0; pendLimit = -2.0
         if (speedLimit != hit.ms || limitEstimated) { speedLimit = hit.ms; limitEstimated = false }
+        if (noLimit) noLimit = false
         checkLimitChange(hit.ms, false)
         limitOkAt = routeLimitAt; limitOkPos = p.pos
     }
@@ -2005,7 +2020,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
                     } else {
                         // keep showing the last known limit through a failed lookup; only drop it once it is clearly out of date (10 minutes or 3 km)
                         val okPos = limitOkPos
-                        if (!routeLimitLive() && (System.currentTimeMillis() - limitOkAt > 600_000 || (okPos != null && Geo.dist(okPos, p.pos) > 3000))) { speedLimit = null; limitEstimated = false }
+                        if (!routeLimitLive() && (System.currentTimeMillis() - limitOkAt > 600_000 || (okPos != null && Geo.dist(okPos, p.pos) > 3000))) { speedLimit = null; limitEstimated = false; noLimit = false }
                         // the lookup itself failed: try again soon instead of waiting until the car has moved (and let an old road name
                         // drop once it's out of date)
                         refreshRoad()
@@ -3541,15 +3556,18 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
                 "off" -> false
                 else -> gap <= max(300.0, (fix?.speed ?: 0.0) * 15.0)
             }
+            // the motorway junction there, by name: "Frankfurter Kreuz", "Ausfahrt 17 Weiterstadt"
+            val jc = if (arriving) null else junctionAt(r, cur)
             val newTurn = TurnInfo(
                 d, street, cur.maneuver, if (thenOn) nxt?.maneuver else null,
                 if (thenOn && nxt != null) Lang.t("Dann ", "Then ") + Geo.maneuverText(nxt.maneuver, nxt.roundExit) + (if (nxt.street.isNotBlank()) Lang.t(" auf ${nxt.street}", " onto ${nxt.street}") else "") else "",
                 laneSec, Geo.stepTag(cur), laneAdv, cur.roundExit, cur.sign,
                 exitNo = cur.exitNo, rbIn = cur.rbIn, rbOut = cur.rbOut, rbExits = cur.rbExits, thenGap = if (thenOn) gap else 0.0, thenExit = if (thenOn) (nxt?.roundExit ?: 0) else 0,
+                junction = jc?.let { Junctions.label(it.first, it.second) }.orEmpty(), junctionName = jc?.first.orEmpty(),
             )
             // only publish a new turn card when something a driver can see changed (about 3 m of distance), so the screen is not redrawn four times a second for nothing
             val ot = turn
-            if (ot == null || ot.maneuver != newTurn.maneuver || ot.street != newTurn.street || ot.lanes !== newTurn.lanes || ot.thenText != newTurn.thenText || abs(ot.dist - newTurn.dist) >= 3.0 || newTurn.dist < 30.0) turn = newTurn
+            if (ot == null || ot.maneuver != newTurn.maneuver || ot.street != newTurn.street || ot.lanes !== newTurn.lanes || ot.thenText != newTurn.thenText || ot.junction != newTurn.junction || abs(ot.dist - newTurn.dist) >= 3.0 || newTurn.dist < 30.0) turn = newTurn
             val word = Geo.maneuverText(cur.maneuver, cur.roundExit)
             // (Settings > Sound > Say road names off: just the direction, "In 200 metres, turn left")
             // a road number takes its article in German ("auf die A 4"); a street name is said as it is ("auf Hauptstraße")
@@ -3557,7 +3575,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
             val lane = if (laneAdv != null) ". $laneAdv" else ""
             if (onRoad.isNotBlank()) tripRoads.add(onRoad)
             // smarter voice: junction numbers, sign destinations and the next move when it follows quickly
-            val phrase = if (arriving) word else smartPhrase(cur, nxt, word, tail)
+            val phrase = if (arriving) word else smartPhrase(cur, nxt, word, tail, jc)
             // on roads you drive a lot the early heads-ups are skipped and the main one comes a little later
             val familiar = prefs.b(PreferenceKeys.SMARTVOICE, true) && onRoad.isNotBlank() && (roadFam[onRoad] ?: 0) >= 6
             val fFrom = if (familiar) 330.0 else 520.0
@@ -3780,19 +3798,38 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         sign.split(',', '/', ';', '|').map { refRx.replace(it, "").replace(Regex("[():]"), "").trim() }.filter { it.length >= 3 && it.any { ch -> ch.isLetter() } }.distinct()
 
     /** "take junction 9 towards Winchester, then keep left for the A34", from the route's step and sign data. */
-    private fun smartPhrase(cur: Step, nxt: Step?, word: String, tail: String): String {
+    /** Junction names are used outside the UK and Ireland (there the junction number is what's signed and said). */
+    private fun jctCountry(): Boolean { val c = detectedCountry.uppercase(); return c.isNotBlank() && c !in setOf("GB", "IE", "IM", "JE", "GG") }
+
+    /** The motorway junction at a step ([Junctions.forStep]): its name and the exit number to go with it, or null. */
+    private fun junctionAt(r: Route, s: Step): Pair<String, String>? {
+        if (!jctCountry()) return null
+        val on = jctsOn?.takeIf { it.first === r }?.second ?: emptyList()
+        return try { Junctions.forStep(s, on)?.takeIf { it.first.isNotBlank() } } catch (e: Exception) { null }
+    }
+
+    private fun smartPhrase(cur: Step, nxt: Step?, word: String, tail: String, jc: Pair<String, String>? = null): String {
         if (!prefs.b(PreferenceKeys.SMARTVOICE, true)) return word + tail
         val sayRoads = prefs.b(PreferenceKeys.VOICE_ROADS, true)
         val m = cur.maneuver.uppercase()
         val exitLike = m.contains("EXIT") || m.contains("KEEP") || m.contains("BEAR") || m.contains("RAMP")
         // "junction 9" is how it's said in the UK and Ireland; everywhere else it's "exit 9"
         val jWord = if (detectedCountry.ifBlank { "GB" }.uppercase() in setOf("GB", "IE", "IM", "JE", "GG")) "junction" else "exit"
-        var main = if (cur.exitNo.isNotBlank() && exitLike) "Ausfahrt ${cur.exitNo} nehmen" else word
-        val dests = signDests(cur.sign)
+        // the junction by name: "am Frankfurter Kreuz rechts halten", "Ausfahrt 17 Weiterstadt nehmen", "an der Ausfahrt 17 Weiterstadt rechts halten"
+        val inter = jc != null && Junctions.isInterchange(jc.first)
+        var main = when {
+            jc != null && inter -> Junctions.at(jc.first, jc.second) + " " + word
+            jc != null && ((cur.exitNo.isNotBlank() && exitLike) || m.contains("EXIT") || m.contains("RAMP")) -> Junctions.take(jc.first, jc.second)
+            jc != null -> Junctions.at(jc.first, jc.second) + " " + word
+            cur.exitNo.isNotBlank() && exitLike -> "Ausfahrt ${cur.exitNo} nehmen"
+            else -> word
+        }
+        // (not "Ausfahrt Weiterstadt in Richtung Weiterstadt")
+        val dests = signDests(cur.sign).filter { jc == null || inter || !it.equals(jc.first, true) }
         val refs = signRefs(cur.sign)
         main += when {
             !sayRoads -> tail
-            dests.isNotEmpty() -> (if (refs.isNotEmpty() && cur.exitNo.isNotBlank()) " auf die ${refs[0]}" else "") + " in Richtung " + dests.take(2).joinToString(Lang.t(" und ", " and "))
+            dests.isNotEmpty() -> (if (refs.isNotEmpty() && (cur.exitNo.isNotBlank() || inter)) " auf die ${refs[0]}" else "") + " in Richtung " + dests.take(2).joinToString(Lang.t(" und ", " and "))
             // (onto the road: "rechts halten auf die A 3", not "auf der", which means staying on it)
             refs.isNotEmpty() && exitLike -> " auf die ${refs[0]}"
             else -> tail
@@ -4334,7 +4371,9 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
             }
         }
         // speed bumps, schools and average speed checks: a window of the next 20 km, fetched again before you reach its end
-        val wantHz = prefs.b(PreferenceKeys.BUMPS, true) || prefs.b(PreferenceKeys.SCHOOLS, true) || prefs.b(PreferenceKeys.AVGZONES, true)
+        // (and motorway junction names, outside the UK and Ireland: they come in the same request)
+        val wantJct = jctCountry()
+        val wantHz = prefs.b(PreferenceKeys.BUMPS, true) || prefs.b(PreferenceKeys.SCHOOLS, true) || prefs.b(PreferenceKeys.AVGZONES, true) || wantJct
         // (a new route after a reroute is looked up again, but not more than once every 45 seconds)
         if (wantHz && !hzBusy && (progress + 6000.0 > hzWinEnd || (hzWinRoute !== r && now - hzLastAt > 45_000L)) && now > hzRetryAt && online()) {
             hzBusy = true; hzLastAt = now
@@ -4342,12 +4381,27 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
             val line = RouteExtras.line(r, progress - 300.0, to, 250.0, 90)
             scope.launch {
                 try {
-                    val (p, a) = withContext(Dispatchers.IO) { RouteExtras.hazards(line) }
+                    val jl = ArrayList<Jct>()
+                    val (p, a) = withContext(Dispatchers.IO) { RouteExtras.hazards(line, if (wantJct) jl else null) }
                     rawHz = (rawHz + p).distinctBy { "${it.kind}${Math.round(it.pos.lat * 1e5)},${Math.round(it.pos.lon * 1e5)}" }.takeLast(1500)
+                    if (jl.isNotEmpty()) { rawJcts = (rawJcts + jl).distinctBy { "${Math.round(it.pos.lat * 1e5)},${Math.round(it.pos.lon * 1e5)}" }.takeLast(600); jctsVersion++ }
                     rawAvg = (rawAvg + a).distinctBy { it.id }.takeLast(60)
                     hzWinRoute = r; hzWinEnd = to
                 } catch (e: Exception) { hzRetryAt = System.currentTimeMillis() + 60_000L }
                 finally { hzBusy = false }
+            }
+        }
+        // the junctions on this route (kept apart from the hazards: nothing to warn about, only names for the turn card and the voice)
+        val js = System.identityHashCode(r) * 31 + jctsVersion
+        if (js != jctsSig && !jctsPlacing) {
+            jctsPlacing = true
+            val jl = rawJcts
+            scope.launch {
+                try {
+                    val on = withContext(Dispatchers.Default) { jl.mapNotNull { j -> RouteExtras.project(r, j.pos, 30.0)?.let { JctOnRoute(j, it.first) } }.sortedBy { it.off } }
+                    jctsOn = r to on
+                } catch (e: Exception) { }
+                finally { jctsSig = js; jctsPlacing = false }
             }
         }
         // place everything on this route (in the background) whenever the route or what was found changes
@@ -4373,7 +4427,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
                         val hzOn = hz.mapNotNull { poi -> RouteExtras.project(r, poi.pos, if (poi.kind == "school") 90.0 else if (poi.kind == "crossing") 12.0 else 15.0)?.let { (o, side) -> PoiOnRoute(poi, o, side) } }
                         val avg = av.mapNotNull { RouteExtras.placeAvg(r, it) }.sortedBy { it.start }
                         val stops = vs.mapNotNull { RouteExtras.project(r, it.pos, 300.0)?.first }
-                        val zs = if (zoneWarn) Zones.entries(r, Zones.all(ctx)).map { it.first.name to it.second } else emptyList()
+                        val zs = if (zoneWarn) Zones.entries(r, Zones.all(ctx)).map { Triple(it.first.name, it.second, it.first.country) } else emptyList()
                         Placed(r, svc, fuelText, hzOn, avg, stops, zs)
                     }
                     placed = pl; placedSig = sig
@@ -4494,15 +4548,30 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         }
 
         // clean air / low emission zones
-        if (prefs.b(PreferenceKeys.ZONEWARN, true)) for ((name, off) in pl.zones) {
+        if (prefs.b(PreferenceKeys.ZONEWARN, true)) for ((name, off, zc) in pl.zones) {
             val ahead = off - progress
             if (ahead in -50.0..1500.0 && zoneAlerted.add(name)) {
-                if (detectedCountry.uppercase() == "DE") {
+                // the zone's own country decides the rules (the German download also holds Strasbourg, Basel, Prague, Arnhem...)
+                if (zc == "DE") {
                     // a German Umweltzone: no charge, but only cars with the green sticker may drive in
                     val zn = if (name.contains("umweltzone", true)) name else "Umweltzone $name"
                     raiseAlert("zone", if (ahead <= 0) Lang.t("In der $zn", "In the $zn") else Lang.t("$zn in ${Geo.fmtDist(ahead, imperial)}", "$zn in ${Geo.fmtDist(ahead, imperial)}"), 7000)
                     speak(if (ahead <= 0) Lang.t("Sie sind in der Umweltzone. Nur mit grüner Plakette.", "You are in a low emission zone. Green sticker required.")
                           else Lang.t("Sie fahren gleich in die Umweltzone ein. Nur mit grüner Plakette.", "You are about to enter a low emission zone. Green sticker required."), true)
+                } else if (zc != "GB") {
+                    // a zone abroad: its own rules (France's Crit'Air sticker, the Dutch milieuzones by emission class...), not the green sticker
+                    val note = when (zc) {
+                        "FR" -> Lang.t("Crit'Air-Vignette nötig", "Crit'Air sticker required")
+                        else -> Lang.t("Regeln vor Ort beachten", "Check the local rules")
+                    }
+                    val zn = when {
+                        zc == "NL" && !name.contains("milieuzone", true) -> "Milieuzone $name"
+                        zc != "NL" && !Regex("zone|zóna|zfe|strefa", RegexOption.IGNORE_CASE).containsMatchIn(name) -> Lang.t("Umweltzone $name", "Low emission zone $name")
+                        else -> name
+                    }
+                    raiseAlert("zone", if (ahead <= 0) Lang.t("In $zn – $note", "In $zn – $note") else Lang.t("$zn in ${Geo.fmtDist(ahead, imperial)} – $note", "$zn in ${Geo.fmtDist(ahead, imperial)} – $note"), 7000)
+                    speak(if (ahead <= 0) Lang.t("Sie sind in einer Umweltzone. $note.", "You are in a low emission zone. $note.")
+                          else Lang.t("Sie fahren gleich in eine Umweltzone ein. $note.", "You are about to enter a low emission zone. $note."), true)
                 } else {
                     raiseAlert("zone", if (ahead <= 0) Lang.t("Sie sind in $name", "You are in $name") else Lang.t("Einfahrt in $name in ${Geo.fmtDist(ahead, imperial)}", "Entering $name in ${Geo.fmtDist(ahead, imperial)}"), 7000)
                     speak(if (ahead <= 0) Lang.t("Sie sind in $name. Es kann eine Gebühr anfallen.", "You are in $name. A charge may apply.") else Lang.t("Sie fahren gleich in $name ein. Es kann eine Gebühr anfallen.", "You are about to enter $name. A charge may apply."), true)

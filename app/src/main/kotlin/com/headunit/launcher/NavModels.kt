@@ -22,6 +22,10 @@ class TurnInfo(
     val thenGap: Double = 0.0,
     /** Roundabout exit for the following manoeuvre shown in the "then" cue. */
     val thenExit: Int = 0,
+    /** The motorway junction on the card: "Frankfurter Kreuz", or "Ausfahrt 17 Weiterstadt" for a plain exit (blank when not known). */
+    val junction: String = "",
+    /** The junction's bare name ("Frankfurter Kreuz", "Weiterstadt"), for when the exit number is shown elsewhere on the card. */
+    val junctionName: String = "",
 )
 /** Countries that use miles for road distances and speeds. */
 /** Countries that use Fahrenheit. */

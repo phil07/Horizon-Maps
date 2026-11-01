@@ -915,7 +915,9 @@ object OfflineRouter {
             val sign = m.optJSONObject("sign")
             val exitNo = sign?.optJSONArray("exit_number_elements")?.optJSONObject(0)?.optString("text").orEmpty()
             val toward = sign?.optJSONArray("exit_toward_elements")?.optJSONObject(0)?.optString("text").orEmpty()
-            steps += Step(cum[gi], man, street, m.optString("instruction"), if (man.startsWith("ROUNDABOUT")) exits else 0, exitNo, toward)
+            // the junction's own name ("Frankfurter Kreuz", "Weiterstadt"): Valhalla's exit name, from the OpenStreetMap junction node
+            val jctName = sign?.optJSONArray("exit_name_elements")?.optJSONObject(0)?.optString("text").orEmpty()
+            steps += Step(cum[gi], man, street, m.optString("instruction"), if (man.startsWith("ROUNDABOUT")) exits else 0, exitNo, toward, jct = jctName)
         }
         val sum = trip.optJSONObject("summary")
         val len = (sum?.optDouble("length", 0.0) ?: 0.0) * 1000.0

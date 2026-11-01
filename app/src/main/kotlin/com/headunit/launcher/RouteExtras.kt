@@ -17,6 +17,10 @@ class AvgDef(val id: Long, val name: String, val starts: List<LL>, val ends: Lis
 class PoiOnRoute(val poi: RoutePoi, val off: Double, val side: Double)
 class AvgOnRoute(val def: AvgDef, val start: Double, val end: Double)
 
+/** A motorway junction from OpenStreetMap (highway=motorway_junction): its name ("Frankfurter Kreuz", "Weiterstadt") and number ("17"). */
+class Jct(val name: String, val ref: String, val pos: LL)
+class JctOnRoute(val jct: Jct, val off: Double)
+
 /** Live state of the average speed check you are in. */
 /** [safeMs]: the most you can do for the rest of the zone and still average under the limit (0 = can't any more; null = not known yet). */
 class AvgInfo(val avgMs: Double, val limitMs: Double?, val leftM: Double, val over: Boolean, val ahead: Boolean, val toStartM: Double, val safeMs: Double? = null)
@@ -88,8 +92,11 @@ object RouteExtras {
         return out
     }
 
-    /** Speed bumps and schools right next to the route, and average speed checks around it (blocking). */
-    fun hazards(line: List<LL>): Pair<List<RoutePoi>, List<AvgDef>> {
+    /**
+     * Speed bumps and schools right next to the route, and average speed checks around it (blocking). Motorway junctions on the
+     * route (their names and numbers, for the turn card and the voice) come in the same request and are added to [jcts].
+     */
+    fun hazards(line: List<LL>, jcts: MutableList<Jct>? = null): Pair<List<RoutePoi>, List<AvgDef>> {
         if (line.size < 2) return emptyList<RoutePoi>() to emptyList()
         var minLat = 90.0; var maxLat = -90.0; var minLon = 180.0; var maxLon = -180.0
         for (p in line) { minLat = min(minLat, p.lat); maxLat = max(maxLat, p.lat); minLon = min(minLon, p.lon); maxLon = max(maxLon, p.lon) }
@@ -101,6 +108,7 @@ object RouteExtras {
             "node(around:10,$pl)[\"highway\"=\"crossing\"][\"crossing\"~\"^(zebra|marked|traffic_signals|uncontrolled|pelican|toucan|puffin|pegasus)$\"]->.c;.c out body 400;" +
             "node(around:12,$pl)[\"highway\"=\"stop\"]->.s;.s out body 300;" +
             "(node(around:12,$pl)[\"railway\"=\"level_crossing\"];node(around:12,$pl)[\"ford\"=\"yes\"];way(around:12,$pl)[\"ford\"=\"yes\"];)->.f;.f out center tags 200;" +
+            (if (jcts != null) "node(around:40,$pl)[\"highway\"=\"motorway_junction\"]->.j;.j out body 200;" else "") +
             "rel($bbox)[\"enforcement\"=\"average_speed\"]->.r;.r out body;node(r.r);out skel qt;"
         val els = Overpass.query(q, 12000, 40000, 3)
         val pois = ArrayList<RoutePoi>()
@@ -116,6 +124,12 @@ object RouteExtras {
                     if (pos != null && e.optString("type") == "node") nodes[e.optLong("id")] = pos
                     val t = e.optJSONObject("tags") ?: continue
                     if (pos == null) continue
+                    if (t.optString("highway") == "motorway_junction") {
+                        // (kept apart from the hazards: a junction is not something to warn about)
+                        val nm = Junctions.clean(t.optString("name").ifBlank { t.optString("name:de") })
+                        if (jcts != null && nm.isNotBlank()) jcts += Jct(nm, t.optString("ref").trim(), pos)
+                        continue
+                    }
                     if (t.optString("highway") == "stop") pois += RoutePoi("stop", Lang.t("Stoppschild", "Stop"), pos)
                     else if (t.optString("railway") == "level_crossing") pois += RoutePoi("rail", "Level crossing", pos)
                     else if (t.optString("ford") == "yes") pois += RoutePoi("ford", "Ford", pos)
@@ -167,6 +181,64 @@ object RouteExtras {
     fun compass(h: Double): String = (if (Lang.de) arrayOf("N", "NO", "O", "SO", "S", "SW", "W", "NW") else arrayOf("N", "NE", "E", "SE", "S", "SW", "W", "NW"))[(((h % 360.0) + 360.0 + 22.5) / 45.0).toInt() % 8]
 }
 
+
+/**
+ * Motorway junction names for the turn card and the voice: "Frankfurter Kreuz", "Dreieck Darmstadt" (said "am Frankfurter Kreuz")
+ * and plain exits ("Ausfahrt 17 Weiterstadt", said "an der Ausfahrt 17 Weiterstadt").
+ */
+object Junctions {
+    // an interchange between motorways (not an exit to a town); whole words only, so "Kreuztal" stays an exit
+    private val interRx = Regex("(?iu)(?<!\\p{L})(autobahnkreuz|autobahndreieck|kreuz|dreieck|knoten|verzweigung|knooppunt|interchange|échangeur|echangeur|autobahnknoten)(?!\\p{L})")
+    private val feminine = Regex("(?i)(?<!\\p{L})verzweigung(?!\\p{L})")
+
+    /** The name as signed: without a leading "Anschlussstelle" / "AS" (the exit word is added when it's shown). */
+    fun clean(name: String): String = name.trim().replace(Regex("^(?i)(anschlussstelle|ausfahrt|as)\\s+"), "").trim()
+
+    fun isInterchange(name: String): Boolean = interRx.containsMatchIn(name)
+
+    /** On the card: "Frankfurter Kreuz" as it is, or "Ausfahrt 17 Weiterstadt" for a plain exit. */
+    fun label(name: String, num: String): String =
+        if (isInterchange(name)) name else Lang.t("Ausfahrt", "Exit") + (if (num.isNotBlank()) " $num" else "") + " $name"
+
+    /** Spoken before the manoeuvre: "am Frankfurter Kreuz", "an der Verzweigung Zürich-Ost", "an der Ausfahrt 17 Weiterstadt". */
+    fun at(name: String, num: String): String = when {
+        isInterchange(name) -> Lang.t(if (feminine.containsMatchIn(name)) "an der $name" else "am $name", "at $name")
+        else -> Lang.t("an der Ausfahrt", "at exit") + (if (num.isNotBlank()) " $num" else "") + " $name"
+    }
+
+    /** "Ausfahrt 17 Weiterstadt nehmen", for a step that leaves the motorway there. */
+    fun take(name: String, num: String): String =
+        Lang.t("Ausfahrt" + (if (num.isNotBlank()) " $num" else "") + " $name nehmen", "take exit" + (if (num.isNotBlank()) " $num" else "") + " $name")
+
+    /** True for a manoeuvre a junction name belongs to: leaving or splitting off on a motorway (not a turn, a roundabout or joining one). */
+    fun fits(s: Step): Boolean {
+        val m = s.maneuver.uppercase()
+        if (m.startsWith("ROUNDABOUT") || m.startsWith("ARRIVE") || m.startsWith("DEPART") || m.contains("ENTER") || m.contains("ENTRANCE") || m.contains("UTURN") || m.startsWith("TURN") || m.startsWith("SHARP")) return false
+        return s.exitNo.isNotBlank() || m.contains("KEEP") || m.contains("BEAR") || m.contains("EXIT") || m.contains("RAMP") || m.contains("FORK") || m.contains("MOTORWAY")
+    }
+
+    /**
+     * The junction at a step: the router's own name when it has one, else the nearest OpenStreetMap junction node on the route
+     * from 400 m before the manoeuvre to 150 m after it (with the same number, when both have one). Carrying straight on is
+     * only named at an interchange ("am Frankfurter Kreuz geradeaus"), never at a plain exit you drive past.
+     * Returns the name and the exit number to show with it.
+     */
+    fun forStep(s: Step, onRoute: List<JctOnRoute>): Pair<String, String>? {
+        if (s.jct.isNotBlank()) return clean(s.jct) to s.exitNo
+        val straight = s.maneuver.uppercase().let { it == "STRAIGHT" || it == "FOLLOW" || it == "CONTINUE" }
+        if (!straight && !fits(s)) return null
+        var best: JctOnRoute? = null
+        for (j in onRoute) {
+            val d = j.off - s.off
+            if (d < -400.0 || d > 150.0) continue
+            if (s.exitNo.isNotBlank() && j.jct.ref.isNotBlank() && !j.jct.ref.equals(s.exitNo, true)) continue
+            if (straight && !isInterchange(j.jct.name)) continue
+            if (best == null || abs(d) < abs(best.off - s.off)) best = j
+        }
+        val b = best ?: return null
+        return b.jct.name to s.exitNo.ifBlank { b.jct.ref }
+    }
+}
 
 /** Bends on a route that are not junctions: (distance along the route, -1 left / +1 right). */
 fun routeBends(r: Route): List<Pair<Double, Int>> {

@@ -427,7 +427,14 @@ fun ZonesRow(engine: NavEngine) {
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         Icon(Icons.Rounded.Eco, null, tint = Warn, modifier = Modifier.size(20.dp))
-        Text(Lang.t("Führt durch ", "Goes into ") + z.joinToString(", ") + Lang.t(". Es kann eine Gebühr anfallen.", ". A charge may apply."), color = c.text, fontSize = 13.sp, maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))
+        val cs = engine.routeZoneCountries
+        val note = when {
+            cs == setOf("DE") -> Lang.t(". Nur mit grüner Plakette.", ". Green sticker required.")
+            cs == setOf("GB") -> Lang.t(". Es kann eine Gebühr anfallen.", ". A charge may apply.")
+            cs == setOf("FR") -> Lang.t(". Crit'Air-Vignette nötig.", ". Crit'Air sticker required.")
+            else -> Lang.t(". Regeln vor Ort beachten.", ". Check the local rules.")
+        }
+        Text(Lang.t("Führt durch ", "Goes into ") + z.joinToString(", ") + note, color = c.text, fontSize = 13.sp, maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))
         if (!engine.prefs.b(PreferenceKeys.AVOIDZONES, false)) Pill(Lang.t("Zonen meiden", "Avoid zones"), false, { engine.prefs.put(PreferenceKeys.AVOIDZONES, true); engine.dest?.let { engine.startRoute(it, engine.departMin, true) } })
     }
 }
