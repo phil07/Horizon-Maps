@@ -295,7 +295,15 @@ object Overpass {
             // (only really in Germany: the country can lag at a border, and Austrian or Swiss motorways do have a limit)
             val inDe = country == "DE" && Zones.inGermany(p)
             val none = unType == "none" || (unType == "de:motorway" && inDe)
-            if (posted != null) Limit(posted, false, road, w.id, names, sure)
+            // a limit only at certain times ("30 @ (22:00-06:00)", "Mo-Fr 07:00-17:00"): while it applies it replaces the plain one
+            // (worked out on every lookup from the road's tags, so it changes at the right minute)
+            val condKey = if (dirKey == "maxspeed:backward") "maxspeed:backward:conditional" else "maxspeed:forward:conditional"
+            val cond = try {
+                t.optString(condKey).ifBlank { t.optString("maxspeed:conditional") }.takeIf { it.isNotBlank() }
+                    ?.let { ConditionalLimit.at(it, country, java.util.Calendar.getInstance()) }
+            } catch (e: Exception) { null }
+            if (cond != null) { if (cond < 0) Limit(-1.0, false, road, w.id, names, sure, noLimit = true) else Limit(cond, false, road, w.id, names, sure) }
+            else if (posted != null) Limit(posted, false, road, w.id, names, sure)
             else if (unposted) Limit(-1.0, false, road, w.id, names, sure, noLimit = none)
             else {
                 val isMajor = t.optString("highway") in setOf("motorway", "trunk", "motorway_link", "trunk_link")
