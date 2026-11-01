@@ -57,7 +57,7 @@ object SessionWatch {
                 val report = buildString {
                     append("Last session didn't close normally: open ${lenS / 60} min ${lenS % 60} s, ")
                     append(if (unitRestarted) "and the head unit itself restarted afterwards" else "the app was closed by Android (the unit kept running)")
-                    append(String.format(java.util.Locale.UK, ". Speed then: %.0f km/h. ", lastSpeed * 3.6f))
+                    append(String.format(java.util.Locale.UK, ". Speed then: %.0f mph. ", lastSpeed / 0.44704f))
                     if (wasStuck) append("The screen thread had stopped responding. ")
                     append("Last note (${java.util.Date(beat)}): ${p.getString(NOTE, "") ?: ""}")
                     if (suspicious) append(" [counted as a possible crash]")

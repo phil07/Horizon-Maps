@@ -16,8 +16,6 @@ import java.net.URL
  */
 object Updater {
     class Update(val version: String, val build: Int, val url: String, val sha256: String, val releaseNotes: String = "")
-    /** GitHub answered the update check with an error ([code] is the HTTP status). */
-    class CheckFailed(val code: Int) : java.io.IOException("GitHub answered $code")
     private const val MAX_RELEASE_JSON_BYTES = 1024 * 1024
     private const val MAX_CHECKSUM_BYTES = 1024
     private const val DOWNLOAD_POLL_INTERVAL_MS = 700L
@@ -38,8 +36,7 @@ object Updater {
         c.setRequestProperty("User-Agent", "HorizonNav/${BuildConfig.VERSION_NAME}")
         c.setRequestProperty("Accept", "application/vnd.github+json")
         try {
-            // not "no update": a private repository, a missing "app" release or GitHub's rate limit must not look like the latest version
-            if (c.responseCode !in 200..299) throw CheckFailed(c.responseCode)
+            if (c.responseCode !in 200..299) return null
             // GitHub release metadata should be small; cap it to avoid unbounded memory use on malformed responses.
             val bytes = c.inputStream.use { input ->
                 val out = java.io.ByteArrayOutputStream()
@@ -156,13 +153,12 @@ object Updater {
             val build = match.groupValues[1].toIntOrNull() ?: continue
             if (build <= previousBuild || build > installedBuild) continue
             val body = cleanReleaseNotes(release.optString("body"))
-            if (body.isNotBlank()) notes += build to body
+            if (body.isNotBlank()) notes += build to "### 1.0.$build\n$body"
         }
         if (notes.none { it.first == installedBuild } && !installedFallback.isNullOrBlank()) {
-            notes += installedBuild to installedFallback
+            notes += installedBuild to "### $version\n$installedFallback"
         }
-        // (only the notes themselves: joining the pairs printed "(1023, ..." on the card)
-        return notes.sortedBy { it.first }.joinToString("\n\n") { it.second }.take(4000).ifBlank { installedFallback.orEmpty() }
+        return notes.sortedBy { it.first }.joinToString("\n\n").take(4000).ifBlank { installedFallback.orEmpty() }
     }
 
     /** Fetches a single immutable GitHub release tag; returns null for network/API failures. */
@@ -211,7 +207,7 @@ object Updater {
             .replace(Regex("(?m)^[-•⁃]\\s*$"), "")
             .trim()
         return cleaned.takeIf { it.isNotBlank() }
-            ?: Lang.t("Für diese Version wurden keine Hinweise veröffentlicht.", "No feature notes were published for this version. Check the project's changelog for the changes included in this build.")
+            ?: "No feature notes were published for this version. Check the project's changelog for the changes included in this build."
     }
 
     private fun readSmallText(address: String): String {
@@ -263,18 +259,14 @@ object Updater {
         require(UpdaterPolicy.isHttpsUrl(u.url)) { "Update URL must use HTTPS" }
         require(UpdaterPolicy.parseSha256(u.sha256) != null) { "Update checksum is invalid" }
         val name = "HorizonNav-${u.version}.apk"
-        // A fresh file name for every attempt: if an earlier download of this version is still lying around (the installer was
-        // cancelled), the download service would otherwise save next to it and the installer could be handed the wrong file.
-        val fileName = "HorizonNav-${u.version}-${System.currentTimeMillis()}.apk"
-        dir.listFiles()?.filter { it.name.startsWith("HorizonNav-${u.version}") }?.forEach { it.delete() }
         val req = DownloadManager.Request(Uri.parse(u.url))
             .setTitle("Horizon Nav ${u.version}")
             .setMimeType("application/vnd.android.package-archive")
             .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE)
-            .setDestinationInExternalFilesDir(ctx, null, fileName)
+            .setDestinationInExternalFilesDir(ctx, null, name)
         val id = dm.enqueue(req)
         val startedAt = android.os.SystemClock.elapsedRealtime()
-        progress(Lang.t("Wird heruntergeladen…", "Downloading…"))
+        progress("Downloading…")
         try {
           while (true) {
             if (Thread.currentThread().isInterrupted) throw InterruptedException("Update download interrupted")
@@ -290,15 +282,11 @@ object Updater {
                 val total = cur.getLong(cur.getColumnIndexOrThrow(DownloadManager.COLUMN_TOTAL_SIZE_BYTES))
                 when (status) {
                     DownloadManager.STATUS_SUCCESSFUL -> {
-                        val local = cur.getString(cur.getColumnIndexOrThrow(DownloadManager.COLUMN_LOCAL_URI))
-                        val apk = local?.let { Uri.parse(it).path }?.let { java.io.File(it) }?.takeIf { it.isFile } ?: java.io.File(dir, fileName)
-                        if (!apk.isFile) throw IllegalStateException("Download missing")
-                        // the installer reads the checked file itself, through the app's own file provider
-                        val uri = androidx.core.content.FileProvider.getUriForFile(ctx, "${ctx.packageName}.updates", apk)
-                        progress(Lang.t("Download wird geprüft…", "Verifying download…"))
+                        val uri = dm.getUriForDownloadedFile(id) ?: throw IllegalStateException("Download missing")
+                        progress("Verifying download…")
                         val digest = java.security.MessageDigest.getInstance("SHA-256")
                         var bytesRead = 0L
-                        apk.inputStream().use { input ->
+                        ctx.contentResolver.openInputStream(uri)?.use { input ->
                             val buffer = ByteArray(64 * 1024)
                             while (true) {
                                 val n = input.read(buffer)
@@ -307,27 +295,27 @@ object Updater {
                                 if (bytesRead > MAX_APK_BYTES) throw IllegalStateException("Downloaded APK is unexpectedly large")
                                 digest.update(buffer, 0, n)
                             }
-                        }
+                        } ?: throw IllegalStateException("Could not read downloaded APK")
                         val actualSha256 = digest.digest().joinToString("") { "%02x".format(it.toInt() and 0xff) }
                         if (!actualSha256.equals(u.sha256, ignoreCase = true)) {
                             dm.remove(id)
                             throw IllegalStateException("APK checksum verification failed; download removed")
                         }
                         // Keep the previous APK until this download has passed verification.
-                        dir.listFiles()?.filter { it.name.startsWith("HorizonNav-") && it.name.endsWith(".apk") && it.name != apk.name }?.forEach { it.delete() }
+                        dir.listFiles()?.filter { it.name.startsWith("HorizonNav-") && it.name.endsWith(".apk") && it.name != name }?.forEach { it.delete() }
                         // installed with AAEnabler: the checked file goes to Downloads for AAEnabler to install, so the app stays in
                         // Android Auto (installing it here would take it out)
                         if (toDownloads && android.os.Build.VERSION.SDK_INT >= 29) {
-                            progress(Lang.t("Wird in Downloads gespeichert…", "Saving to Downloads…"))
+                            progress("Saving to Downloads…")
                             saveToDownloads(ctx, uri, name)
                             return
                         }
-                        progress(Lang.t("Installationsprogramm wird geöffnet…", "Opening the installer…"))
+                        progress("Opening the installer…")
                         val i = Intent(Intent.ACTION_VIEW).setDataAndType(uri, "application/vnd.android.package-archive")
                             .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK)
                         // Explicit ClipData helps the package installer receive the content-URI read grant
                         // consistently across Android versions and installer implementations.
-                        i.clipData = android.content.ClipData.newRawUri(Lang.t("Horizon-Nav-Update", "Horizon Nav update"), uri)
+                        i.clipData = android.content.ClipData.newRawUri("Horizon Nav update", uri)
                         ctx.startActivity(i)
                         return
                     }
@@ -336,9 +324,9 @@ object Updater {
                         val percent = (done * 100 / total).coerceIn(0, 100)
                         val doneMb = done / (1024.0 * 1024.0)
                         val totalMb = total / (1024.0 * 1024.0)
-                        progress(Lang.t("Wird heruntergeladen… ", "Downloading… ") + "$percent% (${"%.1f".format(java.util.Locale.UK, doneMb)} / ${"%.1f".format(java.util.Locale.UK, totalMb)} MB)")
+                        progress("Downloading… $percent% (${"%.1f".format(java.util.Locale.UK, doneMb)} / ${"%.1f".format(java.util.Locale.UK, totalMb)} MB)")
                     } else if (done > 0) {
-                        progress(Lang.t("Wird heruntergeladen… ", "Downloading… ") + "${"%.1f".format(java.util.Locale.UK, done / (1024.0 * 1024.0))} MB")
+                        progress("Downloading… ${"%.1f".format(java.util.Locale.UK, done / (1024.0 * 1024.0))} MB")
                     }
                 }
             }

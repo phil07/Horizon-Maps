@@ -7,10 +7,6 @@ plugins {
 val tomtomApiKey: String = ((findProperty("tomtomApiKey") as String?) ?: "")
     .takeUnless { it.isBlank() || it == "YOUR_TOMTOM_API_KEY" } ?: ""
 val escapedTomtomApiKey = tomtomApiKey.replace("\\", "\\\\").replace("\"", "\\\"")
-// the shared-reports server (Cloudflare Worker), passed in by the release workflow; empty = reports not shared
-// unless a URL is set in the app's settings. Not a secret.
-val reportsUrl: String = ((findProperty("reportsUrl") as String?) ?: "").trim()
-val escapedReportsUrl = reportsUrl.replace("\\", "\\\\").replace("\"", "\\\"")
 
 android {
     namespace = "com.headunit.launcher"
@@ -22,8 +18,7 @@ android {
         minSdk = 26
         targetSdk = 34
         // each GitHub build gets a higher version number, so Android always treats a new APK as an update
-        // BUILD_NUMBER (set by the Build APK workflow) wins over the run number, so builds can continue above earlier releases
-        val run = (System.getenv("BUILD_NUMBER") ?: System.getenv("GITHUB_RUN_NUMBER"))?.toIntOrNull() ?: 0
+        val run = System.getenv("GITHUB_RUN_NUMBER")?.toIntOrNull() ?: 0
         versionCode = 100 + run
         versionName = "1.0.$run"
         resValue("string", "app_name", "Horizon Nav")
@@ -66,13 +61,10 @@ android {
             // People paste their own in Settings > Data (or the app uses Mapbox).
             buildConfigField("String", "TOMTOM_API_KEY", "\"\"")
             buildConfigField("String", "DEFAULT_MAP", "\"mapbox\"")
-            // the repo the builds publish to (the "app" release); the app checks it for updates. It has to be public:
-            // GitHub only answers for a private repo when signed in
-            buildConfigField("String", "UPDATE_REPO", "\"phil07/Horizon-Maps\"")
+            // where the build's "publish" option puts new versions (the "app" release); the app checks it for updates
+            buildConfigField("String", "UPDATE_REPO", "\"benbishop028-arch/Horizon-Maps\"")
             // the APK file the updater looks for in that release
             buildConfigField("String", "UPDATE_APK", "\"HorizonNav-public.apk\"")
-            // base URL of the shared-reports server, e.g. https://horizon-reports.<subdomain>.workers.dev (empty if not set up)
-            buildConfigField("String", "REPORTS_URL", "\"$escapedReportsUrl\"")
         }
     }
     compileOptions {
@@ -105,18 +97,16 @@ dependencies {
     implementation("com.mapbox.maps:android:11.32.1")
     // Android Auto: Google's car app library (the navigation layout, search and list screens, and the map surface)
     implementation("androidx.car.app:app:1.4.0")
-    implementation("androidx.car.app:app-projected:1.4.0")
     // Offline routing engine (Valhalla) that runs on downloaded road data, with the libraries it needs at run time
     implementation("io.github.rallista:valhalla-mobile:0.6.4")
-    implementation("com.squareup.moshi:moshi-kotlin:1.15.2")
+    implementation("com.squareup.moshi:moshi-kotlin:1.15.1")
 
     // Small, fast JVM tests for camera and GPS decision policies; these don't require a device.
     testImplementation("junit:junit:4.13.2")
 }
 
 // After a release build, put the APK in one folder with a clear name (HorizonNav-public.apk), where the GitHub build picks it up.
-val collectApks = tasks.register<Copy>("collectApks") {
-    description = "Copies the release APK to outputs/apk/release directory."
+val collectApks by tasks.registering(Copy::class) {
     from(layout.buildDirectory.dir("outputs/apk/public/release")) { include("*.apk"); rename { "HorizonNav-public.apk" } }
     into(layout.buildDirectory.dir("outputs/apk/release"))
 }

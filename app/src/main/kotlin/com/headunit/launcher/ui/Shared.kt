@@ -1,8 +1,5 @@
 package com.headunit.launcher.ui
 
-import com.headunit.launcher.R
-import com.headunit.launcher.Lang
-
 import android.content.Intent
 import android.net.Uri
 import android.provider.ContactsContract
@@ -202,11 +199,11 @@ fun rememberShareEta(engine: NavEngine): () -> Unit {
     val ctx = LocalContext.current
     val prefs = engine.prefs
     fun message(): String {
-        val d = engine.dest?.name ?: Lang.t("mein Ziel", "my destination")
+        val d = engine.dest?.name ?: "my destination"
         val e = engine.eta
         val p = engine.fix?.pos
-        return Lang.t("Ich bin unterwegs nach $d", "I'm on my way to $d") + (if (e != null) Lang.t(", Ankunft etwa ${e.arrive}", ", arriving about ${e.arrive}") else "") +
-            (if (p != null) Lang.t(". Hier bin ich gerade: https://maps.google.com/?q=${p.lat},${p.lon}", ". Where I am now: https://maps.google.com/?q=${p.lat},${p.lon}") else ".")
+        return "I'm on my way to $d" + (if (e != null) ", arriving about ${e.arrive}" else "") +
+            (if (p != null) ". Where I am now: https://maps.google.com/?q=${p.lat},${p.lon}" else ".")
     }
     fun shareNow() {
         val num = prefs.s(PreferenceKeys.ETA_NUMBER, "")
@@ -218,13 +215,13 @@ fun rememberShareEta(engine: NavEngine): () -> Unit {
                 .putExtra("sms_body", msg)
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
         } catch (e: Exception) {
-            engine.toast(engine.str(R.string.rest_1494), 3000)
+            engine.toast("No messaging app available", 3000)
         }
     }
-    val pickContact = rememberEtaContactPicker(prefs) { engine.toast(engine.str(R.string.rest_1491), 3500) }
+    val pickContact = rememberEtaContactPicker(prefs) { engine.toast("Contact saved. Tap share again to send.", 3500) }
     return {
         if (prefs.s(PreferenceKeys.ETA_NUMBER, "").isBlank()) {
-            engine.toast(engine.str(R.string.rest_1492), 3000)
+            engine.toast("Choose who to send your ETA to", 3000)
             pickContact()
         } else shareNow()
     }

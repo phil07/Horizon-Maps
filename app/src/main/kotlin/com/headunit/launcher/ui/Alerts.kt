@@ -1,9 +1,5 @@
 package com.headunit.launcher.ui
 
-import com.headunit.launcher.R
-import com.headunit.launcher.Lang
-import androidx.compose.ui.res.stringResource
-
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.tween
@@ -74,21 +70,21 @@ private fun alertColor(kind: String): Color = when (kind) {
 }
 
 private fun alertLabel(kind: String): String = when (kind) {
-    "camera" -> Lang.t("BLITZER", "SPEED CAMERA")
-    "limit" -> Lang.t("TEMPOLIMIT", "SPEED LIMIT")
-    "incident" -> Lang.t("GEFAHR VORAUS", "HAZARD AHEAD")
-    "rain" -> Lang.t("WETTER", "WEATHER")
-    "break" -> Lang.t("PAUSE MACHEN", "TAKE A BREAK")
-    "avg" -> Lang.t("ABSCHNITTSKONTROLLE", "AVERAGE SPEED CHECK")
-    "bump" -> Lang.t("BODENWELLE", "SPEED BUMP")
-    "rail" -> Lang.t("BAHNÜBERGANG", "LEVEL CROSSING")
-    "ford" -> Lang.t("FURT", "FORD")
-    "school" -> Lang.t("SCHULE", "SCHOOL")
-    "zone" -> Lang.t("UMWELTZONE", "CLEAN AIR ZONE")
-    "report" -> Lang.t("GEMELDET VORAUS", "REPORTED AHEAD")
-    "wrongway" -> Lang.t("FALSCHE RICHTUNG", "WRONG WAY")
-    "plan" -> Lang.t("GEPLANTE FAHRT", "PLANNED TRIP")
-    else -> Lang.t("HINWEIS", "ALERT")
+    "camera" -> "SPEED CAMERA"
+    "limit" -> "SPEED LIMIT"
+    "incident" -> "HAZARD AHEAD"
+    "rain" -> "WEATHER"
+    "break" -> "TAKE A BREAK"
+    "avg" -> "AVERAGE SPEED CHECK"
+    "bump" -> "SPEED BUMP"
+    "rail" -> "LEVEL CROSSING"
+    "ford" -> "FORD"
+    "school" -> "SCHOOL"
+    "zone" -> "CLEAN AIR ZONE"
+    "report" -> "REPORTED AHEAD"
+    "wrongway" -> "WRONG WAY"
+    "plan" -> "PLANNED TRIP"
+    else -> "ALERT"
 }
 
 private fun alertIcon(a: AlertInfo): ImageVector {
@@ -96,11 +92,11 @@ private fun alertIcon(a: AlertInfo): ImageVector {
     return when (a.kind) {
         "camera" -> Icons.Rounded.CameraAlt
         "incident" -> when {
-            t.contains("work") || t.contains("baustelle") -> Icons.Rounded.Construction
-            t.contains("accident") || t.contains("crash") || t.contains("collision") || t.contains("unfall") -> Icons.Rounded.CarCrash
+            t.contains("work") -> Icons.Rounded.Construction
+            t.contains("accident") || t.contains("crash") || t.contains("collision") -> Icons.Rounded.CarCrash
             else -> Icons.Rounded.PriorityHigh
         }
-        "rain" -> if (t.startsWith("snow") || t.startsWith("schnee")) Icons.Rounded.AcUnit else Icons.Rounded.WaterDrop
+        "rain" -> if (t.startsWith("snow")) Icons.Rounded.AcUnit else Icons.Rounded.WaterDrop
         "break" -> Icons.Rounded.Coffee
         "avg" -> Icons.Rounded.Speed
         "bump" -> Icons.Rounded.Warning
@@ -141,7 +137,7 @@ fun AlertSign(a: AlertInfo, size: Dp) {
                     drawPath(oct(r), Color.White)
                     drawPath(oct(r * 0.86f), Color(0xFFC8102E))
                 }
-                Text(stringResource(R.string.ui_042), color = Color.White, fontSize = (size.value * 0.26f).sp, fontWeight = FontWeight.Bold, maxLines = 1)
+                Text("STOP", color = Color.White, fontSize = (size.value * 0.26f).sp, fontWeight = FontWeight.Bold, maxLines = 1)
             }
             "wrongway" -> {
                 // the no-entry sign
@@ -247,7 +243,7 @@ fun HazardBadge(kind: String, label: String, dist: String) {
 /** UK-style speed limit roundel for the current road; pulses when the limit changes and tints when you're over it. */
 @Composable
 fun SpeedLimitSign(engine: NavEngine, size: Dp, modifier: Modifier = Modifier, onClick: (() -> Unit)? = null) {
-    val l = engine.speedLimit ?: run { if (engine.noLimit) NoLimitSign(size, modifier, onClick); return }
+    val l = engine.speedLimit ?: return
     val k = if (engine.imperial) 2.23694 else 3.6
     val n = (Math.round(l * k / 5.0) * 5).toInt()
     val pulse by rememberPulse(engine.limitPulse, 450, 1f, 1.18f)
@@ -282,42 +278,6 @@ fun SpeedLimitSign(engine: NavEngine, size: Dp, modifier: Modifier = Modifier, o
 }
 
 /**
- * No general speed limit (an unrestricted Autobahn): the German "end of all restrictions" sign, a white disc with a thin grey
- * rim and five thin dark stripes running from top right to bottom left.
- */
-@Composable
-private fun NoLimitSign(size: Dp, modifier: Modifier, onClick: (() -> Unit)?) {
-    Box(
-        modifier.size(size).shadow(10.dp, CircleShape, ambientColor = Color.Black.copy(alpha = 0.5f), spotColor = Color.Black.copy(alpha = 0.5f))
-            .then(if (onClick != null) Modifier.clickable { onClick() } else Modifier),
-    ) {
-        Canvas(Modifier.fillMaxSize()) {
-            val r = this.size.minDimension / 2
-            val ctr = center
-            drawCircle(Color(0xFF8E9096), r, ctr)
-            val face = r * 0.93f
-            drawCircle(androidx.compose.ui.graphics.Brush.radialGradient(
-                listOf(Color.White, Color(0xFFF1F1F3), Color(0xFFE1E2E6)),
-                center = Offset(ctr.x - face * 0.25f, ctr.y - face * 0.35f), radius = face * 1.5f,
-            ), face, ctr)
-            // five stripes across the face, each a chord running from top right to bottom left (along (-1, 1)), side by side along (1, 1)
-            val k = 0.70710677f
-            val sw = r * 0.055f
-            val gap = r * 0.15f
-            for (i in -2..2) {
-                val d = i * gap
-                val half = kotlin.math.sqrt((face * face - d * d).coerceAtLeast(0f)) - sw
-                if (half <= 0f) continue
-                val mx = ctr.x + d * k; val my = ctr.y + d * k
-                drawLine(Color(0xFF2B2D31), Offset(mx + half * k, my - half * k), Offset(mx - half * k, my + half * k), sw)
-            }
-            drawArc(Color.White.copy(alpha = 0.35f), 200f, 140f, false, topLeft = Offset(ctr.x - r * 0.88f, ctr.y - r * 0.88f),
-                size = androidx.compose.ui.geometry.Size(r * 1.76f, r * 1.76f), style = Stroke(width = r * 0.04f, cap = androidx.compose.ui.graphics.StrokeCap.Round))
-        }
-    }
-}
-
-/**
  * The North American speed limit sign: a white upright board with a black border, "SPEED LIMIT" (US) or "MAXIMUM" (Canada)
  * across the top and the number large below. It turns pink when you're over, like the roundel.
  */
@@ -334,10 +294,10 @@ private fun LimitBoard(n: Int, canada: Boolean, over: Boolean, estimated: Boolea
     ) {
         androidx.compose.foundation.layout.Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = androidx.compose.foundation.layout.Arrangement.Center) {
             val head = (size.value * 0.12f).sp
-            if (canada) Text(stringResource(R.string.ui_032), color = Color(0xFF151515), fontSize = (size.value * 0.105f).sp, fontWeight = FontWeight.Bold, maxLines = 1, lineHeight = head)
+            if (canada) Text("MAXIMUM", color = Color(0xFF151515), fontSize = (size.value * 0.105f).sp, fontWeight = FontWeight.Bold, maxLines = 1, lineHeight = head)
             else {
-                Text(stringResource(R.string.ui_041), color = Color(0xFF151515), fontSize = head, fontWeight = FontWeight.Bold, maxLines = 1, lineHeight = head)
-                Text(stringResource(R.string.ui_029), color = Color(0xFF151515), fontSize = head, fontWeight = FontWeight.Bold, maxLines = 1, lineHeight = head)
+                Text("SPEED", color = Color(0xFF151515), fontSize = head, fontWeight = FontWeight.Bold, maxLines = 1, lineHeight = head)
+                Text("LIMIT", color = Color(0xFF151515), fontSize = head, fontWeight = FontWeight.Bold, maxLines = 1, lineHeight = head)
             }
             Text("$n", color = if (estimated) Color(0xFF4A4A4A) else Color(0xFF111111), fontSize = (size.value * (if (n >= 100) 0.3f else 0.38f)).sp,
                 fontWeight = FontWeight.Black, maxLines = 1, lineHeight = (size.value * 0.4f).sp)

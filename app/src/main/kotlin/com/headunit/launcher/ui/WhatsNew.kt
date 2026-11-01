@@ -53,7 +53,7 @@ import androidx.compose.ui.unit.sp
 internal class NoteItem(val kind: Int, val title: String, val desc: String, val icon: ImageVector)
 
 /** 0 new, 1 improved, 2 fixed. */
-private val kindNames = listOf("NEU", "VERBESSERT", "BEHOBEN")
+private val kindNames = listOf("NEW", "IMPROVED", "FIXED")
 
 /**
  * Turns release notes ("- Something: what it does" lines, maybe under "### 1.0.N" headings when several versions are shown) into
@@ -71,7 +71,7 @@ internal fun parseNotes(notes: String): List<NoteItem> {
         if (l.isEmpty()) continue
         if (l.startsWith("#")) {
             val h = l.trimStart('#').trim().lowercase()
-            headKind = when { h.startsWith("neu") || h.startsWith("new") || h.startsWith("added") -> 0; h.startsWith("verbessert") || h.startsWith("improv") || h.startsWith("changed") -> 1; h.startsWith("behoben") || h.startsWith("fix") -> 2; else -> -1 }
+            headKind = when { h.startsWith("new") || h.startsWith("added") -> 0; h.startsWith("improv") || h.startsWith("changed") -> 1; h.startsWith("fix") -> 2; else -> -1 }
             continue
         }
         if (l.startsWith("- ") || l.startsWith("* ") || l.startsWith("• ")) bullets += l.substring(2).trim() to headKind
@@ -83,8 +83,8 @@ internal fun parseNotes(notes: String): List<NoteItem> {
         if (b.isEmpty()) continue
         val low = b.lowercase()
         val kind = if (hk >= 0) hk else when {
-            low.startsWith("fix") || low.startsWith("behoben") || low.startsWith("stop ") || low.startsWith("no more") || low.contains(" no longer ") && low.indexOf(" no longer ") < 40 -> 2
-            low.startsWith("neu") || low.startsWith("new") || low.startsWith("add") || low.startsWith("added") || low.contains(" new ") && low.indexOf(" new ") < 25 -> 0
+            low.startsWith("fix") || low.startsWith("stop ") || low.startsWith("no more") || low.contains(" no longer ") && low.indexOf(" no longer ") < 40 -> 2
+            low.startsWith("new") || low.startsWith("add") || low.startsWith("added") || low.contains(" new ") && low.indexOf(" new ") < 25 -> 0
             else -> 1
         }
         // the headline: before the first colon if that comes early, else the first short clause, else it all
@@ -108,21 +108,21 @@ internal fun parseNotes(notes: String): List<NoteItem> {
 }
 
 private fun iconFor(low: String): ImageVector = when {
-    low.contains("android auto") || low.contains("car screen") || low.contains("autobildschirm") -> Icons.Rounded.DirectionsCar
-    low.contains("electric") || low.contains("charg") || low.contains("battery") || low.contains("elektro") || low.contains("lade") || low.contains("akku") -> Icons.Rounded.BatteryChargingFull
-    low.contains("fuel") || low.contains("petrol") || low.contains("tank") || low.contains("sprit") || low.contains("kraftstoff") || low.contains("diesel") || low.contains("e85") -> Icons.Rounded.LocalGasStation
-    low.contains("traffic") || low.contains("verkehr") || low.contains("stau") -> Icons.Rounded.Traffic
-    low.contains("voice") || low.contains("spoken") || low.contains("ansage") || low.contains("sprach") || low.contains("ton ") || low.contains("ansagen") || low.contains("say ") || low.contains("sound") -> Icons.Rounded.RecordVoiceOver
-    low.contains("lane") || low.contains("turn") || low.contains("spur") || low.contains("kreuzung") || low.contains("kreisverkehr") || low.contains("abbieg") || low.contains("ausfahrt") || low.contains("junction") || low.contains("roundabout") -> Icons.Rounded.TurnRight
-    low.contains("camera") || low.contains("speed") || low.contains("blitzer") || low.contains("tempo") || low.contains("tacho") || low.contains("limit") -> Icons.Rounded.Speed
-    low.contains("route") || low.contains("toll") || low.contains("maut") || low.contains("zwischenstopp") || low.contains("stop") -> Icons.Rounded.Route
-    low.contains("offline") || low.contains("download") || low.contains("herunterge") -> Icons.Rounded.CloudDownload
-    low.contains("key") || low.contains("schlüssel") || low.contains("mapbox") || low.contains("tomtom") -> Icons.Rounded.VpnKey
-    low.contains("update") || low.contains("what's new") || low.contains("neue-version") || low.contains("aktualis") -> Icons.Rounded.SystemUpdate
-    low.contains("home") || low.contains("place") || low.contains("favourite") || low.contains("zuhause") || low.contains("ziel") || low.contains("geparkt") || low.contains("favorit") -> Icons.Rounded.Place
-    low.contains("setting") || low.contains("einstellung") -> Icons.Rounded.Settings
-    low.contains("map") || low.contains("karte") || low.contains("gebäude") || low.contains("satellit") || low.contains("3d") || low.contains("satellite") || low.contains("building") -> Icons.Rounded.Map
-    low.startsWith("fix") || low.startsWith("behoben") -> Icons.Rounded.Build
+    low.contains("android auto") || low.contains("car screen") -> Icons.Rounded.DirectionsCar
+    low.contains("electric") || low.contains("charg") || low.contains("battery") -> Icons.Rounded.BatteryChargingFull
+    low.contains("fuel") || low.contains("petrol") || low.contains("diesel") || low.contains("e85") -> Icons.Rounded.LocalGasStation
+    low.contains("traffic") -> Icons.Rounded.Traffic
+    low.contains("voice") || low.contains("spoken") || low.contains("say ") || low.contains("sound") -> Icons.Rounded.RecordVoiceOver
+    low.contains("lane") || low.contains("turn") || low.contains("junction") || low.contains("roundabout") -> Icons.Rounded.TurnRight
+    low.contains("camera") || low.contains("speed") || low.contains("limit") -> Icons.Rounded.Speed
+    low.contains("route") || low.contains("toll") || low.contains("stop") -> Icons.Rounded.Route
+    low.contains("offline") || low.contains("download") -> Icons.Rounded.CloudDownload
+    low.contains("key") || low.contains("mapbox") || low.contains("tomtom") -> Icons.Rounded.VpnKey
+    low.contains("update") || low.contains("what's new") -> Icons.Rounded.SystemUpdate
+    low.contains("home") || low.contains("place") || low.contains("favourite") -> Icons.Rounded.Place
+    low.contains("setting") -> Icons.Rounded.Settings
+    low.contains("map") || low.contains("3d") || low.contains("satellite") || low.contains("building") -> Icons.Rounded.Map
+    low.startsWith("fix") -> Icons.Rounded.Build
     else -> Icons.Rounded.AutoAwesome
 }
 
@@ -142,7 +142,7 @@ internal fun WhatsNewList(notes: String, dark: Boolean, columns: Int = 1, maxHei
     Column(Modifier.fillMaxWidth().heightIn(max = capH).verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(8.dp)) {
         if (items.isEmpty()) {
-            Text(if (notes.isBlank()) "Diese Version ist installiert und bereit." else notes,
+            Text(if (notes.isBlank()) "This version is installed and ready. The details of what changed aren't available right now." else notes,
                 color = v.text, fontSize = 14.sp, lineHeight = 20.sp, modifier = Modifier.padding(4.dp))
             return@Column
         }

@@ -16,8 +16,6 @@ object RouteSync {
     /** The trip under way (destination and stops), so an engine that starts later joins it. */
     @Volatile var current: Pair<Place, List<Place>>? = null
         private set
-    /** The charging stops planned for [current] (so the other screen draws them as chargers, with their charge times). */
-    @Volatile private var currentEv: List<EvStop> = emptyList()
 
     /** True while an Android Auto screen is connected (for the phone's "navigating on your car" screen). */
     var carOn by androidx.compose.runtime.mutableStateOf(false)
@@ -32,7 +30,7 @@ object RouteSync {
         synchronized(engines) { engines.add(e) }
         noteCar()
         val cur = current
-        if (cur != null && e.route == null) apply { e.followRoute(cur.first, cur.second, currentEv) }
+        if (cur != null && e.route == null) apply { e.followRoute(cur.first, cur.second) }
     }
 
     fun unregister(e: NavEngine) {
@@ -63,8 +61,8 @@ object RouteSync {
     /** [from] has started guidance to [dest]: the others follow. */
     fun started(from: NavEngine, dest: Place, via: List<Place>) {
         if (applying) return
-        current = dest to via; currentEv = from.evPlanned
-        for (e in others(from)) apply { e.followRoute(dest, via, currentEv) }
+        current = dest to via
+        for (e in others(from)) apply { e.followRoute(dest, via) }
     }
 
     /** True when some engine still connected is guiding (so the background GPS service must stay on). */
@@ -74,7 +72,7 @@ object RouteSync {
     fun ended(from: NavEngine) {
         // an engine that has already left (the car screen being unplugged) doesn't end the phone's trip
         if (applying || synchronized(engines) { from !in engines }) return
-        current = null; currentEv = emptyList()
+        current = null
         for (e in others(from)) if (e.route != null) apply { e.endRoute() }
     }
 

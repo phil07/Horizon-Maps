@@ -159,7 +159,7 @@ object OfflineRouter {
         val dst = File(d, name)
         // already here (same size): kept, and marked as checked now, so the "new map data" check doesn't keep offering it
         if (total > 0 && dst.exists() && dst.length() == total) { c.disconnect(); dst.setLastModified(System.currentTimeMillis()); progress("Already have $name"); return true }
-        progress(Lang.t("$name wird heruntergeladen…", "Downloading $name…"))
+        progress("Downloading $name…")
         val tmp = File(d, "$name.part")
         c.inputStream.use { i ->
             tmp.outputStream().use { o ->
@@ -170,7 +170,7 @@ object OfflineRouter {
                     if (n < 0) break
                     o.write(buf, 0, n); done += n
                     val mb = done / 8_000_000
-                    if (mb != lastMb) { lastMb = mb; progress(Lang.t("$name wird heruntergeladen… ${done / 1_048_576} MB", "Downloading $name… ${done / 1_048_576} MB") + if (total > 0) Lang.t(" von ${total / 1_048_576} MB", " of ${total / 1_048_576} MB") else "") }
+                    if (mb != lastMb) { lastMb = mb; progress("Downloading $name… ${done / 1_048_576} MB" + if (total > 0) " of ${total / 1_048_576} MB" else "") }
                 }
             }
         }
@@ -228,7 +228,7 @@ object OfflineRouter {
         if (!fetchJoined(d, base, "map.pmtiles", progress)) progress("No map.pmtiles in this pack")
         if (!fetchJoined(d, base, "postcodes.tsv", progress)) progress("No postcodes.tsv in this pack")
         if (!fetchJoined(d, base, "addresses.tsv", progress)) progress("No addresses.tsv: house numbers will not be searchable offline")
-        if (fetchJoined(d, base, "names.idx", progress)) progress(Lang.t("Suchindex bereit", "Search index ready"))
+        if (fetchJoined(d, base, "names.idx", progress)) progress("Search index ready")
         if (!fetchJoined(d, base, "lamps.tsv", progress)) progress("No lamps.tsv: night map will use estimated lamps")
         if (!fetchJoined(d, base, "signals.tsv", progress)) progress("No signals.tsv: traffic lights will be fetched online instead")
         // speed limits and cameras (added to packs later, so they may live in a separate release for the older UK packs)
@@ -237,7 +237,7 @@ object OfflineRouter {
                 progress("No $name yet: ${if (name == "limits.bin") "speed limits" else "speed cameras"} will be looked up online")
         }
         invalidate()
-        progress(Lang.t("Download abgeschlossen", "Download finished"))
+        progress("Download finished")
     }
 
     /** The build machine's valhalla.json points at its own folders: rewrite those paths for this device. */
@@ -607,9 +607,9 @@ object OfflineRouter {
     }
 
     /** Where the pack is published by the build workflow, so the Download button works without typing anything. */
-    const val DEFAULT_PACK = "https://github.com/phil07/Horizon-Maps/releases/download/pack-ew"
+    const val DEFAULT_PACK = "https://github.com/benbishop028-arch/HeadUnitOrbis/releases/download/pack-ew"
     /** The Great Britain pack (England, Wales and Scotland), built by the same workflow with the "pack-gb" release name. */
-    const val DEFAULT_PACK_GB = "https://github.com/phil07/Horizon-Maps/releases/download/pack-gb"
+    const val DEFAULT_PACK_GB = "https://github.com/benbishop028-arch/HeadUnitOrbis/releases/download/pack-gb"
 
     fun hasSignals(ctx: Context): Boolean = hasFile(dir(ctx), "signals.tsv", 20)
 
@@ -871,7 +871,7 @@ object OfflineRouter {
         for (v in via) locs.put(JSONObject().put("lat", v.lat).put("lon", v.lon).put("type", "through"))
         locs.put(JSONObject().put("lat", to.lat).put("lon", to.lon))
         val req = JSONObject().put("locations", locs).put("costing", "auto")
-            .put("directions_options", JSONObject().put("units", "kilometers").put("language", if (Lang.de) "de-DE" else "en-GB"))
+            .put("directions_options", JSONObject().put("units", "kilometers").put("language", "en-GB"))
         val ex = exclude
         if (ex.isNotEmpty()) {
             val polys = org.json.JSONArray()
@@ -903,21 +903,16 @@ object OfflineRouter {
         val cum = DoubleArray(pts.size)
         for (i in 1 until pts.size) cum[i] = cum[i - 1] + Geo.dist(pts[i - 1], pts[i])
         val steps = ArrayList<Step>()
-        val refCc = RoadRefs.countryFor(pts.firstOrNull())
         for ((base, m) in mans) {
             val exits = m.optInt("roundabout_exit_count", 0)
             val man = manText(m.optInt("type", 0), exits) ?: continue
             val gi = (base + m.optInt("begin_shape_index", 0)).coerceIn(0, pts.size - 1)
             val names = m.optJSONArray("street_names")
-            val all = if (names != null) (0 until names.length()).map { names.optString(it) }.filter { it.isNotBlank() } else emptyList()
-            // a motorway's names are its numbers ("A 4", "E 40"): the national one, not the European one (see RoadRefs)
-            val street = RoadRefs.street(all.firstOrNull().orEmpty(), all.drop(1), refCc)
+            val street = if (names != null && names.length() > 0) names.optString(0) else ""
             val sign = m.optJSONObject("sign")
             val exitNo = sign?.optJSONArray("exit_number_elements")?.optJSONObject(0)?.optString("text").orEmpty()
             val toward = sign?.optJSONArray("exit_toward_elements")?.optJSONObject(0)?.optString("text").orEmpty()
-            // the junction's own name ("Frankfurter Kreuz", "Weiterstadt"): Valhalla's exit name, from the OpenStreetMap junction node
-            val jctName = sign?.optJSONArray("exit_name_elements")?.optJSONObject(0)?.optString("text").orEmpty()
-            steps += Step(cum[gi], man, street, m.optString("instruction"), if (man.startsWith("ROUNDABOUT")) exits else 0, exitNo, toward, jct = jctName)
+            steps += Step(cum[gi], man, street, m.optString("instruction"), if (man.startsWith("ROUNDABOUT")) exits else 0, exitNo, toward)
         }
         val sum = trip.optJSONObject("summary")
         val len = (sum?.optDouble("length", 0.0) ?: 0.0) * 1000.0

@@ -160,11 +160,10 @@ internal object PreferenceKeys {
     const val QUICKLIST = "quicklist"
     /** The map in 3D (true) or flat 2D: remembered between drives, and shared by the phone / head unit and Android Auto. */
     const val VIEW_3D = "view3d"
+    /** The donate card has been shown (it's shown once, a day or more after install). */
+    const val DONATE_SHOWN = "donateshown"
     /** Your own normal zoom when not on a route, in zoom levels from the standard one (-2 to +2; 0 = standard). */
     const val DEFAULT_ZOOM = "defzoom"
-    /** The + / - zoom last used when not on a route, kept for next time: on the phone / head unit, and on Android Auto. */
-    const val FREE_ZOOM = "freezoom"
-    const val FREE_ZOOM_CAR = "freezoomcar"
     /** Stopped for 30 s: the map pulls back to a top-down view of the traffic round you. */
     const val STOPPED_OVERVIEW = "stopview"
     /** Where you left the car, "lat,lon,time" (saved on the phone when Android Auto disconnects). */
@@ -220,37 +219,7 @@ internal object PreferenceKeys {
     const val STOP_SIGNS = "stopsigns"
     const val EV_BATTERY_KWH = "evbatt"
     const val EV_CHARGE_PCT = "evcharge"
-    /** The car's battery level now (from the widget or Android Auto). Separate from the charge you want to arrive with. */
-    const val EV_NOW_PCT = "evnow"
     const val EV_MIN_ARRIVE = "evminarr"
-    /** The range the widget reported, in km. */
-    const val EV_NOW_KM = "evnowkm"
-    /** The least range to arrive at the destination with, in km. */
-    const val EV_DEST_KM = "evdestkm"
-    /** The least range to arrive at a charger with, in km (so a busy one can be left for the next). */
-    const val EV_CHARGER_KM = "evchargerkm"
-    /** The chosen electric car's label, "" when none (see [EvCars]). */
-    const val EV_CAR = "evcar"
-    /** The chosen car's usable battery in kWh, as a string. */
-    const val EV_CAR_KWH = "evcarkwh"
-    /** The chosen car's max DC charging power in kW, as a string ("" if unknown). */
-    const val EV_CAR_KW = "evcarkw"
-    /** The chosen car's DC charging curve as "pct:kw,pct:kw,..." ("" if unknown). */
-    const val EV_CAR_CURVE = "evcarcurve"
-    /** Chargers used for charging stops: 0 = all, 50, 150 or 300 kW and faster; default 50. */
-    const val EV_MIN_KW = "evminkw"
-    /** Preferred charging operators: comma-separated ids from ChargeOperators (empty = none). */
-    const val EV_PREF_OPS = "evprefops"
-    /** Extra minutes a preferred operator's charging stops may cost over the quickest plan (default 10). */
-    const val EV_PREF_MIN = "evprefmin"
-    /** Open Charge Map API key (optional): looks up the power and operator of chargers outside Germany's register. */
-    const val OCM_KEY = "ocmkey"
-    /** Shared reports: send your own reports to the reports server (default on) and show other drivers' reports. */
-    const val REPORTS_SHARE = "reportsshare"
-    /** The reports server's address, overriding the one built into the app ("" = the built-in one). */
-    const val REPORTS_URL = "reportsurl"
-    /** A random id made once on this device, sent with every request to the reports server (anonymous, nothing else). */
-    const val REPORTS_DEVICE = "reportsdevice"
 }
 
 /**
@@ -282,14 +251,13 @@ class Prefs(ctx: Context) {
     /** Everything except the API key, as JSON text (settings, saved places, logs...). */
     fun exportJson(): String = synchronized(LOCK) {
         val o = JSONObject()
-        // (nor the shared-reports device id: a backup restored on another phone must not make it the same "device")
-        raw.forEach { (k, v) -> if (k != PreferenceKeys.API_KEY && k != PreferenceKeys.REPORTS_DEVICE) o.put(k, v) }
+        raw.forEach { (k, v) -> if (k != PreferenceKeys.API_KEY) o.put(k, v) }
         o.toString(2)
     }
 
     /** Restores values from [exportJson] output; validates the complete file before changing settings. */
     fun importJson(text: String): Int {
-        require(text.isNotBlank() && text.length <= 2 * 1024 * 1024) { Lang.t("Die Sicherung ist leer oder zu groß", "Backup is empty or too large") }
+        require(text.isNotBlank() && text.length <= 2 * 1024 * 1024) { "Backup is empty or too large" }
         val o = JSONObject(text)
         // Parse and validate everything first, so a malformed backup can never leave half the settings restored.
         val pending = LinkedHashMap<String, String>()
@@ -297,7 +265,7 @@ class Prefs(ctx: Context) {
         while (keys.hasNext()) {
             val k = keys.next()
             require(k.isNotBlank() && k.length <= 200) { "Invalid setting name" }
-            if (k == PreferenceKeys.API_KEY || k == PreferenceKeys.REPORTS_DEVICE) continue // API keys (and the reports device id) are intentionally never imported from backups.
+            if (k == PreferenceKeys.API_KEY) continue // API keys are intentionally never imported from backups.
             val value = o.get(k)
             require(value !is JSONObject && value !is org.json.JSONArray) { "Invalid setting value" }
             pending[k] = if (value == JSONObject.NULL) "" else value.toString()

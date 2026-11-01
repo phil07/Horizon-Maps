@@ -84,7 +84,7 @@ object MapboxOffline {
             val a = 2 * Math.PI * (i % 48) / 48.0
             ring += Point.fromLngLat(home.lon + Math.cos(a) * kLon, home.lat + Math.sin(a) * kLat)
         }
-        save(ctx, "home", Lang.t("Rund um Zuhause · $km km", "Around home · $km km"), Polygon.fromLngLats(listOf(ring)), doubleArrayOf(home.lat - kLat, home.lon - kLon, home.lat + kLat, home.lon + kLon))
+        save(ctx, "home", "Around home · $km km", Polygon.fromLngLats(listOf(ring)), doubleArrayOf(home.lat - kLat, home.lon - kLon, home.lat + kLat, home.lon + kLon))
     }
 
     /** A strip along [pts] (the route), named after where it goes. */
@@ -111,8 +111,8 @@ object MapboxOffline {
 
     private fun save(ctx: Context, id: String, name: String, geometry: Geometry, box: DoubleArray, line: List<LL>? = null) {
         val app = ctx.applicationContext
-        if (busy != null) { status = Lang.t("Es wird schon ${busy} gespeichert: warte, bis es fertig ist, oder stoppe es", "Already saving ${busy}: wait for it to finish, or stop it"); return }
-        busy = name; progress = 0f; status = Lang.t("Startet…", "Starting…")
+        if (busy != null) { status = "Already saving ${busy}: wait for it to finish, or stop it"; return }
+        busy = name; progress = 0f; status = "Starting…"
         val rec = JSONObject().put("name", name).put("t", System.currentTimeMillis())
             .put("box", org.json.JSONArray().put(box[0]).put(box[1]).put(box[2]).put(box[3]))
         if (line != null) rec.put("line", org.json.JSONArray().apply { line.forEach { put(it.lat); put(it.lon) } })
@@ -135,24 +135,24 @@ object MapboxOffline {
                 { p ->
                     val f = if (p.requiredResourceCount > 0) p.completedResourceCount.toFloat() / p.requiredResourceCount else 0f
                     val mb = p.completedResourceSize / 1_000_000.0
-                    main.post { progress = f.coerceIn(0f, 1f); status = Lang.t("Speichern ${(f * 100).toInt()} % · ${"%.0f".format(mb)} MB", "Saving ${(f * 100).toInt()}% · ${"%.0f".format(mb)} MB") }
+                    main.post { progress = f.coerceIn(0f, 1f); status = "Saving ${(f * 100).toInt()}% · ${"%.0f".format(mb)} MB" }
                 },
             ) { res ->
                 val err = res.error
                 main.post {
                     running = null; busy = null
                     status = when {
-                        err == null -> Lang.t("Gespeichert: $name", "Saved: $name")
+                        err == null -> "Saved: $name"
                         err.message.contains("limit", true) || err.message.contains("750") || err.message.contains("pack", true) ->
-                            Lang.t("Zu groß für das Offline-Limit von Mapbox: wähle eine kleinere Entfernung oder lösche ein gespeichertes Gebiet", "Too big for Mapbox's offline limit: try a smaller distance, or delete a saved area")
-                        err.message.contains("cancel", true) -> Lang.t("Gestoppt", "Stopped")
-                        else -> Lang.t("Karte konnte nicht gespeichert werden: ${err.message.take(120)}", "Couldn't save the map: ${err.message.take(120)}")
+                            "Too big for Mapbox's offline limit: try a smaller distance, or delete a saved area"
+                        err.message.contains("cancel", true) -> "Stopped"
+                        else -> "Couldn't save the map: ${err.message.take(120)}"
                     }
                     refresh(app)
                 }
             }
         } catch (e: Throwable) {
-            busy = null; status = Lang.t("Karte konnte nicht gespeichert werden: ${e.message ?: e.javaClass.simpleName}", "Couldn't save the map: ${e.message ?: e.javaClass.simpleName}")
+            busy = null; status = "Couldn't save the map: ${e.message ?: e.javaClass.simpleName}"
         }
     }
 

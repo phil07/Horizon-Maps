@@ -1,8 +1,5 @@
 package com.headunit.launcher.ui
 
-import com.headunit.launcher.R
-import androidx.compose.ui.res.stringResource
-
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.heightIn
@@ -89,6 +86,19 @@ fun App(prefs: Prefs, engine: NavEngine, map: MapBinding) {
         }
     }
     LaunchedEffect(Unit) { while (true) { delay(60_000); nowMs = System.currentTimeMillis() } }
+    // the donate card: once, the first time the app is open a day or more after it was installed. Never while you're moving (it
+    // waits until you've stopped), and not over the What's new card. (The car screen never shows it.)
+    var donateVisible by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) {
+        if (prefs.b(PreferenceKeys.DONATE_SHOWN, false)) return@LaunchedEffect
+        val installed = try { appCtx.packageManager.getPackageInfo(appCtx.packageName, 0).firstInstallTime } catch (e: Exception) { 0L }
+        if (installed <= 0L || System.currentTimeMillis() - installed < 24L * 3600_000L) return@LaunchedEffect
+        delay(20_000)   // let the map settle first
+        while (true) {
+            if (!whatsNewVisible && (engine.fix?.speed ?: 0.0) < 2.0) { donateVisible = true; break }
+            delay(15_000)
+        }
+    }
     // the head unit has switched to its night mode at least once (so it links night mode to the headlights): noted for "Headlights"
     val sysDark = rememberSystemNight()
     LaunchedEffect(sysDark) { if (sysDark && !prefs.b(PreferenceKeys.SYSDARKSEEN, false)) prefs.put(PreferenceKeys.SYSDARKSEEN, true) }
@@ -270,7 +280,7 @@ fun App(prefs: Prefs, engine: NavEngine, map: MapBinding) {
                 var mbLater by remember { mutableStateOf(false) }
                 val noMapKey = !engine.hasMapbox && !mbLater && !engine.useOfflineMap() && !(carOn && !phoneMap)
                 if (setupDone && !settings && (prefs.b(PreferenceKeys.MAPBOX_PROMPT, false) || noMapKey))
-                    MapboxKeyDialog(prefs, refused = engine.mbKeyRefused, why = engine.mbRefusedWhy) { prefs.put(PreferenceKeys.MAPBOX_PROMPT, false); mbLater = true }
+                    MapboxKeyDialog(prefs, refused = engine.mbKeyRefused) { prefs.put(PreferenceKeys.MAPBOX_PROMPT, false); mbLater = true }
                 // short messages (saved, sent, no signal...) show over everything
                 val curMsg = engine.message
                 val lastMsg = remember { mutableStateOf(curMsg) }
@@ -310,6 +320,7 @@ fun App(prefs: Prefs, engine: NavEngine, map: MapBinding) {
             }
         }
     }
+    if (donateVisible) DonateDialog(dark) { prefs.put(PreferenceKeys.DONATE_SHOWN, true); donateVisible = false }
     if (whatsNewVisible) {
         // Follow the app's active day/night palette so the update card stays readable in both modes.
         val updatePalette = if (dark) DarkVw else LightVw
@@ -332,10 +343,10 @@ fun App(prefs: Prefs, engine: NavEngine, map: MapBinding) {
             val header: @Composable () -> Unit = {
                 Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(22.dp)).background(updateHeader).padding(18.dp)) {
                     androidx.compose.foundation.layout.Column(verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(6.dp)) {
-                        Text(stringResource(R.string.ui_020), color = updatePalette.accent, fontSize = 11.sp, fontWeight = androidx.compose.ui.text.font.FontWeight.Bold, letterSpacing = 1.5.sp)
-                        Text("Das ist neu in $installedVersion", color = updateHeaderTitle, fontSize = 25.sp, fontWeight = androidx.compose.ui.text.font.FontWeight.Bold, lineHeight = 30.sp)
+                        Text("HORIZON NAV  /  UPDATE", color = updatePalette.accent, fontSize = 11.sp, fontWeight = androidx.compose.ui.text.font.FontWeight.Bold, letterSpacing = 1.5.sp)
+                        Text("What's new in $installedVersion", color = updateHeaderTitle, fontSize = 25.sp, fontWeight = androidx.compose.ui.text.font.FontWeight.Bold, lineHeight = 30.sp)
                         val summary = remember(whatsNewNotes) { notesSummary(whatsNewNotes) }
-                        Text(summary.ifBlank { "Deine Einstellungen und gespeicherten Orte bleiben erhalten" }, color = updateHeaderSub, fontSize = 14.sp)
+                        Text(summary.ifBlank { "Your settings and saved places stay as they were" }, color = updateHeaderSub, fontSize = 14.sp)
                     }
                 }
             }
@@ -345,7 +356,7 @@ fun App(prefs: Prefs, engine: NavEngine, map: MapBinding) {
                     modifier = Modifier.fillMaxWidth(),
                     colors = androidx.compose.material3.ButtonDefaults.buttonColors(containerColor = updatePalette.accent, contentColor = if (updatePalette.dark) Color(0xFF102039) else Color.White),
                     shape = RoundedCornerShape(16.dp)
-                ) { Text(stringResource(R.string.ui_031), fontWeight = androidx.compose.ui.text.font.FontWeight.Bold, modifier = Modifier.padding(vertical = 4.dp)) }
+                ) { Text("Let's go", fontWeight = androidx.compose.ui.text.font.FontWeight.Bold, modifier = Modifier.padding(vertical = 4.dp)) }
             }
             if (wideCard) {
                 val cardW = (conf.screenWidthDp.dp * 0.92f).coerceAtMost(1100.dp)

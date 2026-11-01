@@ -22,18 +22,15 @@ class TurnInfo(
     val thenGap: Double = 0.0,
     /** Roundabout exit for the following manoeuvre shown in the "then" cue. */
     val thenExit: Int = 0,
-    /** The motorway junction on the card: "Frankfurter Kreuz", or "Ausfahrt 17 Weiterstadt" for a plain exit (blank when not known). */
-    val junction: String = "",
-    /** The junction's bare name ("Frankfurter Kreuz", "Weiterstadt"), for when the exit number is shown elsewhere on the card. */
-    val junctionName: String = "",
 )
 /** Countries that use miles for road distances and speeds. */
+val MILES_COUNTRIES = setOf("GB", "US", "PR", "LR", "MM", "IM", "GG", "JE", "VG", "VI", "AG", "DM", "GD", "KN", "LC", "VC", "BS", "KY", "FK", "SH", "WS", "GU", "AS", "MP")
 /** Countries that use Fahrenheit. */
 val FAHRENHEIT_COUNTRIES = setOf("US", "PR", "VI", "GU", "AS", "MP", "LR", "BS", "KY", "BZ", "PW", "FM", "MH")
 
 /** Countries that drive on the left (right-hand drive cars), where the screen keeps its normal layout. */
 /** Countries where warning drivers about speed cameras isn't allowed (camera alerts switch off there unless you choose otherwise). */
-val CAMERA_BANNED = mapOf("FR" to "Frankreich", "DE" to "Deutschland", "CH" to "Schweiz")
+val CAMERA_BANNED = mapOf("FR" to "France", "DE" to "Germany", "CH" to "Switzerland")
 val KEEP_LEFT = setOf("GB", "IE", "IM", "GG", "JE", "MT", "CY", "AU", "NZ", "JP", "IN", "ZA", "HK", "MO", "SG", "MY", "TH", "ID", "KE", "TZ", "UG",
     "ZM", "ZW", "BW", "NA", "MZ", "MW", "LS", "SZ", "PK", "BD", "LK", "NP", "BT", "JM", "TT", "BB", "BS", "GY", "SR", "FJ", "PG", "MU", "SC", "BN", "TL", "KY", "BM", "VG", "AG", "DM", "GD", "KN", "LC", "VC", "FK", "SH", "MV", "KI", "SB", "TO", "TV", "WS", "NR")
 class AlertInfo(val kind: String, val text: String, val ms: Long = 5000)
@@ -45,7 +42,6 @@ class LiveAlt(val route: Route, val diffMin: Int, val bubble: LL, val divergeOff
     /** The line to draw: only from where it leaves your road, at full detail (every other point cut corners across houses). */
     fun line(): List<LL> = route.pts.subList(maxOf(0, divIdx), route.pts.size)
 }
-
 /** Something in the next couple of miles for the hazard radar: what it is and how far away (m). */
 class RadarItem(val kind: String, val dist: Double, val label: String)
 /** "Work · 23 min · light traffic": where you are probably going now, with the live time. */

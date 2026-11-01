@@ -20,7 +20,7 @@ class NavService : Service() {
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        val text = intent?.getStringExtra(EXTRA_TEXT).orEmpty().ifBlank { Lang.t("Navigation läuft", "Navigating") }
+        val text = intent?.getStringExtra(EXTRA_TEXT).orEmpty().ifBlank { "Navigating" }
         val n = notification(this, text)
         try {
             if (Build.VERSION.SDK_INT >= 29) startForeground(ID, n, ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION)
@@ -41,7 +41,7 @@ class NavService : Service() {
             val nm = ctx.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
             if (nm.getNotificationChannel(CHANNEL) == null) {
                 nm.createNotificationChannel(NotificationChannel(CHANNEL, "Navigation", NotificationManager.IMPORTANCE_LOW).apply {
-                    description = Lang.t("Wird angezeigt, solange eine Route läuft", "Shown while a route is running")
+                    description = "Shown while a route is running"
                     setShowBadge(false)
                 })
             }
