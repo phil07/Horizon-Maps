@@ -148,8 +148,9 @@ object EvWidget {
     // Android has no way for one app to make another app's widget refresh. But Horizon Nav is this widget's host (as a home
     // screen is), so the widget's buttons are real views here: tapping its refresh button sends the maker app the same request a
     // tap on the home screen does, even with the phone locked (as long as the button doesn't open a screen, which Android blocks
-    // from the background). Every 10 minutes: the maker's server wakes the car for each request and throttles frequent ones.
-    private const val TAP_EVERY_MS = 10 * 60_000L
+    // from the background). How often is set in Settings, every minute to every 30 (the maker's server wakes the car for each
+    // request, and frequent requests can go against its terms of use: Settings says so).
+    private fun tapEveryMs(p: Prefs): Long = p.i(PreferenceKeys.EV_REFRESH_MIN, 1).coerceIn(1, 30) * 60_000L
     private var tapPrefs: Prefs? = null
     /** What the last tap did, with the time, for Settings ("" before the first one). */
     var refreshNote by mutableStateOf(""); private set
@@ -157,8 +158,9 @@ object EvWidget {
         override fun run() {
             val p = tapPrefs ?: return
             // the car's own reading is live: no need to wake the car through the maker's server
-            if (System.currentTimeMillis() - liveAt >= 10 * 60_000L) tapRefresh()
-            main.postDelayed(this, TAP_EVERY_MS)
+            // (switched off in Settings meanwhile: no tap, but it keeps checking, so switching it back on works at once)
+            if (p.b(PreferenceKeys.EV_AUTOREFRESH, true) && System.currentTimeMillis() - liveAt >= 10 * 60_000L) tapRefresh()
+            main.postDelayed(this, tapEveryMs(p))
             if (view == null) try { appCtx?.let { start(it, p) } } catch (e: Exception) { }
         }
     }

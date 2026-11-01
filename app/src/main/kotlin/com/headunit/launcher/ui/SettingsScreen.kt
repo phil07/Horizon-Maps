@@ -1135,7 +1135,13 @@ private fun EvWidgetItem(prefs: Prefs) {
         if (id >= 0) SButton("Entfernen", danger = true) { com.headunit.launcher.EvWidget.remove(ctx, prefs) }
     }
     if (id >= 0) {
-        SToggle(prefs, "Widget automatisch aktualisieren", PreferenceKeys.EV_AUTOREFRESH, true, "Tippt mit Android Auto alle 10 Minuten den Aktualisieren-Knopf im Widget an, auch bei gesperrtem Handy")
+        SToggle(prefs, "Widget automatisch aktualisieren", PreferenceKeys.EV_AUTOREFRESH, true, "Tippt mit Android Auto regelmäßig den Aktualisieren-Knopf im Widget an, auch bei gesperrtem Handy")
+        if (prefs.b(PreferenceKeys.EV_AUTOREFRESH, true)) {
+            val every = prefs.i(PreferenceKeys.EV_REFRESH_MIN, 1).coerceIn(1, 30)
+            SSlider("Aktualisieren alle", every.toFloat(), 1f..30f, " Min.", steps = 28, reset = 1f) { prefs.put(PreferenceKeys.EV_REFRESH_MIN, it.coerceIn(1, 30)) }
+            SNote("Achtung: Jedes Antippen fragt den Server des Herstellers ab (bei VW wird dafür das Auto geweckt). Sehr häufige Abfragen können gegen die Nutzungsbedingungen (AGB) des Herstellers verstoßen und dazu führen, dass Abfragen gedrosselt oder das Konto gesperrt wird. Nutzung auf eigene Verantwortung." +
+                if (every < 10) " Bei $every Min. wird sehr oft abgefragt." else "")
+        }
         val note = com.headunit.launcher.EvWidget.refreshNote
         if (note.isNotBlank()) Text("Zuletzt: $note", color = LocalVw.current.sub, fontSize = 12.sp, modifier = Modifier.padding(bottom = 10.dp))
     }
