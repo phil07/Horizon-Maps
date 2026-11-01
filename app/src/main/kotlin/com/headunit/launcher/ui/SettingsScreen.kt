@@ -1062,15 +1062,15 @@ private fun EvWidgetItem(prefs: Prefs) {
         at > 0 -> (if (com.headunit.launcher.EvWidget.source(prefs) == "car") "Direkt vom Auto" else name) + " · ${prefs.s(PreferenceKeys.EV_NOW_PCT, "–")} %, gelesen um " + java.text.SimpleDateFormat("HH:mm", java.util.Locale.GERMANY).format(java.util.Date(at))
         else -> "$name · Noch kein Prozentwert gefunden. Das Widget meldet sich, sobald es sich aktualisiert."
     }
-    SItem("Ladestand aus Widget", sub) {
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            if (id >= 0) SButton("Auto-App öffnen") {
-                if (!com.headunit.launcher.EvWidget.openProvider(ctx, prefs))
-                    android.widget.Toast.makeText(ctx, "Die Auto-App lässt sich nicht öffnen.", android.widget.Toast.LENGTH_LONG).show()
-            }
-            if (id >= 0) SButton("Entfernen", danger = true) { com.headunit.launcher.EvWidget.remove(ctx, prefs) }
-            SButton(if (id >= 0) "Ändern" else "Widget wählen", primary = id < 0) { picking = true }
+    // the buttons sit on their own line: beside the title they squeeze the text into a narrow column
+    SItem("Ladestand aus Widget", sub)
+    Row(Modifier.fillMaxWidth().padding(bottom = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        if (id >= 0) SButton("Auto-App öffnen") {
+            if (!com.headunit.launcher.EvWidget.openProvider(ctx, prefs))
+                android.widget.Toast.makeText(ctx, "Die Auto-App lässt sich nicht öffnen.", android.widget.Toast.LENGTH_LONG).show()
         }
+        if (id >= 0) SButton("Entfernen", danger = true) { com.headunit.launcher.EvWidget.remove(ctx, prefs) }
+        SButton(if (id >= 0) "Ändern" else "Widget wählen", primary = id < 0) { picking = true }
     }
     if (picking) {
         val list = remember { com.headunit.launcher.EvWidget.providers(ctx) }
