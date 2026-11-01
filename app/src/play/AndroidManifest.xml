@@ -76,5 +76,43 @@
         <package android:name="com.jlr.landrover.incontrolremote.appstore" />
         <!-- Rivian -->
         <package android:name="com.rivian.android.consumer" />
+        <!-- Kia (Europe; USA: com.myuvo.link) -->
+        <package android:name="com.kia.connect.eu" />
+        <!-- Hyundai (Europe; USA: com.stationdm.bluelink) -->
+        <package android:name="com.hyundai.oneapp.eu" />
+        <!-- Dacia (France; a separate app from Renault's) -->
+        <package android:name="com.dacia.mydacia.one.fr" />
+        <!-- Fiat (Europe; North America: com.fca.myconnect.fiat.nafta) -->
+        <package android:name="com.fca.myconnect.fiat" />
+        <!-- MG (Europe, MG iSMART) -->
+        <package android:name="com.saicmotor.iov.europe" />
+        <!-- Jeep (North America) -->
+        <package android:name="com.fca.myconnect.nafta" />
+        <!-- Alfa Romeo (North America) -->
+        <package android:name="com.fca.myconnect.alfaromeo.nafta" />
+        <!-- Maserati (North America) -->
+        <package android:name="com.fca.myconnect.maseraticonnect.nafta" />
+        <!-- Cadillac -->
+        <package android:name="com.gm.cadillac.nomad.ownership" />
+        <!-- Buick -->
+        <package android:name="com.gm.buick.nomad.ownership" />
+        <!-- Lynk & Co -->
+        <package android:name="com.lynkco.global" />
+        <!-- Lincoln -->
+        <package android:name="com.lincoln.lincolnway" />
+        <!-- Acura -->
+        <package android:name="com.acura.acuralink.connect" />
+        <!-- Infiniti -->
+        <package android:name="com.infiniti.myinfiniti" />
+        <!-- Lotus -->
+        <package android:name="com.lotus.carsdomestic.intl" />
+        <!-- XPENG -->
+        <package android:name="com.xiaopeng.globalcarinfo" />
+        <!-- NIO -->
+        <package android:name="com.nio.nioapp" />
+        <!-- Zeekr -->
+        <package android:name="com.zeekr.global" />
+        <!-- Suzuki (Japan; other markets not confirmed) -->
+        <package android:name="suzuki.app.A017.SzkCnnctJp" />
     </queries>
 </manifest>
