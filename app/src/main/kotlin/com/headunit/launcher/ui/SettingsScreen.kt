@@ -966,6 +966,8 @@ private fun KeysSection(prefs: Prefs, engine: NavEngine) {
     SGroup("Kartenkonten", footer = "Die Suche findet auch deine gespeicherten Orte. Ohne Empfang kommen Routen und Suche aus dem Offline-Paket.") {
         SFieldItem("TomTom API-Schlüssel", prefs.s(PreferenceKeys.API_KEY, ""), "Kostenlos erhältlich auf developer.tomtom.com",
             placeholder = "Schlüssel einfügen") { prefs.setApiKey(it) }
+        SFieldItem("HERE API-Schlüssel", prefs.s(PreferenceKeys.HERE_KEY, ""), "Für genauere Tempolimits. Kostenlos auf platform.here.com",
+            placeholder = "Schlüssel einfügen") { prefs.put(PreferenceKeys.HERE_KEY, it.trim()) }
         SFieldItem("Mapbox Zugangstoken", prefs.s(PreferenceKeys.MAPBOX_TOKEN, ""), "Öffentliches Token (beginnt mit pk.) einfügen",
             placeholder = "Token einfügen") { prefs.put(PreferenceKeys.MAPBOX_TOKEN, com.headunit.launcher.MapboxRest.clean(it)) }
     }

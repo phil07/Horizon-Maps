@@ -2082,6 +2082,10 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
     @Volatile private var mbPos: LL? = null
     @Volatile private var mbWay = 0L
     @Volatile private var mbLim: Double? = null
+    @Volatile private var hereAt = 0L
+    @Volatile private var herePos: LL? = null
+    @Volatile private var hereWay = -1L
+    @Volatile private var hereLim: Double? = null
 
     private fun lookUpLimit(p: LL, hd: Double, routeHere: Boolean): Overpass.Limit? {
         // the country you're in (from where you are), not the head unit's language setting, which is often US English anywhere
@@ -2092,6 +2096,28 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
             if (Geo.dist(mbTrail.first(), p) > 600.0) { mbTrail.clear(); mbTrail.add(p) }
         }
         if (routeHere || !online()) return osm
+        // a limit for certain times from OpenStreetMap ("30 @ 22:00-06:00"): the other sources only know the plain one
+        if (osm != null && osm.timed) return osm
+        // HERE first when you've put in a key: its road data is the most complete and up to date (Settings > Map accounts)
+        val hk = prefs.s(PreferenceKeys.HERE_KEY, "").trim()
+        if (hk.isNotEmpty()) {
+            val now = System.currentTimeMillis()
+            val way = osm?.wayId ?: 0L
+            val stale = now - hereAt > 20_000L || (herePos?.let { Geo.dist(it, p) > 250.0 } ?: true)
+            // a new stretch of road or an old answer, at most once every 4 seconds (a long way inside HERE's free allowance)
+            if ((way != hereWay || stale) && now - hereAt > 4000L) {
+                val trail = synchronized(mbTrail) { mbTrail.toList() }
+                if (trail.size >= 2) {
+                    hereAt = now; herePos = p; hereWay = way
+                    hereLim = try { HereRest.speedLimit(hk, trail) } catch (e: Exception) { null }
+                }
+            }
+            val hv = if (osm == null || hereWay == way) hereLim else null
+            if (hv != null) {
+                return if (hv <= 0.0) Overpass.Limit(-1.0, false, osm?.road ?: "", osm?.wayId ?: 0L, osm?.names ?: emptyList(), true, noLimit = true)
+                else Overpass.Limit(hv, false, osm?.road ?: "", osm?.wayId ?: 0L, osm?.names ?: emptyList(), true)
+            }
+        }
         if (!hasKey || ttDown()) {
             // no TomTom key (or TomTom not working right now) but a Mapbox token: Mapbox matches your last few positions to its roads and gives that road's limit
             if (provider != "mapbox") return osm

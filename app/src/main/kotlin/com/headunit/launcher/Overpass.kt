@@ -123,7 +123,9 @@ object Overpass {
                 /** No general limit at all (maxspeed=none, or an Autobahn in Germany with no limit posted): shown as the "end of all restrictions" sign. */
                 val noLimit: Boolean = false,
                 /** A motorway or trunk road (Schnellstraße): with no limit tagged here, a posted limit before it has ended. */
-                val major: Boolean = false)
+                val major: Boolean = false,
+                /** From a rule for certain times (maxspeed:conditional): other sources don't know these, so it wins over them. */
+                val timed: Boolean = false)
 
     /** Set when the last speed-limit lookup failed (no network, server busy…), null when it worked. */
     @Volatile var lastError: String? = null
@@ -302,7 +304,7 @@ object Overpass {
                 t.optString(condKey).ifBlank { t.optString("maxspeed:conditional") }.takeIf { it.isNotBlank() }
                     ?.let { ConditionalLimit.at(it, country, java.util.Calendar.getInstance()) }
             } catch (e: Exception) { null }
-            if (cond != null) { if (cond < 0) Limit(-1.0, false, road, w.id, names, sure, noLimit = true) else Limit(cond, false, road, w.id, names, sure) }
+            if (cond != null) { if (cond < 0) Limit(-1.0, false, road, w.id, names, sure, noLimit = true, timed = true) else Limit(cond, false, road, w.id, names, sure, timed = true) }
             else if (posted != null) Limit(posted, false, road, w.id, names, sure)
             else if (unposted) Limit(-1.0, false, road, w.id, names, sure, noLimit = none)
             else {

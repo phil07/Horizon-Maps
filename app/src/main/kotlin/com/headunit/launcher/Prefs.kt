@@ -8,6 +8,8 @@ import org.json.JSONObject
 /** Stable SharedPreferences names. Keep these values unchanged to preserve existing user settings. */
 internal object PreferenceKeys {
     const val API_KEY = "apikey"
+    /** Your own HERE key: speed limits from HERE first (see HereRest). */
+    const val HERE_KEY = "herekey"
     const val MAP_STYLE = "mapstyle"
     const val MAP_DETAIL = "mapdetail"
     const val MAP_LITE = "maplite"
