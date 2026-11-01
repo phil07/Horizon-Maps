@@ -585,8 +585,8 @@ private fun CarChips(engine: NavEngine, actions: CarActions, rows: Int) {
     }
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            tile("home", androidx.compose.material.icons.Icons.Rounded.Home, Color(0xFF4C8DFF), stringResource(R.string.ui_100), home, engine.slotMins["home"], Modifier.weight(1f))
-            tile("work", androidx.compose.material.icons.Icons.Rounded.Work, Color(0xFFF29900), stringResource(R.string.ui_101), work, engine.slotMins["work"], Modifier.weight(1f))
+            tile("home", androidx.compose.material.icons.Icons.Rounded.Home, Color(0xFF4C8DFF), stringResource(R.string.ui_100), home, engine.slotMins["home"], Modifier.weight(1.2f))
+            tile("work", androidx.compose.material.icons.Icons.Rounded.Work, Color(0xFFF29900), stringResource(R.string.ui_101), work, engine.slotMins["work"], Modifier.weight(1.2f))
         }
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             find("fuel", androidx.compose.material.icons.Icons.Rounded.LocalGasStation, Color(0xFFEA4335))
