@@ -2230,15 +2230,8 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
                 if (!camFacesUs(c, p.heading)) continue
                 best = c; bestD = max(0.0, ahead)
             }
-        } else if (camerasOn() && p.speed > 3.0) {
-            for (c in cameras) {
-                val d = Geo.dist(p.pos, c)
-                if (d > warnAt || d >= bestD) continue
-                val diff = abs(((Geo.bearing(p.pos, c) - p.heading + 540.0) % 360.0) - 180.0)
-                // nearly straight ahead; close in, a wider angle (the camera is often beside the road)
-                if (diff < (if (d < 150.0) 60.0 else 35.0) && camFacesUs(c, p.heading)) { best = c; bestD = d }
-            }
         }
+        // off the route (or not navigating) nothing is announced: only the cameras on your route are warned about
         cameraDist = if (best != null) bestD.toInt() else null
         if (best != null) {
             if (camAlerted.size > 100) camAlerted.clear()
