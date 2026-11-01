@@ -1,0 +1,116 @@
+# Copies the offline packs ("pack-*" releases) from another public Horizon Nav repo into this repo's releases, so the app
+# downloads them from here (PackRegions.RELEASES). The packs are OpenStreetMap data (ODbL), built by the same workflow and
+# in the same format as this repo's own packs.
+#
+# Run it from the Actions tab: Copy offline packs > Run workflow. It is safe to run again: a release that is already here
+# with the same files and sizes is skipped, so a run that stopped half way just carries on.
+# The files are copied one at a time (download, upload, delete), so even packs of many GB fit on the runner's disk.
+name: Copy offline packs
+on:
+  workflow_dispatch:
+    inputs:
+      source:
+        description: "Repo to copy the pack-* releases from"
+        required: true
+        default: "benbishop028-arch/Horizon-Maps"
+      only:
+        description: "Only these packs, comma separated (e.g. pack-france, pack-austria). Empty = all"
+        required: false
+        default: ""
+      uk:
+        description: "Also copy the original UK packs pack-ew and pack-gb from benbishop028-arch/HeadUnitOrbis"
+        type: boolean
+        default: true
+permissions:
+  contents: write
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    outputs:
+      shards: ${{ steps.plan.outputs.shards }}
+    steps:
+      - name: List the packs to copy
+        id: plan
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SRC: ${{ inputs.source }}
+          ONLY: ${{ inputs.only }}
+          UK: ${{ inputs.uk }}
+        run: |
+          set -euo pipefail
+          gh api --paginate "repos/$SRC/releases?per_page=100" --jq '.[].tag_name' | grep '^pack-' | sort -u > tags.txt || true
+          if [ -n "$ONLY" ]; then
+            echo "$ONLY" | tr ',' '\n' | sed 's/^ *//;s/ *$//' | grep . > only.txt
+            grep -Fxf only.txt tags.txt > t2.txt || true; mv t2.txt tags.txt
+          fi
+          # every line: "<source repo> <tag>"
+          sed "s|^|$SRC |" tags.txt > jobs.txt
+          if [ "$UK" = "true" ]; then
+            for t in pack-ew pack-gb; do
+              if gh api "repos/benbishop028-arch/HeadUnitOrbis/releases/tags/$t" >/dev/null 2>&1; then echo "benbishop028-arch/HeadUnitOrbis $t" >> jobs.txt; fi
+            done
+          fi
+          echo "$(wc -l < jobs.txt) packs to copy"
+          # shared out over 8 lists that run side by side (each works through its list one pack after another)
+          python3 - <<'EOF'
+          import json, os
+          lines = [l.strip() for l in open("jobs.txt") if l.strip()]
+          shards = [{"n": i, "items": " ".join(l.replace(" ", "@") for l in lines[i::8])} for i in range(8)]
+          shards = [s for s in shards if s["items"]]
+          with open(os.environ["GITHUB_OUTPUT"], "a") as f:
+              f.write("shards=" + json.dumps(shards) + "\n")
+          EOF
+
+  copy:
+    needs: plan
+    if: needs.plan.outputs.shards != '[]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    strategy:
+      fail-fast: false
+      max-parallel: 8
+      matrix:
+        shard: ${{ fromJson(needs.plan.outputs.shards) }}
+    steps:
+      - name: Copy the packs
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ITEMS: ${{ matrix.shard.items }}
+          DEST: ${{ github.repository }}
+        run: |
+          set -uo pipefail
+          failed=0
+          for item in $ITEMS; do
+            src="${item%@*}"; tag="${item#*@}"
+            echo "::group::$tag (from $src)"
+            # the source's files and sizes
+            gh api "repos/$src/releases/tags/$tag" --jq '.assets[] | "\(.name) \(.size)"' > want.txt || { echo "can't read $tag"; failed=1; echo "::endgroup::"; continue; }
+            title=$(gh api "repos/$src/releases/tags/$tag" --jq '.name // .tag_name')
+            # make the release here if it isn't yet
+            if ! gh release view "$tag" -R "$DEST" >/dev/null 2>&1; then
+              gh release create "$tag" -R "$DEST" --title "$title" --notes "Offline pack (OpenStreetMap data, ODbL), copied from $src." || { failed=1; echo "::endgroup::"; continue; }
+            elif ! gh api "repos/$DEST/releases/tags/$tag" --jq '.body // ""' | grep -q "copied from"; then
+              # a pack built here (e.g. pack-germany) is kept as it is
+              echo "skip $tag: built in this repo"; echo "::endgroup::"; continue
+            fi
+            gh api "repos/$DEST/releases/tags/$tag" --jq '.assets[] | "\(.name) \(.size)"' > have.txt || true
+            while read -r name size; do
+              [ -z "$name" ] && continue
+              if grep -qxF "$name $size" have.txt; then echo "ok   $name"; continue; fi
+              # a half-uploaded or different file goes first
+              if grep -q "^$name " have.txt; then gh release delete-asset "$tag" "$name" -R "$DEST" -y || true; fi
+              echo "copy $name ($((size / 1048576)) MB)"
+              rm -rf dl && mkdir dl
+              ok=0
+              for try in 1 2 3; do
+                if gh release download "$tag" -R "$src" -p "$name" -D dl --clobber && \
+                   [ "$(stat -c %s "dl/$name")" = "$size" ] && \
+                   gh release upload "$tag" "dl/$name" -R "$DEST" --clobber; then ok=1; break; fi
+                echo "try $try failed, again in $((try * 20)) s"; sleep $((try * 20))
+              done
+              rm -rf dl
+              [ $ok = 1 ] || { echo "::error::$tag/$name not copied"; failed=1; }
+            done < want.txt
+            echo "::endgroup::"
+          done
+          exit $failed
