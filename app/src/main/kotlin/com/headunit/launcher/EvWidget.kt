@@ -114,24 +114,20 @@ object EvWidget {
                 (v as? ReadingView)?.onRead = { pct -> onPct(p, pct) }
                 view = v
                 h.startListening()
-                // ask the widget's app for fresh content, as a home screen does when it shows the widget
-                try {
-                    app.sendBroadcast(android.content.Intent(AppWidgetManager.ACTION_APPWIDGET_UPDATE).setComponent(info.provider)
-                        .putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS, intArrayOf(id)))
-                } catch (e: Exception) { }
             } catch (e: Exception) { }
         }
     }
 
     /**
-     * Asks the widget's app for a fresh reading (as a home screen does when it refreshes the widget). Whether the app fetches
-     * new data from its server is up to that app.
+     * Opens the widget's app, so it refreshes its data (as it does when you open it yourself). Android doesn't let one app
+     * ask another app's widget to refresh, so this is the only way to get a fresh reading on demand. Returns false if the app
+     * can't be opened.
      */
-    fun nudge(ctx: Context, p: Prefs) {
-        val id = widgetId(p); if (id < 0) return
-        val info = AppWidgetManager.getInstance(ctx).getAppWidgetInfo(id) ?: return
-        ctx.sendBroadcast(android.content.Intent(AppWidgetManager.ACTION_APPWIDGET_UPDATE).setComponent(info.provider)
-            .putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS, intArrayOf(id)))
+    fun openProvider(ctx: Context, p: Prefs): Boolean {
+        val id = widgetId(p); if (id < 0) return false
+        val pkg = try { AppWidgetManager.getInstance(ctx).getAppWidgetInfo(id)?.provider?.packageName } catch (e: Exception) { null } ?: return false
+        val intent = ctx.packageManager.getLaunchIntentForPackage(pkg) ?: return false
+        return try { ctx.startActivity(intent.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)); true } catch (e: Exception) { false }
     }
 
     fun stop() {

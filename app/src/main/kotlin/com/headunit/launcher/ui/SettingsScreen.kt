@@ -1064,9 +1064,9 @@ private fun EvWidgetItem(prefs: Prefs) {
     }
     SItem("Ladestand aus Widget", sub) {
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            if (id >= 0) SButton("Jetzt abfragen") {
-                com.headunit.launcher.EvWidget.nudge(ctx, prefs)
-                android.widget.Toast.makeText(ctx, "Anfrage an das Widget gesendet. Der Wert kommt, sobald die Auto-App ihn aktualisiert.", android.widget.Toast.LENGTH_LONG).show()
+            if (id >= 0) SButton("Auto-App öffnen") {
+                if (!com.headunit.launcher.EvWidget.openProvider(ctx, prefs))
+                    android.widget.Toast.makeText(ctx, "Die Auto-App lässt sich nicht öffnen.", android.widget.Toast.LENGTH_LONG).show()
             }
             if (id >= 0) SButton("Entfernen", danger = true) { com.headunit.launcher.EvWidget.remove(ctx, prefs) }
             SButton(if (id >= 0) "Ändern" else "Widget wählen", primary = id < 0) { picking = true }

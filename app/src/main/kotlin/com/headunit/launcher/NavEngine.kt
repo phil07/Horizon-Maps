@@ -493,21 +493,6 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
             // electric: the battery level from the car app's widget, if one was chosen
             try { EvWidget.start(ctx, prefs) } catch (e: Exception) { }
         }
-        // electric: while the app is open, ask the car's widget for a fresh battery level every minute while navigating,
-        // otherwise every 10 minutes
-        scope.launch {
-            var last = 0L
-            while (true) {
-                delay(30_000L)
-                if (isCar || !isEv || !appVisible || EvWidget.widgetId(prefs) < 0) continue
-                val now = System.currentTimeMillis()
-                val every = if (route != null && !previewing) 60_000L else 600_000L
-                if (now - last >= every) {
-                    last = now
-                    try { withContext(Dispatchers.Main) { EvWidget.nudge(ctx, prefs) } } catch (e: Exception) { }
-                }
-            }
-        }
         try {
             val o = org.json.JSONObject(prefs.s(PreferenceKeys.RESUME, "{}"))
             val age = System.currentTimeMillis() - o.optLong("b", o.optLong("t"))
