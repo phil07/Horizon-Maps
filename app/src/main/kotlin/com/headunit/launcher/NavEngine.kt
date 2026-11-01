@@ -561,6 +561,8 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
     private val said = HashSet<String>()
     private var lastIdx = 0
     private var offCount = 0
+    /** Off-route strikes before the route is recalculated: 2 (was 3) so a wrong turn is caught sooner. */
+    private val REROUTE_STRIKES = 2
     /** How far along the route you last were for certain, and when: a jump far beyond it is a different road, not progress. */
     private var trustProg = -1.0
     private var trustAt = 0L
@@ -2858,13 +2860,13 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
             if (newFix) {
                 // well off the route counts double, so a wrong turn is noticed in about two seconds instead of four or more
                 offCount += NavigationPolicy.offRouteStrikeCount(jump, s.dist, offLim)
-                if (offCount >= 3) reroute()
+                if (offCount >= REROUTE_STRIKES) reroute()
             }
         } else if (gpsReliableForReroute && newFix) {
             // Still close to the route, but a vehicle moving away from its direction can indicate a wrong turn.
             val seg = Geo.bearing(r.pts[s.segmentIndex], r.pts[min(s.segmentIndex + 1, r.pts.size - 1)])
             if (NavigationPolicy.shouldCountHeadingAwayStrike(s.dist, p.speed, angDiff(seg, p.heading))) {
-                if (++offCount >= 3) reroute()
+                if (++offCount >= REROUTE_STRIKES) reroute()
             } else offCount = 0
         } else if (newFix) offCount = 0
         val now = System.currentTimeMillis()
