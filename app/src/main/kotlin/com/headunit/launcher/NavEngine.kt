@@ -2880,6 +2880,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
                 if (++offCount >= REROUTE_STRIKES) reroute()
             } else offCount = 0
         } else if (newFix) offCount = 0
+        try { if (newFix) checkEvRange() } catch (e: Exception) { }
         val now = System.currentTimeMillis()
         // while the map follows you, only a window of the route is drawn (cheap to redraw); once you move or zoom the map yourself,
         // the whole rest of the route is drawn, so zooming out shows all of it (it used to stop a few miles ahead)
@@ -4412,6 +4413,28 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         fuelSuggestion = null; suggestFuel(r)
     }
 
+    private var evKmAtPlan: Int? = null
+    private var evKmCheckAt = 0L
+
+    /**
+     * Electric, while driving: when the range the car reports changes by 5 km or more, the automatic charging stops are planned
+     * again (at most every 3 minutes). Your own stops stay where they are.
+     */
+    private fun checkEvRange() {
+        if (!isEv || route == null || previewing || packBusy) return
+        val km = evNowKm() ?: return
+        val base = evKmAtPlan
+        if (base == null) { evKmAtPlan = km; return }
+        val now = System.currentTimeMillis()
+        if (abs(km - base) < 5 || now - evKmCheckAt < 180_000L) return
+        val d = dest ?: return
+        evKmCheckAt = now; evKmAtPlan = km
+        // take the automatic stops off (your own stay), then plan again with the new range
+        via = via.filterNot { p -> evPlanned.any { Geo.dist(it.n.place.pos, p.pos) < 30.0 } }
+        evPlanned = emptyList(); evAutoDest = null; evPlanWarn = null
+        startRoute(d, departMin, true, startNow = !previewing)
+    }
+
     /**
      * Electric: the charging stops this trip needs. Each stop is the furthest charger reachable with the reserve left there, or
      * the furthest of a preferred operator (Settings) when that plan has as many stops and costs only a few minutes more.
@@ -4420,7 +4443,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         evStops = emptyList(); evWarning = null
         // stops already on the trip are the user's plan: no suggestion on top of them (but a warning that came with the
         // charging stops put on it stays: that plan still falls short somewhere)
-        if (via.isNotEmpty()) { if (evPlanned.isNotEmpty()) evWarning = evPlanWarn; return }
+        // your own stops are fixed: the charging stops are planned round them (a stop of yours is not counted as a charge: no charge assumed there)
         val batt = evBatteryKwh()
         val destKm = prefs.i(PreferenceKeys.EV_DEST_KM, 50).coerceIn(0, 500).toDouble()
         val chargerKm = prefs.i(PreferenceKeys.EV_CHARGER_KM, 30).coerceIn(0, 500).toDouble()
@@ -4480,7 +4503,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
                 // put the stops on the trip straight away, once per destination: if you take them off again (stops editor) they
                 // stay a suggestion (the "Add stops" pill) instead of coming back with every new route
                 val d = dest
-                if (stops.isNotEmpty() && via.isEmpty() && d != null && evAutoDest?.let { Geo.dist(it, d.pos) < 50.0 } != true) {
+                if (stops.isNotEmpty() && d != null && evAutoDest?.let { Geo.dist(it, d.pos) < 50.0 } != true) {
                     evAutoDest = d.pos
                     addStops(stops, auto = true)
                 }
