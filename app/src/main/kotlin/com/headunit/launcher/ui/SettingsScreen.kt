@@ -508,6 +508,7 @@ private fun AlertsSection(prefs: Prefs, engine: NavEngine) {
         SToggle(prefs, "Blitzer", "cameras", false, if (camOff) "Gerade aus: in $banned nicht erlaubt (siehe „Aus, wo verboten“)"
             else if (prefs.b(PreferenceKeys.CAMERA_WARNINGS, false)) engine.camNote.ifBlank { "Noch nicht gesucht: die Suche startet mit dem nächsten GPS-Signal" } else null)
         if (prefs.b(PreferenceKeys.CAMERA_WARNINGS, false)) SToggle(prefs, "Aus, wo verboten", "cambanobey", true, "Schaltet sich in Ländern wie Deutschland, Frankreich und der Schweiz automatisch aus")
+        SToggle(prefs, "Blitzer auf der Karte zeigen", "cameramap", true, "Zeigt die Blitzer auf der Karte, auch in Ländern wo Warnungen verboten sind. Gewarnt wird dort nur, wenn du „Blitzer“ oben selbst einschaltest")
         SToggle(prefs, "Sektionskontrollen (Abschnittskontrolle)", "avgzones", true, "Zeigt dein Durchschnittstempo im Vergleich zum Limit")
     }
     SGroup("Unterwegs", footer = "Informationen stammen aus OpenStreetMap.") {

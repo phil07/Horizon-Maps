@@ -2196,7 +2196,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         try { checkPolice(p) } catch (e: Exception) { }
         try { checkWrongWay(p) } catch (e: Exception) { }
         noteCameraBan()
-        if (!camerasOn()) { cameraDist = null; if (cameras.isNotEmpty()) { cameras = emptyList(); map.setCameras(emptyList()) }; camPos = null; return }
+        if (!camerasOnMap()) { cameraDist = null; if (cameras.isNotEmpty()) { cameras = emptyList(); map.setCameras(emptyList()) }; camPos = null; return }
         val cp = camPos
         if (now - camAt > 120000 && (cp == null || Geo.dist(cp, p.pos) > 2500)) {
             camAt = now; camPos = p.pos
@@ -2217,7 +2217,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         // warned in good time: at least 500 m, or about 18 seconds ahead at speed
         val warnAt = max(500.0, p.speed * 18.0)
         val rc = routeCams
-        if (navigatingNow() && onRouteNow && rc.isNotEmpty()) {
+        if (camerasOn() && navigatingNow() && onRouteNow && rc.isNotEmpty()) {
             // on a route: the cameras along it, by distance along the road (works round bends, where "straight ahead" doesn't)
             for ((c, off) in rc) {
                 val ahead = off - curProg
@@ -2225,7 +2225,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
                 if (!camFacesUs(c, p.heading)) continue
                 best = c; bestD = max(0.0, ahead)
             }
-        } else if (p.speed > 3.0) {
+        } else if (camerasOn() && p.speed > 3.0) {
             for (c in cameras) {
                 val d = Geo.dist(p.pos, c)
                 if (d > warnAt || d >= bestD) continue
@@ -3134,6 +3134,9 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
     /** Camera alerts are on: switched on in Settings, and not in a country that bans them (unless you've chosen to keep them there). */
     fun camerasOn(): Boolean = prefs.b(PreferenceKeys.CAMERA_WARNINGS, false) &&!(detectedCountry in CAMERA_BANNED && prefs.b(PreferenceKeys.CAMBANOBEY, true))
 
+    /** Speed cameras are drawn on the map: switched on in Settings, also in countries that ban the warnings (they're never announced there unless [camerasOn]). */
+    fun camerasOnMap(): Boolean = prefs.b(PreferenceKeys.CAMERA_MAP, true)
+
     private var banNoted = ""
     /** Says once, on arriving in a country that bans camera warnings, that they've been switched off. */
     private fun noteCameraBan() {
@@ -3165,9 +3168,10 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
             if (here != null && Geo.dist(here, c) > 10_000.0) continue
             if (seen.add(Math.round(c.lat * 1e5) * 1000003L + Math.round(c.lon * 1e5))) out += c
         }
-        cameras = out
+        // the list the warnings use: empty where they're off, so nothing is announced; the map draws its own list below
+        cameras = if (camerasOn()) out else emptyList()
         // on a route only the cameras on it are drawn (the ones still ahead); otherwise every camera around you
-        val shown = if (navigatingNow()) routeCams.filter { it.second > curProg - 20.0 }.map { it.first } else out
+        val shown = if (!camerasOnMap()) emptyList() else if (navigatingNow()) routeCams.filter { it.second > curProg - 20.0 }.map { it.first } else out
         if (shown != camsShown) { camsShown = shown; map.setCameras(shown) }
     }
     private var camsShown: List<LL>? = null
@@ -3180,7 +3184,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
     /** Every speed camera found along routes so far (by the map's search along the route, together with the traffic lights). */
     @Volatile private var knownCams: List<LL> = emptyList()
     private var camsCount = -1
-    init { map.onRouteCameras = { c -> knownCams = c; if (camerasOn()) mergeCams() } }
+    init { map.onRouteCameras = { c -> knownCams = c; if (camerasOnMap()) mergeCams() } }
 
     /** How far along the route each traffic light on it is (metres, in order), for zooming in as you come up to one. */
     @Volatile private var lightOffs = DoubleArray(0)
@@ -3541,7 +3545,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
     }
 
     private fun checkIncidents(r: Route, progress: Double) {
-        try { if (camerasOn()) updateRouteCams(r, progress); pushHazards(progress) } catch (e: Exception) { }
+        try { if (camerasOnMap()) updateRouteCams(r, progress); pushHazards(progress) } catch (e: Exception) { }
         // TomTom's incident data when there's a key; otherwise the incidents that came with a Mapbox route
         val fromRoute = (!hasKey || ttDown()) && r.incidents.isNotEmpty()
         if ((!hasKey && !fromRoute) || simMode != 0 || !prefs.b(PreferenceKeys.INCIDENTS, true)) { incidentAhead = null; return }
