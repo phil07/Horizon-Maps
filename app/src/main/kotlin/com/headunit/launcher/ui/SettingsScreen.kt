@@ -741,8 +741,8 @@ private fun FuelSection(prefs: Prefs) {
         SFieldItem("Strompreis (Cent pro kWh)", prefs.s(PreferenceKeys.EVPPK, ""), placeholder = "z. B. 38", number = true) { s -> prefs.put(PreferenceKeys.EVPPK, s.filter { it.isDigit() || it == '.' }.take(6)) }
         SFieldItem("Restreichweite am Ziel (km)", prefs.s(PreferenceKeys.EV_DEST_KM, ""), "Ladestopps werden so geplant, dass du mit mindestens so viel Reichweite ankommst (Standard: 50 km)", placeholder = "z. B. 50", number = true) { s -> prefs.put(PreferenceKeys.EV_DEST_KM, s.filter { it.isDigit() }.take(3).toIntOrNull()?.coerceAtMost(500)?.toString() ?: "") }
         SFieldItem("Restreichweite an der Ladesäule (km)", prefs.s(PreferenceKeys.EV_CHARGER_KM, ""), "Mindestens so viel Reichweite, wenn du an einer Ladesäule ankommst. So bleibt Puffer, falls sie belegt ist und du zur nächsten fährst (Standard: 30 km)", placeholder = "z. B. 30", number = true) { s -> prefs.put(PreferenceKeys.EV_CHARGER_KM, s.filter { it.isDigit() }.take(3).toIntOrNull()?.coerceAtMost(500)?.toString() ?: "") }
-        SChoice("Ladesäulen für Ladestopps", listOf("0" to "Alle", "50" to "ab 50 kW", "150" to "ab 150 kW", "300" to "ab 300 kW"), prefs.i(PreferenceKeys.EV_MIN_KW, 50).toString(),
-            "Nur Ladesäulen mit mindestens dieser Leistung werden als Stopp geplant. Die Leistung schlägt die App online nach. Säulen, deren Leistung trotzdem unbekannt bleibt, nimmt sie nur als letzten Ausweg, wenn keine mit bekannter Leistung erreichbar ist. Ladedaten in Deutschland: Bundesnetzagentur.de (CC BY 4.0).") { prefs.put(PreferenceKeys.EV_MIN_KW, it.toInt()) }
+        SChoice("Ladesäulen für Ladestopps", listOf("0" to "Alle", "50" to "50 kW", "150" to "150 kW", "300" to "300 kW"), prefs.i(PreferenceKeys.EV_MIN_KW, 50).toString(),
+            "Nur Ladesäulen mit mindestens dieser Leistung (oder alle) werden als Stopp geplant. Die Leistung schlägt die App online nach. Säulen, deren Leistung trotzdem unbekannt bleibt, nimmt sie nur als letzten Ausweg, wenn keine mit bekannter Leistung erreichbar ist. Ladedaten in Deutschland: Bundesnetzagentur.de (CC BY 4.0).") { prefs.put(PreferenceKeys.EV_MIN_KW, it.toInt()) }
         EvOperatorsItem(prefs)
         SChoice("Umweg für bevorzugte Anbieter", listOf("5" to "5 Min.", "10" to "10 Min.", "15" to "15 Min.", "20" to "20 Min."), prefs.i(PreferenceKeys.EV_PREF_MIN, 10).toString(),
             "Ladesäulen deiner bevorzugten Anbieter werden nur gewählt, wenn die Fahrt dadurch höchstens so viele Minuten länger dauert und keinen zusätzlichen Ladestopp braucht (Standard: 10 Min.)") { prefs.put(PreferenceKeys.EV_PREF_MIN, it.toInt()) }
@@ -1139,13 +1139,14 @@ private fun EvOperatorsItem(prefs: Prefs) {
     val sel = com.headunit.launcher.ChargeOperators.selected(prefs)
     val names = ops.filter { it.id in sel }.map { it.label }
     val summary = when {
-        names.isEmpty() -> "Keine"
-        names.size <= 3 -> names.joinToString(", ")
-        else -> "${names.size} ausgewählt"
+        names.isEmpty() -> "Noch keine ausgewählt"
+        names.size <= 4 -> "Ausgewählt: " + names.joinToString(", ")
+        else -> "${names.size} ausgewählt: " + names.take(3).joinToString(", ") + " …"
     }
     Box(Modifier.fillMaxWidth()) {
-        SItem("Bevorzugte Ladeanbieter", "Ladestopps nutzen bevorzugt Säulen dieser Anbieter, wenn der Umweg klein bleibt", onClick = { open = true }) {
-            Text(summary, color = c.accent, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.widthIn(max = 220.dp))
+        // a real button, so it's clear the list opens from here
+        SItem("Bevorzugte Ladeanbieter", "$summary. Ladestopps nutzen bevorzugt Säulen dieser Anbieter, wenn der Umweg klein bleibt.", onClick = { open = true }) {
+            SButton(if (names.isEmpty()) "Auswählen ▾" else "Ändern ▾") { open = true }
         }
         // limited height and scrolling: the car's screen is short
         androidx.compose.material3.DropdownMenu(
