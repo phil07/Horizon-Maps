@@ -530,8 +530,10 @@ fun EvStopsRow(engine: NavEngine) {
             else {
                 Text(Lang.t("${stops.size} Ladestopp$many nötig", "${stops.size} charging stop$many needed"), color = Good, fontSize = 13.sp, fontWeight = FontWeight.Bold)
                 stops.forEachIndexed { i, s ->
+                    // the network first (unless the name already says it), and a star for one of the operators preferred in Settings
+                    val op = com.headunit.launcher.ChargeOperators.label(s.n)?.takeUnless { s.n.place.name.contains(it, ignoreCase = true) }
                     Text(
-                        "${i + 1}. ${s.n.place.name} · ${Geo.fmtDist(s.n.dist, engine.imperial)} · " + (s.n.kw?.let { "$it kW · " } ?: "") +
+                        "${i + 1}. " + (if (s.preferred) "★ " else "") + (op?.let { "$it · " } ?: "") + "${s.n.place.name} · ${Geo.fmtDist(s.n.dist, engine.imperial)} · " + (s.n.kw?.let { "$it kW · " } ?: "") +
                             Lang.t("Ankunft ${s.arrPct} %, laden auf ${s.toPct} % (${s.minutes} Min.)", "arrive ${s.arrPct}%, charge to ${s.toPct}% (${s.minutes} min)"),
                         color = c.text, fontSize = 13.sp, maxLines = 2, overflow = TextOverflow.Ellipsis,
                     )

@@ -64,6 +64,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -741,7 +742,11 @@ private fun FuelSection(prefs: Prefs) {
         SFieldItem("Restreichweite am Ziel (km)", prefs.s(PreferenceKeys.EV_DEST_KM, ""), "Ladestopps werden so geplant, dass du mit mindestens so viel Reichweite ankommst (Standard: 50 km)", placeholder = "z. B. 50", number = true) { s -> prefs.put(PreferenceKeys.EV_DEST_KM, s.filter { it.isDigit() }.take(3).toIntOrNull()?.coerceAtMost(500)?.toString() ?: "") }
         SFieldItem("Restreichweite an der Ladesäule (km)", prefs.s(PreferenceKeys.EV_CHARGER_KM, ""), "Mindestens so viel Reichweite, wenn du an einer Ladesäule ankommst. So bleibt Puffer, falls sie belegt ist und du zur nächsten fährst (Standard: 30 km)", placeholder = "z. B. 30", number = true) { s -> prefs.put(PreferenceKeys.EV_CHARGER_KM, s.filter { it.isDigit() }.take(3).toIntOrNull()?.coerceAtMost(500)?.toString() ?: "") }
         SChoice("Ladesäulen für Ladestopps", listOf("0" to "Alle", "50" to "ab 50 kW", "150" to "ab 150 kW", "300" to "ab 300 kW"), prefs.i(PreferenceKeys.EV_MIN_KW, 50).toString(),
-            "Nur Ladesäulen mit mindestens dieser Leistung werden als Stopp geplant. Säulen ohne bekannte Leistung bleiben außen vor, außer bei „Alle“.") { prefs.put(PreferenceKeys.EV_MIN_KW, it.toInt()) }
+            "Nur Ladesäulen mit mindestens dieser Leistung werden als Stopp geplant. Die Leistung schlägt die App online nach. Säulen, deren Leistung trotzdem unbekannt bleibt, nimmt sie nur als letzten Ausweg, wenn keine mit bekannter Leistung erreichbar ist.") { prefs.put(PreferenceKeys.EV_MIN_KW, it.toInt()) }
+        EvOperatorsItem(prefs)
+        SChoice("Umweg für bevorzugte Anbieter", listOf("5" to "5 Min.", "10" to "10 Min.", "15" to "15 Min.", "20" to "20 Min."), prefs.i(PreferenceKeys.EV_PREF_MIN, 10).toString(),
+            "Ladesäulen deiner bevorzugten Anbieter werden nur gewählt, wenn die Fahrt dadurch höchstens so viele Minuten länger dauert und keinen zusätzlichen Ladestopp braucht (Standard: 10 Min.)") { prefs.put(PreferenceKeys.EV_PREF_MIN, it.toInt()) }
+        SFieldItem("Open Charge Map API-Schlüssel", prefs.s(PreferenceKeys.OCM_KEY, ""), "Optional, kostenlos auf openchargemap.org: findet Leistung und Betreiber von Ladesäulen außerhalb Deutschlands. In Deutschland nutzt die App das Ladesäulenregister der Bundesnetzagentur. Ladedaten: Bundesnetzagentur.de (CC BY 4.0), Open Charge Map (CC BY-SA 4.0).", placeholder = "Schlüssel einfügen", password = true) { prefs.put(PreferenceKeys.OCM_KEY, it.trim()) }
         EvWidgetItem(prefs)
     } else SGroup("Kraftstoffkosten auf der Route") {
         SFieldItem("Verbrauch (Liter pro 100 km)", prefs.s(PreferenceKeys.FUELMPG, ""), placeholder = "z. B. 6.5", number = true) { s -> prefs.put(PreferenceKeys.FUELMPG, s.filter { it.isDigit() || it == '.' }.take(5)) }
@@ -1122,6 +1127,54 @@ private fun evNum(v: Double): String =
 /** "77 kWh · 175 kW" for a car in the list (the power is left out when the dataset doesn't know it). */
 private fun evCarDetails(car: com.headunit.launcher.EvCar): String =
     "${evNum(car.kwh)} kWh" + (car.maxKw?.let { " · ${evNum(Math.round(it).toDouble())} kW" } ?: "")
+
+/**
+ * Settings > Fuel > Your electric car > Preferred operators: a menu of the common networks with a tick box each. Ticking one
+ * keeps the menu open, so several can be picked in one go; the charging-stop plan prefers their chargers (see NavEngine.planEv).
+ */
+@Composable
+private fun EvOperatorsItem(prefs: Prefs) {
+    val c = LocalVw.current
+    var open by remember { mutableStateOf(false) }
+    val ops = com.headunit.launcher.ChargeOperators.all
+    val sel = com.headunit.launcher.ChargeOperators.selected(prefs)
+    val names = ops.filter { it.id in sel }.map { it.label }
+    val summary = when {
+        names.isEmpty() -> "Keine"
+        names.size <= 3 -> names.joinToString(", ")
+        else -> "${names.size} ausgewählt"
+    }
+    Box(Modifier.fillMaxWidth()) {
+        SItem("Bevorzugte Ladeanbieter", "Ladestopps nutzen bevorzugt Säulen dieser Anbieter, wenn der Umweg klein bleibt", onClick = { open = true }) {
+            Text(summary, color = c.accent, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.widthIn(max = 220.dp))
+        }
+        // limited height and scrolling: the car's screen is short
+        androidx.compose.material3.DropdownMenu(
+            expanded = open, onDismissRequest = { open = false },
+            modifier = Modifier.heightIn(max = 360.dp).widthIn(min = 260.dp),
+            containerColor = c.panel,
+        ) {
+            if (sel.isNotEmpty()) androidx.compose.material3.DropdownMenuItem(
+                text = { Text("Alle abwählen", color = c.accent, fontSize = 15.sp, fontWeight = FontWeight.SemiBold) },
+                onClick = { com.headunit.launcher.ChargeOperators.setSelected(prefs, emptySet()) },
+            )
+            for (o in ops) {
+                val on = o.id in sel
+                fun toggle() = com.headunit.launcher.ChargeOperators.setSelected(prefs, if (on) sel - o.id else sel + o.id)
+                androidx.compose.material3.DropdownMenuItem(
+                    text = { Text(o.label, color = c.text, fontSize = 15.sp) },
+                    onClick = { toggle() },
+                    leadingIcon = {
+                        androidx.compose.material3.Checkbox(
+                            checked = on, onCheckedChange = { toggle() },
+                            colors = androidx.compose.material3.CheckboxDefaults.colors(checkedColor = c.accent, uncheckedColor = c.sub, checkmarkColor = if (c.accent.luminance() > 0.6f) Color(0xFF10131C) else Color.White),
+                        )
+                    },
+                )
+            }
+        }
+    }
+}
 
 /**
  * Settings > Fuel > Your electric car > Your car: the car is picked from the open EV dataset (downloaded once, when the picker

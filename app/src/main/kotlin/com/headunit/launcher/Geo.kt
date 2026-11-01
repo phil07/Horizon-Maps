@@ -414,7 +414,9 @@ object TomTomRest {
                 if (!r.isNaN() && r > 0 && r <= 1500 && Math.round(r).toInt() > (kw ?: 0)) kw = Math.round(r).toInt()
             }
         }
-        return Nearby(Place(name, street, p), d, extra.joinToString(" · "), kw = kw)
+        // TomTom puts a charger's operator (or the network it belongs to) in its brands
+        val op = if (kind == "charging") poi?.optJSONArray("brands")?.optJSONObject(0)?.optString("name")?.trim()?.takeIf { it.isNotEmpty() } else null
+        return Nearby(Place(name, street, p), d, extra.joinToString(" · "), kw = kw, op = op)
     }
 
     /** Places of a kind around [c] from TomTom's search (fast, and works wherever there is signal). */

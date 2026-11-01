@@ -3927,7 +3927,10 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
     /** The battery level or the charge to arrive with changed on the route options: look again for a charging stop. */
     fun refreshEvPlan() { val r = route ?: return; fuelSuggestion = null; suggestFuel(r) }
 
-    /** Electric: the charging stops this trip needs. Each stop is the furthest charger reachable with the reserve left there. */
+    /**
+     * Electric: the charging stops this trip needs. Each stop is the furthest charger reachable with the reserve left there, or
+     * the furthest of a preferred operator (Settings) when that plan has as many stops and costs only a few minutes more.
+     */
     private fun planEv(r: Route) {
         evStops = emptyList(); evWarning = null
         // stops already on the trip are the user's plan: no suggestion on top of them
@@ -3941,28 +3944,49 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         scope.launch {
             val cands = withContext(Dispatchers.IO) { chargersAlong(r) }
             if (route !== r) return@launch
-            val stops = ArrayList<EvStop>()
-            var s = 0.0; var range = startKm; var warning: String? = null
-            while (range - (lenKm - s) < destKm) {
-                if (stops.size >= 6) { warning = Lang.t("Mehr als 6 Ladestopps: die Strecke ist für diese Planung zu lang.", "More than 6 charging stops: the trip is too long for this plan."); break }
-                val reach = s + range - chargerKm
-                val inReach = cands.filter { it.dist / 1000.0 > s + 0.5 && it.dist / 1000.0 <= reach }
-                // a charger of known power first; one of unknown power only when nothing else is in reach
-                val c = inReach.filter { it.kw != null }.ifEmpty { inReach }.maxByOrNull { it.dist }
-                if (c == null) {
-                    val minKw = prefs.i(PreferenceKeys.EV_MIN_KW, 50)
-                    warning = if (minKw > 0) Lang.t("Kein Ladepunkt mit mind. $minKw kW auf der Strecke ist mit ${chargerKm.toInt()} km Reserve erreichbar.", "No charger of at least $minKw kW on the route can be reached with ${chargerKm.toInt()} km left.")
-                    else Lang.t("Kein Ladepunkt auf der Strecke ist mit ${chargerKm.toInt()} km Reserve erreichbar.", "No charger on the route can be reached with ${chargerKm.toInt()} km left.")
-                    break
+            val ids = ChargeOperators.selected(prefs)
+            // the greedy plan: at each stop [pick] chooses among the chargers in reach; the stops and a warning if it falls short
+            fun plan(pick: (List<Nearby>) -> Nearby?): Pair<List<EvStop>, String?> {
+                val stops = ArrayList<EvStop>()
+                var s = 0.0; var range = startKm; var warning: String? = null
+                while (range - (lenKm - s) < destKm) {
+                    if (stops.size >= 6) { warning = Lang.t("Mehr als 6 Ladestopps: die Strecke ist für diese Planung zu lang.", "More than 6 charging stops: the trip is too long for this plan."); break }
+                    val reach = s + range - chargerKm
+                    val inReach = cands.filter { it.dist / 1000.0 > s + 0.5 && it.dist / 1000.0 <= reach }
+                    val c = pick(inReach)
+                    if (c == null) {
+                        val minKw = prefs.i(PreferenceKeys.EV_MIN_KW, 50)
+                        warning = if (minKw > 0) Lang.t("Kein Ladepunkt mit mind. $minKw kW auf der Strecke ist mit ${chargerKm.toInt()} km Reserve erreichbar.", "No charger of at least $minKw kW on the route can be reached with ${chargerKm.toInt()} km left.")
+                        else Lang.t("Kein Ladepunkt auf der Strecke ist mit ${chargerKm.toInt()} km Reserve erreichbar.", "No charger on the route can be reached with ${chargerKm.toInt()} km left.")
+                        break
+                    }
+                    val ck = c.dist / 1000.0
+                    val arr = range - (ck - s)
+                    // charge only as far as the destination needs (with its reserve), never past full
+                    val target = min(full, max(arr, (lenKm - ck) + destKm))
+                    // the car's charging curve, capped by what this charger delivers
+                    val mins = EvCars.chargeMinutes(prefs, arr / full * 100.0, target / full * 100.0, batt, c.kw).coerceAtLeast(0)
+                    stops += EvStop(c, Math.round(arr / full * 100.0).toInt().coerceIn(0, 100), Math.round(target / full * 100.0).toInt().coerceIn(0, 100), mins, ChargeOperators.matches(c, ids))
+                    s = ck; range = target
                 }
-                val ck = c.dist / 1000.0
-                val arr = range - (ck - s)
-                // charge only as far as the destination needs (with its reserve), never past full
-                val target = min(full, max(arr, (lenKm - ck) + destKm))
-                // the car's charging curve, capped by what this charger delivers
-                val mins = EvCars.chargeMinutes(prefs, arr / full * 100.0, target / full * 100.0, batt, c.kw).coerceAtLeast(0)
-                stops += EvStop(c, Math.round(arr / full * 100.0).toInt().coerceIn(0, 100), Math.round(target / full * 100.0).toInt().coerceIn(0, 100), mins)
-                s = ck; range = target
+                return stops to warning
+            }
+            // a charger of known power first; one of unknown power only when nothing else is in reach
+            fun quickest(inReach: List<Nearby>) = inReach.filter { it.kw != null }.ifEmpty { inReach }.maxByOrNull { it.dist }
+            // time the stops cost: charging plus the detour to each charger
+            fun total(p: List<EvStop>) = p.sumOf { it.minutes + max(0, it.n.detourMin) }
+            var (stops, warning) = plan { quickest(it) }
+            if (ids.isNotEmpty() && stops.isNotEmpty() && stops.any { !it.preferred }) {
+                // the furthest preferred charger in reach. One of unknown power only when no charger of known power is in reach
+                // at all, so a preference never swaps a known fast charger for what may be a slow one; none: the quickest rule
+                val pref = plan { inReach ->
+                    val known = inReach.filter { it.kw != null }
+                    (if (known.isEmpty()) inReach else known).filter { ChargeOperators.matches(it, ids) }.maxByOrNull { it.dist } ?: quickest(inReach)
+                }
+                // only when it needs no extra stop and costs at most the extra minutes allowed in Settings
+                val allowed = prefs.i(PreferenceKeys.EV_PREF_MIN, 10).coerceIn(0, 120)
+                if ((pref.second == null) == (warning == null) && pref.first.size == stops.size && pref.first.count { it.preferred } > stops.count { it.preferred } &&
+                    total(pref.first) - total(stops) <= allowed) { stops = pref.first; warning = pref.second }
             }
             if (route === r) { evStops = stops; evWarning = warning }
         }
@@ -3976,21 +4000,34 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         // (the planner takes them only when no charger of known power is in reach)
         fun fast(n: Nearby) = minKw <= 0 || n.kw == null || n.kw >= minKw
         try {
+            val tt = ArrayList<Nearby>()
             if (hasKey && online()) {
                 val line = RouteExtras.line(r, 0.0, r.len, 800.0, 140)
                 try {
                     for ((n, secs) in TomTomRest.poiAlong(apiKey, "charging", line, 600)) {
-                        if (!fast(n)) continue
                         val pr = RouteExtras.project(r, n.place.pos, 3000.0) ?: continue
-                        out += n.copy(dist = pr.first, detourMin = if (secs >= 0) Math.round(secs / 60.0).toInt() else detour(pr.second), ahead = true)
+                        tt += n.copy(dist = pr.first, detourMin = if (secs >= 0) Math.round(secs / 60.0).toInt() else detour(pr.second), ahead = true)
                     }
                 } catch (e: Exception) { }
             }
+            // the German register / Open Charge Map: the power and operator of chargers TomTom lists without them (filled in before
+            // the power filter, so one of unknown power can turn out fast or slow), and the fast chargers TomTom left out
+            val reg = if (online()) ChargerInfo.along(prefs, RouteExtras.line(r, 0.0, r.len, 1000.0, 150)) else emptyList()
+            val known = ChargerInfo.enrich(tt, reg)
+            out += known.filter { fast(it) }
+            val added = ArrayList<Nearby>()
+            for (n in reg) {
+                if (!fast(n) || ChargerInfo.near(n.place.pos, known)) continue
+                val pr = RouteExtras.project(r, n.place.pos, 1600.0) ?: continue
+                added += n.copy(dist = pr.first, detourMin = detour(pr.second), ahead = true)
+            }
+            out += added
             // TomTom gives at most 20 along the route: add OpenStreetMap's when few of known power are left
             if (out.count { it.kw != null } < 10 && online()) {
                 val line = RouteExtras.line(r, 0.0, r.len, 1500.0, 45)
-                for (n in Overpass.nearbyAlong("charging", line, 900)) {
-                    if (!fast(n)) continue
+                for (n in ChargerInfo.enrich(Overpass.nearbyAlong("charging", line, 900), reg)) {
+                    // (one the register already added would be listed twice)
+                    if (!fast(n) || ChargerInfo.near(n.place.pos, added)) continue
                     val pr = RouteExtras.project(r, n.place.pos, 1200.0) ?: continue
                     out += n.copy(dist = pr.first, detourMin = detour(pr.second), ahead = true)
                 }
@@ -4816,5 +4853,8 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
     }
 }
 
-/** One charging stop on an electric trip: the charger, the charge on arrival and the level to charge to (both in %), and the minutes to charge. */
-data class EvStop(val n: Nearby, val arrPct: Int, val toPct: Int, val minutes: Int)
+/**
+ * One charging stop on an electric trip: the charger, the charge on arrival and the level to charge to (both in %), and the minutes
+ * to charge. [preferred]: the charger belongs to one of the operators preferred in Settings.
+ */
+data class EvStop(val n: Nearby, val arrPct: Int, val toPct: Int, val minutes: Int, val preferred: Boolean = false)

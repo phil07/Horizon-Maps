@@ -477,6 +477,7 @@ object Overpass {
             val name = tags.optString("name").ifBlank { tags.optString("brand") }.ifBlank { tags.optString("operator") }.ifBlank { label }
             val extra = ArrayList<String>()
             var kw: Int? = null
+            var op: String? = null
             when (kind) {
                 "fuel", "fuel_e85" -> {
                     tags.optString("brand").takeIf { it.isNotBlank() && it != name }?.let { extra += it }
@@ -497,6 +498,8 @@ object Overpass {
                     tags.optString("capacity").takeIf { it.isNotBlank() }?.let { extra += Lang.t("$it Ladepunkte", "$it points") }
                     tags.optString("operator").takeIf { it.isNotBlank() && it != name }?.let { extra += it }
                     kw = maxKw(tags)
+                    // who runs it, for preferred operators and the charge price: operator, else the brand or network it is sold under
+                    op = listOf("operator", "brand", "network").map { k -> tags.optString(k).trim() }.firstOrNull { v -> v.isNotEmpty() }
                 }
                 "parking" -> {
                     when (tags.optString("fee")) { "yes" -> extra += Lang.t("Kostenpflichtig", "Paid"); "no" -> extra += Lang.t("Kostenlos", "Free") }
@@ -515,7 +518,7 @@ object Overpass {
                     tags.optString("operator").takeIf { it.isNotBlank() && it != name }?.let { extra += it }
                 }
             }
-            out += Nearby(Place(name, tags.optString("addr:street"), pos), Geo.dist(c, pos), extra.joinToString(" · "), kw = kw)
+            out += Nearby(Place(name, tags.optString("addr:street"), pos), Geo.dist(c, pos), extra.joinToString(" · "), kw = kw, op = op)
         }
         return out
     }
