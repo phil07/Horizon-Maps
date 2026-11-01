@@ -256,13 +256,14 @@ private fun CarScreen(engine: NavEngine, a: android.graphics.Rect?, actions: Car
                 }
             }
             CarChips(engine, actions, savedRows)
-            // battery and range from the car (or the widget), always on the map, not only during a route
+            // battery and range from the car (or the widget): always shown on the map, not only during a route.
+            // Without a reading yet it shows dashes, so it is clear the value is missing rather than the pill being gone.
             val evPct = engine.prefs.s(PreferenceKeys.EV_NOW_PCT, "").toIntOrNull()
             val evKm = engine.prefs.s(PreferenceKeys.EV_NOW_KM, "").toIntOrNull()
-            if (evPct != null) Row(Modifier.height(64.dp).panel(10.dp, RoundedCornerShape(32.dp), c.surface).padding(horizontal = 22.dp),
+            Row(Modifier.height(64.dp).panel(10.dp, RoundedCornerShape(32.dp), c.surface).padding(horizontal = 22.dp),
                 verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                Text("$evPct %", color = if (evPct < 15) Bad else if (evPct < 30) Warn else c.text, fontSize = 24.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
-                if (evKm != null) Text("· $evKm km", color = c.text, fontSize = 24.sp, maxLines = 1)
+                Text(if (evPct != null) "$evPct %" else "– %", color = if (evPct == null) c.sub else if (evPct < 15) Bad else if (evPct < 30) Warn else c.text, fontSize = 24.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
+                Text(if (evKm != null) "· $evKm km" else "· – km", color = if (evKm == null) c.sub else c.text, fontSize = 24.sp, maxLines = 1)
             }
         }
 
