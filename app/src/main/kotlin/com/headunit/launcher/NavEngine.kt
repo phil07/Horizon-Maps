@@ -3873,8 +3873,8 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
     /** On a long trip, finds a good place to fill up around the middle of the route: the cheapest (with Fuel Finder) or the quickest detour. */
     // ---- electric cars: battery estimate ----
     val isEv: Boolean get() = prefs.s(PreferenceKeys.FUEL_TYPE, "E10") == "EV"
-    /** Usable battery (kWh), from Settings > Fuel (60 if not set). */
-    private fun evBatteryKwh(): Double = (prefs.s(PreferenceKeys.EV_BATTERY_KWH, "").toDoubleOrNull() ?: 60.0).coerceIn(10.0, 200.0)
+    /** Usable battery (kWh): the chosen car's, else from Settings > Fuel (60 if not set). */
+    private fun evBatteryKwh(): Double = EvCars.batteryKwh(prefs) ?: (prefs.s(PreferenceKeys.EV_BATTERY_KWH, "").toDoubleOrNull() ?: 60.0).coerceIn(10.0, 200.0)
     /** kWh used per km: from the efficiency in Settings > Fuel (miles per kWh), or a typical 0.18. */
     private fun evKwhPerKm(): Double = prefs.s(PreferenceKeys.EVMPK, "").toDoubleOrNull()?.takeIf { it in 1.0..8.0 }?.let { 1.0 / (it * 1.609344) } ?: 0.18
     /** Roughly how much battery (%) you'll arrive with: the charge you set before the trip, less what's been driven and what's left. */
@@ -3947,12 +3947,18 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
                 if (stops.size >= 6) { warning = Lang.t("Mehr als 6 Ladestopps: die Strecke ist für diese Planung zu lang.", "More than 6 charging stops: the trip is too long for this plan."); break }
                 val reach = s + range - chargerKm
                 val c = cands.filter { it.dist / 1000.0 > s + 0.5 && it.dist / 1000.0 <= reach }.maxByOrNull { it.dist }
-                if (c == null) { warning = Lang.t("Kein Ladepunkt auf der Strecke ist mit ${chargerKm.toInt()} km Reserve erreichbar.", "No charger on the route can be reached with ${chargerKm.toInt()} km left."); break }
+                if (c == null) {
+                    val minKw = prefs.i(PreferenceKeys.EV_MIN_KW, 50)
+                    warning = if (minKw > 0) Lang.t("Kein Ladepunkt mit mind. $minKw kW auf der Strecke ist mit ${chargerKm.toInt()} km Reserve erreichbar.", "No charger of at least $minKw kW on the route can be reached with ${chargerKm.toInt()} km left.")
+                    else Lang.t("Kein Ladepunkt auf der Strecke ist mit ${chargerKm.toInt()} km Reserve erreichbar.", "No charger on the route can be reached with ${chargerKm.toInt()} km left.")
+                    break
+                }
                 val ck = c.dist / 1000.0
                 val arr = range - (ck - s)
                 // charge only as far as the destination needs (with its reserve), never past full
                 val target = min(full, max(arr, (lenKm - ck) + destKm))
-                val mins = Math.round((target - arr) / full * batt / 50.0 * 60.0).toInt().coerceAtLeast(0)
+                // the car's charging curve, capped by what this charger delivers
+                val mins = EvCars.chargeMinutes(prefs, arr / full * 100.0, target / full * 100.0, batt, c.kw).coerceAtLeast(0)
                 stops += EvStop(c, Math.round(arr / full * 100.0).toInt().coerceIn(0, 100), Math.round(target / full * 100.0).toInt().coerceIn(0, 100), mins)
                 s = ck; range = target
             }
@@ -3963,11 +3969,15 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
     /** Chargers along the whole route, with where they are on it (metres) and the detour. */
     private fun chargersAlong(r: Route): List<Nearby> {
         val out = ArrayList<Nearby>()
+        val minKw = prefs.i(PreferenceKeys.EV_MIN_KW, 50)
+        // the power filter from Settings: a charger of unknown power can't be trusted to meet it
+        fun fast(n: Nearby) = minKw <= 0 || (n.kw ?: 0) >= minKw
         try {
             if (hasKey && online()) {
                 val line = RouteExtras.line(r, 0.0, r.len, 800.0, 140)
                 try {
                     for ((n, secs) in TomTomRest.poiAlong(apiKey, "charging", line, 600)) {
+                        if (!fast(n)) continue
                         val pr = RouteExtras.project(r, n.place.pos, 3000.0) ?: continue
                         out += n.copy(dist = pr.first, detourMin = if (secs >= 0) Math.round(secs / 60.0).toInt() else detour(pr.second), ahead = true)
                     }
@@ -3976,6 +3986,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
             if (out.isEmpty() && online()) {
                 val line = RouteExtras.line(r, 0.0, r.len, 1500.0, 45)
                 for (n in Overpass.nearbyAlong("charging", line, 900)) {
+                    if (!fast(n)) continue
                     val pr = RouteExtras.project(r, n.place.pos, 1200.0) ?: continue
                     out += n.copy(dist = pr.first, detourMin = detour(pr.second), ahead = true)
                 }

@@ -226,6 +226,16 @@ internal object PreferenceKeys {
     const val EV_DEST_KM = "evdestkm"
     /** The least range to arrive at a charger with, in km (so a busy one can be left for the next). */
     const val EV_CHARGER_KM = "evchargerkm"
+    /** The chosen electric car's label, "" when none (see [EvCars]). */
+    const val EV_CAR = "evcar"
+    /** The chosen car's usable battery in kWh, as a string. */
+    const val EV_CAR_KWH = "evcarkwh"
+    /** The chosen car's max DC charging power in kW, as a string ("" if unknown). */
+    const val EV_CAR_KW = "evcarkw"
+    /** The chosen car's DC charging curve as "pct:kw,pct:kw,..." ("" if unknown). */
+    const val EV_CAR_CURVE = "evcarcurve"
+    /** Chargers used for charging stops: 0 = all, 50, 150 or 300 kW and faster; default 50. */
+    const val EV_MIN_KW = "evminkw"
 }
 
 /**

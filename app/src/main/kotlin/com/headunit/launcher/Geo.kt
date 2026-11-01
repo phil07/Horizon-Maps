@@ -405,7 +405,16 @@ object TomTomRest {
         poi?.optJSONArray("categories")?.optString(0)?.takeIf { it.isNotBlank() && kind in setOf("food", "coffee") }?.let { extra += it.replaceFirstChar { c -> c.uppercase() } }
         val street = addr?.optString("streetName").orEmpty().ifBlank { addr?.optString("municipality").orEmpty() }
         val d = if (x.has("dist")) x.optDouble("dist", 0.0) else Geo.dist(from, p)
-        return Nearby(Place(name, street, p), d, extra.joinToString(" · "))
+        // charging: TomTom lists the connectors with their rated power; the fastest one sets the charge time
+        var kw: Int? = null
+        if (kind == "charging") {
+            val cons = x.optJSONObject("chargingPark")?.optJSONArray("connectors")
+            if (cons != null) for (i in 0 until cons.length()) {
+                val r = cons.optJSONObject(i)?.optDouble("ratedPowerKW", 0.0) ?: 0.0
+                if (!r.isNaN() && r > 0 && r <= 1500 && Math.round(r).toInt() > (kw ?: 0)) kw = Math.round(r).toInt()
+            }
+        }
+        return Nearby(Place(name, street, p), d, extra.joinToString(" · "), kw = kw)
     }
 
     /** Places of a kind around [c] from TomTom's search (fast, and works wherever there is signal). */

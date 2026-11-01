@@ -731,11 +731,17 @@ private fun FuelSection(prefs: Prefs) {
         SFieldItem("Tankerkönig-Schlüssel (Deutschland)", prefs.s(PreferenceKeys.TANKERKOENIG_KEY, ""), placeholder = "Schlüssel einfügen", password = true) { prefs.put(PreferenceKeys.TANKERKOENIG_KEY, it.trim()) }
     }
     if (prefs.s(PreferenceKeys.FUEL_TYPE, "E10") == "EV") SGroup("Dein Elektroauto") {
+        EvCarItem(prefs)
         SFieldItem("Effizienz (km pro kWh)", prefs.s(PreferenceKeys.EVMPK, ""), placeholder = "z. B. 5.5", number = true) { s -> prefs.put(PreferenceKeys.EVMPK, s.filter { it.isDigit() || it == '.' }.take(5)) }
-        SFieldItem("Nutzbare Batterie (kWh)", prefs.s(PreferenceKeys.EV_BATTERY_KWH, ""), "Für Akkuschätzung und Ladestopps (Standard: 60 kWh)", placeholder = "z. B. 64", number = true) { s -> prefs.put(PreferenceKeys.EV_BATTERY_KWH, s.filter { it.isDigit() || it == '.' }.take(5)) }
+        // a chosen car brings its own battery size; the typed one is then not used
+        val carKwh = if (prefs.s(PreferenceKeys.EV_CAR, "").isNotBlank()) com.headunit.launcher.EvCars.batteryKwh(prefs) else null
+        if (carKwh != null) SItem("Nutzbare Batterie", "${evNum(carKwh)} kWh aus den Fahrzeugdaten")
+        else SFieldItem("Nutzbare Batterie (kWh)", prefs.s(PreferenceKeys.EV_BATTERY_KWH, ""), "Für Akkuschätzung und Ladestopps (Standard: 60 kWh)", placeholder = "z. B. 64", number = true) { s -> prefs.put(PreferenceKeys.EV_BATTERY_KWH, s.filter { it.isDigit() || it == '.' }.take(5)) }
         SFieldItem("Strompreis (Cent pro kWh)", prefs.s(PreferenceKeys.EVPPK, ""), placeholder = "z. B. 38", number = true) { s -> prefs.put(PreferenceKeys.EVPPK, s.filter { it.isDigit() || it == '.' }.take(6)) }
         SFieldItem("Restreichweite am Ziel (km)", prefs.s(PreferenceKeys.EV_DEST_KM, ""), "Ladestopps werden so geplant, dass du mit mindestens so viel Reichweite ankommst (Standard: 50 km)", placeholder = "z. B. 50", number = true) { s -> prefs.put(PreferenceKeys.EV_DEST_KM, s.filter { it.isDigit() }.take(3).toIntOrNull()?.coerceAtMost(500)?.toString() ?: "") }
         SFieldItem("Restreichweite an der Ladesäule (km)", prefs.s(PreferenceKeys.EV_CHARGER_KM, ""), "Mindestens so viel Reichweite, wenn du an einer Ladesäule ankommst. So bleibt Puffer, falls sie belegt ist und du zur nächsten fährst (Standard: 30 km)", placeholder = "z. B. 30", number = true) { s -> prefs.put(PreferenceKeys.EV_CHARGER_KM, s.filter { it.isDigit() }.take(3).toIntOrNull()?.coerceAtMost(500)?.toString() ?: "") }
+        SChoice("Ladesäulen für Ladestopps", listOf("0" to "Alle", "50" to "ab 50 kW", "150" to "ab 150 kW", "300" to "ab 300 kW"), prefs.i(PreferenceKeys.EV_MIN_KW, 50).toString(),
+            "Nur Ladesäulen mit mindestens dieser Leistung werden als Stopp geplant. Säulen ohne bekannte Leistung bleiben außen vor, außer bei „Alle“.") { prefs.put(PreferenceKeys.EV_MIN_KW, it.toInt()) }
         EvWidgetItem(prefs)
     } else SGroup("Kraftstoffkosten auf der Route") {
         SFieldItem("Verbrauch (Liter pro 100 km)", prefs.s(PreferenceKeys.FUELMPG, ""), placeholder = "z. B. 6.5", number = true) { s -> prefs.put(PreferenceKeys.FUELMPG, s.filter { it.isDigit() || it == '.' }.take(5)) }
@@ -1106,6 +1112,101 @@ private fun EvWidgetItem(prefs: Prefs) {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) { SButton("Abbrechen") { picking = false } }
             }
         }
+    }
+}
+
+/** A kWh or kW figure the German way: 77 or 77,4. */
+private fun evNum(v: Double): String =
+    if (v % 1.0 == 0.0) v.toLong().toString() else String.format(java.util.Locale.GERMANY, "%.1f", v)
+
+/** "77 kWh · 175 kW" for a car in the list (the power is left out when the dataset doesn't know it). */
+private fun evCarDetails(car: com.headunit.launcher.EvCar): String =
+    "${evNum(car.kwh)} kWh" + (car.maxKw?.let { " · ${evNum(Math.round(it).toDouble())} kW" } ?: "")
+
+/**
+ * Settings > Fuel > Your electric car > Your car: the car is picked from the open EV dataset (downloaded once, when the picker
+ * opens), with the battery widget's text as a suggestion. Its battery and charging curve give the charging-stop times.
+ */
+@Composable
+private fun EvCarItem(prefs: Prefs) {
+    var picking by remember { mutableStateOf(false) }
+    val label = prefs.s(PreferenceKeys.EV_CAR, "")
+    val sub = if (label.isBlank()) "Mit Akku und Ladekurve deines Autos werden die Ladezeiten an den Ladestopps genau."
+    else {
+        val kwh = com.headunit.launcher.EvCars.batteryKwh(prefs)
+        val kw = prefs.s(PreferenceKeys.EV_CAR_KW, "").toDoubleOrNull()
+        label + (kwh?.let { " · ${evNum(it)} kWh" } ?: "") + (kw?.let { " · max. ${evNum(Math.round(it).toDouble())} kW" } ?: "")
+    }
+    // (the dataset's licence asks for the source to be shown)
+    SItem("Dein Fahrzeug", sub + "\nFahrzeugdaten: " + com.headunit.launcher.EvCars.SOURCE)
+    // the buttons sit on their own line, as for the widget below
+    Row(Modifier.fillMaxWidth().padding(bottom = 8.dp).horizontalScroll(androidx.compose.foundation.rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        SButton(if (label.isBlank()) "Wählen" else "Ändern", primary = label.isBlank()) { picking = true }
+        if (label.isNotBlank()) SButton("Entfernen", danger = true) { com.headunit.launcher.EvCars.clear(prefs) }
+    }
+    if (picking) EvCarDialog(prefs) { picking = false }
+}
+
+/** Picks the car: suggestions from the battery widget's text first, then the whole list, narrowed by a search. */
+@Composable
+private fun EvCarDialog(prefs: Prefs, onClose: () -> Unit) {
+    val c = LocalVw.current
+    val ctx = LocalContext.current
+    var all by remember { mutableStateOf<List<com.headunit.launcher.EvCar>?>(null) }
+    var failed by remember { mutableStateOf(false) }
+    // bumped by "Erneut versuchen" to load again
+    var attempt by remember { mutableIntStateOf(0) }
+    var query by remember { mutableStateOf("") }
+    androidx.compose.runtime.LaunchedEffect(attempt) {
+        failed = false
+        try { all = withContext(Dispatchers.IO) { com.headunit.launcher.EvCars.load(ctx) } }
+        catch (e: kotlinx.coroutines.CancellationException) { throw e }
+        catch (e: Exception) { failed = true }
+    }
+    val cars = all
+    val texts = com.headunit.launcher.EvWidget.lastTexts
+    val suggested = remember(cars, texts) { if (cars == null) emptyList() else com.headunit.launcher.EvCars.suggest(cars, texts) }
+    val shown = remember(cars, query) {
+        val words = query.lowercase().split(' ').filter { it.isNotBlank() }
+        cars.orEmpty().filter { car -> val l = car.label.lowercase(); words.all { l.contains(it) } }
+    }
+    fun pick(car: com.headunit.launcher.EvCar) { com.headunit.launcher.EvCars.select(prefs, car); onClose() }
+    androidx.compose.ui.window.Dialog(onDismissRequest = onClose) {
+        Column(Modifier.widthIn(max = 560.dp).fillMaxWidth().clip(RoundedCornerShape(26.dp)).background(c.panel).padding(22.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Text("Dein Fahrzeug", color = c.text, fontSize = 22.sp, fontWeight = FontWeight.Bold)
+            when {
+                failed -> {
+                    Text("Die Fahrzeugdaten ließen sich nicht laden. Prüfe die Internetverbindung.", color = c.sub, fontSize = 15.sp)
+                    SButton("Erneut versuchen", primary = true) { attempt++ }
+                }
+                cars == null -> Text("Fahrzeugdaten werden geladen …", color = c.sub, fontSize = 15.sp)
+                else -> {
+                    if (suggested.isNotEmpty()) {
+                        Text("Vorschlag aus dem Widget", color = c.sub, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                        Column(Modifier.heightIn(max = 160.dp).verticalScroll(rememberScrollState())) {
+                            for (car in suggested) EvCarRow(car) { pick(car) }
+                        }
+                    }
+                    SField(query, { query = it.take(60) }, placeholder = "Suchen, z. B. ID.7 Pro", width = 516.dp, fill = true)
+                    androidx.compose.foundation.lazy.LazyColumn(Modifier.fillMaxWidth().heightIn(max = 360.dp)) {
+                        if (shown.isEmpty()) item { Text("Kein Fahrzeug gefunden", color = c.sub, fontSize = 15.sp, modifier = Modifier.padding(vertical = 12.dp)) }
+                        items(shown.size) { i -> val car = shown[i]; EvCarRow(car) { pick(car) } }
+                    }
+                }
+            }
+            Text("Fahrzeugdaten: " + com.headunit.launcher.EvCars.SOURCE, color = c.sub, fontSize = 12.sp)
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) { SButton("Abbrechen") { onClose() } }
+        }
+    }
+}
+
+/** One car in the picker: its name, then battery and top charging power. */
+@Composable
+private fun EvCarRow(car: com.headunit.launcher.EvCar, onClick: () -> Unit) {
+    val c = LocalVw.current
+    Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).clickable { onClick() }.padding(horizontal = 10.dp, vertical = 10.dp)) {
+        Text(car.label, color = c.text, fontSize = 16.sp, maxLines = 2, overflow = TextOverflow.Ellipsis)
+        Text(evCarDetails(car), color = c.sub, fontSize = 13.sp)
     }
 }
 

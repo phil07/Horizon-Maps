@@ -9,7 +9,7 @@ import java.net.URLEncoder
 
 /** A place found nearby or along the route. [price] is pence per litre (fuel), [detourMin] the rough extra time to call there (-1 when not known). */
 /** [price] is in pence or cents a litre; [unit] says which ("p" or "€"), so it can be shown the local way (139.9p, €1.789). */
-data class Nearby(val place: Place, val dist: Double, val extra: String, val price: Double? = null, val detourMin: Int = -1, val ahead: Boolean = false, val unit: String = "p")
+data class Nearby(val place: Place, val dist: Double, val extra: String, val price: Double? = null, val detourMin: Int = -1, val ahead: Boolean = false, val unit: String = "p", val kw: Int? = null)
 
 /** A fuel price the local way: "139.9p" in the UK, "€1.789" in the euro countries. [price] is in pence or cents a litre. */
 fun fmtFuelPrice(price: Double, unit: String): String =
@@ -476,6 +476,7 @@ object Overpass {
             val label = kindLabel(kind)
             val name = tags.optString("name").ifBlank { tags.optString("brand") }.ifBlank { tags.optString("operator") }.ifBlank { label }
             val extra = ArrayList<String>()
+            var kw: Int? = null
             when (kind) {
                 "fuel", "fuel_e85" -> {
                     tags.optString("brand").takeIf { it.isNotBlank() && it != name }?.let { extra += it }
@@ -495,6 +496,7 @@ object Overpass {
                     if (sockets.isNotEmpty()) extra += sockets.take(3).joinToString(", ")
                     tags.optString("capacity").takeIf { it.isNotBlank() }?.let { extra += Lang.t("$it Ladepunkte", "$it points") }
                     tags.optString("operator").takeIf { it.isNotBlank() && it != name }?.let { extra += it }
+                    kw = maxKw(tags)
                 }
                 "parking" -> {
                     when (tags.optString("fee")) { "yes" -> extra += Lang.t("Kostenpflichtig", "Paid"); "no" -> extra += Lang.t("Kostenlos", "Free") }
@@ -513,8 +515,34 @@ object Overpass {
                     tags.optString("operator").takeIf { it.isNotBlank() && it != name }?.let { extra += it }
                 }
             }
-            out += Nearby(Place(name, tags.optString("addr:street"), pos), Geo.dist(c, pos), extra.joinToString(" · "))
+            out += Nearby(Place(name, tags.optString("addr:street"), pos), Geo.dist(c, pos), extra.joinToString(" · "), kw = kw)
         }
         return out
+    }
+
+    private val KW_RE = Regex("([0-9]+(?:[.,][0-9]+)?)\\s*(kw|mw|w)?", RegexOption.IGNORE_CASE)
+
+    /** A charging station's top power (kW) from its tags, or null if none is mapped. Values come as "150 kW", "150kW;50 kW" or "50000 W". */
+    private fun maxKw(tags: JSONObject): Int? {
+        var best = 0.0
+        val keys = tags.keys()
+        while (keys.hasNext()) {
+            val k = keys.next()
+            val power = k == "charging_station:output" || k == "maxpower" || (k.startsWith("socket:") && k.endsWith(":output"))
+            if (!power) continue
+            for (part in tags.optString(k).split(';')) {
+                val m = KW_RE.find(part.trim()) ?: continue
+                val n = m.groupValues[1].replace(',', '.').toDoubleOrNull() ?: continue
+                val kwv = when (m.groupValues[2].lowercase()) {
+                    "w" -> n / 1000.0
+                    "mw" -> n * 1000.0
+                    "kw" -> n
+                    // no unit: a big number is surely watts
+                    else -> if (n > 1000) n / 1000.0 else n
+                }
+                if (kwv in 1.0..1500.0 && kwv > best) best = kwv
+            }
+        }
+        return if (best > 0) Math.round(best).toInt() else null
     }
 }
