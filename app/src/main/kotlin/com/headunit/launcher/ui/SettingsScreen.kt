@@ -459,6 +459,25 @@ private fun GuidanceSection(prefs: Prefs) {
 }
 
 
+/** Checks the Open Charge Map key, and shows what the last charger lookup found. */
+@Composable
+private fun OcmTestItem(prefs: Prefs) {
+    val sc = rememberCoroutineScope()
+    var st by remember { mutableStateOf<String?>(null) }
+    var busy by remember { mutableStateOf(false) }
+    val last = com.headunit.launcher.ChargerInfo.lastNote
+    val sub = st ?: if (last.isNotBlank()) "Letzte Abfrage: $last" else "Prüft den Schlüssel mit einer kleinen Abfrage"
+    SItem("Ladesäulen-Daten prüfen", sub) {
+        SButton(if (busy) "Prüft…" else "Prüfen") {
+            if (!busy) { busy = true; sc.launch {
+                val key = prefs.s(PreferenceKeys.OCM_KEY, "")
+                st = withContext(Dispatchers.IO) { com.headunit.launcher.ChargerInfo.testOcm(key) }
+                busy = false
+            } }
+        }
+    }
+}
+
 /** What the app knows about clean air zones, with a button to download them again. */
 @Composable
 private fun ZonesItem() {
@@ -746,6 +765,8 @@ private fun FuelSection(prefs: Prefs) {
         EvOperatorsItem(prefs)
         SChoice("Umweg für bevorzugte Anbieter", listOf("5" to "5 Min.", "10" to "10 Min.", "15" to "15 Min.", "20" to "20 Min."), prefs.i(PreferenceKeys.EV_PREF_MIN, 10).toString(),
             "Ladesäulen deiner bevorzugten Anbieter werden nur gewählt, wenn die Fahrt dadurch höchstens so viele Minuten länger dauert und keinen zusätzlichen Ladestopp braucht (Standard: 10 Min.)") { prefs.put(PreferenceKeys.EV_PREF_MIN, it.toInt()) }
+        SFieldItem("Open Charge Map API-Schlüssel", prefs.s(PreferenceKeys.OCM_KEY, ""), "Optional, kostenlos auf openchargemap.org: findet Leistung und Betreiber von Ladesäulen außerhalb Deutschlands. In Deutschland nutzt die App das Ladesäulenregister der Bundesnetzagentur. Ladedaten: Bundesnetzagentur.de (CC BY 4.0), Open Charge Map (CC BY-SA 4.0).", placeholder = "Schlüssel einfügen", password = true) { prefs.put(PreferenceKeys.OCM_KEY, it.trim()) }
+        OcmTestItem(prefs)
         EvWidgetItem(prefs)
     } else SGroup("Kraftstoffkosten auf der Route") {
         SFieldItem("Verbrauch (Liter pro 100 km)", prefs.s(PreferenceKeys.FUELMPG, ""), placeholder = "z. B. 6.5", number = true) { s -> prefs.put(PreferenceKeys.FUELMPG, s.filter { it.isDigit() || it == '.' }.take(5)) }

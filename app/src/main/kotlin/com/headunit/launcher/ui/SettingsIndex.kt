@@ -126,6 +126,7 @@ internal val settingsIndex = listOf(
     SettingRef("Strompreis (Cent pro kWh)", "", "Dein Elektroauto", 8),
     SettingRef("Bevorzugte Ladeanbieter", "IONITY, EnBW, Tesla und andere für Ladestopps", "Dein Elektroauto", 8),
     SettingRef("Umweg für bevorzugte Anbieter", "Erlaubte Mehrzeit für bevorzugte Ladesäulen", "Dein Elektroauto", 8),
+    SettingRef("Open Charge Map API-Schlüssel", "Leistung und Betreiber von Ladesäulen außerhalb Deutschlands", "Dein Elektroauto", 8),
     SettingRef("Verbrauch (Liter pro 100 km)", "", "Spritkosten auf der Route", 8),
     SettingRef("Kraftstoffpreis (Cent pro Liter)", "", "Spritkosten auf der Route", 8),
     SettingRef("Städte und Dörfer", "", "Ortsnamen", 9),

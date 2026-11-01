@@ -240,6 +240,8 @@ internal object PreferenceKeys {
     const val EV_PREF_OPS = "evprefops"
     /** Extra minutes a preferred operator's charging stops may cost over the quickest plan (default 10). */
     const val EV_PREF_MIN = "evprefmin"
+    /** Open Charge Map API key (optional): looks up the power and operator of chargers outside Germany's register. */
+    const val OCM_KEY = "ocmkey"
 }
 
 /**
