@@ -1019,7 +1019,9 @@ private fun AboutSection(prefs: Prefs, engine: NavEngine) {
         }
     }
     SGroup("Sicherung") {
-        SItem("Einstellungen und gespeicherte Orte") {
+        // the buttons sit under the title: beside it they squeezed the title into a narrow column
+        SItem("Einstellungen und gespeicherte Orte")
+        Row(Modifier.fillMaxWidth().padding(bottom = 8.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             SButton("Sichern") { exporter.launch("horizon-nav-backup.json") }
             SButton("Wiederherstellen") { importer.launch(arrayOf("application/json", "text/plain", "*/*")) }
         }
