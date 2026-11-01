@@ -2280,7 +2280,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
                 val at = java.text.SimpleDateFormat("HH:mm", Locale.getDefault()).format(java.util.Date())
                 // a failed lookup (weak signal, busy server) keeps the ones already shown and tries again in about half a minute
                 if (found == null) { camAt = System.currentTimeMillis() - 90_000L; camPos = null; camNote = Lang.t("$at: Suche fehlgeschlagen (${Overpass.lastNote.take(60)})", "$at: lookup failed (${Overpass.lastNote.take(60)})") }
-                else { aroundCams = found; mergeCams(); camNote = Lang.t("$at: ${found.size} Blitzer im Umkreis von 6 km ($src)", "$at: ${found.size} cameras within 6 km ($src)") }
+                else { addAroundCams(found); mergeCams(); camNote = Lang.t("$at: ${found.size} Blitzer im Umkreis von 6 km ($src)", "$at: ${found.size} cameras within 6 km ($src)") }
             }
         }
         // the cameras on the map follow the route coming and going, and the ones you've passed drop off
@@ -3251,8 +3251,11 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         val here = fix?.pos
         val seen = HashSet<Long>()
         val out = ArrayList<LL>()
+        // free look: the cameras around the middle of the screen, wherever it is; otherwise around you
+        val freeLook = !navigatingNow() && viewCentre != null
+        val ref = if (freeLook) viewCentre else here
         for (c in aroundCams + knownCams) {
-            if (here != null && Geo.dist(here, c) > 10_000.0) continue
+            if (ref != null && Geo.dist(ref, c) > (if (freeLook) 8_000.0 else 10_000.0)) continue
             if (seen.add(Math.round(c.lat * 1e5) * 1000003L + Math.round(c.lon * 1e5))) out += c
         }
         // the list the warnings use: empty where they're off, so nothing is announced; the map draws its own list below
@@ -3271,7 +3274,48 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
     /** Every speed camera found along routes so far (by the map's search along the route, together with the traffic lights). */
     @Volatile private var knownCams: List<LL> = emptyList()
     private var camsCount = -1
-    init { map.onRouteCameras = { c -> knownCams = c; if (camerasOnMap()) mergeCams() } }
+    init {
+        map.onRouteCameras = { c -> knownCams = c; if (camerasOnMap()) mergeCams() }
+        map.onViewMoved = { c -> viewMoved(c) }
+    }
+
+    /** Where the map was last dragged to (when not following the car), and the last look there. */
+    @Volatile private var viewCentre: LL? = null
+    private var viewAt = 0L
+    private var viewFetched: LL? = null
+
+    /**
+     * Free look (the map dragged away from you, not navigating): the speed cameras round the middle of the screen are looked up,
+     * so the ones in the places you look at show on the map. Before, they were only looked up round your own position.
+     */
+    private fun viewMoved(c: LL) {
+        if (!camerasOnMap() || navigatingNow()) return
+        viewCentre = c
+        mergeCams()
+        val now = System.currentTimeMillis()
+        val last = viewFetched
+        if (now - viewAt < 4000L || (last != null && Geo.dist(last, c) < 1500.0)) return
+        viewAt = now; viewFetched = c
+        scope.launch {
+            val found = withContext(Dispatchers.IO) { Overpass.cameras(c, 6000) }
+            // a failed lookup keeps the cameras already shown; the next drag tries again
+            if (found == null) { viewFetched = null; camNote = Lang.t("Suche am Kartenausschnitt fehlgeschlagen (${Overpass.lastNote.take(60)})", "Lookup at the map view failed (${Overpass.lastNote.take(60)})"); return@launch }
+            addAroundCams(found)
+            camNote = Lang.t("${found.size} Blitzer am Kartenausschnitt (OpenStreetMap)", "${found.size} cameras at the map view (OpenStreetMap)")
+            mergeCams()
+        }
+    }
+
+    /** Adds cameras found by a lookup to the ones already known: kept for the rest of the drive, so those looked at once stay on the map when the server doesn't answer later. */
+    private fun addAroundCams(found: List<LL>) {
+        val keys = HashSet<Long>(); aroundCams.forEach { keys += camKeyOf(it) }
+        val merged = ArrayList(aroundCams)
+        for (f in found) if (keys.add(camKeyOf(f))) merged += f
+        while (merged.size > 4000) merged.removeAt(0)
+        aroundCams = merged
+    }
+
+    private fun camKeyOf(c: LL): Long = Math.round(c.lat * 1e5) * 1000003L + Math.round(c.lon * 1e5)
 
     /** How far along the route each traffic light on it is (metres, in order), for zooming in as you come up to one. */
     @Volatile private var lightOffs = DoubleArray(0)

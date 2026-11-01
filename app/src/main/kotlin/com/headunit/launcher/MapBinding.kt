@@ -194,7 +194,7 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
         mapView.gestures.addOnMoveListener(object : OnMoveListener {
             override fun onMoveBegin(detector: MoveGestureDetector) { onUserGesture?.invoke() }
             override fun onMove(detector: MoveGestureDetector): Boolean = false
-            override fun onMoveEnd(detector: MoveGestureDetector) { }
+            override fun onMoveEnd(detector: MoveGestureDetector) { try { onViewMoved?.invoke(LL(mbMap.cameraState.center.latitude(), mbMap.cameraState.center.longitude())) } catch (e: Throwable) { } }
         })
         mapView.gestures.addOnScaleListener(object : OnScaleListener {
             override fun onScaleBegin(detector: StandardScaleGestureDetector) { onUserGesture?.invoke() }
@@ -1372,6 +1372,8 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
     private val camAll = LinkedHashMap<Long, LL>()
     /** Gets every speed camera found along routes so far, each time more arrive. */
     var onRouteCameras: ((List<LL>) -> Unit)? = null
+    /** The map was dragged to a new place: where its middle is now (so the speed cameras there can be looked up). */
+    var onViewMoved: ((LL) -> Unit)? = null
 
     /** One line for the settings page: how many lights are known and whether the last fetch worked. */
     fun signalInfo(): String {
