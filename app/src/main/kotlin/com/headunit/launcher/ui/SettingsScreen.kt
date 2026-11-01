@@ -459,25 +459,6 @@ private fun GuidanceSection(prefs: Prefs) {
 }
 
 
-/** Checks the Open Charge Map key, and shows what the last charger lookup found. */
-@Composable
-private fun OcmTestItem(prefs: Prefs) {
-    val sc = rememberCoroutineScope()
-    var st by remember { mutableStateOf<String?>(null) }
-    var busy by remember { mutableStateOf(false) }
-    val last = com.headunit.launcher.ChargerInfo.lastNote
-    val sub = st ?: if (last.isNotBlank()) "Letzte Abfrage: $last" else "Prüft den Schlüssel mit einer kleinen Abfrage"
-    SItem("Ladesäulen-Daten prüfen", sub) {
-        SButton(if (busy) "Prüft…" else "Prüfen") {
-            if (!busy) { busy = true; sc.launch {
-                val key = prefs.s(PreferenceKeys.OCM_KEY, "")
-                st = withContext(Dispatchers.IO) { com.headunit.launcher.ChargerInfo.testOcm(key) }
-                busy = false
-            } }
-        }
-    }
-}
-
 /** What the app knows about clean air zones, with a button to download them again. */
 @Composable
 private fun ZonesItem() {
@@ -761,12 +742,10 @@ private fun FuelSection(prefs: Prefs) {
         SFieldItem("Restreichweite am Ziel (km)", prefs.s(PreferenceKeys.EV_DEST_KM, ""), "Ladestopps werden so geplant, dass du mit mindestens so viel Reichweite ankommst (Standard: 50 km)", placeholder = "z. B. 50", number = true) { s -> prefs.put(PreferenceKeys.EV_DEST_KM, s.filter { it.isDigit() }.take(3).toIntOrNull()?.coerceAtMost(500)?.toString() ?: "") }
         SFieldItem("Restreichweite an der Ladesäule (km)", prefs.s(PreferenceKeys.EV_CHARGER_KM, ""), "Mindestens so viel Reichweite, wenn du an einer Ladesäule ankommst. So bleibt Puffer, falls sie belegt ist und du zur nächsten fährst (Standard: 30 km)", placeholder = "z. B. 30", number = true) { s -> prefs.put(PreferenceKeys.EV_CHARGER_KM, s.filter { it.isDigit() }.take(3).toIntOrNull()?.coerceAtMost(500)?.toString() ?: "") }
         SChoice("Ladesäulen für Ladestopps", listOf("0" to "Alle", "50" to "ab 50 kW", "150" to "ab 150 kW", "300" to "ab 300 kW"), prefs.i(PreferenceKeys.EV_MIN_KW, 50).toString(),
-            "Nur Ladesäulen mit mindestens dieser Leistung werden als Stopp geplant. Die Leistung schlägt die App online nach. Säulen, deren Leistung trotzdem unbekannt bleibt, nimmt sie nur als letzten Ausweg, wenn keine mit bekannter Leistung erreichbar ist.") { prefs.put(PreferenceKeys.EV_MIN_KW, it.toInt()) }
+            "Nur Ladesäulen mit mindestens dieser Leistung werden als Stopp geplant. Die Leistung schlägt die App online nach. Säulen, deren Leistung trotzdem unbekannt bleibt, nimmt sie nur als letzten Ausweg, wenn keine mit bekannter Leistung erreichbar ist. Ladedaten in Deutschland: Bundesnetzagentur.de (CC BY 4.0).") { prefs.put(PreferenceKeys.EV_MIN_KW, it.toInt()) }
         EvOperatorsItem(prefs)
         SChoice("Umweg für bevorzugte Anbieter", listOf("5" to "5 Min.", "10" to "10 Min.", "15" to "15 Min.", "20" to "20 Min."), prefs.i(PreferenceKeys.EV_PREF_MIN, 10).toString(),
             "Ladesäulen deiner bevorzugten Anbieter werden nur gewählt, wenn die Fahrt dadurch höchstens so viele Minuten länger dauert und keinen zusätzlichen Ladestopp braucht (Standard: 10 Min.)") { prefs.put(PreferenceKeys.EV_PREF_MIN, it.toInt()) }
-        SFieldItem("Open Charge Map API-Schlüssel", prefs.s(PreferenceKeys.OCM_KEY, ""), "Optional, kostenlos auf openchargemap.org: findet Leistung und Betreiber von Ladesäulen außerhalb Deutschlands. In Deutschland nutzt die App das Ladesäulenregister der Bundesnetzagentur. Ladedaten: Bundesnetzagentur.de (CC BY 4.0), Open Charge Map (CC BY-SA 4.0).", placeholder = "Schlüssel einfügen", password = true) { prefs.put(PreferenceKeys.OCM_KEY, it.trim()) }
-        OcmTestItem(prefs)
         EvWidgetItem(prefs)
     } else SGroup("Kraftstoffkosten auf der Route") {
         SFieldItem("Verbrauch (Liter pro 100 km)", prefs.s(PreferenceKeys.FUELMPG, ""), placeholder = "z. B. 6.5", number = true) { s -> prefs.put(PreferenceKeys.FUELMPG, s.filter { it.isDigit() || it == '.' }.take(5)) }

@@ -4010,7 +4010,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
                     }
                 } catch (e: Exception) { }
             }
-            // the German register / Open Charge Map: the power and operator of chargers TomTom lists without them (filled in before
+            // the German charging register: the power and operator of chargers TomTom lists without them (filled in before
             // the power filter, so one of unknown power can turn out fast or slow), and the fast chargers TomTom left out
             val reg = if (online()) ChargerInfo.along(prefs, RouteExtras.line(r, 0.0, r.len, 1000.0, 150)) else emptyList()
             val known = ChargerInfo.enrich(tt, reg)
