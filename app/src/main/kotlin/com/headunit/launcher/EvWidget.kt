@@ -176,7 +176,7 @@ object EvWidget {
         var onRead: ((Int) -> Unit)? = null
         override fun updateAppWidget(remoteViews: RemoteViews?) {
             super.updateAppWidget(remoteViews)
-            post {
+            main.post {
                 try {
                     val w = (resources.displayMetrics.density * 320).toInt(); val h = (resources.displayMetrics.density * 180).toInt()
                     measure(MeasureSpec.makeMeasureSpec(w, MeasureSpec.EXACTLY), MeasureSpec.makeMeasureSpec(h, MeasureSpec.EXACTLY))
