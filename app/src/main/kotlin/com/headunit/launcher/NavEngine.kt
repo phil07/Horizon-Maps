@@ -2846,7 +2846,10 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
             speedMps = p.speed,
             elapsedSeconds = (nowT - trustAt) / 1000.0
         )
-        val onR = r != null && s != null && !jump && s.dist < (if (glideOnRoute) offLim + 12.0 else 30.0)
+        // (standing still, e.g. in a car park next to the road, the arrow is only put on the route when the route is really
+        // where you are: it used to be pulled up to 30 m onto the route line as soon as a route was worked out)
+        val joinLim = if (isStill) max(10.0, min(p.acc, 15.0)) else 30.0
+        val onR = r != null && s != null && !jump && s.dist < (if (glideOnRoute) offLim + 12.0 else joinLim)
         if (onR && s != null && newFix && s.dist <= offLim) { trustProg = s.progress; trustAt = nowT }
         if (newFix) {
             mAt = tNow; mSpeed = sp
@@ -2861,7 +2864,9 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
                 val wasOnRoute = glideOnRoute
                 glideRoute = null; glideOnRoute = false
                 // standing still: the arrow (and the map round it) stays where you stopped, facing the same way
-                val held = if (isStill) mPos else null
+                // (only a position near this fix is held: mPos isn't kept up to date while on a route, so after a route it could be
+                // somewhere quite different, and the arrow glided over there until you drove off)
+                val held = if (isStill) mPos?.takeIf { Geo.dist(it, p.pos) < 25.0 } else null
                 // snapped to the road only when the road is really next to you: the nearest road can be the route, far away
                 mPos = held ?: if (p.speed > 2.0 && prefs.b(PreferenceKeys.SNAPROAD, true)) snapNear(p) else p.pos
                 if (!isStill) mHead = p.heading
