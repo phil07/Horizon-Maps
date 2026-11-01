@@ -425,7 +425,8 @@ internal fun ArrivalCard(engine: NavEngine, a: ArrivalInfo, modifier: Modifier =
         Row(Modifier.fillMaxWidth().padding(vertical = 6.dp), horizontalArrangement = Arrangement.SpaceEvenly) {
             ArrivalStat(Geo.fmtDist(a.dist, imp), stringResource(R.string.ui_093))
             ArrivalStat(Geo.fmtDur(a.secs), stringResource(R.string.ui_092))
-            ArrivalStat("${Math.round(a.avgMs * k)} ${if (imp) stringResource(R.string.ui_094) else stringResource(R.string.ui_095)}", stringResource(R.string.ui_096))
+            // (the short unit: the spoken "Kilometer pro Stunde" made the figure too wide for the card)
+            ArrivalStat("${Math.round(a.avgMs * k)} ${if (imp) "mph" else "km/h"}", stringResource(R.string.ui_096))
         }
         engine.arrivalParking?.let { pk ->
             Row(

@@ -349,7 +349,10 @@ private fun CarScreen(engine: NavEngine, a: android.graphics.Rect?, actions: Car
 
         // the arrival summary
         val arr = engine.arrival
-        if (arr != null) Box(Modifier.align(Alignment.BottomCenter).padding(start = left, end = rightBottom, bottom = bottom)) { ArrivalCard(engine, arr) }
+        // (drawn larger than in the app: its text and its buttons were too small to read and hit on the car screen)
+        if (arr != null) Box(Modifier.align(Alignment.BottomCenter).padding(start = left, end = rightBottom, bottom = bottom)) {
+            CompositionLocalProvider(LocalDensity provides Density(dens.density * cardScale * 1.35f, dens.fontScale)) { ArrivalCard(engine, arr) }
+        }
     }
 }
 
