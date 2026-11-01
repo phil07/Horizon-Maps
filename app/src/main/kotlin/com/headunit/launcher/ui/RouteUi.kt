@@ -732,17 +732,18 @@ fun AppUpdateCard(engine: NavEngine) {
     val u = engine.appUpdate ?: return
     val c = LocalVw.current
     val shape = RoundedCornerShape(22.dp)
-    Row(
-        Modifier.fillMaxWidth().panel(8.dp, shape, c.surface).padding(start = 16.dp, end = 8.dp, top = 10.dp, bottom = 10.dp),
-        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp),
+    // text on top and the buttons in their own row underneath: side by side, a narrow phone squeezed the title to a few letters a line
+    Column(
+        Modifier.fillMaxWidth().panel(8.dp, shape, c.surface).padding(start = 16.dp, end = 12.dp, top = 10.dp, bottom = 10.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        Column(Modifier.weight(1f)) {
+        Column(Modifier.fillMaxWidth()) {
             Text(stringResource(R.string.ui_025), color = c.text, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
             Text(Lang.t("Installiert ${com.headunit.launcher.BuildConfig.VERSION_NAME}  →  Verfügbar ${u.version}", "Installed ${com.headunit.launcher.BuildConfig.VERSION_NAME}  →  Available ${u.version}"), color = c.sub, fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
             Text(if (engine.updateBusy || engine.updateStatus.isNotBlank()) engine.updateStatus else Lang.t("Jetzt aktualisieren: Einstellungen und Orte bleiben erhalten", "Update now: your settings and places are kept"),
                 color = c.sub, fontSize = 12.sp, maxLines = 2, overflow = TextOverflow.Ellipsis)
             if (u.releaseNotes.isNotBlank() && !engine.updateBusy) {
-                Text(u.releaseNotes, color = c.sub, fontSize = 11.sp, maxLines = 3, overflow = TextOverflow.Ellipsis)
+                Text(plainNotes(u.releaseNotes), color = c.sub, fontSize = 11.sp, maxLines = 3, overflow = TextOverflow.Ellipsis)
             }
             // Horizon Nav isn't on Google Play, so "installed by Google Play" means a tool like AAEnabler installed it to get it into
             // Android Auto. Android Auto drops apps that update themselves, so say so before they find it missing in the car.
@@ -753,10 +754,18 @@ fun AppUpdateCard(engine: NavEngine) {
                 else Lang.t("Mit AAEnabler (o. Ä.) installiert? Ein Update hier nimmt die App aus Android Auto: Installiere die neue Version danach wieder mit AAEnabler.", "Installed with AAEnabler (or similar)? Updating here takes it out of Android Auto: install the new version with AAEnabler again afterwards."),
                 color = Warn, fontSize = 11.sp, maxLines = 3, overflow = TextOverflow.Ellipsis)
         }
-        if (!engine.updateBusy) Pill(Lang.t("Aktualisieren", "Update"), true, { engine.installAppUpdate() })
-        if (!engine.updateBusy) Pill(Lang.t("Später", "Later"), false, { engine.snoozeAppUpdate() })
+        if (!engine.updateBusy) Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)) {
+            Pill(Lang.t("Später", "Later"), false, { engine.snoozeAppUpdate() })
+            Pill(Lang.t("Aktualisieren", "Update"), true, { engine.installAppUpdate() })
+        }
     }
 }
+
+/** Release notes are Markdown ("## Horizon Nav 1.0.1055", "- **Neu:** …"): shown as plain text, the version heading left out. */
+private fun plainNotes(md: String): String = md.lines()
+    .map { it.trim() }
+    .filter { it.isNotEmpty() && !it.startsWith("#") }
+    .joinToString(" ") { l -> l.removePrefix("- ").removePrefix("* ").replace("**", "").replace("`", "") }
 
 // ------------------------------------------------------------------ your own saved places
 
