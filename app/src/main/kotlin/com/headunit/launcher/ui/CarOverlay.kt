@@ -162,7 +162,8 @@ private fun CarScreen(engine: NavEngine, a: android.graphics.Rect?, actions: Car
         }
         val left = insL + edge
         // Wide screens: level with Android Auto's buttons (top right); narrow/tall screens: below them.
-        val topTarget = if (portrait) insT + edge else insT.coerceAtMost(12.dp) + edge
+        // (landscape: a smaller gap at the top, so the search bar sits level with Android Auto's Melden button beside it)
+        val topTarget = if (portrait) insT + edge else insT.coerceAtMost(12.dp) + (edge / 2)
         // On tall screens Android Auto's buttons hide after a few seconds and the cards move up smoothly.
         val top by androidx.compose.animation.core.animateDpAsState(topTarget, tween(300), label = "carTop")
         val controlsGap = when {
@@ -322,16 +323,16 @@ private fun CarScreen(engine: NavEngine, a: android.graphics.Rect?, actions: Car
                 // which shrinks while its zoom and re-centre buttons are showing, so the sign sits just beside them then and slides
                 // into the corner when they hide (it used to keep a fixed 92dp gap as well, so it sat well in from either)
                 val speedEnd by androidx.compose.animation.core.animateDpAsState(insR + 6.dp, tween(280), label = "speedEnd")
-                Column(Modifier.align(Alignment.BottomEnd).padding(end = speedEnd, bottom = speedBottom, start = 34.dp, top = 20.dp)
-                    .onSizeChanged { speedW = it.width }, horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    // battery and range from the car (or the widget), always shown, right above the speed
-                    EvPill(engine)
-                    BoxWithConstraints(Modifier.fillMaxWidth()) {
-                        val availableFit = minOf(1f, (maxWidth.value / 220f).coerceAtLeast(0.25f), (maxHeight.value / 150f).coerceAtLeast(0.25f))
-                        val fittedScale = requestedSpeedScale * availableFit
-                        CompositionLocalProvider(LocalDensity provides Density(dens.density * fittedScale, dens.fontScale)) { ImmSpeed(engine) }
-                    }
+                var speedH by remember { mutableStateOf(0) }
+                BoxWithConstraints(Modifier.align(Alignment.BottomEnd).padding(end = speedEnd, bottom = speedBottom, start = 34.dp, top = 20.dp)
+                    .onSizeChanged { speedW = it.width; speedH = it.height }) {
+                    val availableFit = minOf(1f, (maxWidth.value / 220f).coerceAtLeast(0.25f), (maxHeight.value / 150f).coerceAtLeast(0.25f))
+                    val fittedScale = requestedSpeedScale * availableFit
+                    CompositionLocalProvider(LocalDensity provides Density(dens.density * fittedScale, dens.fontScale)) { ImmSpeed(engine) }
                 }
+                // battery and range from the car (or the widget), always shown, right above the speed (the speed keeps its own
+                // place in the corner; the pill is placed by the speed's measured height, so it never pushes the speed away)
+                Box(Modifier.align(Alignment.BottomEnd).padding(end = speedEnd, bottom = speedBottom + with(dens) { speedH.toDp() } + 10.dp)) { EvPill(engine) }
             }
         }
 
@@ -584,7 +585,7 @@ private fun CarChips(engine: NavEngine, actions: CarActions, rows: Int) {
     val here = engine.fix?.pos
     @Composable fun tile(id: String, icon: androidx.compose.ui.graphics.vector.ImageVector, tint: Color, label: String, place: com.headunit.launcher.Place?, mins: Int?, m: Modifier) {
         val sub = when {
-            place == null -> stringResource(R.string.ui_098)
+            place == null -> Lang.t("Festlegen", "Set")
             mins == 0 -> stringResource(R.string.ui_102)
             mins != null && mins > 0 -> Geo.fmtDur(mins * 60.0)
             here != null -> Geo.fmtDist(Geo.dist(here, place.pos), engine.imperial)
@@ -596,7 +597,8 @@ private fun CarChips(engine: NavEngine, actions: CarActions, rows: Int) {
                 androidx.compose.material3.Icon(icon, null, tint = tint, modifier = Modifier.size(36.dp))
             }
             Column(Modifier.padding(start = 14.dp).weight(1f)) {
-                Text(if (place == null) stringResource(R.string.ui_099, label.lowercase()) else label, color = c.text, fontSize = 26.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                // (the short label even when not set yet: "Setze zuhause" was cut off at this size; the line below says "Festlegen")
+                Text(label, color = c.text, fontSize = 26.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 Text(sub, color = c.sub, fontSize = 21.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
         }
@@ -629,21 +631,21 @@ private fun CarChips(engine: NavEngine, actions: CarActions, rows: Int) {
         // (folded away with the arrow in the search bar)
         if (engine.prefs.b(PreferenceKeys.QUICKLIST, true)) Column(Modifier.fillMaxWidth().panel(10.dp, RoundedCornerShape(24.dp), c.surface).padding(vertical = 2.dp)) {
             Row(Modifier.fillMaxWidth().carTap("saved") { actions.places() }.padding(start = 16.dp, end = 14.dp, top = 10.dp, bottom = 10.dp), verticalAlignment = Alignment.CenterVertically) {
-                Text(stringResource(R.string.ui_040), color = c.sub, fontSize = 12.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.2.sp, modifier = Modifier.weight(1f))
-                Text(if (saved.size > rows) Lang.t("Alle ${saved.size}", "All ${saved.size}") else Lang.t("Öffnen", "Open"), color = c.accent, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+                Text(stringResource(R.string.ui_040), color = c.sub, fontSize = 18.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.2.sp, modifier = Modifier.weight(1f))
+                Text(if (saved.size > rows) Lang.t("Alle ${saved.size}", "All ${saved.size}") else Lang.t("Öffnen", "Open"), color = c.accent, fontSize = 20.sp, fontWeight = FontWeight.SemiBold)
             }
             for ((i, tr) in saved.take(rows).withIndex()) {
                 val (p, fav, label) = tr
-                Row(Modifier.fillMaxWidth().carTap("saved-$i") { engine.startRoute(p) }.padding(horizontal = 14.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Box(Modifier.size(38.dp).clip(androidx.compose.foundation.shape.CircleShape).background(c.tile), contentAlignment = Alignment.Center) {
+                Row(Modifier.fillMaxWidth().carTap("saved-$i") { engine.startRoute(p) }.padding(horizontal = 14.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Box(Modifier.size(52.dp).clip(androidx.compose.foundation.shape.CircleShape).background(c.tile), contentAlignment = Alignment.Center) {
                         androidx.compose.material3.Icon(if (fav) androidx.compose.material.icons.Icons.Rounded.Star else androidx.compose.material.icons.Icons.Rounded.History, null,
-                            tint = if (fav) Warn else c.sub, modifier = Modifier.size(20.dp))
+                            tint = if (fav) Warn else c.sub, modifier = Modifier.size(30.dp))
                     }
-                    Column(Modifier.padding(start = 12.dp).weight(1f)) {
-                        Text(label, color = c.text, fontSize = 16.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                        if (p.sub.isNotBlank()) Text(p.sub, color = c.sub, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Column(Modifier.padding(start = 14.dp).weight(1f)) {
+                        Text(label, color = c.text, fontSize = 26.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        if (p.sub.isNotBlank()) Text(p.sub, color = c.sub, fontSize = 21.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     }
-                    if (here != null) Text(Geo.fmtDist(Geo.dist(here, p.pos), engine.imperial), color = c.sub, fontSize = 13.sp, modifier = Modifier.padding(start = 8.dp))
+                    if (here != null) Text(Geo.fmtDist(Geo.dist(here, p.pos), engine.imperial), color = c.sub, fontSize = 21.sp, modifier = Modifier.padding(start = 10.dp))
                 }
             }
         }
