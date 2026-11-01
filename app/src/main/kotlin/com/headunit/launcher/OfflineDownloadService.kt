@@ -19,6 +19,15 @@ import android.os.IBinder
 class OfflineDownloadService : Service() {
     override fun onBind(intent: Intent?): IBinder? = null
 
+    /**
+     * Android 15 and later limit a data-sync foreground service to about six hours in a day. When the limit is reached the
+     * system calls this and gives the service a few seconds to stop; otherwise the app is stopped. The download itself
+     * carries on in the app while it is open, so the service just ends here.
+     */
+    override fun onTimeout(startId: Int, fgsType: Int) {
+        stopSelf()
+    }
+
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         val text = intent?.getStringExtra(EXTRA_TEXT).orEmpty().ifBlank { Lang.t("Karten werden geladen…", "Downloading maps…") }
         val n = notification(this, text)
