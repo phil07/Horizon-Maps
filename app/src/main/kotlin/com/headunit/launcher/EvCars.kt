@@ -170,11 +170,16 @@ object EvCars {
             val score = when {
                 // the longer the matched name, the more specific (so "ID.7 Pro S" beats "ID.7 Pro" when both appear)
                 !car.variant.isNullOrBlank() && hasWords(hay, full) -> 1000 + full.length
-                model.length >= 2 && hasWords(hay, model) -> model.length
+                // a model name alone only when it's distinctive ("ID.7"): a bare number like "250" (or "pro") would match the
+                // widget's range or a variant word, so those need the brand in the text too
+                model.length >= 2 && hasWords(hay, model) &&
+                    ((model.any { it.isLetter() } && model.any { it.isDigit() } && model.length >= 3) || hasWords(hay, norm(car.brand))) -> model.length
                 else -> 0
             }
             if (score > 0) scored += car to score
         }
+        // an exact model and variant: only those, not every car of the same model
+        if (scored.any { it.second >= 1000 }) scored.retainAll { it.second >= 1000 }
         return scored.sortedWith(compareByDescending<Pair<EvCar, Int>> { it.second }.thenByDescending { it.first.year ?: 0 })
             .take(8).map { it.first }
     }

@@ -3946,7 +3946,9 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
             while (range - (lenKm - s) < destKm) {
                 if (stops.size >= 6) { warning = Lang.t("Mehr als 6 Ladestopps: die Strecke ist für diese Planung zu lang.", "More than 6 charging stops: the trip is too long for this plan."); break }
                 val reach = s + range - chargerKm
-                val c = cands.filter { it.dist / 1000.0 > s + 0.5 && it.dist / 1000.0 <= reach }.maxByOrNull { it.dist }
+                val inReach = cands.filter { it.dist / 1000.0 > s + 0.5 && it.dist / 1000.0 <= reach }
+                // a charger of known power first; one of unknown power only when nothing else is in reach
+                val c = inReach.filter { it.kw != null }.ifEmpty { inReach }.maxByOrNull { it.dist }
                 if (c == null) {
                     val minKw = prefs.i(PreferenceKeys.EV_MIN_KW, 50)
                     warning = if (minKw > 0) Lang.t("Kein Ladepunkt mit mind. $minKw kW auf der Strecke ist mit ${chargerKm.toInt()} km Reserve erreichbar.", "No charger of at least $minKw kW on the route can be reached with ${chargerKm.toInt()} km left.")
@@ -3970,8 +3972,9 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
     private fun chargersAlong(r: Route): List<Nearby> {
         val out = ArrayList<Nearby>()
         val minKw = prefs.i(PreferenceKeys.EV_MIN_KW, 50)
-        // the power filter from Settings: a charger of unknown power can't be trusted to meet it
-        fun fast(n: Nearby) = minKw <= 0 || (n.kw ?: 0) >= minKw
+        // the power filter from Settings drops chargers known to be slower. Ones of unknown power stay, as a last resort
+        // (the planner takes them only when no charger of known power is in reach)
+        fun fast(n: Nearby) = minKw <= 0 || n.kw == null || n.kw >= minKw
         try {
             if (hasKey && online()) {
                 val line = RouteExtras.line(r, 0.0, r.len, 800.0, 140)
@@ -3983,7 +3986,8 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
                     }
                 } catch (e: Exception) { }
             }
-            if (out.isEmpty() && online()) {
+            // TomTom gives at most 20 along the route: add OpenStreetMap's when few of known power are left
+            if (out.count { it.kw != null } < 10 && online()) {
                 val line = RouteExtras.line(r, 0.0, r.len, 1500.0, 45)
                 for (n in Overpass.nearbyAlong("charging", line, 900)) {
                     if (!fast(n)) continue

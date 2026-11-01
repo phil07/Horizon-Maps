@@ -1188,7 +1188,7 @@ private fun EvCarDialog(prefs: Prefs, onClose: () -> Unit) {
                         }
                     }
                     SField(query, { query = it.take(60) }, placeholder = "Suchen, z. B. ID.7 Pro", width = 516.dp, fill = true)
-                    androidx.compose.foundation.lazy.LazyColumn(Modifier.fillMaxWidth().heightIn(max = 360.dp)) {
+                    androidx.compose.foundation.lazy.LazyColumn(Modifier.weight(1f, fill = false).fillMaxWidth().heightIn(max = 360.dp)) {
                         if (shown.isEmpty()) item { Text("Kein Fahrzeug gefunden", color = c.sub, fontSize = 15.sp, modifier = Modifier.padding(vertical = 12.dp)) }
                         items(shown.size) { i -> val car = shown[i]; EvCarRow(car) { pick(car) } }
                     }

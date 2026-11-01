@@ -520,7 +520,8 @@ object Overpass {
         return out
     }
 
-    private val KW_RE = Regex("([0-9]+(?:[.,][0-9]+)?)\\s*(kw|mw|w)?", RegexOption.IGNORE_CASE)
+    // (a number followed by "x" is a count, as in "2x150 kW")
+    private val KW_RE = Regex("([0-9]+(?:[.,][0-9]+)?)\\s*(kw|mw|w)?(?![0-9x×])", RegexOption.IGNORE_CASE)
 
     /** A charging station's top power (kW) from its tags, or null if none is mapped. Values come as "150 kW", "150kW;50 kW" or "50000 W". */
     private fun maxKw(tags: JSONObject): Int? {
@@ -531,16 +532,20 @@ object Overpass {
             val power = k == "charging_station:output" || k == "maxpower" || (k.startsWith("socket:") && k.endsWith(":output"))
             if (!power) continue
             for (part in tags.optString(k).split(';')) {
-                val m = KW_RE.find(part.trim()) ?: continue
-                val n = m.groupValues[1].replace(',', '.').toDoubleOrNull() ?: continue
-                val kwv = when (m.groupValues[2].lowercase()) {
-                    "w" -> n / 1000.0
-                    "mw" -> n * 1000.0
-                    "kw" -> n
-                    // no unit: a big number is surely watts
-                    else -> if (n > 1000) n / 1000.0 else n
+                for (m in KW_RE.findAll(part.trim())) {
+                    val unit = m.groupValues[2].lowercase()
+                    val raw = m.groupValues[1]
+                    // "50,000 W" / "50.000 W": a separator before exactly three digits groups thousands
+                    val n = (if (unit != "kw" && unit != "mw" && Regex("^[0-9]{1,3}[.,][0-9]{3}$").matches(raw)) raw.replace(",", "").replace(".", "") else raw.replace(',', '.')).toDoubleOrNull() ?: continue
+                    val kwv = when (unit) {
+                        "w" -> n / 1000.0
+                        "mw" -> n * 1000.0
+                        "kw" -> n
+                        // no unit: a big number is surely watts
+                        else -> if (n > 1000) n / 1000.0 else n
+                    }
+                    if (kwv in 1.0..1500.0 && kwv > best) best = kwv
                 }
-                if (kwv in 1.0..1500.0 && kwv > best) best = kwv
             }
         }
         return if (best > 0) Math.round(best).toInt() else null
