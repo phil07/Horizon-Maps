@@ -859,14 +859,28 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         if (packBusy || url.isBlank()) return
         packBusy = true; packStatus = "Starting…"; packDownloading = id
         scope.launch {
+            // a foreground service keeps the download alive while the app is in the background; a dropped connection is
+            // retried (the files already downloaded are kept, so the retry carries on where it stopped)
+            OfflineDownloadService.show(ctx, Lang.t("Karte wird geladen…", "Downloading map…"))
             try {
-                withContext(Dispatchers.IO) { OfflineRouter.download(ctx, url, id, extrasUrl) { packStatus = it } }
+                var attempt = 0
+                while (true) {
+                    try {
+                        withContext(Dispatchers.IO) { OfflineRouter.download(ctx, url, id, extrasUrl) { s -> packStatus = s; OfflineDownloadService.show(ctx, s) } }
+                        break
+                    } catch (e: Exception) {
+                        attempt++
+                        if (attempt >= 5) throw e
+                        packStatus = Lang.t("Verbindung abgebrochen, neuer Versuch ($attempt von 4) …", "Connection dropped, retrying ($attempt of 4) …")
+                        delay(10_000L)
+                    }
+                }
                 onDone()
                 packStatus = Lang.t("Paket bereit", "Pack ready")
                 toast(ctx.getString(R.string.toast_028), 3000)
             } catch (e: Throwable) {
                 packStatus = Lang.t("Download fehlgeschlagen: ${e.message ?: e.javaClass.simpleName}. Tippe erneut auf Herunterladen, um fortzufahren.", "Download failed: ${e.message ?: e.javaClass.simpleName}. Tap Download again to carry on.")
-            } finally { packBusy = false; packDownloading = null; packRev++; restyle() }
+            } finally { packBusy = false; packDownloading = null; packRev++; restyle(); OfflineDownloadService.stop(ctx) }
         }
     }
 

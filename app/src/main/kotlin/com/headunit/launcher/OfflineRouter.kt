@@ -152,19 +152,26 @@ object OfflineRouter {
 
     /** Fetches one file of the pack. Returns false if the server does not have it. A file already here with the same size is kept, so an interrupted download can be repeated cheaply. */
     private fun fetch(d: File, base: String, name: String, progress: (String) -> Unit): Boolean {
+        val dst = File(d, name)
+        val tmp = File(d, "$name.part")
+        // a part left by an interrupted download is continued (asks the server only for the rest), not started again
+        val have = if (tmp.exists()) tmp.length() else 0L
         val c = URL("$base/$name").openConnection() as HttpURLConnection
         c.connectTimeout = 20000; c.readTimeout = 60000; c.instanceFollowRedirects = true
-        if (c.responseCode !in 200..299) { c.disconnect(); return false }
-        val total = c.contentLengthLong
-        val dst = File(d, name)
+        if (have > 0) c.setRequestProperty("Range", "bytes=$have-")
+        val code = c.responseCode
+        // 416: the part already holds the whole file
+        if (code == 416 && have > 0) { c.disconnect(); dst.delete(); tmp.renameTo(dst); return true }
+        if (code !in 200..299) { c.disconnect(); return false }
+        val resumed = code == 206 && have > 0
+        val total = if (resumed) have + c.contentLengthLong else c.contentLengthLong
         // already here (same size): kept, and marked as checked now, so the "new map data" check doesn't keep offering it
         if (total > 0 && dst.exists() && dst.length() == total) { c.disconnect(); dst.setLastModified(System.currentTimeMillis()); progress("Already have $name"); return true }
-        progress(Lang.t("$name wird heruntergeladen…", "Downloading $name…"))
-        val tmp = File(d, "$name.part")
+        progress(if (resumed) Lang.t("$name wird fortgesetzt…", "Continuing $name…") else Lang.t("$name wird heruntergeladen…", "Downloading $name…"))
         c.inputStream.use { i ->
-            tmp.outputStream().use { o ->
+            java.io.FileOutputStream(tmp, resumed).use { o ->
                 val buf = ByteArray(64 * 1024)
-                var done = 0L; var lastMb = -1L
+                var done = if (resumed) have else 0L; var lastMb = -1L
                 while (true) {
                     val n = i.read(buf)
                     if (n < 0) break

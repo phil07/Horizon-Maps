@@ -7,6 +7,8 @@
     <!-- keeps guidance running while another app is in front (only while a route is active) -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
+    <!-- keeps an offline map download going while the app is in the background -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <!-- installing a downloaded update of the app (Android asks you to allow it the first time) -->
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
@@ -106,6 +108,10 @@
             android:name=".NavService"
             android:exported="false"
             android:foregroundServiceType="location" />
+        <service
+            android:name=".OfflineDownloadService"
+            android:exported="false"
+            android:foregroundServiceType="dataSync" />
             <!-- Android Auto: the car connects to this when the phone is plugged in -->
         <service
             android:name=".car.CarNavService"
