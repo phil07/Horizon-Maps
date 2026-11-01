@@ -162,10 +162,13 @@ class CarNavSession : Session() {
             override fun settings() { screen.screenManager.push(CarSettingsScreen(carContext, holder) { applyTheme() }) }
         }
         screen.openSettings = { screen.screenManager.push(CarSettingsScreen(carContext, holder) { applyTheme() }) }
+        // the battery level from the car itself, when Android Auto shares it (the widget is the fallback)
+        try { CarEnergy.start(carContext, Prefs(carContext.applicationContext)) } catch (e: Exception) { }
         try { carContext.getCarService(AppManager::class.java).setSurfaceCallback(surface) } catch (e: Exception) { }
         lifecycle.addObserver(object : DefaultLifecycleObserver {
             override fun onDestroy(owner: LifecycleOwner) {
                 screen.stop()
+                try { CarEnergy.stop() } catch (e: Exception) { }
                 pendingNavWaitToken++
                 pendingNavWait?.interrupt()
                 pendingNavWait = null

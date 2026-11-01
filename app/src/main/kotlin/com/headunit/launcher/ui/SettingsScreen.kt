@@ -1058,8 +1058,8 @@ private fun EvWidgetItem(prefs: Prefs) {
     val at = com.headunit.launcher.EvWidget.readAt(prefs)
     val name = remember(id) { com.headunit.launcher.EvWidget.providerLabel(ctx, prefs) }
     val sub = when {
-        id < 0 -> "Übernimmt den Ladestand aus dem Widget deiner Auto-App, statt ihn von Hand einzustellen"
-        at > 0 -> "$name · ${prefs.i(PreferenceKeys.EV_CHARGE_PCT, 80)} %, gelesen um " + java.text.SimpleDateFormat("HH:mm", java.util.Locale.GERMANY).format(java.util.Date(at))
+        id < 0 -> "Übernimmt den Ladestand aus dem Widget deiner Auto-App, statt ihn von Hand einzustellen. Im Auto kommt der Wert direkt vom Fahrzeug, wenn Android Auto ihn teilt."
+        at > 0 -> (if (com.headunit.launcher.EvWidget.source(prefs) == "car") "Direkt vom Auto" else name) + " · ${prefs.i(PreferenceKeys.EV_CHARGE_PCT, 80)} %, gelesen um " + java.text.SimpleDateFormat("HH:mm", java.util.Locale.GERMANY).format(java.util.Date(at))
         else -> "$name · Noch kein Prozentwert gefunden. Das Widget meldet sich, sobald es sich aktualisiert."
     }
     SItem("Ladestand aus Widget", sub) {

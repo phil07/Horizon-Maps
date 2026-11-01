@@ -13,6 +13,8 @@
     <!-- Android Auto: the navigation layout, and drawing the map on the car screen -->
     <uses-permission android:name="androidx.car.app.NAVIGATION_TEMPLATES" />
     <uses-permission android:name="androidx.car.app.ACCESS_SURFACE" />
+    <!-- Android Auto: the battery level from the car (asked for once, in the car) -->
+    <uses-permission android:name="com.google.android.gms.permission.CAR_FUEL" />
     <uses-feature android:name="android.hardware.telephony" android:required="false" />
     <uses-feature android:name="android.hardware.touchscreen" android:required="false" />
     <uses-feature android:name="android.hardware.location.gps" android:required="false" />

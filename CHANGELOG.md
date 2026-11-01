@@ -5,6 +5,7 @@ Add user-facing Horizon Nav changes under **Unreleased** before publishing each 
 ## Unreleased
 
 ### Neu
+- Akkustand direkt vom Auto: Über Android Auto liest Horizon Nav den Ladestand direkt vom Fahrzeug, wenn es ihn teilt (beim ersten Mal fragt Android Auto um Erlaubnis). Das Widget dient dann nur noch als Ersatz.
 - Ladestand aus dem Widget deiner Auto-App: Unter Einstellungen > Kraftstoff > Dein Elektroauto > „Ladestand aus Widget“ das Widget deiner Auto-App wählen. Horizon Nav liest daraus den Prozentwert, sobald sich das Widget aktualisiert, und nutzt ihn für den Akku bei Ankunft und Ladestopps.
 - Deutsche Sprachbefehle: Tippe aufs Mikrofon und sag z. B. „Bring mich nach Hause“, „Fahr nach München“, „Nächste Tankstelle“, „Günstige Tankstelle“, „Wann komme ich an?“, „Ton aus“, „Navigation beenden“, „Melde Blitzer“ oder „Autobahnen vermeiden“. Englische Befehle funktionieren weiterhin.
 - Eigener Standard-Zoom: Lege fest, wie nah die Karte ohne Route zeigt. Mit + und − zoomen und „Als Standard verwenden“ tippen, oder den Regler unter Einstellungen > Kartenansicht nutzen, wo „Zurücksetzen“ ihn wiederherstellt. Der Auto-Zoom zoomt bei Tempo weiter heraus und an Kreuzungen hinein, ausgehend von deiner Einstellung.

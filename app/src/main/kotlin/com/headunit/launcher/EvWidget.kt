@@ -24,6 +24,7 @@ object EvWidget {
     private const val TAG_ID = "evwidget"
     private const val TAG_AT = "evwidgetat"
     private const val TAG_PROVIDER = "evwidgetprov"
+    private const val TAG_SRC = "evsrc"
 
     private var host: AppWidgetHost? = null
     private var view: AppWidgetHostView? = null
@@ -34,6 +35,8 @@ object EvWidget {
     var lastAt: Long = 0L; private set
 
     fun widgetId(p: Prefs): Int = p.i(TAG_ID, -1)
+    /** Where the last reading came from: "car" (Android Auto) or "widget". */
+    fun source(p: Prefs): String = p.s(TAG_SRC, "widget")
     fun readAt(p: Prefs): Long = p.s(TAG_AT, "").toLongOrNull() ?: 0L
     fun providerLabel(ctx: Context, p: Prefs): String? {
         val id = widgetId(p); if (id < 0) return null
@@ -127,10 +130,22 @@ object EvWidget {
         }
     }
 
+    /** Live battery level from the car (Android Auto). Takes precedence over the widget for a while. */
+    fun liveReading(p: Prefs, pct: Int) {
+        liveAt = System.currentTimeMillis()
+        p.put(PreferenceKeys.EV_CHARGE_PCT, pct)
+        p.put(TAG_AT, liveAt.toString()); p.put(TAG_SRC, "car")
+        lastPct = pct; lastAt = liveAt
+    }
+
+    private var liveAt = 0L
+
     private fun onPct(p: Prefs, pct: Int) {
+        // the car's own live value wins for 10 minutes after it last arrived
+        if (System.currentTimeMillis() - liveAt < 10 * 60_000L) return
         lastPct = pct; lastAt = System.currentTimeMillis()
         p.put(PreferenceKeys.EV_CHARGE_PCT, pct)
-        p.put(TAG_AT, lastAt.toString())
+        p.put(TAG_AT, lastAt.toString()); p.put(TAG_SRC, "widget")
     }
 
     /** The first battery-looking percentage in the widget's text: "78 %", "78%", "Akku: 78 %", "SoC 78%". */
