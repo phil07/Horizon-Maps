@@ -2073,7 +2073,9 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
                     mbLim = try { MapboxRest.speedLimit(mbToken, trail) } catch (e: Exception) { null }
                 }
             }
-            val v = (if (osm == null || mbWay == way) mbLim else null) ?: return osm
+            // OpenStreetMap first: Mapbox's limit is used only where OpenStreetMap has none, or only a guess
+            val osmHasLimit = osm != null && osm.ms > 0.0 && !osm.estimated
+            val v = (if (!osmHasLimit && (osm == null || mbWay == way)) mbLim else null) ?: return osm
             if (v <= 0.0) return osm
             return Overpass.Limit(v, false, osm?.road ?: "", osm?.wayId ?: 0L, osm?.names ?: emptyList(), true)
         }
