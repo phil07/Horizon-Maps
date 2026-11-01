@@ -4129,7 +4129,11 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         if (!wanted) { map.setTurnArrow(emptyList()); return }
         // a roundabout needs a longer arrow (round to the exit); a plain turn a short one
         val back = 38.0
-        val fwd = if (m.startsWith("ROUNDABOUT")) 70.0 else 30.0
+        // ...but never into the next manoeuvre: "turn right, then left" 20 m on drew the right turn's arrow round the left turn
+        // too, so its head pointed left. It now ends a little before the next step (at least 10 m past this turn).
+        val nextOff = r.steps.getOrNull(k + 1)?.off
+        val fwdMax = if (m.startsWith("ROUNDABOUT")) 70.0 else 30.0
+        val fwd = if (nextOff != null) min(fwdMax, max(10.0, nextOff - cur.off - 6.0)) else fwdMax
         val pts = ArrayList<LL>()
         var o = max(0.0, cur.off - back)
         val end = min(r.len, cur.off + fwd)
