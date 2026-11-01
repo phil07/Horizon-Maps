@@ -721,8 +721,8 @@ class MapScreen(carContext: CarContext, private val holder: CarHolder) : Screen(
             val left = e.leftTraffic
             val m = t.maneuver.uppercase()
             val type = when {
-                m.startsWith("ROUNDABOUT") -> if (t.exit > 0) (if (left) Maneuver.TYPE_ROUNDABOUT_ENTER_AND_EXIT_CW else Maneuver.TYPE_ROUNDABOUT_ENTER_AND_EXIT_CCW)
-                                               else (if (left) Maneuver.TYPE_ROUNDABOUT_ENTER_CW else Maneuver.TYPE_ROUNDABOUT_ENTER_CCW)
+                // always the enter-and-exit type: the car shows the roundabout only with an exit number, and a plain "enter" type shows as a turn
+                m.startsWith("ROUNDABOUT") -> if (left) Maneuver.TYPE_ROUNDABOUT_ENTER_AND_EXIT_CW else Maneuver.TYPE_ROUNDABOUT_ENTER_AND_EXIT_CCW
                 m == "TURN_LEFT" -> Maneuver.TYPE_TURN_NORMAL_LEFT
                 m == "TURN_RIGHT" -> Maneuver.TYPE_TURN_NORMAL_RIGHT
                 m == "SHARP_LEFT" -> Maneuver.TYPE_TURN_SHARP_LEFT
@@ -745,7 +745,8 @@ class MapScreen(carContext: CarContext, private val holder: CarHolder) : Screen(
             val mb = Maneuver.Builder(type).setIcon(CarIcon.Builder(IconCompat.createWithResource(ctx, maneuverIcon(type))).build())
             if (type == Maneuver.TYPE_ROUNDABOUT_ENTER_AND_EXIT_CW || type == Maneuver.TYPE_ROUNDABOUT_ENTER_AND_EXIT_CCW) mb.setRoundaboutExitNumber(t.exit.coerceAtLeast(1))
             val what = when {
-                type == Maneuver.TYPE_ROUNDABOUT_ENTER_AND_EXIT_CW || type == Maneuver.TYPE_ROUNDABOUT_ENTER_AND_EXIT_CCW -> Lang.t("Ausfahrt ${t.exit} nehmen", "Take exit ${t.exit}")
+                type == Maneuver.TYPE_ROUNDABOUT_ENTER_AND_EXIT_CW || type == Maneuver.TYPE_ROUNDABOUT_ENTER_AND_EXIT_CCW ->
+                    if (t.exit > 0) Lang.t("Ausfahrt ${t.exit} nehmen", "Take exit ${t.exit}") else Lang.t("In den Kreisverkehr", "Enter the roundabout")
                 m.startsWith("ARRIVE") -> Lang.t("Ankunft", "Arrive")
                 // a motorway junction by name: "Frankfurter Kreuz", "Ausfahrt 17 Weiterstadt"
                 t.junction.isNotBlank() && !m.startsWith("ROUNDABOUT") -> t.junction
