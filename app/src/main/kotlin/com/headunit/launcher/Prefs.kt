@@ -220,6 +220,12 @@ internal object PreferenceKeys {
     /** The car's battery level now (from the widget or Android Auto). Separate from the charge you want to arrive with. */
     const val EV_NOW_PCT = "evnow"
     const val EV_MIN_ARRIVE = "evminarr"
+    /** The range the widget reported, in km. */
+    const val EV_NOW_KM = "evnowkm"
+    /** The least range to arrive at the destination with, in km. */
+    const val EV_DEST_KM = "evdestkm"
+    /** The least range to arrive at a charger with, in km (so a busy one can be left for the next). */
+    const val EV_CHARGER_KM = "evchargerkm"
 }
 
 /**

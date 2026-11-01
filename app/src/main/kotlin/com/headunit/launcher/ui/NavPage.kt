@@ -205,13 +205,13 @@ internal fun BoxScope.RoutePreview(engine: NavEngine) {
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         val pct = engine.prefs.i(PreferenceKeys.EV_CHARGE_PCT, 80).coerceIn(5, 100)
-        val minArr = engine.prefs.i(PreferenceKeys.EV_MIN_ARRIVE, 20)
+        val destKm = engine.prefs.i(PreferenceKeys.EV_DEST_KM, 50)
         Text(stringResource(R.string.ui_007), color = c.sub, fontSize = 13.sp, modifier = Modifier.padding(horizontal = 10.dp))
         Pill("−", false, { engine.prefs.put(PreferenceKeys.EV_CHARGE_PCT, (pct - 10).coerceAtLeast(5)); engine.refreshEvPlan() })
         Text("$pct%", color = c.text, fontSize = 16.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 4.dp))
         Pill("+", false, { engine.prefs.put(PreferenceKeys.EV_CHARGE_PCT, (pct + 10).coerceAtMost(100)); engine.refreshEvPlan() })
-        Text(stringResource(R.string.ui_006), color = c.sub, fontSize = 13.sp, modifier = Modifier.padding(start = 14.dp, end = 4.dp))
-        for (m in listOf(10, 20, 30)) Pill("$m%", minArr == m, { engine.prefs.put(PreferenceKeys.EV_MIN_ARRIVE, m); engine.refreshEvPlan() })
+        Text(Lang.t("Am Ziel mind.", "At destination, at least"), color = c.sub, fontSize = 13.sp, modifier = Modifier.padding(start = 14.dp, end = 4.dp))
+        for (km in listOf(30, 50, 100)) Pill("$km km", destKm == km, { engine.prefs.put(PreferenceKeys.EV_DEST_KM, km); engine.refreshEvPlan() })
         val eco = engine.prefs.b(PreferenceKeys.ROUTE_ECO, false)
         Pill(if (eco) Lang.t("Öko-Route ✓", "Eco route ✓") else Lang.t("Öko-Route", "Eco route"), eco, { engine.prefs.put(PreferenceKeys.ROUTE_ECO, !eco); engine.rerouteForSettings() })
     }

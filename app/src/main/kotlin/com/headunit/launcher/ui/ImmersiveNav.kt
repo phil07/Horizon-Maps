@@ -787,6 +787,7 @@ internal fun EvNowChip(engine: NavEngine) {
     ) {
         Box(Modifier.size(8.dp).clip(CircleShape).background(col))
         Text("$pct %", color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+        engine.evNowKm()?.let { Text("· $it km", color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Bold) }
         if (age >= 10) Text("· $age Min.", color = if (age > 60) Warn else Color(0xFFC3CAD5), fontSize = 12.sp)
     }
 }

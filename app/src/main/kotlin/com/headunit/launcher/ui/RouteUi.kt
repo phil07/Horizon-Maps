@@ -514,9 +514,39 @@ fun PlannedCard(engine: NavEngine) {
     }
 }
 
+/** Electric trip: the charging stops it needs, with the charge on arrival and the time to charge, or a warning if it can't be done. */
+@Composable
+fun EvStopsRow(engine: NavEngine) {
+    val stops = engine.evStops; val warn = engine.evWarning
+    if (stops.isEmpty() && warn == null) return
+    val c = LocalVw.current
+    val many = if (stops.size > 1) "s" else ""
+    Row(
+        Modifier.floating(50.dp).padding(start = 16.dp, end = 6.dp, top = 6.dp, bottom = 6.dp),
+        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        Column(Modifier.widthIn(max = 460.dp)) {
+            if (stops.isEmpty()) Text(warn ?: "", color = Bad, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+            else {
+                Text(Lang.t("${stops.size} Ladestopp$many nötig", "${stops.size} charging stop$many needed"), color = Good, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                stops.forEachIndexed { i, s ->
+                    Text(
+                        "${i + 1}. ${s.n.place.name} · ${Geo.fmtDist(s.n.dist, engine.imperial)} · " +
+                            Lang.t("Ankunft ${s.arrPct} %, laden auf ${s.toPct} % (${s.minutes} Min.)", "arrive ${s.arrPct}%, charge to ${s.toPct}% (${s.minutes} min)"),
+                        color = c.text, fontSize = 13.sp, maxLines = 2, overflow = TextOverflow.Ellipsis,
+                    )
+                }
+                if (warn != null) Text(warn, color = Bad, fontSize = 12.sp)
+            }
+        }
+        if (stops.isNotEmpty()) Pill(Lang.t("Stopps hinzufügen", "Add stops"), false, { engine.addStops(stops) })
+    }
+}
+
 /** Route options row: a good place to fill up on a long trip. */
 @Composable
 fun FuelSuggestionRow(engine: NavEngine) {
+    if (engine.prefs.s(PreferenceKeys.FUEL_TYPE, "E10") == "EV") { EvStopsRow(engine); return }
     val n = engine.fuelSuggestion ?: return
     val c = LocalVw.current
     Row(

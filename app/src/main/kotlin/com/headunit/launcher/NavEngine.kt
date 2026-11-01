@@ -1030,6 +1030,17 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         }
     }
 
+    /** Adds the planned charging stops to the trip, in route order, and routes once. */
+    fun addStops(list: List<EvStop>) {
+        val d = dest ?: return
+        via = via + list.map { it.n.place }
+        stopMode = false
+        clearNearby()
+        evStops = emptyList()
+        toast(Lang.t("${list.size} Ladestopp(s) eingeplant", "${list.size} charging stop(s) added"), 2500)
+        startRoute(d, departMin, true, startNow = route != null && !previewing)
+    }
+
     fun addStop(p: Place) {
         val d = dest ?: return
         via = via + p
@@ -1585,6 +1596,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
                 loadRain(to, rs[0].time)
                 loadRouteWeather(rs[0])
                 fuelSuggestion = null
+                evStops = emptyList(); evWarning = null
                 clearLiveAlts()
                 if (prefs.b(PreferenceKeys.SMARTFUEL, true)) suggestFuel(rs[0])
                 clearNearby()
@@ -3872,13 +3884,37 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
     /** Minutes since the battery level was last read, or null. */
     fun evNowAgeMin(): Long? = EvWidget.readAt(prefs).takeIf { it > 0 }?.let { (System.currentTimeMillis() - it) / 60_000L }
 
+    /** The range in km the widget reported, if it was read in the last 60 minutes, or null. */
+    fun evNowKm(): Int? {
+        if (!isEv) return null
+        val v = prefs.s(PreferenceKeys.EV_NOW_KM, "").toIntOrNull() ?: return null
+        return if ((evNowAgeMin() ?: Long.MAX_VALUE) <= 60) v.coerceIn(0, 1500) else null
+    }
+
+    /** The range now and the full range, in km: the widget's own figures when they're fresh, else from the battery and efficiency. */
+    private fun evRangeKm(): Pair<Double, Double> {
+        val nowKm = evNowKm(); val nowPct = evNowPct()
+        val full = if (nowKm != null && nowPct != null && nowPct > 0) nowKm * 100.0 / nowPct else evBatteryKwh() / evKwhPerKm()
+        val start = when {
+            nowKm != null -> nowKm.toDouble()
+            nowPct != null -> nowPct / 100.0 * full
+            else -> prefs.i(PreferenceKeys.EV_CHARGE_PCT, 80).coerceIn(1, 100) / 100.0 * full
+        }
+        return start to full
+    }
+
     fun evArrivalPct(): Int? {
         if (!isEv) return null
         val e = eta ?: return null
-        // starts from the battery as the car reported it (up to an hour old), else from the charge you set before the trip
+        val driven = if (navStartMs > 0) max(0.0, tripDist - navStartDist) else 0.0
+        // with the widget's range: what's left after the trip, as a share of the full range
+        if (evNowKm() != null) {
+            val (start, full) = evRangeKm()
+            return Math.round((start - (driven + e.dist) / 1000.0) / full * 100.0).toInt().coerceIn(-50, 100)
+        }
+        // else from the battery level (up to an hour old), or from the charge you set before the trip
         val now = evNowPct()?.takeIf { (evNowAgeMin() ?: Long.MAX_VALUE) <= 60 }
         val start = (now ?: prefs.i(PreferenceKeys.EV_CHARGE_PCT, 80)).coerceIn(1, 100)
-        val driven = if (navStartMs > 0) max(0.0, tripDist - navStartDist) else 0.0
         val usedPct = (driven + e.dist) / 1000.0 * evKwhPerKm() / evBatteryKwh() * 100.0
         return Math.round(start - usedPct).toInt().coerceIn(-50, 100)
     }
@@ -3886,49 +3922,68 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
     /** The battery level or the charge to arrive with changed on the route options: look again for a charging stop. */
     fun refreshEvPlan() { val r = route ?: return; fuelSuggestion = null; suggestFuel(r) }
 
+    /** Electric: the charging stops this trip needs. Each stop is the furthest charger reachable with the reserve left there. */
+    private fun planEv(r: Route) {
+        evStops = emptyList(); evWarning = null
+        val batt = evBatteryKwh()
+        val destKm = prefs.i(PreferenceKeys.EV_DEST_KM, 50).coerceIn(0, 500).toDouble()
+        val chargerKm = prefs.i(PreferenceKeys.EV_CHARGER_KM, 30).coerceIn(0, 500).toDouble()
+        val (startKm, full) = evRangeKm()
+        val lenKm = r.len / 1000.0
+        if (startKm - lenKm >= destKm) return
+        scope.launch {
+            val cands = withContext(Dispatchers.IO) { chargersAlong(r) }
+            if (route !== r) return@launch
+            val stops = ArrayList<EvStop>()
+            var s = 0.0; var range = startKm; var warning: String? = null
+            while (range - (lenKm - s) < destKm) {
+                if (stops.size >= 6) { warning = Lang.t("Mehr als 6 Ladestopps: die Strecke ist für diese Planung zu lang.", "More than 6 charging stops: the trip is too long for this plan."); break }
+                val reach = s + range - chargerKm
+                val c = cands.filter { it.dist / 1000.0 > s + 0.5 && it.dist / 1000.0 <= reach }.maxByOrNull { it.dist }
+                if (c == null) { warning = Lang.t("Kein Ladepunkt auf der Strecke ist mit ${chargerKm.toInt()} km Reserve erreichbar.", "No charger on the route can be reached with ${chargerKm.toInt()} km left."); break }
+                val ck = c.dist / 1000.0
+                val arr = range - (ck - s)
+                // charge only as far as the destination needs (with its reserve), never past full
+                val target = min(full, max(arr, (lenKm - ck) + destKm))
+                val mins = Math.round((target - arr) / full * batt / 50.0 * 60.0).toInt().coerceAtLeast(0)
+                stops += EvStop(c, Math.round(arr / full * 100.0).toInt().coerceIn(0, 100), Math.round(target / full * 100.0).toInt().coerceIn(0, 100), mins)
+                s = ck; range = target
+            }
+            if (route === r) { evStops = stops; evWarning = warning }
+        }
+    }
+
+    /** Chargers along the whole route, with where they are on it (metres) and the detour. */
+    private fun chargersAlong(r: Route): List<Nearby> {
+        val out = ArrayList<Nearby>()
+        try {
+            if (hasKey && online()) {
+                val line = RouteExtras.line(r, 0.0, r.len, 800.0, 140)
+                try {
+                    for ((n, secs) in TomTomRest.poiAlong(apiKey, "charging", line, 600)) {
+                        val pr = RouteExtras.project(r, n.place.pos, 3000.0) ?: continue
+                        out += n.copy(dist = pr.first, detourMin = if (secs >= 0) Math.round(secs / 60.0).toInt() else detour(pr.second), ahead = true)
+                    }
+                } catch (e: Exception) { }
+            }
+            if (out.isEmpty() && online()) {
+                val line = RouteExtras.line(r, 0.0, r.len, 1500.0, 45)
+                for (n in Overpass.nearbyAlong("charging", line, 900)) {
+                    val pr = RouteExtras.project(r, n.place.pos, 1200.0) ?: continue
+                    out += n.copy(dist = pr.first, detourMin = detour(pr.second), ahead = true)
+                }
+            }
+        } catch (e: Exception) { }
+        return out.distinctBy { it.place.pos.lat to it.place.pos.lon }
+    }
+
     private fun suggestFuel(r: Route) {
         val fuel = prefs.s(PreferenceKeys.FUEL_TYPE, "E10")
         if (fuel != "EV" && r.len < 150_000) return
         var a = r.len * 0.35; var b = r.len * 0.75
         // electric: a charger before the battery gets down to the charge you want to keep (Settings > Fuel), with the shortest
         // detour, and how much you'll have when you get there. Only when the trip needs one.
-        if (fuel == "EV") {
-            val cons = evKwhPerKm(); val batt = evBatteryKwh()
-            val startPct = prefs.i(PreferenceKeys.EV_CHARGE_PCT, 80).coerceIn(1, 100); val minPct = prefs.i(PreferenceKeys.EV_MIN_ARRIVE, 20).coerceIn(0, 60)
-            val rangeM = max(0.0, (startPct - minPct) / 100.0 * batt / cons * 1000.0)
-            if (r.len <= rangeM) { fuelSuggestion = null; return }
-            a = max(5_000.0, rangeM * 0.5); b = max(a + 5_000.0, rangeM * 0.92)
-            scope.launch {
-                val best = withContext(Dispatchers.IO) {
-                    try {
-                        val out = ArrayList<Nearby>()
-                        if (hasKey && online()) {
-                            val line = RouteExtras.line(r, a, b, 800.0, 140)
-                            try {
-                                for ((n, secs) in TomTomRest.poiAlong(apiKey, "charging", line, 600)) {
-                                    val pr = RouteExtras.project(r, n.place.pos, 3000.0) ?: continue
-                                    out += n.copy(dist = pr.first, detourMin = if (secs >= 0) Math.round(secs / 60.0).toInt() else detour(pr.second), ahead = true)
-                                }
-                            } catch (e: Exception) { }
-                        }
-                        if (out.isEmpty() && online()) {
-                            val line = RouteExtras.line(r, a, b, 1500.0, 45)
-                            for (n in Overpass.nearbyAlong("charging", line, 900)) {
-                                val pr = RouteExtras.project(r, n.place.pos, 1200.0) ?: continue
-                                if (pr.first in a..b) out += n.copy(dist = pr.first, detourMin = detour(pr.second), ahead = true)
-                            }
-                        }
-                        out.filter { it.detourMin >= 0 }.minByOrNull { it.detourMin }?.let { n ->
-                            val arr = Math.round(startPct - n.dist / 1000.0 * cons / batt * 100.0).toInt().coerceAtLeast(0)
-                            val mins = Math.round((80 - arr).coerceAtLeast(10) / 100.0 * batt / 50.0 * 60.0).toInt()
-                            n.copy(extra = Lang.t("Ankunft mit etwa $arr % · auf 80 % laden, etwa $mins Min.", "arrive about $arr% · charge to 80%, about $mins min"))
-                        }
-                    } catch (e: Exception) { null }
-                }
-                if (route === r) fuelSuggestion = best
-            }
-            return
-        }
+        if (fuel == "EV") { planEv(r); return }
         scope.launch {
             val best = withContext(Dispatchers.IO) {
                 try {
@@ -4738,3 +4793,6 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         return Pair(LL(a.lat + (b.lat - a.lat) * t, a.lon + (b.lon - a.lon) * t), Geo.bearing(a, b))
     }
 }
+
+/** One charging stop on an electric trip: the charger, the charge on arrival and the level to charge to (both in %), and the minutes to charge. */
+data class EvStop(val n: Nearby, val arrPct: Int, val toPct: Int, val minutes: Int)

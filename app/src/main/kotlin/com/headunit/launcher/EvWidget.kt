@@ -104,7 +104,7 @@ object EvWidget {
         val id = widgetId(p)
         stop()
         if (id >= 0) try { host(ctx).deleteAppWidgetId(id) } catch (e: Exception) { }
-        p.put(TAG_ID, -1); p.put(TAG_AT, ""); lastPct = null; lastAt = 0L
+        p.put(TAG_ID, -1); p.put(TAG_AT, ""); p.put(PreferenceKeys.EV_NOW_KM, ""); lastPct = null; lastAt = 0L
     }
 
     /** Starts listening to the chosen widget (if there is one). Safe to call more than once. */
@@ -116,7 +116,7 @@ object EvWidget {
                 val info = AppWidgetManager.getInstance(app).getAppWidgetInfo(id) ?: return@post
                 val h = host(app)
                 val v = h.createView(app, id, info)
-                (v as? ReadingView)?.onRead = { pct -> onPct(p, pct) }
+                (v as? ReadingView)?.onRead = { pct, km -> onPct(p, pct, km) }
                 view = v
                 h.startListening()
             } catch (e: Exception) { }
@@ -146,18 +146,29 @@ object EvWidget {
     fun liveReading(p: Prefs, pct: Int) {
         liveAt = System.currentTimeMillis()
         p.put(PreferenceKeys.EV_NOW_PCT, pct.toString())
+        p.put(PreferenceKeys.EV_NOW_KM, "")  // the car app gives no range: the range from the widget is out of date now
         p.put(TAG_AT, liveAt.toString()); p.put(TAG_SRC, "car")
         lastPct = pct; lastAt = liveAt
     }
 
     private var liveAt = 0L
 
-    private fun onPct(p: Prefs, pct: Int) {
+    private fun onPct(p: Prefs, pct: Int?, km: Int?) {
         // the car's own live value wins for 10 minutes after it last arrived
         if (System.currentTimeMillis() - liveAt < 10 * 60_000L) return
-        lastPct = pct; lastAt = System.currentTimeMillis()
+        if (pct == null) return
+        val now = System.currentTimeMillis()
+        lastPct = pct; lastAt = now
         p.put(PreferenceKeys.EV_NOW_PCT, pct.toString())
-        p.put(TAG_AT, lastAt.toString()); p.put(TAG_SRC, "widget")
+        if (km != null) p.put(PreferenceKeys.EV_NOW_KM, km.toString())
+        p.put(TAG_AT, now.toString()); p.put(TAG_SRC, "widget")
+    }
+
+    /** The range in km the widget shows, e.g. "212 km" (its figures can be split into separate pieces of text, so they're joined first). */
+    internal fun findKm(texts: List<String>): Int? {
+        val re = Regex("(?<![\\d.,])(\\d{1,4})\\s*km\\b", RegexOption.IGNORE_CASE)
+        for (m in re.findAll(texts.joinToString(" "))) { val v = m.groupValues[1].toIntOrNull() ?: continue; if (v in 0..1500) return v }
+        return null
     }
 
     /** The first battery-looking percentage in the widget's text: "78 %", "78%", "Akku: 78 %", "SoC 78%". */
@@ -173,7 +184,7 @@ object EvWidget {
 
     /** The out-of-sight widget: lays itself out at a home-screen size after every update and reads its text. */
     private class ReadingView(ctx: Context) : AppWidgetHostView(ctx) {
-        var onRead: ((Int) -> Unit)? = null
+        var onRead: ((Int?, Int?) -> Unit)? = null
         override fun updateAppWidget(remoteViews: RemoteViews?) {
             super.updateAppWidget(remoteViews)
             main.post {
@@ -184,7 +195,8 @@ object EvWidget {
                     val texts = ArrayList<String>()
                     collect(this, texts)
                     lastTexts = texts.map { it.take(80) }.take(30)
-                    findPct(texts)?.let { onRead?.invoke(it) }
+                    val pct = findPct(texts); val km = findKm(texts)
+                    if (pct != null) onRead?.invoke(pct, km)
                 } catch (e: Exception) { }
             }
         }
