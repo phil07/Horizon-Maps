@@ -41,6 +41,16 @@ android {
             keyAlias = "androiddebugkey"
             keyPassword = "android"
         }
+        // Google Play: its own upload key (Play refuses anything signed with a debug key). The workflow restores
+        // play-upload.keystore from a secret and passes the password in PLAY_UPLOAD_KEYSTORE_PASSWORD; never in the repo.
+        val playKeystore = generateSequence(rootDir) { it.parentFile }.take(6).map { File(it, "play-upload.keystore") }.firstOrNull { it.isFile }
+        val playPassword = System.getenv("PLAY_UPLOAD_KEYSTORE_PASSWORD").orEmpty()
+        if (playKeystore != null && playPassword.isNotEmpty()) create("playUpload") {
+            storeFile = playKeystore
+            storePassword = playPassword
+            keyAlias = "upload"
+            keyPassword = playPassword
+        }
     }
 
     buildFeatures { compose = true; buildConfig = true }
@@ -51,12 +61,13 @@ android {
             isMinifyEnabled = false
             isShrinkResources = false
             isDebuggable = false
-            signingConfig = signingConfigs.findByName("stable") ?: signingConfigs.getByName("debug")
+            // the key comes from the flavor: the GitHub build ("public") and the Google Play build ("play") are signed differently
         }
     }
     testOptions { unitTests.isReturnDefaultValues = true }
     lint { checkReleaseBuilds = false; abortOnError = false }
     // The public flavor suffix gives the package ID com.headunit.nav.public, preserving update compatibility with existing releases.
+    // The play flavor is the Google Play build (package com.headunit.nav).
     flavorDimensions += "key"
     productFlavors {
         create("public") {
@@ -73,6 +84,26 @@ android {
             buildConfigField("String", "UPDATE_APK", "\"HorizonNav-public.apk\"")
             // base URL of the shared-reports server, e.g. https://horizon-reports.<subdomain>.workers.dev (empty if not set up)
             buildConfigField("String", "REPORTS_URL", "\"$escapedReportsUrl\"")
+            // the GitHub build updates itself from the releases
+            buildConfigField("boolean", "SELF_UPDATE", "true")
+            signingConfig = signingConfigs.findByName("stable") ?: signingConfigs.getByName("debug")
+        }
+        // Google Play (internal testing): Android Auto only lists navigation apps installed from Play since June 2026.
+        // Package com.headunit.nav (no ".public": Play refuses Java keywords in package names), installable next to the GitHub build.
+        // No self-updater (Play updates it) and none of the permissions Play restricts (see src/play/AndroidManifest.xml).
+        create("play") {
+            dimension = "key"
+            // Play only takes new apps that target a recent Android version
+            targetSdk = 36
+            buildConfigField("String", "TOMTOM_API_KEY", "\"\"")
+            buildConfigField("String", "DEFAULT_MAP", "\"mapbox\"")
+            // still the repo for "report a problem" links and the What's new card; nothing is downloaded from it
+            buildConfigField("String", "UPDATE_REPO", "\"phil07/Horizon-Maps\"")
+            buildConfigField("String", "UPDATE_APK", "\"\"")
+            buildConfigField("String", "REPORTS_URL", "\"$escapedReportsUrl\"")
+            buildConfigField("boolean", "SELF_UPDATE", "false")
+            // unsigned when the upload key isn't there (the workflow then skips the Play build)
+            signingConfig = signingConfigs.findByName("playUpload")
         }
     }
     compileOptions {
@@ -120,4 +151,12 @@ val collectApks = tasks.register<Copy>("collectApks") {
     from(layout.buildDirectory.dir("outputs/apk/public/release")) { include("*.apk"); rename { "HorizonNav-public.apk" } }
     into(layout.buildDirectory.dir("outputs/apk/release"))
 }
-tasks.matching { it.name == "assembleRelease" }.configureEach { finalizedBy(collectApks) }
+tasks.matching { it.name == "assembleRelease" || it.name == "assemblePublicRelease" }.configureEach { finalizedBy(collectApks) }
+
+// After the Google Play build, put the app bundle in one folder with a clear name (HorizonNav-play.aab).
+val collectBundle = tasks.register<Copy>("collectBundle") {
+    description = "Copies the Google Play app bundle to outputs/bundle/release."
+    from(layout.buildDirectory.dir("outputs/bundle/playRelease")) { include("*.aab"); rename { "HorizonNav-play.aab" } }
+    into(layout.buildDirectory.dir("outputs/bundle/release"))
+}
+tasks.matching { it.name == "bundlePlayRelease" }.configureEach { finalizedBy(collectBundle) }

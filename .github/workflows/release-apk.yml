@@ -49,6 +49,21 @@ jobs:
           cp "$GITHUB_WORKSPACE/signing.keystore" ~/.android/debug.keystore
           echo "Signing key restored."
 
+      # Google Play build (optional): its own upload key, from two secrets. Without them only the GitHub APK is built.
+      - name: Restore the Google Play upload key from GitHub Secrets
+        env:
+          PLAY_UPLOAD_KEYSTORE_BASE64: ${{ secrets.PLAY_UPLOAD_KEYSTORE_BASE64 }}
+          PLAY_UPLOAD_KEYSTORE_PASSWORD: ${{ secrets.PLAY_UPLOAD_KEYSTORE_PASSWORD }}
+        run: |
+          set -euo pipefail
+          if [ -z "$PLAY_UPLOAD_KEYSTORE_BASE64" ] || [ -z "$PLAY_UPLOAD_KEYSTORE_PASSWORD" ]; then
+            echo "::notice::No Google Play upload key (secrets PLAY_UPLOAD_KEYSTORE_BASE64 / PLAY_UPLOAD_KEYSTORE_PASSWORD): only the GitHub APK is built."
+            exit 0
+          fi
+          printf '%s' "$PLAY_UPLOAD_KEYSTORE_BASE64" | base64 --decode > "$GITHUB_WORKSPACE/play-upload.keystore"
+          echo "PLAY_BUILD=1" >> "$GITHUB_ENV"
+          echo "Google Play upload key restored."
+
       - uses: gradle/actions/setup-gradle@v4
         with:
           # the project uses Android Gradle Plugin 9.x, which needs Gradle 9
@@ -119,6 +134,7 @@ jobs:
           REPORTS_URL_VAR: ${{ vars.REPORTS_URL }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          PLAY_UPLOAD_KEYSTORE_PASSWORD: ${{ secrets.PLAY_UPLOAD_KEYSTORE_PASSWORD }}
         run: |
           # version 1.0.<1000 + run number>: always above the earlier releases (up to 1.0.246), so the APK installs as an update
           export BUILD_NUMBER=$((1000 + GITHUB_RUN_NUMBER))
@@ -135,12 +151,21 @@ jobs:
             fi
           fi
           echo "Reports server: ${REPORTS_URL:-none}"
-          gradle :app:assembleRelease -PtomtomApiKey="$TOMTOM_API_KEY" -PreportsUrl="$REPORTS_URL"
+          # the GitHub APK and the Google Play app bundle (the bundle is only signed, published and uploaded when the
+          # Play upload key is there; built anyway, so a mistake in the Play build shows up right away)
+          gradle :app:assemblePublicRelease :app:bundlePlayRelease -PtomtomApiKey="$TOMTOM_API_KEY" -PreportsUrl="$REPORTS_URL"
 
       - uses: actions/upload-artifact@v4
         with:
           name: HorizonNav-apk-${{ github.run_number }}
           path: app/build/outputs/apk/release/*.apk
+          if-no-files-found: error
+
+      - uses: actions/upload-artifact@v4
+        if: env.PLAY_BUILD == '1'
+        with:
+          name: HorizonNav-play-aab-${{ github.run_number }}
+          path: app/build/outputs/bundle/release/*.aab
           if-no-files-found: error
 
       # Every build is published: as its own release "v1.0.<build>" (shown as the latest release), and in the fixed
@@ -162,6 +187,10 @@ jobs:
           (cd "$OUT" && sha256sum HorizonNav-public.apk | awk '{print $1}' > HorizonNav-public.apk.sha256)
           printf '{\n  "version": "%s",\n  "build": %s,\n  "versionCode": %s\n}\n' "$VERSION" "$BUILD" "$((100 + BUILD))" > "$OUT/version.json"
           FILES=("$APK" "$APK.sha256" "$OUT/version.json")
+          # the Google Play app bundle (for the first upload by hand in the Play Console), only on the version's own release
+          AAB=app/build/outputs/bundle/release/HorizonNav-play.aab
+          VERSION_FILES=("${FILES[@]}")
+          if [ "${PLAY_BUILD:-}" = "1" ] && [ -f "$AAB" ]; then VERSION_FILES+=("$AAB"); fi
 
           {
             echo "## Horizon Nav ${VERSION}"
@@ -171,9 +200,9 @@ jobs:
 
           # the version's own release (a re-run of the same build replaces its files)
           if gh release view "$TAG" --repo "$REPO" >/dev/null 2>&1; then
-            gh release upload "$TAG" "${FILES[@]}" --repo "$REPO" --clobber
+            gh release upload "$TAG" "${VERSION_FILES[@]}" --repo "$REPO" --clobber
           else
-            gh release create "$TAG" "${FILES[@]}" --repo "$REPO" \
+            gh release create "$TAG" "${VERSION_FILES[@]}" --repo "$REPO" \
               --title "Horizon Nav ${VERSION}" --notes-file release-notes.md --latest
           fi
 
@@ -187,3 +216,48 @@ jobs:
           gh release upload app "${FILES[@]}" --repo "$REPO" --clobber
 
           echo "Published https://github.com/$REPO/releases/tag/$TAG"
+
+      # Google Play internal testing: needs the upload key (above) and a Play Console service account (secret
+      # PLAY_SERVICE_ACCOUNT_JSON). The very first bundle has to be uploaded by hand in the Play Console; until then leave
+      # the service account secret out. Release status: repo variable PLAY_RELEASE_STATUS ("completed", or "draft" while
+      # the app has never been rolled out in the Play Console).
+      - name: Prepare the Google Play upload
+        id: playprep
+        env:
+          PLAY_JSON: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+        run: |
+          set -euo pipefail
+          AAB=app/build/outputs/bundle/release/HorizonNav-play.aab
+          if [ "${PLAY_BUILD:-}" != "1" ] || [ ! -f "$AAB" ] || [ -z "$PLAY_JSON" ]; then
+            echo "::notice::Google Play upload skipped (needs the upload key and the secret PLAY_SERVICE_ACCOUNT_JSON)."
+            echo "ready=false" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          # "What's new" for the Play testers, German, at most 500 characters: the headline of each new entry
+          mkdir -p distribution/whatsnew
+          python3 - "$RUNNER_TEMP/horizon-change-notes.md" distribution/whatsnew/whatsnew-de-DE <<'PY'
+          import re, sys
+          try: lines = open(sys.argv[1], encoding="utf-8").read().splitlines()
+          except OSError: lines = []
+          items = []
+          for l in lines:
+              m = re.match(r"\s*[-*]\s+(.*)", l)
+              if m: items.append("• " + m.group(1).split(":")[0].strip())
+          text = "\n".join(items) or "Kleinere Verbesserungen und Fehlerbehebungen."
+          if len(text) > 500: text = text[:497].rsplit("\n", 1)[0] + "\n…"
+          open(sys.argv[2], "w", encoding="utf-8").write(text)
+          PY
+          cat distribution/whatsnew/whatsnew-de-DE
+          echo "version=1.0.$((1000 + GITHUB_RUN_NUMBER))" >> "$GITHUB_OUTPUT"
+          echo "ready=true" >> "$GITHUB_OUTPUT"
+
+      - name: Upload to Google Play (internal testing)
+        if: steps.playprep.outputs.ready == 'true'
+        uses: r0adkll/upload-google-play@v1.1.3
+        with:
+          serviceAccountJsonPlainText: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+          packageName: com.headunit.nav
+          releaseFiles: app/build/outputs/bundle/release/HorizonNav-play.aab
+          track: internal
+          status: ${{ vars.PLAY_RELEASE_STATUS || 'completed' }}
+          releaseName: ${{ steps.playprep.outputs.version }}
+          whatsNewDirectory: distribution/whatsnew

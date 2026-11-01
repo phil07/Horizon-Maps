@@ -4,10 +4,8 @@ Add user-facing Horizon Nav changes under **Unreleased** before publishing each 
 
 ## Unreleased
 
-### Behoben
-- Android Auto: Horizon Nav erscheint wieder im Launcher des Autos, auch wenn „Unbekannte Quellen“ aktiv ist. Die App ist dafür als Auto-App gekennzeichnet und zeigt sich im Auto nach dem Verbinden.
-
 ### Neu
+- Horizon Nav über Google Play: Seit Juni 2026 zeigt Android Auto selbst installierte Navigations-Apps nicht mehr an, auch nicht mit „Unbekannte Quellen“. Für Android Auto gibt es Horizon Nav deshalb jetzt als Testversion über Google Play (Einladung per Testlink). Die Version von GitHub funktioniert auf dem Handy weiter wie bisher.
 - Stau melden: Unter „Hier melden“ gibt es jetzt auch „Stau“, auf dem Handy und in Android Auto. Die Meldung erscheint als orangefarbenes Symbol auf der Karte und gilt 30 Minuten; wie bei den anderen Meldungen wirst du vorher gewarnt.
 - Meldungen teilen: Deine Meldungen (Polizei, Unfall, Gefahr, Panne, mobiler Blitzer, Stau) gehen anonym an andere Horizon-Fahrer, nur Art, Ort und Zeit. Du siehst ihre Meldungen im Umkreis von 30 km und entlang deiner Route und wirst gewarnt wie bei deinen eigenen. Fährst du an einer vorbei, fragt die App kurz „Noch da?“: Mit „Weg“ verschwindet sie. Abschaltbar unter Einstellungen > Warnungen > Deine Meldungen > „Meldungen teilen“ (dann ohne jede Verbindung zum Server), dort steht auch, ob der Server erreichbar ist.
 - Dein Elektroauto: Unter Einstellungen > Kraftstoff > Dein Elektroauto > „Dein Fahrzeug“ wählst du dein Auto aus einer offenen Fahrzeugliste (Open EV Data), die beim ersten Öffnen einmal heruntergeladen wird. Horizon Nav schlägt das passende Modell aus dem Text des Akku-Widgets vor (z. B. „ID.7 Pro“), die genaue Variante bestätigst du selbst oder suchst sie von Hand. Mit Akkugröße und Ladekurve des Autos und der Leistung der Ladesäule werden die Ladezeiten an den Ladestopps genau.
@@ -25,7 +23,6 @@ Add user-facing Horizon Nav changes under **Unreleased** before publishing each 
 - Verkehrsübersicht im Stand: Nach 30 Sekunden Stillstand an der Ampel oder im Stau zeigt die Karte den Verkehr um dich herum von oben und kehrt zurück, sobald du losfährst. Standardmäßig an, abschaltbar unter Einstellungen > Auf der Karte.
 - Wo du geparkt hast: Wenn Android Auto sich trennt, merkt sich das Handy, wo das Auto steht. Eine Karte „Dein Auto“ zeigt, wie lange her und wie weit weg, mit Fußweg-Button und Auto-Pin auf der Karte – für 2 Tage oder bis du wieder im Auto sitzt.
 - Ziele vom Handy senden: Handy einmal mit dem Radio koppeln (Einstellungen > Orte & Fahrten), dann „An Auto senden“ im Routenbildschirm des Handys. Das Radio bietet das Ziel beim nächsten Einschalten (innerhalb von 12 Stunden) an und startet es nach ein paar Sekunden. Die Ziele laufen verschlüsselt mit deinem Kopplungscode über einen kostenlosen Nachrichtendienst.
-- Spenden: Horizon Nav ist kostenlos und werbefrei. Unterstützen kannst du es jetzt unter Einstellungen > Über > Spenden, per QR-Code fürs Handy oder PayPal-Button. Etwa einen Tag nach der Installation fragt einmalig eine Karte danach (nie während der Fahrt).
 - 2D / 3D in Android Auto: Ein 2D/3D-Button bei den Android-Auto-Buttons, wie in der App.
 - Straßennamen ansagen: Neue Einstellung unter Einstellungen > Ton. Ausgeschaltet hörst du nur die Richtung, z. B. „In 200 Metern links abbiegen“.
 - Bioethanol (E85) als Kraftstoff: Die Tankstellenliste zeigt dann Stationen mit E85, in Frankreich mit Preisen.
