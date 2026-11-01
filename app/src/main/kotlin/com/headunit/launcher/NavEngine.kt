@@ -516,11 +516,20 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
                 val d = Place(o.optString("n"), o.optString("s"), LL(o.getDouble("la"), o.getDouble("lo")))
                 val vs = o.optJSONArray("v")
                 val stops = if (vs == null) emptyList() else (0 until vs.length()).mapNotNull { i -> try { val q = vs.getJSONObject(i); Place(q.optString("n"), q.optString("s"), LL(q.getDouble("la"), q.getDouble("lo"))) } catch (e: Exception) { null } }
+                val es = o.optJSONArray("e")
+                val ev = if (es == null) emptyList() else (0 until es.length()).mapNotNull { i -> try {
+                    val q = es.getJSONObject(i)
+                    val pos = LL(q.getDouble("la"), q.getDouble("lo"))
+                    EvStop(Nearby(Place(q.optString("n"), q.optString("s"), pos), 0.0, "", kw = q.optInt("kw", -1).takeIf { it > 0 }, op = q.optString("op").takeIf { it.isNotBlank() }),
+                        q.optInt("a"), q.optInt("t"), q.optInt("m"), q.optBoolean("p"))
+                } catch (e: Exception) { null } }
                 scope.launch {
                     var n = 0
                     while (fix == null && n < 40) { delay(500); n++ }
                     if (route != null) return@launch
                     via = stops
+                    // the trip's own charging plan: no new one on top (evAutoDest), and its stops drawn as chargers
+                    evPlanned = ev; if (ev.isNotEmpty()) evAutoDest = d.pos
                     toast(str(R.string.rest_437, d.name), 3500)
                     startRoute(d, 0, keepVia = true, startNow = true)
                 }
@@ -1663,6 +1672,8 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         drawRoutes()
         val r = routes[i]
         map.fit(r.pts.filterIndexed { n, _ -> n % 6 == 0 } + r.pts.last())
+        // electric, no stops yet: the charging plan was for the first route, plan again for this one
+        if (isEv && via.isEmpty() && prefs.b(PreferenceKeys.SMARTFUEL, true)) planEv(r)
     }
 
     /** A name for the map strip of the current route: "Southampton → Bristol" style, from where you are to the destination. */
@@ -3355,6 +3366,11 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
             val a = org.json.JSONArray()
             for (v in via) a.put(org.json.JSONObject().put("n", v.name).put("s", v.sub).put("la", v.pos.lat).put("lo", v.pos.lon))
             o.put("v", a)
+            // the charging plan too: after a restart its stops still show as chargers, with their times
+            val e = org.json.JSONArray()
+            for (st in evPlanned) e.put(org.json.JSONObject().put("n", st.n.place.name).put("s", st.n.place.sub).put("la", st.n.place.pos.lat).put("lo", st.n.place.pos.lon)
+                .put("kw", st.n.kw ?: -1).put("op", st.n.op ?: "").put("a", st.arrPct).put("t", st.toPct).put("m", st.minutes).put("p", st.preferred))
+            o.put("e", e)
             prefs.put(PreferenceKeys.RESUME, o.toString())
         } catch (e: Exception) { }
     }
@@ -4518,8 +4534,16 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
     fun followRoute(to: Place, stops: List<Place>, ev: List<EvStop> = emptyList()) {
         val d = dest
         if (d != null && Geo.dist(d.pos, to.pos) < 30.0 && route != null) {
-            // already showing this route's choice (a place shared to both screens): set off with it
-            if (previewing) beginNavigation()
+            val sameStops = via.size == stops.size && via.zip(stops).all { (a, b) -> Geo.dist(a.pos, b.pos) < 30.0 }
+            if (sameStops) {
+                // already showing this route's choice (a place shared to both screens): set off with it
+                if (previewing) beginNavigation()
+                return
+            }
+            // same trip, but the other screen changed its stops (e.g. charging stops added once the chargers were found mid-drive)
+            via = stops
+            evPlanned = ev; evAutoDest = to.pos
+            startRoute(to, departMin, keepVia = true, startNow = true)
             return
         }
         scope.launch {
