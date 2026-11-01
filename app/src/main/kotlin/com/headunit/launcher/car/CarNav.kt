@@ -268,9 +268,8 @@ class CarSurface(private val carContext: CarContext, private val onReady: (MapBi
     private fun fitScale() {
         val dens = displayDensity.coerceAtLeast(0.5f)
         val short = minOf(width, height).toFloat()
-        // Keep Android Auto overlays close to standard navigation UI sizing; large screens should
-        // not inflate buttons/cards. Only allow a small adjustment for unusually compact surfaces.
-        val perUnit = (short / 1050f).coerceIn(dens * 0.68f, dens * 0.98f)
+        // raised from 0.68–0.98: on the car screens tested, the search bar, chips and sound button were too small to read while driving
+        val perUnit = (short / 1050f).coerceIn(dens * 0.85f, dens * 1.2f)
         uiScale.value = perUnit / dens
     }
 
