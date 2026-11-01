@@ -5,7 +5,7 @@ Add user-facing Horizon Nav changes under **Unreleased** before publishing each 
 ## Unreleased
 
 ### Neu
-- Aktueller Akkustand: Während Horizon Nav offen ist, fragt die App das Widget deiner Auto-App beim Navigieren jede Minute nach dem Stand, sonst alle 10 Minuten.
+- Aktueller Akkustand: Während Horizon Nav offen ist, fragt die App das Widget deiner Auto-App beim Navigieren jede Minute nach dem Stand, sonst alle 10 Minuten. Unter Einstellungen > Kraftstoff gibt es außerdem den Knopf „Jetzt abfragen“.
 - Akku auf der Karte: Bei Elektroautos steht der Ladestand (aus dem Widget oder direkt vom Auto) über der Geschwindigkeit, mit Alter ab 10 Minuten. Unter 20 % wird er gelb, unter 10 % rot.
 - Akkustand direkt vom Auto: Über Android Auto liest Horizon Nav den Ladestand direkt vom Fahrzeug, wenn es ihn teilt (beim ersten Mal fragt Android Auto um Erlaubnis). Das Widget dient dann nur noch als Ersatz.
 - Ladestand aus dem Widget deiner Auto-App: Unter Einstellungen > Kraftstoff > Dein Elektroauto > „Ladestand aus Widget“ das Widget deiner Auto-App wählen. Horizon Nav liest daraus den Prozentwert, sobald sich das Widget aktualisiert, und nutzt ihn für den Akku bei Ankunft und Ladestopps.
