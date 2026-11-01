@@ -10,6 +10,8 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <!-- installing a downloaded update of the app (Android asks you to allow it the first time) -->
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+    <!-- lists the widgets of every app (the car maker's app, for the battery level). Not on Google Play, so allowed here -->
+    <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES" />
     <!-- Android Auto: the navigation layout, and drawing the map on the car screen -->
     <uses-permission android:name="androidx.car.app.NAVIGATION_TEMPLATES" />
     <uses-permission android:name="androidx.car.app.ACCESS_SURFACE" />
@@ -20,10 +22,6 @@
     <uses-feature android:name="android.hardware.location.gps" android:required="false" />
 
     <queries>
-        <!-- widgets of other apps (the car maker's app, for the battery level): Android 11+ hides widgets from apps it can't see -->
-        <intent>
-            <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
-        </intent>
         <!-- voice search and the contact picker for sharing your ETA -->
         <intent>
             <action android:name="android.speech.action.RECOGNIZE_SPEECH" />
