@@ -206,6 +206,9 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
     private var plannedJob: Job? = null
     /** A good place to fill up on a long trip (cheapest around the middle of the route, or the quickest detour). */
     var fuelSuggestion by mutableStateOf<Nearby?>(null)
+    /** Electric: the charging stops the trip needs, and a warning if it can't be done with the reserve. */
+    var evStops by mutableStateOf<List<EvStop>>(emptyList())
+    var evWarning by mutableStateOf<String?>(null)
     private var wrongCount = 0
     private var wrongAt = 0L
 
@@ -1033,7 +1036,9 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
     /** Adds the planned charging stops to the trip, in route order, and routes once. */
     fun addStops(list: List<EvStop>) {
         val d = dest ?: return
-        via = via + list.map { it.n.place }
+        val all = via + list.map { it.n.place }
+        // in route order, so a stop before a later one on the route comes first
+        via = route?.let { r -> all.sortedBy { RouteExtras.project(r, it.pos, 5000.0)?.first ?: Double.MAX_VALUE } } ?: all
         stopMode = false
         clearNearby()
         evStops = emptyList()
@@ -3882,7 +3887,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
     }
 
     /** Minutes since the battery level was last read, or null. */
-    fun evNowAgeMin(): Long? = EvWidget.readAt(prefs).takeIf { it > 0 }?.let { (System.currentTimeMillis() - it) / 60_000L }
+    fun evNowAgeMin(): Long? = EvWidget.readAt(prefs).takeIf { it > 0 }?.let { (System.currentTimeMillis() - it) / 60_000L }?.takeIf { it >= 0 }  // a clock set back: not fresh
 
     /** The range in km the widget reported, if it was read in the last 60 minutes, or null. */
     fun evNowKm(): Int? {
@@ -3893,8 +3898,8 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
 
     /** The range now and the full range, in km: the widget's own figures when they're fresh, else from the battery and efficiency. */
     private fun evRangeKm(): Pair<Double, Double> {
-        val nowKm = evNowKm(); val nowPct = evNowPct()
-        val full = if (nowKm != null && nowPct != null && nowPct > 0) nowKm * 100.0 / nowPct else evBatteryKwh() / evKwhPerKm()
+        val nowKm = evNowKm(); val nowPct = evNowPct()?.takeIf { (evNowAgeMin() ?: Long.MAX_VALUE) <= 60 }
+        val full = if (nowKm != null && nowPct != null && nowPct > 0 && nowKm > 0) nowKm * 100.0 / nowPct else evBatteryKwh() / evKwhPerKm()
         val start = when {
             nowKm != null -> nowKm.toDouble()
             nowPct != null -> nowPct / 100.0 * full
@@ -3925,6 +3930,8 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
     /** Electric: the charging stops this trip needs. Each stop is the furthest charger reachable with the reserve left there. */
     private fun planEv(r: Route) {
         evStops = emptyList(); evWarning = null
+        // stops already on the trip are the user's plan: no suggestion on top of them
+        if (via.isNotEmpty()) return
         val batt = evBatteryKwh()
         val destKm = prefs.i(PreferenceKeys.EV_DEST_KM, 50).coerceIn(0, 500).toDouble()
         val chargerKm = prefs.i(PreferenceKeys.EV_CHARGER_KM, 30).coerceIn(0, 500).toDouble()

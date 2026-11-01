@@ -93,6 +93,8 @@ object EvWidget {
         val old = widgetId(p)
         if (old >= 0 && old != id) try { host(ctx).deleteAppWidgetId(old) } catch (e: Exception) { }
         val info = try { AppWidgetManager.getInstance(ctx).getAppWidgetInfo(id) } catch (e: Exception) { null }
+        // a different widget: the reading of the old one doesn't apply to it
+        if (old != id) { p.put(PreferenceKeys.EV_NOW_PCT, ""); p.put(PreferenceKeys.EV_NOW_KM, ""); p.put(TAG_AT, "") }
         p.put(TAG_ID, id); p.put(TAG_PROVIDER, info?.provider?.flattenToString() ?: "")
         stop(); start(ctx, p)
     }
@@ -160,7 +162,7 @@ object EvWidget {
         val now = System.currentTimeMillis()
         lastPct = pct; lastAt = now
         p.put(PreferenceKeys.EV_NOW_PCT, pct.toString())
-        if (km != null) p.put(PreferenceKeys.EV_NOW_KM, km.toString())
+        p.put(PreferenceKeys.EV_NOW_KM, km?.toString() ?: "")  // no range in this reading: don't keep an older one
         p.put(TAG_AT, now.toString()); p.put(TAG_SRC, "widget")
     }
 
@@ -175,7 +177,8 @@ object EvWidget {
     internal fun findPct(texts: List<String>): Int? {
         val re = Regex("(?<![\\d.,])(\\d{1,3})(?:[.,]\\d)?\\s?%")
         // text that mentions the battery first, then any percentage
-        val keyed = texts.filter { t -> listOf("akku", "batter", "soc", "lade", "charge", "reichweite", "range").any { t.lowercase().contains(it) } }
+        // "Ladeziel 80 %" is a target, not the level: skip texts that say target or limit
+        val keyed = texts.filter { t -> val l = t.lowercase(); listOf("akku", "batter", "soc", "ladestand").any { l.contains(it) } && listOf("ziel", "limit", "target").none { l.contains(it) } }
         for (t in keyed + texts) {
             for (m in re.findAll(t)) { val v = m.groupValues[1].toIntOrNull() ?: continue; if (v in 0..100) return v }
         }

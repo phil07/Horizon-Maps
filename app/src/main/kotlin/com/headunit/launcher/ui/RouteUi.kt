@@ -525,7 +525,7 @@ fun EvStopsRow(engine: NavEngine) {
         Modifier.floating(50.dp).padding(start = 16.dp, end = 6.dp, top = 6.dp, bottom = 6.dp),
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        Column(Modifier.widthIn(max = 460.dp)) {
+        Column(Modifier.weight(1f, fill = false).widthIn(max = 460.dp)) {
             if (stops.isEmpty()) Text(warn ?: "", color = Bad, fontSize = 13.sp, fontWeight = FontWeight.Bold)
             else {
                 Text(Lang.t("${stops.size} Ladestopp$many nötig", "${stops.size} charging stop$many needed"), color = Good, fontSize = 13.sp, fontWeight = FontWeight.Bold)
