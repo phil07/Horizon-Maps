@@ -38,7 +38,7 @@ object CarEnergy {
                 val v: CarValue<Float> = data.batteryPercent
                 if (v.status == CarValue.STATUS_SUCCESS) v.value?.let { pct ->
                     val p = Math.round(pct).coerceIn(0, 100)
-                    EvWidget.liveReading(prefs, p)
+                    EvWidget.liveReading(prefs, p, null)
                 }
             }
             info.addEnergyLevelListener(carContext.mainExecutor, l)

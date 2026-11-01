@@ -145,10 +145,10 @@ object EvWidget {
     }
 
     /** Live battery level from the car (Android Auto). Takes precedence over the widget for a while. */
-    fun liveReading(p: Prefs, pct: Int) {
+    fun liveReading(p: Prefs, pct: Int, km: Int?) {
         liveAt = System.currentTimeMillis()
         p.put(PreferenceKeys.EV_NOW_PCT, pct.toString())
-        p.put(PreferenceKeys.EV_NOW_KM, "")  // the car app gives no range: the range from the widget is out of date now
+        p.put(PreferenceKeys.EV_NOW_KM, km?.toString() ?: "")
         p.put(TAG_AT, liveAt.toString()); p.put(TAG_SRC, "car")
         lastPct = pct; lastAt = liveAt
     }

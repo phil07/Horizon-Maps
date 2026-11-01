@@ -1096,7 +1096,7 @@ private fun EvWidgetItem(prefs: Prefs) {
     val name = remember(id) { com.headunit.launcher.EvWidget.providerLabel(ctx, prefs) }
     val sub = when {
         id < 0 -> "Übernimmt den Ladestand aus dem Widget deiner Auto-App, statt ihn von Hand einzustellen. Im Auto kommt der Wert direkt vom Fahrzeug, wenn Android Auto ihn teilt."
-        at > 0 -> (if (com.headunit.launcher.EvWidget.source(prefs) == "car") "Direkt vom Auto" else name) + " · ${prefs.s(PreferenceKeys.EV_NOW_PCT, "–")} %, gelesen um " + java.text.SimpleDateFormat("HH:mm", java.util.Locale.GERMANY).format(java.util.Date(at))
+        at > 0 -> (if (com.headunit.launcher.EvWidget.source(prefs) == "car") "Direkt vom Auto" else name) + " · ${prefs.s(PreferenceKeys.EV_NOW_PCT, "–")} % · ${prefs.s(PreferenceKeys.EV_NOW_KM, "–")} km, gelesen um " + java.text.SimpleDateFormat("HH:mm", java.util.Locale.GERMANY).format(java.util.Date(at))
         else -> "$name · Noch kein Prozentwert gefunden. Das Widget meldet sich, sobald es sich aktualisiert."
     }
     // the buttons sit on their own line: beside the title they squeeze the text into a narrow column
