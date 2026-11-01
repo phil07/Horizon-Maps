@@ -2108,7 +2108,9 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
             // OpenStreetMap first: Mapbox's limit is used only where OpenStreetMap has none, or only a guess
             val osmHasLimit = osm != null && osm.ms > 0.0 && !osm.estimated
             val v = (if (!osmHasLimit && (osm == null || mbWay == way)) mbLim else null) ?: return osm
-            if (v <= 0.0) return osm
+            // Mapbox says there is no limit here ("none", an unrestricted Autobahn): show the no-limit sign. It used to be dropped,
+            // so the sign stayed blank wherever OpenStreetMap didn't say so itself
+            if (v <= 0.0) return osm?.takeIf { it.noLimit } ?: Overpass.Limit(-1.0, false, osm?.road ?: "", osm?.wayId ?: 0L, osm?.names ?: emptyList(), true, noLimit = true)
             return Overpass.Limit(v, false, osm?.road ?: "", osm?.wayId ?: 0L, osm?.names ?: emptyList(), true)
         }
         val tNow = System.currentTimeMillis()
@@ -2121,6 +2123,9 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
             ttLim = try { TomTomRest.speedLimit(apiKey, p, hd) } catch (e: Exception) { null }
         }
         // TomTom's limit whenever it has one (it's the more complete and up-to-date source); OpenStreetMap is the backup
+        // OpenStreetMap saying outright that there is no limit ("maxspeed=none", "DE:motorway") wins: TomTom has no way to say
+        // "no limit", so an answer of its from the stretch before would otherwise stay on the sign
+        if (osm != null && osm.noLimit && !osm.estimated) return osm
         val tt = (if (osm == null || ttWay == way) ttLim else null) ?: return osm
         return Overpass.Limit(tt.ms, false, osm?.road ?: "", osm?.wayId ?: 0L, osm?.names ?: emptyList(), true)
     }
