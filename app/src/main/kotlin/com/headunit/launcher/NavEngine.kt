@@ -2856,6 +2856,9 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
                 if (!isStill || glideRoute !== r) mProg = s.progress
                 glideOnRoute = true
             } else {
+                // leaving the route: the arrow goes to where the GPS says at once, not left on the route line (it used to stay
+                // there while it was within 150 m, which put it on the route wherever you were)
+                val wasOnRoute = glideOnRoute
                 glideRoute = null; glideOnRoute = false
                 // standing still: the arrow (and the map round it) stays where you stopped, facing the same way
                 val held = if (isStill) mPos else null
@@ -2863,7 +2866,9 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
                 mPos = held ?: if (p.speed > 2.0 && prefs.b(PreferenceKeys.SNAPROAD, true)) snapNear(p) else p.pos
                 if (!isStill) mHead = p.heading
                 val gp = gPos
-                if (gp == null || Geo.dist(gp, p.pos) > 150.0) { gPos = p.pos; gHead = p.heading }
+                // off the route the arrow follows the GPS: from the route line it is put straight where you are, and otherwise
+                // it is only moved when the GPS has moved on far enough
+                if (gp == null || wasOnRoute || Geo.dist(gp, p.pos) > 30.0) { gPos = p.pos; gHead = p.heading }
             }
         }
         ensureGlide()
