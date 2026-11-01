@@ -504,7 +504,8 @@ private fun AlertsSection(prefs: Prefs, engine: NavEngine) {
         // where you are bans camera warnings and "Off where banned" is on: say so here, or it looks as if the switch doesn't work
         val banned = com.headunit.launcher.CAMERA_BANNED[engine.detectedCountry]
         val camOff = banned != null && prefs.b(PreferenceKeys.CAMERA_WARNINGS, false) && prefs.b(PreferenceKeys.CAMBANOBEY, true)
-        SToggle(prefs, "Blitzer", "cameras", false, if (camOff) "Gerade aus: in $banned nicht erlaubt (siehe „Aus, wo verboten“)" else null)
+        SToggle(prefs, "Blitzer", "cameras", false, if (camOff) "Gerade aus: in $banned nicht erlaubt (siehe „Aus, wo verboten“)"
+            else if (prefs.b(PreferenceKeys.CAMERA_WARNINGS, false)) engine.camNote.ifBlank { "Noch nicht gesucht: die Suche startet mit dem nächsten GPS-Signal" } else null)
         if (prefs.b(PreferenceKeys.CAMERA_WARNINGS, false)) SToggle(prefs, "Aus, wo verboten", "cambanobey", true, "Schaltet sich in Ländern wie Deutschland, Frankreich und der Schweiz automatisch aus")
         SToggle(prefs, "Sektionskontrollen (Abschnittskontrolle)", "avgzones", true, "Zeigt dein Durchschnittstempo im Vergleich zum Limit")
     }

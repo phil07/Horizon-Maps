@@ -2013,10 +2013,12 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
             camAt = now; camPos = p.pos
             // the cameras within 6 km: warned about as you approach, and drawn on the map (route or not)
             scope.launch {
-                val found = withContext(Dispatchers.IO) { localCameras(p.pos, 6000.0) ?: Overpass.cameras(p.pos, 6000) }
+                var src = Lang.t("Offline-Karte", "offline map")
+                val found = withContext(Dispatchers.IO) { localCameras(p.pos, 6000.0) ?: Overpass.cameras(p.pos, 6000).also { src = "OpenStreetMap" } }
+                val at = java.text.SimpleDateFormat("HH:mm", Locale.getDefault()).format(java.util.Date())
                 // a failed lookup (weak signal, busy server) keeps the ones already shown and tries again in about half a minute
-                if (found == null) { camAt = System.currentTimeMillis() - 90_000L; camPos = null }
-                else { aroundCams = found; mergeCams() }
+                if (found == null) { camAt = System.currentTimeMillis() - 90_000L; camPos = null; camNote = Lang.t("$at: Suche fehlgeschlagen (${Overpass.lastNote.take(60)})", "$at: lookup failed (${Overpass.lastNote.take(60)})") }
+                else { aroundCams = found; mergeCams(); camNote = Lang.t("$at: ${found.size} Blitzer im Umkreis von 6 km ($src)", "$at: ${found.size} cameras within 6 km ($src)") }
             }
         }
         // the cameras on the map follow the route coming and going, and the ones you've passed drop off
@@ -2928,6 +2930,8 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         return abs(angDiff(d, heading)) <= 75.0
     }
 
+    /** What the last camera search around you found, for Settings (so "none shown" can be told apart from "none found"). */
+    var camNote by mutableStateOf("")
     /** The cameras from the search around you (route or not). */
     private var aroundCams: List<LL> = emptyList()
 
