@@ -420,7 +420,7 @@ private fun TripCard(engine: NavEngine, fill: Boolean) {
     // its natural width).
     var rowW by remember { mutableStateOf(0) }
     val dens = LocalDensity.current
-    val w = if (fill) Modifier.fillMaxWidth() else Modifier.width(if (rowW > 0) with(dens) { rowW.toDp() } else 400.dp)
+    val w = if (fill) Modifier.fillMaxWidth() else Modifier.width(if (rowW > 0) with(dens) { rowW.toDp() } else 460.dp)
     Column((if (fill) Modifier.fillMaxWidth() else Modifier).panel(10.dp, RoundedCornerShape(22.dp), c.surface)) {
         // a slim bar: the full-height one took up nearly half the card
         if (engine.showRouteBar) RouteBar(engine, w.padding(start = 16.dp, end = 16.dp, top = 6.dp), thin = true)
@@ -444,18 +444,19 @@ private fun TripCard(engine: NavEngine, fill: Boolean) {
             CarStat(e.arrive, "Ankunft", c.text)
             CarStat(Geo.fmtDist(e.dist, engine.imperial), "Entfernung", c.text)
             // the battery and range the car reports now (as the app's chip), then the battery expected at arrival
-            engine.evNowPct()?.let { p -> CarStat("$p%", "Akku jetzt", if (p < 10) Bad else if (p < 20) Warn else c.text) }
-            engine.evNowKm()?.let { k -> CarStat("$k km", "Reichweite", c.text) }
+            // (only on a tall screen: on a wide one the battery and range pill sits above the speed, so they aren't repeated here)
+            if (fill) engine.evNowPct()?.let { p -> CarStat("$p%", "Akku jetzt", if (p < 10) Bad else if (p < 20) Warn else c.text) }
+            if (fill) engine.evNowKm()?.let { k -> CarStat("$k km", "Reichweite", c.text) }
             engine.evArrivalPct()?.let { p -> CarStat("$p%", "Akku Ankunft", if (p < 10) Bad else if (p < 20) Warn else Good) }
         }
         if (fill) Row(Modifier.fillMaxWidth().padding(start = 16.dp, end = 10.dp, top = 4.dp, bottom = 10.dp), verticalAlignment = Alignment.CenterVertically) {
             Row(Modifier.weight(1f), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) { stats() }
-            Box(Modifier.padding(start = 12.dp)) { sound(36.dp) }
-            Box(Modifier.padding(start = 8.dp)) { end(36.dp) }
-        } else Row(Modifier.widthIn(min = 400.dp).onSizeChanged { if (it.width != rowW) rowW = it.width }.padding(start = 16.dp, end = 10.dp, top = 4.dp, bottom = 10.dp),
+            Box(Modifier.padding(start = 12.dp)) { sound(46.dp) }
+            Box(Modifier.padding(start = 8.dp)) { end(46.dp) }
+        } else Row(Modifier.widthIn(min = 460.dp).onSizeChanged { if (it.width != rowW) rowW = it.width }.padding(start = 16.dp, end = 10.dp, top = 4.dp, bottom = 10.dp),
             horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-            Row(horizontalArrangement = Arrangement.spacedBy(20.dp), verticalAlignment = Alignment.CenterVertically) { stats() }
-            Row(Modifier.padding(start = 16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) { sound(40.dp); end(40.dp) }
+            Row(horizontalArrangement = Arrangement.spacedBy(26.dp), verticalAlignment = Alignment.CenterVertically) { stats() }
+            Row(Modifier.padding(start = 16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) { sound(54.dp); end(54.dp) }
         }
     }
 }
@@ -465,8 +466,8 @@ private fun TripCard(engine: NavEngine, fill: Boolean) {
 private fun CarStat(value: String, label: String, color: Color) {
     val c = LocalVw.current
     Column {
-        Text(value, color = color, fontSize = 22.sp, fontWeight = FontWeight.Bold, maxLines = 1, softWrap = false)
-        Text(label, color = c.sub, fontSize = 14.sp, maxLines = 1, softWrap = false)
+        Text(value, color = color, fontSize = 30.sp, fontWeight = FontWeight.Bold, maxLines = 1, softWrap = false)
+        Text(label, color = c.sub, fontSize = 18.sp, maxLines = 1, softWrap = false)
     }
 }
 
