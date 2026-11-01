@@ -110,6 +110,8 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
     private var main: List<LL> = emptyList()
     private var alts: List<List<LL>> = emptyList()
     private var dest: LL? = null
+    /** Stops on the way, in order, each with whether it's a charging stop (drawn with a lightning bolt). */
+    private var via: List<Pair<LL, Boolean>> = emptyList()
     private var me: LL? = null
     private var meHeading = 0.0
 
@@ -627,6 +629,32 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
         c.drawPath(path, Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xFFEA4335.toInt(); style = Paint.Style.FILL })
         c.drawCircle(48f, 44f, 13f, Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xFF8C1D18.toInt() })
         c.drawCircle(48f, 44f, 11f, Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xFFFFFFFF.toInt() })
+        return bmp
+    }
+
+    /** A charging stop on the way: a teal disc with a white lightning bolt (ring and shadow like the other markers). */
+    private fun viaEvBitmap(): Bitmap {
+        val bmp = Bitmap.createBitmap(96, 96, Bitmap.Config.ARGB_8888)
+        val c = Canvas(bmp)
+        c.drawCircle(48f, 50f, 42f, Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0x55000000 })
+        c.drawCircle(48f, 48f, 42f, Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xFFFFFFFF.toInt() })
+        c.drawCircle(48f, 48f, 35f, Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xFF00A884.toInt() })
+        val bolt = Path().apply {
+            moveTo(55f, 16f); lineTo(29f, 53f); lineTo(45f, 53f); lineTo(39f, 80f)
+            lineTo(67f, 41f); lineTo(51f, 41f); lineTo(58f, 16f); close()
+        }
+        c.drawPath(bolt, Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xFFFFFFFF.toInt(); style = Paint.Style.FILL })
+        return bmp
+    }
+
+    /** Any other stop on the way: a smaller neutral grey disc with a white centre, so it doesn't compete with the destination pin. */
+    private fun viaStopBitmap(): Bitmap {
+        val bmp = Bitmap.createBitmap(64, 64, Bitmap.Config.ARGB_8888)
+        val c = Canvas(bmp)
+        c.drawCircle(32f, 34f, 27f, Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0x55000000 })
+        c.drawCircle(32f, 32f, 27f, Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xFFFFFFFF.toInt() })
+        c.drawCircle(32f, 32f, 21f, Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xFF5F6368.toInt() })
+        c.drawCircle(32f, 32f, 8f, Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xFFFFFFFF.toInt() })
         return bmp
     }
 
@@ -1721,6 +1749,7 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
         addS(st, GeoJsonSource.Builder("dl-flow").featureCollection(empty()).lineMetrics(true).build())
         addS(st, GeoJsonSource.Builder("dl-done").featureCollection(empty()).build())
         addS(st, GeoJsonSource.Builder("dl-dest").featureCollection(empty()).build())
+        addS(st, GeoJsonSource.Builder("dl-via").featureCollection(empty()).build())
         addS(st, GeoJsonSource.Builder("dl-hazards").featureCollection(empty()).build())
         addS(st, GeoJsonSource.Builder("dl-me").featureCollection(empty()).build())
         // the arrow at the next turn, drawn on the route; no simplification, so small shapes keep their corners
@@ -1879,6 +1908,14 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
             .iconSize(zoomed(1.0, 13 to 0.3, 16 to 0.46, 18 to 0.6)))
         addL(st, SymbolLayer("dl-parked-l", "dl-parked").iconImage("dl-car-pin").iconAllowOverlap(true).iconIgnorePlacement(true)
             .iconPitchAlignment(IconPitchAlignment.VIEWPORT).iconEmissiveStrength(1.0).iconSize(zoomed(1.0, 10 to 0.4, 15 to 0.55, 18 to 0.7)))
+        // the stops on the way (under the destination, so the pin stays on top where they meet). Pictures in both looks:
+        // a charging stop has to read as one at a glance, which a plain dot can't do
+        addImg(st, "dl-via-ev", viaEvBitmap())
+        addImg(st, "dl-via-stop", viaStopBitmap())
+        addL(st, SymbolLayer("dl-via-l", "dl-via")
+            .iconImage(Expression.get("img")).iconEmissiveStrength(1.0)
+            .iconAllowOverlap(true).iconIgnorePlacement(true).iconPitchAlignment(IconPitchAlignment.VIEWPORT)
+            .iconSize(zoomed(1.0, 8 to 0.4, 13 to 0.5, 16 to 0.62, 18 to 0.72)))
         if (im) {
             addImg(st, "dl-pin", pinBitmap())
             addL(st, SymbolLayer("dl-dest-dot", "dl-dest")
@@ -2135,7 +2172,7 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
 
     private fun pushAll() {
         pushLive(); pushRadar(); pushTurn()
-        pushRoute(); pushDest(); pushMe(); pushHazards(); pushCams(); pushSignals()
+        pushRoute(); pushDest(); pushVia(); pushMe(); pushHazards(); pushCams(); pushSignals()
     }
 
     private var cams: List<LL> = emptyList()
@@ -3493,6 +3530,8 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
         pushSignals()
     }
     fun setDest(p: LL?) { dest = p; pushDest() }
+    /** The stops on the way, in order; true = a charging stop. Kept, so they're drawn again after a style change. */
+    fun setVia(stops: List<Pair<LL, Boolean>>) { via = stops; pushVia() }
     private var meAnim: android.animation.ValueAnimator? = null
     private var lastMePush = 0L
 
@@ -3542,6 +3581,13 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
         val s = src("dl-dest") ?: return
         val d = dest
         if (d != null) s.feature(Feature.fromGeometry(Point.fromLngLat(d.lon, d.lat))) else s.featureCollection(empty())
+    }
+
+    private fun pushVia() {
+        val s = src("dl-via") ?: return
+        s.featureCollection(FeatureCollection.fromFeatures(via.map { (p, ev) ->
+            Feature.fromGeometry(Point.fromLngLat(p.lon, p.lat)).also { it.addStringProperty("img", if (ev) "dl-via-ev" else "dl-via-stop") }
+        }))
     }
 
     private var meShownFlat = false

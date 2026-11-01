@@ -516,8 +516,9 @@ fun PlannedCard(engine: NavEngine) {
 
 /** Electric trip: the charging stops it needs, with the charge on arrival and the time to charge, or a warning if it can't be done. */
 @Composable
-fun EvStopsRow(engine: NavEngine) {
-    val stops = engine.evStops; val warn = engine.evWarning
+fun EvStopsRow(engine: NavEngine, planned: List<com.headunit.launcher.EvStop>? = null) {
+    // with [planned]: just list those stops (already on the route), without the "add stops" button or the warning
+    val stops = planned ?: engine.evStops; val warn = if (planned != null) null else engine.evWarning
     if (stops.isEmpty() && warn == null) return
     val c = LocalVw.current
     val many = if (stops.size > 1) "s" else ""
@@ -528,7 +529,7 @@ fun EvStopsRow(engine: NavEngine) {
         Column(Modifier.weight(1f, fill = false).widthIn(max = 460.dp)) {
             if (stops.isEmpty()) Text(warn ?: "", color = Bad, fontSize = 13.sp, fontWeight = FontWeight.Bold)
             else {
-                Text(Lang.t("${stops.size} Ladestopp$many nötig", "${stops.size} charging stop$many needed"), color = Good, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                Text(if (planned != null) Lang.t("${stops.size} Ladestopp$many geplant", "${stops.size} charging stop$many planned") else Lang.t("${stops.size} Ladestopp$many nötig", "${stops.size} charging stop$many needed"), color = Good, fontSize = 13.sp, fontWeight = FontWeight.Bold)
                 stops.forEachIndexed { i, s ->
                     // the network first (unless the name already says it), and a star for one of the operators preferred in Settings
                     val op = com.headunit.launcher.ChargeOperators.label(s.n)?.takeUnless { s.n.place.name.contains(it, ignoreCase = true) }
@@ -541,7 +542,7 @@ fun EvStopsRow(engine: NavEngine) {
                 if (warn != null) Text(warn, color = Bad, fontSize = 12.sp)
             }
         }
-        if (stops.isNotEmpty()) Pill(Lang.t("Stopps hinzufügen", "Add stops"), false, { engine.addStops(stops) })
+        if (planned == null && stops.isNotEmpty()) Pill(Lang.t("Stopps hinzufügen", "Add stops"), false, { engine.addStops(stops) })
     }
 }
 

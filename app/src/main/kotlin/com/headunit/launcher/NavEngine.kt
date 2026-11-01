@@ -209,6 +209,17 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
     /** Electric: the charging stops the trip needs, and a warning if it can't be done with the reserve. */
     var evStops by mutableStateOf<List<EvStop>>(emptyList())
     var evWarning by mutableStateOf<String?>(null)
+    /** The charging stops that were put on this trip (by the plan or the "Add stops" pill), kept for their charge and minutes. */
+    var evPlanned by mutableStateOf<List<EvStop>>(emptyList())
+    /** Where the charging stops were last added on their own: once per destination, so stops you took off don't come back. */
+    private var evAutoDest: LL? = null
+    /** The warning that came with the plan put on the trip (a stretch it couldn't cover), shown again once the stops are on. */
+    private var evPlanWarn: String? = null
+    /** The route whose charging stops are still being worked out (the countdown waits for them, as they may be added to it). */
+    private var evPlanningFor by mutableStateOf<Route?>(null)
+    val evPlanning: Boolean get() = evPlanningFor.let { it != null && it === route }
+    /** Minutes the planned charging stops take (charging only, without the detours). */
+    fun evChargeMinutes(): Int = evPlanned.sumOf { it.minutes }
     private var wrongCount = 0
     private var wrongAt = 0L
 
@@ -1034,15 +1045,18 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
     }
 
     /** Adds the planned charging stops to the trip, in route order, and routes once. */
-    fun addStops(list: List<EvStop>) {
+    fun addStops(list: List<EvStop>, auto: Boolean = false) {
         val d = dest ?: return
         val all = via + list.map { it.n.place }
         // in route order, so a stop before a later one on the route comes first
         via = route?.let { r -> all.sortedBy { RouteExtras.project(r, it.pos, 5000.0)?.first ?: Double.MAX_VALUE } } ?: all
         stopMode = false
         clearNearby()
+        evPlanWarn = evWarning
         evStops = emptyList()
-        toast(Lang.t("${list.size} Ladestopp(s) eingeplant", "${list.size} charging stop(s) added"), 2500)
+        evPlanned = evPlanned + list
+        toast(if (auto) Lang.t("${list.size} Ladestopp(s) automatisch eingeplant", "${list.size} charging stop(s) added automatically")
+            else Lang.t("${list.size} Ladestopp(s) eingeplant", "${list.size} charging stop(s) added"), 2500)
         startRoute(d, departMin, true, startNow = route != null && !previewing)
     }
 
@@ -1065,6 +1079,8 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
     fun setStops(stops: List<Place>) {
         val d = dest ?: return
         via = stops
+        // a charging stop taken off in the stops editor is no longer part of the plan
+        evPlanned = evPlanned.filter { e -> stops.any { Geo.dist(it.pos, e.n.place.pos) < 30.0 } }
         startRoute(d, departMin, true, startNow = route != null && !previewing)
     }
 
@@ -1573,7 +1589,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
     fun startRoute(to: Place, departInMin: Int = 0, keepVia: Boolean = false, startNow: Boolean = false) {
         syncRoutePrefs(fix?.pos ?: map.center(), to.pos)
         resume = null
-        if (!keepVia) via = emptyList()
+        if (!keepVia) { via = emptyList(); evPlanned = emptyList(); evAutoDest = null; evPlanWarn = null }
         if (!hasOnline && !OfflineRouter.installed(ctx)) { toast(ctx.getString(R.string.toast_047), 7000); return }
         val from = fix?.pos ?: map.center() ?: return
         if (fix == null) toast(ctx.getString(R.string.toast_015), 5000)
@@ -1613,7 +1629,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
                 updateRouteZones()
                 said.clear(); offCount = 0; lastIdx = 0; trustProg = -1.0
                 turn = null; eta = null; routeFrac = 0f
-                map.setDest(to.pos)
+                map.setDest(to.pos); pushVia()
                 drawRoutes()
                 following = false
                 previewing = true
@@ -1748,7 +1764,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         faster = null; resume = null; prefs.put(PreferenceKeys.RESUME, "{}")
         incMatches = emptyList(); incidentAhead = null; incAt = 0L; incAlerted.clear()
         routeCams = emptyList(); camsRoute = null; camsAt = 0L; camsCount = -1; hazardSig = 0; policeSig = 0; map.setHazards(emptyList())
-        via = emptyList(); stopMode = false; destRain = null; routeWx = emptyList()
+        via = emptyList(); evPlanned = emptyList(); evAutoDest = null; evStops = emptyList(); evWarning = null; stopMode = false; destRain = null; routeWx = emptyList()
         routes = emptyList(); active = 0; dest = null; turn = null; eta = null; lastIdx = 0; previewing = false; routeFrac = 0f; onRoad = ""
         departMin = 0; departAtMs = 0L
         fuelSuggestion = null; parkingNear = emptyList(); parkingFor = null
@@ -1758,7 +1774,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         sessionAvoid.clear(); routeZones = emptyList(); avgInfo = null; avgIn = null; servicesAhead = emptyList(); barEvents = emptyList()
         rawServices = emptyList(); servicesFor = null; rawHz = emptyList(); rawAvg = emptyList(); hzWinRoute = null; hzWinEnd = -1.0
         placed = null; placedSig = 0; avgAlerted.clear(); hzAlerted.clear(); zoneAlerted.clear(); stopsEditor = false
-        map.setRoute(emptyList(), emptyList()); map.setDest(null); map.setTurnPulse(false); laneKey = null; map.setLanes(emptyList()); map.setLaneSign(null, emptyList()); laneSignFor = -1.0; bubbleLanes = null; map.setLaneBubble(null, emptyList()); map.setRouteShift(emptyList()); laneLatAt = null; laneShiftEnd = 0.0
+        map.setRoute(emptyList(), emptyList()); map.setDest(null); map.setVia(emptyList()); map.setTurnPulse(false); laneKey = null; map.setLanes(emptyList()); map.setLaneSign(null, emptyList()); laneSignFor = -1.0; bubbleLanes = null; map.setLaneBubble(null, emptyList()); map.setRouteShift(emptyList()); laneLatAt = null; laneShiftEnd = 0.0
         map.highlightDestination(null)
         stopSim()
         tts?.stop()
@@ -3434,7 +3450,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         if (!light) {
             try { checkIncidents(r, progress) } catch (e: Exception) { }
             fix?.let { f -> try { checkYieldSigns(f.pos, f.heading) } catch (e: Exception) { } }
-            fix?.let { f -> if (via.isNotEmpty() && Geo.dist(f.pos, via[0].pos) < 80) { toast(str(R.string.rest_432, via[0].name), 3000); via = via.drop(1) } }
+            fix?.let { f -> if (via.isNotEmpty() && Geo.dist(f.pos, via[0].pos) < 80) { toast(str(R.string.rest_432, via[0].name), 3000); val reached = via[0].pos; evPlanned = evPlanned.filter { Geo.dist(it.n.place.pos, reached) >= 30.0 }; via = via.drop(1); pushVia() } }
             if (via.isEmpty()) checkParking(r, rem)
             curProgress = progress
             // time left = what the rest of the road takes with no traffic + the delays that are still ahead of you
@@ -3925,7 +3941,20 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
     }
 
     /** The battery level or the charge to arrive with changed on the route options: look again for a charging stop. */
-    fun refreshEvPlan() { val r = route ?: return; fuelSuggestion = null; suggestFuel(r) }
+    fun refreshEvPlan() {
+        val r = route ?: return
+        val d = dest
+        // the charging stops already on the trip came from the old battery / reserve: take them off and plan again (planEv only
+        // plans while there are no stops, and adds the new ones once more)
+        if (evPlanned.isNotEmpty() && d != null && prefs.b(PreferenceKeys.SMARTFUEL, true)) {
+            val old = evPlanned
+            via = via.filterNot { p -> old.any { Geo.dist(it.n.place.pos, p.pos) < 30.0 } }
+            evPlanned = emptyList(); evAutoDest = null; evPlanWarn = null
+            startRoute(d, departMin, true, startNow = !previewing)
+            return
+        }
+        fuelSuggestion = null; suggestFuel(r)
+    }
 
     /**
      * Electric: the charging stops this trip needs. Each stop is the furthest charger reachable with the reserve left there, or
@@ -3933,15 +3962,17 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
      */
     private fun planEv(r: Route) {
         evStops = emptyList(); evWarning = null
-        // stops already on the trip are the user's plan: no suggestion on top of them
-        if (via.isNotEmpty()) return
+        // stops already on the trip are the user's plan: no suggestion on top of them (but a warning that came with the
+        // charging stops put on it stays: that plan still falls short somewhere)
+        if (via.isNotEmpty()) { if (evPlanned.isNotEmpty()) evWarning = evPlanWarn; return }
         val batt = evBatteryKwh()
         val destKm = prefs.i(PreferenceKeys.EV_DEST_KM, 50).coerceIn(0, 500).toDouble()
         val chargerKm = prefs.i(PreferenceKeys.EV_CHARGER_KM, 30).coerceIn(0, 500).toDouble()
         val (startKm, full) = evRangeKm()
         val lenKm = r.len / 1000.0
         if (startKm - lenKm >= destKm) return
-        scope.launch {
+        evPlanningFor = r
+        scope.launch { try {
             val cands = withContext(Dispatchers.IO) { chargersAlong(r) }
             if (route !== r) return@launch
             val ids = ChargeOperators.selected(prefs)
@@ -3988,8 +4019,22 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
                 if ((pref.second == null) == (warning == null) && pref.first.size == stops.size && pref.first.count { it.preferred } > stops.count { it.preferred } &&
                     total(pref.first) - total(stops) <= allowed) { stops = pref.first; warning = pref.second }
             }
-            if (route === r) { evStops = stops; evWarning = warning }
-        }
+            if (route === r) {
+                evStops = stops; evWarning = warning
+                // put the stops on the trip straight away, once per destination: if you take them off again (stops editor) they
+                // stay a suggestion (the "Add stops" pill) instead of coming back with every new route
+                val d = dest
+                if (stops.isNotEmpty() && via.isEmpty() && d != null && evAutoDest?.let { Geo.dist(it, d.pos) < 50.0 } != true) {
+                    evAutoDest = d.pos
+                    addStops(stops, auto = true)
+                }
+            }
+        } finally { if (evPlanningFor === r) evPlanningFor = null } }
+    }
+
+    /** Draws the stops on the way on the map; a stop is a charger when it's one of the planned charging stops. */
+    private fun pushVia() {
+        map.setVia(via.map { p -> p.pos to evPlanned.any { Geo.dist(it.n.place.pos, p.pos) < 30.0 } })
     }
 
     /** Chargers along the whole route, with where they are on it (metres) and the detour. */
@@ -4470,7 +4515,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
     private fun shadow() = quiet() && !showingMap
 
     /** Joins a trip started on the other screen (the phone or the car): the same destination and stops, straight into guidance. */
-    fun followRoute(to: Place, stops: List<Place>) {
+    fun followRoute(to: Place, stops: List<Place>, ev: List<EvStop> = emptyList()) {
         val d = dest
         if (d != null && Geo.dist(d.pos, to.pos) < 30.0 && route != null) {
             // already showing this route's choice (a place shared to both screens): set off with it
@@ -4482,6 +4527,8 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
             var n = 0
             while (fix == null && n < 40) { delay(500); n++ }
             via = stops
+            // the screen that started the trip planned its charging stops: this one takes them over and doesn't add its own
+            evPlanned = ev; evAutoDest = to.pos
             startRoute(to, keepVia = true, startNow = true)
         }
     }

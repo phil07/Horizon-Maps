@@ -134,9 +134,15 @@ internal fun BoxScope.RoutePreview(engine: NavEngine) {
     val fastest = rs.indices.minByOrNull { rs[it].time } ?: 0
     val shortest = rs.indices.minByOrNull { rs[it].len } ?: 0
     val progress = remember { Animatable(0f) }
-    // planning an arrive-by trip (or having the picker open) stops the countdown: you are not leaving now
+    // planning an arrive-by trip (or having the picker open) stops the countdown: you are not leaving now.
+    // So does opening the options: the trip must not start while you are still choosing.
     var arriveBy by remember { mutableStateOf(false) }
-    val hold = arriveBy || engine.flyingOver || engine.planned?.dest?.let { p -> engine.dest?.let { d -> Geo.dist(p.pos, d.pos) < 50.0 } } == true
+    var showOpts by remember { mutableStateOf(false) }
+    val plannedHere = engine.planned?.dest?.let { p -> engine.dest?.let { d -> Geo.dist(p.pos, d.pos) < 50.0 } } == true
+    val planHold = arriveBy || plannedHere
+    // and while the route is still being worked out or its charging stops planned: they may be put on it in a moment
+    // (re-routing it), and a trip started from the old route would be thrown back into this preview when the new one arrives
+    val hold = planHold || showOpts || engine.flyingOver || engine.busy || engine.evPlanning
     val autoStart = engine.prefs.b(PreferenceKeys.AUTO_START_ROUTE, true)
     val countdownMs = engine.prefs.i(PreferenceKeys.AUTO_START_SECONDS, 10).coerceIn(3, 30) * 1000
     LaunchedEffect(engine.active, engine.routes, hold, autoStart, countdownMs) {
@@ -157,25 +163,45 @@ internal fun BoxScope.RoutePreview(engine: NavEngine) {
     val costText = if (mpg != null && ppl != null && selRoute != null)
         (if (ev) Lang.t("Laden etwa ", "Charging about ") else Lang.t("Sprit etwa ", "Fuel about ")) + java.text.NumberFormat.getCurrencyInstance(java.util.Locale.UK).format(
             if (ev) selRoute.len / 1609.344 / mpg * ppl / 100.0 else selRoute.len / 1609.344 / mpg * 4.54609 * ppl / 100.0) else null
+    val eco = engine.prefs.b(PreferenceKeys.ROUTE_ECO, false)
+    val evPlan = if (ev) engine.evPlanned else emptyList()
     ZonesRow(engine)
-    if (engine.routeWx.isNotEmpty()) {
-        val fahr = isImperial(engine.prefs)
-        Row(
-            Modifier.floating(50.dp).horizontalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 8.dp),
-            verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(18.dp),
-        ) {
-            Text(stringResource(R.string.ui_062), color = c.sub, fontSize = 13.sp)
-            engine.routeWx.forEach { w ->
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(wxIcon(w.code), null, tint = wxTint(w.code), modifier = Modifier.size(24.dp))
-                    Column(Modifier.padding(start = 6.dp)) {
-                        Text((if (fahr) Math.round(w.temp * 9 / 5 + 32) else Math.round(w.temp)).toString() + "°", color = c.text, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
-                        Text("in ${if (w.minutes >= 60) "${w.minutes / 60} h ${w.minutes % 60} min" else "${w.minutes} min"}" + (if (w.rain >= 40) " · ${w.rain}%" else ""), color = if (w.rain >= 60) Warn else c.sub, fontSize = 11.sp)
-                    }
-                }
+    // one compact row: the "Options" button and a one-line summary of what is chosen; the rain warning stays visible
+    val summary = buildList {
+        val m = engine.departMin
+        add(when {
+            plannedHere -> Lang.t("Ankunft geplant", "Arrival planned")
+            m <= 0 -> Lang.t("Abfahrt jetzt", "Leave now")
+            m % 60 == 0 -> Lang.t("Abfahrt +${m / 60} h", "Leave +${m / 60} h")
+            else -> Lang.t("Abfahrt +$m Min.", "Leave +$m min")
+        })
+        if (ev) {
+            val pctNow = engine.evNowPct() ?: engine.prefs.i(PreferenceKeys.EV_CHARGE_PCT, 80).coerceIn(5, 100)
+            add(Lang.t("Akku $pctNow %", "Battery $pctNow%"))
+            if (evPlan.isNotEmpty()) {
+                add(if (evPlan.size == 1) Lang.t("1 Ladestopp", "1 charging stop") else Lang.t("${evPlan.size} Ladestopps", "${evPlan.size} charging stops"))
+                val cm = engine.evChargeMinutes()
+                if (cm > 0) add(Lang.t("$cm Min. laden", "$cm min charging"))
             }
         }
+        // the planned charging stops are on the route as stops too: count only the others here
+        val others = engine.via.count { v -> evPlan.none { Geo.dist(it.n.place.pos, v.pos) < 30.0 } }
+        if (others > 0) add(if (others == 1) Lang.t("1 Stopp", "1 stop") else Lang.t("$others Stopps", "$others stops"))
+        if (ev && eco) add(Lang.t("Öko-Route", "Eco route"))
+    }.joinToString(" · ")
+    Row(
+        Modifier.floating(50.dp).padding(6.dp),
+        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        Pill(if (showOpts) Lang.t("Optionen ▴", "Options ▴") else Lang.t("Optionen ▾", "Options ▾"), showOpts, { showOpts = !showOpts })
+        Column(Modifier.weight(1f, fill = false).padding(end = 8.dp)) {
+            Text(summary, color = c.sub, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            engine.destRain?.let { Text(it, color = Warn, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis) }
+        }
     }
+    // at most 40 % of the screen's height, so the route cards and Start stay in view on a short (car / landscape) screen
+    val optsMaxH = (androidx.compose.ui.platform.LocalConfiguration.current.screenHeightDp * 0.4f).dp
+    if (showOpts) Column(Modifier.fillMaxWidth().heightIn(max = optsMaxH).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
     Row(
         Modifier.floating(50.dp).horizontalScroll(rememberScrollState()).padding(6.dp),
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp),
@@ -186,7 +212,6 @@ internal fun BoxScope.RoutePreview(engine: NavEngine) {
         Pill(if (engine.via.isEmpty()) Lang.t("+ Stopp", "+ Stop") else Lang.t("Stopps bearbeiten", "Edit stops"), false, { engine.stopsEditor = true })
         if (engine.via.isNotEmpty()) Text(engine.via.joinToString(" › ") { it.name }, color = c.text, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.widthIn(max = 220.dp))
         if (costText != null) Text(costText, color = c.sub, fontSize = 13.sp, modifier = Modifier.padding(horizontal = 8.dp))
-        engine.destRain?.let { Text(it, color = Warn, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(horizontal = 8.dp)) }
     }
     Row(
         Modifier.floating(50.dp).horizontalScroll(rememberScrollState()).padding(6.dp),
@@ -196,10 +221,9 @@ internal fun BoxScope.RoutePreview(engine: NavEngine) {
         for ((label, m) in listOf(Lang.t("Jetzt", "Now") to 0, Lang.t("+15 Min.", "+15 min") to 15, Lang.t("+30 Min.", "+30 min") to 30, "+1 h" to 60, "+2 h" to 120)) {
             Pill(label, engine.departMin == m, { if (engine.departMin != m) engine.setDeparture(m) })
         }
-        Pill(Lang.t("Ankunft bis…", "Arrive by…"), hold, { arriveBy = true })
+        Pill(Lang.t("Ankunft bis…", "Arrive by…"), planHold, { arriveBy = true })
     }
-    // electric: the battery now, the least you want to arrive with, and the eco route; a charging stop is then suggested
-    // below if the trip needs one
+    // electric: the battery now, the least you want to arrive with, and the eco route; charging stops are then planned
     if (ev) Row(
         Modifier.floating(50.dp).horizontalScroll(rememberScrollState()).padding(6.dp),
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp),
@@ -212,9 +236,12 @@ internal fun BoxScope.RoutePreview(engine: NavEngine) {
         Pill("+", false, { engine.prefs.put(PreferenceKeys.EV_CHARGE_PCT, (pct + 10).coerceAtMost(100)); engine.refreshEvPlan() })
         Text(Lang.t("Am Ziel mind.", "At destination, at least"), color = c.sub, fontSize = 13.sp, modifier = Modifier.padding(start = 14.dp, end = 4.dp))
         for (km in listOf(30, 50, 100)) Pill("$km km", destKm == km, { engine.prefs.put(PreferenceKeys.EV_DEST_KM, km); engine.refreshEvPlan() })
-        val eco = engine.prefs.b(PreferenceKeys.ROUTE_ECO, false)
         Pill(if (eco) Lang.t("Öko-Route ✓", "Eco route ✓") else Lang.t("Öko-Route", "Eco route"), eco, { engine.prefs.put(PreferenceKeys.ROUTE_ECO, !eco); engine.rerouteForSettings() })
     }
+    // the charging stops already planned into the route, with charge on arrival, charge-to and minutes
+    if (evPlan.isNotEmpty()) EvStopsRow(engine, evPlan)
+    }
+    // outside the options: a fuel stop suggestion, or (electric) a warning / charging stops not yet added
     FuelSuggestionRow(engine)
     // landscape: everything in one row. Portrait (narrow): destination on top, the route choices across, Start underneath.
     val narrowP = androidx.compose.ui.platform.LocalConfiguration.current.screenWidthDp < 720
@@ -271,25 +298,48 @@ internal fun BoxScope.RoutePreview(engine: NavEngine) {
             Box(Modifier.align(Alignment.CenterStart).fillMaxHeight().fillMaxWidth(progress.value).background(c.accent))
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Text(stringResource(R.string.ui_052), color = Color.White, fontSize = 17.sp, fontWeight = FontWeight.Bold)
-                Text(if (hold) Lang.t("Für später geplant", "Planned for later") else if (autoStart) Lang.t("Start in ${kotlin.math.ceil((1f - progress.value) * (countdownMs / 1000f)).toInt()} s", "Starting in ${kotlin.math.ceil((1f - progress.value) * (countdownMs / 1000f)).toInt()} s") else Lang.t("Zum Starten tippen", "Tap to start"), color = Color.White.copy(alpha = 0.85f), fontSize = 12.sp)
+                Text(if (planHold) Lang.t("Für später geplant", "Planned for later") else if (hold) Lang.t("Zum Starten tippen", "Tap to start") else if (autoStart) Lang.t("Start in ${kotlin.math.ceil((1f - progress.value) * (countdownMs / 1000f)).toInt()} s", "Starting in ${kotlin.math.ceil((1f - progress.value) * (countdownMs / 1000f)).toInt()} s") else Lang.t("Zum Starten tippen", "Tap to start"), color = Color.White.copy(alpha = 0.85f), fontSize = 12.sp)
             }
         }
     }
-    if (!narrowP) Row(
-        Modifier.fillMaxWidth().floating(28.dp).padding(12.dp),
-        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp),
-    ) {
-        destPart(Modifier.width(150.dp))
-        routeCards()
-        if (engine.prefs.b(PreferenceKeys.FLYOVER, true)) FlyOverBtn(engine)
-        startBtn(Modifier.width(210.dp))
-        RoundBtn(Icons.Rounded.Close, { engine.endRoute() }, size = 46.dp)
+    // the weather along the route, small: up to three points, icon + temperature + when
+    val wxLine: @Composable () -> Unit = {
+        if (engine.routeWx.isNotEmpty()) {
+            val fahr = isImperial(engine.prefs)
+            Row(
+                Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 4.dp),
+                verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp),
+            ) {
+                engine.routeWx.take(3).forEach { w ->
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(wxIcon(w.code), null, tint = wxTint(w.code), modifier = Modifier.size(18.dp))
+                        Text((if (fahr) Math.round(w.temp * 9 / 5 + 32) else Math.round(w.temp)).toString() + "°", color = c.text, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, modifier = Modifier.padding(start = 4.dp))
+                        val whenTxt = if (w.minutes >= 60) "in ${w.minutes / 60} h ${"%02d".format(w.minutes % 60)}" else Lang.t("in ${w.minutes} Min.", "in ${w.minutes} min")
+                        Text(whenTxt + (if (w.rain >= 40) " · ${w.rain}%" else ""), color = if (w.rain >= 60) Warn else c.sub, fontSize = 11.sp, maxLines = 1, modifier = Modifier.padding(start = 4.dp))
+                    }
+                }
+            }
+        }
+    }
+    if (!narrowP) Column(Modifier.fillMaxWidth().floating(28.dp).padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(
+            Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            destPart(Modifier.width(150.dp))
+            routeCards()
+            if (engine.prefs.b(PreferenceKeys.FLYOVER, true)) FlyOverBtn(engine)
+            startBtn(Modifier.width(210.dp))
+            RoundBtn(Icons.Rounded.Close, { engine.endRoute() }, size = 46.dp)
+        }
+        wxLine()
     } else Column(Modifier.fillMaxWidth().floating(28.dp).padding(12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             destPart(Modifier.weight(1f))
             RoundBtn(Icons.Rounded.Close, { engine.endRoute() }, size = 46.dp)
         }
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) { routeCards() }
+        wxLine()
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
             if (engine.prefs.b(PreferenceKeys.FLYOVER, true)) FlyOverBtn(engine)
             startBtn(Modifier.weight(1f))
