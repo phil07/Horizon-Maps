@@ -2086,6 +2086,9 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
     @Volatile private var herePos: LL? = null
     @Volatile private var hereWay = -1L
     @Volatile private var hereLim: Double? = null
+    @Volatile private var hereOkAt = 0L
+    /** HERE answered in the last 30 seconds (with a key set): its limit is used before the route's own, also on a route. */
+    private fun hereFresh(): Boolean = prefs.s(PreferenceKeys.HERE_KEY, "").isNotBlank() && System.currentTimeMillis() - hereOkAt < 30_000L
 
     private fun lookUpLimit(p: LL, hd: Double, routeHere: Boolean): Overpass.Limit? {
         // the country you're in (from where you are), not the head unit's language setting, which is often US English anywhere
@@ -2095,7 +2098,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
             if (mbTrail.isEmpty() || Geo.dist(mbTrail.last(), p) > 15.0) { mbTrail.add(p); while (mbTrail.size > 5) mbTrail.removeAt(0) }
             if (Geo.dist(mbTrail.first(), p) > 600.0) { mbTrail.clear(); mbTrail.add(p) }
         }
-        if (routeHere || !online()) return osm
+        if (!online()) return osm
         // a limit for certain times from OpenStreetMap ("30 @ 22:00-06:00"): the other sources only know the plain one
         if (osm != null && osm.timed) return osm
         // HERE first when you've put in a key: its road data is the most complete and up to date (Settings > Map accounts)
@@ -2114,10 +2117,13 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
             }
             val hv = if (osm == null || hereWay == way) hereLim else null
             if (hv != null) {
+                hereOkAt = now
                 return if (hv <= 0.0) Overpass.Limit(-1.0, false, osm?.road ?: "", osm?.wayId ?: 0L, osm?.names ?: emptyList(), true, noLimit = true)
                 else Overpass.Limit(hv, false, osm?.road ?: "", osm?.wayId ?: 0L, osm?.names ?: emptyList(), true)
             }
         }
+        // on a route, the route's own limits are used when HERE has none (see applyRouteLimit)
+        if (routeHere) return osm
         if (!hasKey || ttDown()) {
             // no TomTom key (or TomTom not working right now) but a Mapbox token: Mapbox matches your last few positions to its roads and gives that road's limit
             if (provider != "mapbox") return osm
@@ -2191,7 +2197,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
     /** While navigating a TomTom route: the posted limit for exactly where you are on it, updated with every GPS fix. */
     private fun applyRouteLimit(r: Route, prog: Double, p: Fix) {
         val secs = r.limits
-        if (secs.isEmpty()) return
+        if (secs.isEmpty() || hereFresh()) return
         // a few metres ahead, to make up for the GPS being about a second behind
         val at = prog + min(max(p.speed, 0.0) * 0.8, 20.0)
         var lo = 0; var hi = secs.size - 1; var hit: LimitSec? = null
@@ -2246,12 +2252,12 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
                     val r = withContext(Dispatchers.IO) { lookUpLimit(look, hd, routeHere) }
                     if (r != null) {
                         if (r.wayId != 0L || r.road.isNotBlank()) noteRoad(r.road, hd); limitFails = 0
-                        if (!routeLimitLive()) showLimit(r, p.pos)
+                        if (!routeLimitLive() || hereFresh()) showLimit(r, p.pos)
                     } else if (Overpass.lastError == null) {
                         // looked fine, but you're not on a mapped road (a car park, a new estate): no road name or limit rather than the
                         // last road's
                         noteRoad("", hd)
-                        if (!routeLimitLive()) showLimit(Overpass.Limit(-1.0, true), p.pos)
+                        if (!routeLimitLive() || hereFresh()) showLimit(Overpass.Limit(-1.0, true), p.pos)
                     } else {
                         // keep showing the last known limit through a failed lookup; only drop it once it is clearly out of date (10 minutes or 3 km)
                         val okPos = limitOkPos
