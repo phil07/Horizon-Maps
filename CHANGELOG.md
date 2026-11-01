@@ -4,6 +4,9 @@ Add user-facing Horizon Nav changes under **Unreleased** before publishing each 
 
 ## Unreleased
 
+### Behoben
+- Android Auto: Horizon Nav erscheint wieder im Launcher des Autos, auch wenn „Unbekannte Quellen“ aktiv ist. Die App ist dafür als Auto-App gekennzeichnet und zeigt sich im Auto nach dem Verbinden.
+
 ### Neu
 - Stau melden: Unter „Hier melden“ gibt es jetzt auch „Stau“, auf dem Handy und in Android Auto. Die Meldung erscheint als orangefarbenes Symbol auf der Karte und gilt 30 Minuten; wie bei den anderen Meldungen wirst du vorher gewarnt.
 - Meldungen teilen: Deine Meldungen (Polizei, Unfall, Gefahr, Panne, mobiler Blitzer, Stau) gehen anonym an andere Horizon-Fahrer, nur Art, Ort und Zeit. Du siehst ihre Meldungen im Umkreis von 30 km und entlang deiner Route und wirst gewarnt wie bei deinen eigenen. Fährst du an einer vorbei, fragt die App kurz „Noch da?“: Mit „Weg“ verschwindet sie. Abschaltbar unter Einstellungen > Warnungen > Deine Meldungen > „Meldungen teilen“ (dann ohne jede Verbindung zum Server), dort steht auch, ob der Server erreichbar ist.

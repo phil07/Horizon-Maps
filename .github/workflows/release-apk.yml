@@ -166,7 +166,7 @@ jobs:
           {
             echo "## Horizon Nav ${VERSION}"
             echo
-            if [ -s "$CHANGE_NOTES" ]; then cat "$CHANGE_NOTES"; else echo "Built from the latest source."; fi
+            if [ -s "$CHANGE_NOTES" ]; then cat "$CHANGE_NOTES"; else echo "Kleinere Verbesserungen und Fehlerbehebungen."; fi
           } > release-notes.md
 
           # the version's own release (a re-run of the same build replaces its files)
