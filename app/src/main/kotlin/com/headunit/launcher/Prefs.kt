@@ -236,6 +236,12 @@ internal object PreferenceKeys {
     const val EV_CAR_CURVE = "evcarcurve"
     /** Chargers used for charging stops: 0 = all, 50, 150 or 300 kW and faster; default 50. */
     const val EV_MIN_KW = "evminkw"
+    /** Preferred charging operators: comma-separated ids from ChargeOperators (empty = none). */
+    const val EV_PREF_OPS = "evprefops"
+    /** Extra minutes a preferred operator's charging stops may cost over the quickest plan (default 10). */
+    const val EV_PREF_MIN = "evprefmin"
+    /** Open Charge Map API key (optional): looks up the power and operator of chargers outside Germany's register. */
+    const val OCM_KEY = "ocmkey"
 }
 
 /**
