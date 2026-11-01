@@ -2000,6 +2000,8 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
     // ---- the zoom you set with + and - when not on a route, remembered for next time (phone / head unit and Android Auto apart) ----
     private val freeZoomKey: String get() = if (isCar) PreferenceKeys.FREE_ZOOM_CAR else PreferenceKeys.FREE_ZOOM
     private var freeZoomRestored = false
+    /** Brings back the zoom saved for this screen as soon as the screen is up (Android Auto may connect long after the first fix). */
+    fun restoreFreeZoomNow() { if (!freeZoomRestored) { freeZoomRestored = true; if (route == null) zoomOffset = try { savedFreeZoom() } catch (e: Exception) { 0.0 } } }
 
     private fun savedFreeZoom(): Double = (prefs.s(freeZoomKey, "0").toDoubleOrNull() ?: 0.0).coerceIn(-4.0, 3.0)
 
@@ -3389,6 +3391,8 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
             var cur: DoubleArray? = null
             var prev: LL? = null
             for (q in r.pts) {
+                // across the 180th meridian the box would wrap the whole world: close the part here and start a new one
+                if (prev != null && abs(q.lon - prev.lon) > 180.0) { cur?.let { boxes += grow(it, 1_000.0) }; cur = null }
                 val b = cur
                 if (b == null) { cur = doubleArrayOf(q.lat, q.lon, q.lat, q.lon); prev = q; continue }
                 val s = min(b[0], q.lat); val w = min(b[1], q.lon); val n = max(b[2], q.lat); val e = max(b[3], q.lon)

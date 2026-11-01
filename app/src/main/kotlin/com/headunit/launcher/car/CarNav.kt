@@ -217,6 +217,7 @@ class CarNavSession : Session() {
         CarTicks.tick = { surface.tick() }
         applyTheme()
         try { engine.startLocation() } catch (e: Exception) { }
+        engine.restoreFreeZoomNow()
         mapScreen?.start()
         // asked for a destination before the map was up (Android Auto opened the app for it)
         pendingNav?.let { pendingNav = null; takeNav(it) }

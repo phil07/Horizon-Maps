@@ -179,7 +179,7 @@ jobs:
         working-directory: ${{ env.PROJECT_DIR }}
         env:
           MAPBOX_DOWNLOADS_TOKEN: ${{ secrets.MAPBOX_DOWNLOADS_TOKEN }}
-        run: gradle :app:assembleRelease -PtomtomApiKey="${{ secrets.TOMTOM_API_KEY }}"
+        run: gradle :app:assembleRelease -PtomtomApiKey="${{ secrets.TOMTOM_API_KEY }}" -PreportsUrl="${{ vars.REPORTS_URL }}"
 
       - name: Verify APK signing certificate matches keystore
         env:

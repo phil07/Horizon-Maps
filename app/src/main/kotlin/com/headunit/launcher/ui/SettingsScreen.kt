@@ -74,6 +74,7 @@ import androidx.compose.ui.unit.sp
 import com.headunit.launcher.BuildConfig
 import com.headunit.launcher.FuelFinder
 import com.headunit.launcher.Geo
+import com.headunit.launcher.Lang
 import com.headunit.launcher.NavEngine
 import com.headunit.launcher.OfflinePlaces
 import com.headunit.launcher.Place
@@ -519,25 +520,25 @@ private fun AlertsSection(prefs: Prefs, engine: NavEngine) {
         SToggle(prefs, "Bahnübergänge und Furten", "railford", true, "Warnschild und Sprachwarnung")
         SToggle(prefs, "Wetterhinweise", "wxadvice", true, "Hinweis bei Regen, Schnee, Nebel oder Glätte")
     }
-    SGroup("Deine Meldungen", footer = "Meldungen über die Optionen-Taste auf der Karte erstellen.") {
-        SToggle(prefs, "Vor Meldungen voraus warnen", "policealerts", true)
-        SItem("Aktive Meldungen", "${engine.reportsActive().size}") { SButton("Löschen", danger = true) { engine.clearReports() } }
-        SToggle(prefs, "Meldungen teilen", PreferenceKeys.REPORTS_SHARE, true, "Meldungen teilen und anzeigen: deine gehen anonym an andere Fahrer (nur Art, Ort und Zeit), ihre siehst du auf der Karte. Aus: keine Verbindung zum Server.")
+    SGroup(Lang.t("Deine Meldungen", "Your reports"), footer = Lang.t("Meldungen über die Optionen-Taste auf der Karte erstellen.", "Create reports with the options button on the map.")) {
+        SToggle(prefs, Lang.t("Vor Meldungen voraus warnen", "Warn before reports ahead"), "policealerts", true)
+        SItem(Lang.t("Aktive Meldungen", "Active reports"), "${engine.reportsActive().size}") { SButton(Lang.t("Löschen", "Delete"), danger = true) { engine.clearReports() } }
+        SToggle(prefs, Lang.t("Meldungen teilen", "Share reports"), PreferenceKeys.REPORTS_SHARE, true, Lang.t("Meldungen teilen und anzeigen: deine gehen anonym an andere Fahrer (nur Art, Ort und Zeit), ihre siehst du auf der Karte. Aus: keine Verbindung zum Server.", "Share and show reports: yours go to other drivers anonymously (only kind, place and time), and you see theirs on the map. Off: no connection to the server."))
         // the server's state, looked at again every few seconds while this page is open
         var tick by remember { mutableStateOf(0) }
         androidx.compose.runtime.LaunchedEffect(Unit) { while (true) { kotlinx.coroutines.delay(5000); tick++ } }
         val status = tick.let {
             val sr = com.headunit.launcher.SharedReports
             when {
-                !sr.configured(prefs) -> "Kein Server eingerichtet"
-                !prefs.b(PreferenceKeys.REPORTS_SHARE, true) -> "Aus: keine Verbindung zum Server"
-                sr.lastError.isNotBlank() -> "Fehler: ${sr.lastError}"
-                sr.lastOkAt > 0 -> "Server verbunden · ${sr.shownCount} Meldungen in der Nähe"
-                else -> "Noch nicht verbunden: startet mit dem nächsten GPS-Signal"
+                !sr.configured(prefs) -> Lang.t("Kein Server eingerichtet", "No server set up")
+                !prefs.b(PreferenceKeys.REPORTS_SHARE, true) -> Lang.t("Aus: keine Verbindung zum Server", "Off: no connection to the server")
+                sr.lastError.isNotBlank() -> Lang.t("Fehler: ", "Error: ") + sr.lastError
+                sr.lastOkAt > 0 -> Lang.t("Server verbunden · ${sr.shownCount} Meldungen in der Nähe", "Server connected · ${sr.shownCount} reports nearby")
+                else -> Lang.t("Noch nicht verbunden: startet mit dem nächsten GPS-Signal", "Not connected yet: starts with the next GPS fix")
             }
         }
-        SItem("Server für geteilte Meldungen", status)
-        SFieldItem("Meldungs-Server", prefs.s(PreferenceKeys.REPORTS_URL, ""), "Leer lassen für den eingebauten Server. Nur ändern, wenn du einen eigenen betreibst.", placeholder = "https://…") { prefs.put(PreferenceKeys.REPORTS_URL, it.trim()) }
+        SItem(Lang.t("Server für geteilte Meldungen", "Server for shared reports"), status)
+        SFieldItem(Lang.t("Meldungs-Server", "Reports server"), prefs.s(PreferenceKeys.REPORTS_URL, ""), Lang.t("Leer lassen für den eingebauten Server. Nur ändern, wenn du einen eigenen betreibst.", "Leave empty for the built-in server. Only change it if you run your own."), placeholder = "https://…") { prefs.put(PreferenceKeys.REPORTS_URL, it.trim()) }
     }
 }
 

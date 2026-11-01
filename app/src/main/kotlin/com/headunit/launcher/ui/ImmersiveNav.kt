@@ -484,6 +484,10 @@ private fun MapScreen(engine: NavEngine, onSettings: () -> Unit) {
                 Text(Lang.t("${vp.name} noch da?", "${vp.name} still there?"), color = c.text, fontSize = 17.sp, fontWeight = FontWeight.Bold, maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))
                 ImmPill(Lang.t("Noch da", "Still there"), { engine.answerVote(true) }, filled = true)
                 ImmPill(Lang.t("Weg", "Gone"), { engine.answerVote(false) })
+                // closes the question without a vote
+                Box(Modifier.size(34.dp).clip(CircleShape).pressClick { engine.dismissVote() }, contentAlignment = Alignment.Center) {
+                    Icon(Icons.Rounded.Close, Lang.t("Schließen", "Close"), tint = c.sub, modifier = Modifier.size(18.dp))
+                }
             }
         }
 
@@ -750,18 +754,17 @@ private fun TripArea(engine: NavEngine, shareEta: () -> Unit, narrow: Boolean = 
                 ) {
                     stats()
                     Row(Modifier.padding(start = 4.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) { buttons() }
-                } else Row(
-                    // portrait: one compact line (figures, then the buttons), so the card stays low and clear of your arrow
-                    Modifier.fillMaxWidth().padding(start = 14.dp, end = 8.dp, top = 6.dp, bottom = 7.dp),
-                    verticalAlignment = Alignment.CenterVertically,
+                } else Column(
+                    // portrait: the figures get the full width (time and arrival never clipped), the buttons sit in a row under them
+                    Modifier.fillMaxWidth().padding(start = 14.dp, end = 14.dp, top = 6.dp, bottom = 7.dp),
                 ) {
-                    Row(Modifier.weight(1f), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                         ImmStat(Geo.fmtDur(e.secs), if (e.delayMin >= 1) Lang.t("+${e.delayMin} Min.", "+${e.delayMin} min") else Lang.t("Restzeit", "time left"), dc, compact = true)
                         ImmStat(e.arrive, "arrival", c.text, compact = true)
                         ImmStat(Geo.fmtDist(e.dist, engine.imperial), Lang.t("verbleibend", "to go"), c.text, compact = true)
                         if (evPct != null) ImmStat("$evPct%", "battery", evCol, compact = true)
                     }
-                    Row(Modifier.padding(start = 12.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Row(Modifier.fillMaxWidth().padding(top = 6.dp), horizontalArrangement = Arrangement.SpaceEvenly) {
                         if (evPct != null) ImmCircle({ engine.loadNearby("charging", false) }, 36.dp) { Icon(Icons.Rounded.EvStation, Lang.t("Ladesäulen voraus", "Chargers ahead"), tint = Good, modifier = Modifier.size(19.dp)) }
                         ImmCircle({ voice() }, 36.dp) { Icon(Icons.Rounded.Mic, Lang.t("Sprache", "Voice"), tint = c.text, modifier = Modifier.size(19.dp)) }
                         ImmCircle({ engine.cycleSound() }, 36.dp) { Icon(soundIcon(engine.soundMode), Lang.t("Ton", "Sound"), tint = if (engine.soundMode == 2) Bad else c.text, modifier = Modifier.size(19.dp)) }
