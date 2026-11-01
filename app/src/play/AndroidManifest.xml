@@ -52,5 +52,29 @@
         <package android:name="com.polestar.explore" />
         <!-- Tesla -->
         <package android:name="com.teslamotors.tesla" />
+        <!-- Citroën -->
+        <package android:name="com.psa.mym.mycitroen" />
+        <!-- Fiat (North America variant) -->
+        <package android:name="com.fca.myconnect.fiat.nafta" />
+        <!-- Ram (North America variant) -->
+        <package android:name="com.fca.myconnect.ram.nafta" />
+        <!-- Lexus -->
+        <package android:name="com.lexus.oneapp" />
+        <!-- Honda -->
+        <package android:name="com.honda.hondalink.connect" />
+        <!-- MINI (North America variant) -->
+        <package android:name="de.mini.connected.mobile20.na" />
+        <!-- Subaru -->
+        <package android:name="com.subaru.telematics.app.remote" />
+        <!-- Mitsubishi -->
+        <package android:name="com.mitsubishi_motors.mitsubishimotors" />
+        <!-- Genesis -->
+        <package android:name="com.stationdm.genesis" />
+        <!-- Chevrolet -->
+        <package android:name="com.gm.chevrolet.nomad.ownership" />
+        <!-- Land Rover -->
+        <package android:name="com.jlr.landrover.incontrolremote.appstore" />
+        <!-- Rivian -->
+        <package android:name="com.rivian.android.consumer" />
     </queries>
 </manifest>
