@@ -1,5 +1,7 @@
 package com.headunit.launcher
 
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import org.json.JSONObject
 import java.net.HttpURLConnection
 import java.net.URL
@@ -15,6 +17,29 @@ object HereRest {
 
     /** Set when the last request failed, for the feedback report; null when it worked. */
     @Volatile var lastError: String? = null
+    /** What the last request brought, with the time ("14:32: 50 km/h", "14:32: Fehler 401 …"), shown under the key in Settings. */
+    var status by androidx.compose.runtime.mutableStateOf(""); private set
+    private fun note(s: String) {
+        val at = java.text.SimpleDateFormat("HH:mm", java.util.Locale.getDefault()).format(java.util.Date())
+        android.os.Handler(android.os.Looper.getMainLooper()).post { status = "$at: $s" }
+    }
+
+    /** [speedLimit], with what came of it noted for Settings. */
+    fun speedLimitNoted(key: String, trail: List<LL>): Double? {
+        val v = try { speedLimit(key, trail) } catch (e: Exception) { lastError = e.message ?: e.javaClass.simpleName; null }
+        val err = lastError
+        note(when {
+            err != null -> Lang.t("Fehler: ", "Error: ") + when {
+                err.contains("401") || err.contains("403") -> err + Lang.t(" (Schlüssel ungültig oder nicht freigeschaltet)", " (key invalid or not enabled)")
+                err.contains("429") -> err + Lang.t(" (zu viele Abfragen)", " (too many requests)")
+                else -> err
+            }
+            v == null -> Lang.t("Antwort ohne Tempolimit für diese Straße", "answer without a limit for this road")
+            v < 0 -> Lang.t("kein Tempolimit (unbegrenzt)", "no limit")
+            else -> "${Math.round(v * 3.6)} km/h"
+        })
+        return v
+    }
 
     /**
      * The posted limit (m/s) of the road at the end of [trail] (oldest first): -1 where there is no limit (an unrestricted

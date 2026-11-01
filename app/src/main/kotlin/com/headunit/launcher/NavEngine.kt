@@ -2109,7 +2109,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
                 val trail = synchronized(mbTrail) { mbTrail.toList() }
                 if (trail.size >= 2) {
                     hereAt = now; herePos = p; hereWay = way
-                    hereLim = try { HereRest.speedLimit(hk, trail) } catch (e: Exception) { null }
+                    hereLim = try { HereRest.speedLimitNoted(hk, trail) } catch (e: Exception) { null }
                 }
             }
             val hv = if (osm == null || hereWay == way) hereLim else null
