@@ -677,6 +677,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
                     if (r2 == TextToSpeech.LANG_MISSING_DATA || r2 == TextToSpeech.LANG_NOT_SUPPORTED)
                         scope.launch { toast(ctx.getString(R.string.toast_045), 9000) }
                 }
+                pickBestVoice()
                 voiceChan = prefs.s(PreferenceKeys.VOICE_CHANNEL, "nav")
                 tts?.setAudioAttributes(speechAttrs)
                 tts?.setOnUtteranceProgressListener(object : android.speech.tts.UtteranceProgressListener() {
@@ -4597,6 +4598,21 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
      * "share" when the ETA should be shared, "search:<place>" to search for a place, or "" when it was handled.
      */
     /** Understands spoken commands in English and German ("take me home", "bring mich nach Hause", "nächste Tankstelle"…). */
+    /**
+     * The default voice of many head units sounds robotic. Pick the best installed voice for the spoken language
+     * (the highest quality; Google's own voices are the highest). Falls back to the system voice if none is found.
+     */
+    private fun pickBestVoice() {
+        val t = tts ?: return
+        try {
+            val lang = t.language?.language ?: return
+            val best = t.voices
+                ?.filter { it.locale.language == lang && it.features?.contains(TextToSpeech.Engine.KEY_FEATURE_NOT_INSTALLED) != true }
+                ?.maxByOrNull { it.quality }
+            if (best != null) t.voice = best
+        } catch (e: Exception) { }
+    }
+
     fun handleVoice(raw: String): String? {
         val t = raw.lowercase(Locale.GERMAN).trim().removePrefix("hey horizon").removePrefix("hallo horizon").trim(' ', ',', '.', '!', '?')
         fun has(vararg w: String) = w.any { t.contains(it) }
