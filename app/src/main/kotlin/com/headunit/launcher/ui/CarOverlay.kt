@@ -255,6 +255,14 @@ private fun CarScreen(engine: NavEngine, a: android.graphics.Rect?, actions: Car
                 }
             }
             CarChips(engine, actions, savedRows)
+            // battery and range from the car (or the widget), always on the map, not only during a route
+            val evPct = engine.prefs.s(PreferenceKeys.EV_NOW_PCT, "").toIntOrNull()
+            val evKm = engine.prefs.s(PreferenceKeys.EV_NOW_KM, "").toIntOrNull()
+            if (evPct != null) Row(Modifier.height(44.dp).panel(10.dp, RoundedCornerShape(22.dp), c.surface).padding(horizontal = 16.dp),
+                verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("$evPct %", color = if (evPct < 15) Bad else if (evPct < 30) Warn else c.text, fontSize = 18.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
+                if (evKm != null) Text("· $evKm km", color = c.text, fontSize = 18.sp, maxLines = 1)
+            }
         }
 
         // alerts (cameras, limits, hazards...): beside the turn card on wide screens, under it on tall ones

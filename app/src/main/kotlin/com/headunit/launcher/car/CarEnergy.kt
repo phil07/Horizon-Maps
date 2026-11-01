@@ -38,7 +38,10 @@ object CarEnergy {
                 val v: CarValue<Float> = data.batteryPercent
                 if (v.status == CarValue.STATUS_SUCCESS) v.value?.let { pct ->
                     val p = Math.round(pct).coerceIn(0, 100)
-                    EvWidget.liveReading(prefs, p, null)
+                    // the range the car reports, in km (null when the car doesn't send one)
+                    val r: CarValue<Float> = data.rangeRemainingMeters
+                    val km = if (r.status == CarValue.STATUS_SUCCESS) r.value?.let { m -> Math.round(m / 1000f) } else null
+                    EvWidget.liveReading(prefs, p, km)
                 }
             }
             info.addEnergyLevelListener(carContext.mainExecutor, l)
