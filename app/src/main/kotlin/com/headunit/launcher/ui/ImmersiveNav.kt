@@ -882,7 +882,8 @@ private fun SpeedRing(engine: NavEngine, show: Boolean, k: Double) {
         val signRight = engine.mirrored && !engine.isCar
         if (lim != null) Box(
             Modifier.align(if (!show) Alignment.Center else if (signRight) Alignment.TopEnd else Alignment.TopStart)
-                .offset(x = if (!show) 0.dp else if (signRight) 30.dp else (-30).dp, y = if (show) (-18).dp else 0.dp)
+                // beside the ring's upper corner, just clear of it (raised over the top it covered the battery chip above and the ring)
+                .offset(x = if (!show) 0.dp else if (signRight) 48.dp else (-48).dp, y = 0.dp)
         ) {
             SpeedLimitSign(engine, if (show) 50.dp else 70.dp)
         }
