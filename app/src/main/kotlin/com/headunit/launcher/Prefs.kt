@@ -160,6 +160,8 @@ internal object PreferenceKeys {
     const val POLICEREP = "policerep"
     const val PREDICT = "predict"
     const val QUICKLIST = "quicklist"
+    /** Saved & recent on the phone folded down to its header line (tap the header to fold and unfold). */
+    const val QUICKFOLD = "quickfold"
     /** The map in 3D (true) or flat 2D: remembered between drives, and shared by the phone / head unit and Android Auto. */
     const val VIEW_3D = "view3d"
     /** Your own normal zoom when not on a route, in zoom levels from the standard one (-2 to +2; 0 = standard). */

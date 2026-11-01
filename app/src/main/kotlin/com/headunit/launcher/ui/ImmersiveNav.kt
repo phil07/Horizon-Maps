@@ -1170,12 +1170,13 @@ private fun PlaceTile(engine: NavEngine, modifier: Modifier, icon: ImageVector, 
         here != null -> Geo.fmtDist(Geo.dist(here, place.pos), engine.imperial)
         else -> place.sub
     }
-    Row(modifier.height(58.dp).panel(6.dp, RoundedCornerShape(20.dp), c.surface).pressClick(onClick).padding(horizontal = 10.dp),
+    // (kept compact on the phone so the map stays in view; the short label even when not set yet, "Setze zuhause" was cut off)
+    Row(modifier.height(46.dp).panel(6.dp, RoundedCornerShape(18.dp), c.surface).pressClick(onClick).padding(horizontal = 8.dp),
         verticalAlignment = Alignment.CenterVertically) {
-        Box(Modifier.size(36.dp).clip(CircleShape).background(tint.copy(alpha = 0.18f)), contentAlignment = Alignment.Center) { Icon(icon, null, tint = tint, modifier = Modifier.size(20.dp)) }
-        Column(Modifier.padding(start = 10.dp).weight(1f)) {
-            Text(if (place == null) stringResource(R.string.ui_099, label.lowercase()) else label, color = c.text, fontSize = 16.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            Text(sub, color = c.sub, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        Box(Modifier.size(30.dp).clip(CircleShape).background(tint.copy(alpha = 0.18f)), contentAlignment = Alignment.Center) { Icon(icon, null, tint = tint, modifier = Modifier.size(17.dp)) }
+        Column(Modifier.padding(start = 8.dp).weight(1f)) {
+            Text(label, color = c.text, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(if (place == null) Lang.t("Festlegen", "Set") else sub, color = c.sub, fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
     }
 }
@@ -1183,8 +1184,8 @@ private fun PlaceTile(engine: NavEngine, modifier: Modifier, icon: ImageVector, 
 @Composable
 private fun FindButton(icon: ImageVector, tint: Color, desc: String, onClick: () -> Unit) {
     val c = LocalVw.current
-    Box(Modifier.size(50.dp).panel(6.dp, CircleShape, c.surface).pressClick(onClick), contentAlignment = Alignment.Center) {
-        Icon(icon, desc, tint = tint, modifier = Modifier.size(24.dp))
+    Box(Modifier.size(42.dp).panel(6.dp, CircleShape, c.surface).pressClick(onClick), contentAlignment = Alignment.Center) {
+        Icon(icon, desc, tint = tint, modifier = Modifier.size(20.dp))
     }
 }
 
@@ -1308,18 +1309,25 @@ private fun ImmQuick(engine: NavEngine, showSaved: Boolean = true) {
         // three places on show to keep the map clear; "All" opens the rest (it used to be a list up to five tall)
         AnimatedVisibility(showSaved && engine.prefs.b(PreferenceKeys.QUICKLIST, true),
             enter = fadeIn(tween(200)) + androidx.compose.animation.expandVertically(tween(240)), exit = fadeOut(tween(140)) + androidx.compose.animation.shrinkVertically(tween(200))) {
-        Column(Modifier.fillMaxWidth().panel(10.dp, RoundedCornerShape(26.dp), c.surface).padding(vertical = 6.dp)) {
-            Row(Modifier.fillMaxWidth().padding(start = 18.dp, end = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-                Text(stringResource(R.string.ui_040), color = c.sub, fontSize = 11.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.2.sp, modifier = Modifier.weight(1f))
-                if (saved.size > 3) Text(if (showAll) Lang.t("Weniger", "Less") else Lang.t("Alle ${saved.size}", "All ${saved.size}"), color = c.accent, fontSize = 14.sp, fontWeight = FontWeight.SemiBold,
-                    modifier = Modifier.clip(RoundedCornerShape(12.dp)).clickable { showAll = !showAll }.padding(horizontal = 10.dp, vertical = 8.dp))
-                Row(Modifier.clip(RoundedCornerShape(12.dp)).clickable { adding = true }.padding(horizontal = 10.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Rounded.Add, null, tint = c.accent, modifier = Modifier.size(18.dp))
-                    Text(stringResource(R.string.ui_003), color = c.accent, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(start = 2.dp))
+        // tapping the header folds the list down to this one line (and back), remembered between drives
+        val folded = engine.prefs.b(PreferenceKeys.QUICKFOLD, false)
+        Column(Modifier.fillMaxWidth().panel(10.dp, RoundedCornerShape(22.dp), c.surface).padding(vertical = 2.dp).animateContentSize(tween(200))) {
+            Row(Modifier.fillMaxWidth().padding(start = 6.dp, end = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+                Row(Modifier.weight(1f).clip(RoundedCornerShape(12.dp)).clickable { engine.prefs.put(PreferenceKeys.QUICKFOLD, !folded) }.padding(start = 8.dp, top = 8.dp, bottom = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically) {
+                    Text(stringResource(R.string.ui_040), color = c.sub, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))
+                    Icon(if (folded) Icons.Rounded.KeyboardArrowDown else Icons.Rounded.KeyboardArrowUp,
+                        if (folded) Lang.t("Aufklappen", "Unfold") else Lang.t("Zuklappen", "Fold"), tint = c.sub, modifier = Modifier.padding(start = 4.dp).size(20.dp))
+                }
+                if (!folded && saved.size > 3) Text(if (showAll) Lang.t("Weniger", "Less") else Lang.t("Alle ${saved.size}", "All ${saved.size}"), color = c.accent, fontSize = 12.sp, fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.clip(RoundedCornerShape(12.dp)).clickable { showAll = !showAll }.padding(horizontal = 8.dp, vertical = 6.dp))
+                if (!folded) Row(Modifier.clip(RoundedCornerShape(12.dp)).clickable { adding = true }.padding(horizontal = 8.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Rounded.Add, null, tint = c.accent, modifier = Modifier.size(16.dp))
+                    Text(stringResource(R.string.ui_003), color = c.accent, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(start = 2.dp))
                 }
             }
-            if (saved.isEmpty()) Text(stringResource(R.string.ui_039), color = c.sub, fontSize = 13.sp, modifier = Modifier.padding(start = 18.dp, end = 18.dp, bottom = 8.dp))
-            LazyColumn(Modifier.heightIn(max = 250.dp)) {
+            if (!folded && saved.isEmpty()) Text(stringResource(R.string.ui_039), color = c.sub, fontSize = 12.sp, modifier = Modifier.padding(start = 14.dp, end = 14.dp, bottom = 8.dp))
+            if (!folded) LazyColumn(Modifier.heightIn(max = 200.dp)) {
                 items(if (showAll) saved else saved.take(3)) { (p, kind, label) ->
                     val fav = kind != 2
                     // swipe a place sideways to take it off the list (a favourite is unstarred, a recent one forgotten, your own place removed)
@@ -1341,15 +1349,15 @@ private fun ImmQuick(engine: NavEngine, showSaved: Boolean = true) {
                             ) { change, amount -> change.consume(); dx += amount }
                         }
                         .graphicsLayer { translationX = shown; alpha = 1f - (kotlin.math.abs(shown) / w.toFloat()).coerceIn(0f, 0.7f) }
-                        .clickable { engine.startRoute(p) }.padding(horizontal = 16.dp, vertical = 9.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Box(Modifier.size(44.dp).clip(CircleShape).background(c.tile), contentAlignment = Alignment.Center) {
-                            Icon(if (fav) Icons.Rounded.Star else Icons.Rounded.History, null, tint = if (fav) Warn else c.sub, modifier = Modifier.size(22.dp))
+                        .clickable { engine.startRoute(p) }.padding(horizontal = 12.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Box(Modifier.size(34.dp).clip(CircleShape).background(c.tile), contentAlignment = Alignment.Center) {
+                            Icon(if (fav) Icons.Rounded.Star else Icons.Rounded.History, null, tint = if (fav) Warn else c.sub, modifier = Modifier.size(18.dp))
                         }
-                        Column(Modifier.padding(start = 14.dp).weight(1f)) {
-                            Text(label, color = c.text, fontSize = 17.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                            if (p.sub.isNotBlank()) Text(p.sub, color = c.sub, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        Column(Modifier.padding(start = 11.dp).weight(1f)) {
+                            Text(label, color = c.text, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            if (p.sub.isNotBlank()) Text(p.sub, color = c.sub, fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                         }
-                        if (here != null) Text(Geo.fmtDist(Geo.dist(here, p.pos), engine.imperial), color = c.sub, fontSize = 13.sp, modifier = Modifier.padding(start = 8.dp))
+                        if (here != null) Text(Geo.fmtDist(Geo.dist(here, p.pos), engine.imperial), color = c.sub, fontSize = 11.sp, modifier = Modifier.padding(start = 8.dp))
                     }
                 }
             }
