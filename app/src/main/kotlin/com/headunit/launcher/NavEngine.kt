@@ -3311,20 +3311,31 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
      * them to the route whenever more arrive or the route changes.
      */
     private fun updateRouteCams(r: Route, @Suppress("UNUSED_PARAMETER") progress: Double) {
-        val cams = knownCams
+        // (the ones found along the route and the ones from the search around you: either can hold a camera on the route)
+        val cams = (knownCams + aroundCams).distinctBy { Math.round(it.lat * 1e5) * 1000003L + Math.round(it.lon * 1e5) }
         if (camsRoute === r && camsCount == cams.size) return
         camsRoute = r; camsCount = cams.size
         if (cams.isEmpty()) { routeCams = emptyList(); return }
         scope.launch {
             val found = withContext(Dispatchers.Default) {
-                // points every ~50 m along the route, in a coarse grid so each camera only checks the route nearby
+                // points every 10 m along the route (filled in along long straight stretches, where the route's own points can be
+                // hundreds of metres apart: a camera in between was too far from any point and never shown or warned about),
+                // in a coarse grid so each camera only checks the route nearby
                 val grid = HashMap<Long, ArrayList<Int>>()
                 val pts = ArrayList<LL>(); val offs = ArrayList<Double>()
-                var last = -1e9
                 fun key(lat: Double, lon: Double) = Math.floor(lat / 0.002).toLong() * 1000003L + Math.floor(lon / 0.003).toLong()
-                for (n in r.pts.indices) if (r.cum[n] - last >= 50.0 || n == r.pts.size - 1) {
-                    grid.getOrPut(key(r.pts[n].lat, r.pts[n].lon)) { ArrayList() }.add(pts.size)
-                    pts += r.pts[n]; offs += r.cum[n]; last = r.cum[n]
+                fun add(p: LL, o: Double) { grid.getOrPut(key(p.lat, p.lon)) { ArrayList() }.add(pts.size); pts += p; offs += o }
+                for (n in r.pts.indices) {
+                    add(r.pts[n], r.cum[n])
+                    if (n + 1 < r.pts.size) {
+                        val a = r.pts[n]; val b = r.pts[n + 1]
+                        val len = r.cum[n + 1] - r.cum[n]
+                        val steps = (len / 10.0).toInt()
+                        for (j in 1 until steps) {
+                            val f = j / steps.toDouble()
+                            add(LL(a.lat + (b.lat - a.lat) * f, a.lon + (b.lon - a.lon) * f), r.cum[n] + len * f)
+                        }
+                    }
                 }
                 val out = ArrayList<Pair<LL, Double>>()
                 for (c in cams) {
