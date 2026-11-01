@@ -1195,7 +1195,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
     }
 
     private fun checkLimitChange(newMs: Double, estimated: Boolean) {
-        if (!prefs.b(PreferenceKeys.LIMITCHANGE, true) || estimated) return
+        if (!prefs.b(PreferenceKeys.LIMITCHANGE, false) || estimated) return
         val k = if (imperial) 2.23694 else 3.6
         val n = (Math.round(newMs * k / 5.0) * 5).toInt()
         if (announcedLimit < 0) { announcedLimit = n; return }
@@ -2155,7 +2155,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
             val lim = speedLimit
             val tolUnits = prefs.s(PreferenceKeys.TRAFFIC_WARNING, "5").toIntOrNull() ?: 5
             val tol = tolUnits * (if (imperial) 0.44704 else 0.27778)
-            val over = prefs.b(PreferenceKeys.SPEEDWARN, true) && lim != null && !limitEstimated && p.speed > lim + tol && p.speed > 4.0
+            val over = prefs.b(PreferenceKeys.SPEEDWARN, false) && lim != null && !limitEstimated && p.speed > lim + tol && p.speed > 4.0
             overLimit = over
             if (over && soundMode != 2 && now - lastBeep > 9000) {
                 lastBeep = now

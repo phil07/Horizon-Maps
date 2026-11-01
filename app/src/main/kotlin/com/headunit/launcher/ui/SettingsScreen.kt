@@ -498,9 +498,9 @@ private fun ZonesItem() {
 @Composable
 private fun AlertsSection(prefs: Prefs, engine: NavEngine) {
     SGroup("Geschwindigkeit") {
-        SToggle(prefs, "Warnen bei Überschreitung", "speedwarn", true)
-        if (prefs.b(PreferenceKeys.SPEEDWARN, true)) SChoice("Warnen ab Überschreitung um", listOf("0", "5", "10").map { it to it + if (engine.imperial) " mph" else " km/h" }, prefs.s(PreferenceKeys.TRAFFIC_WARNING, "5")) { prefs.put(PreferenceKeys.TRAFFIC_WARNING, it) }
-        SToggle(prefs, "Limitänderung ansagen", "limitchange", true)
+        SToggle(prefs, "Warnen bei Überschreitung", "speedwarn", false)
+        if (prefs.b(PreferenceKeys.SPEEDWARN, false)) SChoice("Warnen ab Überschreitung um", listOf("0", "5", "10").map { it to it + if (engine.imperial) " mph" else " km/h" }, prefs.s(PreferenceKeys.TRAFFIC_WARNING, "5")) { prefs.put(PreferenceKeys.TRAFFIC_WARNING, it) }
+        SToggle(prefs, "Limitänderung ansagen", "limitchange", false)
         SToggle(prefs, "Geschätzte Limits anzeigen", "limitest", false, "Übliches Limit anzeigen, wo keins kartiert ist")
         // where you are bans camera warnings and "Off where banned" is on: say so here, or it looks as if the switch doesn't work
         val banned = com.headunit.launcher.CAMERA_BANNED[engine.detectedCountry]
