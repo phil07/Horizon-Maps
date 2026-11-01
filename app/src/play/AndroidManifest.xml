@@ -7,9 +7,50 @@
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" tools:node="remove" />
     <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES" tools:node="remove" />
 
+    <!-- The apps of car makers that show a battery level in a home-screen widget (EvCars / EvWidget). Play hides every other
+         installed app from the widget list, so each maker's app is named here. Only the apps listed are visible. -->
     <queries>
         <intent>
             <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
         </intent>
+        <!-- Volkswagen -->
+        <package android:name="com.volkswagen.weconnect" />
+        <!-- Audi -->
+        <package android:name="de.myaudi.mobile.assistant" />
+        <!-- Porsche -->
+        <package android:name="com.porsche.one" />
+        <!-- Škoda -->
+        <package android:name="cz.skodaauto.myskoda" />
+        <!-- BMW (North America variant; the European app is not confirmed yet) -->
+        <package android:name="de.bmw.connected.mobile20.na" />
+        <!-- Mercedes-Benz (Europe; USA variant: com.mbusa.mmusa.android) -->
+        <package android:name="com.daimler.ris.mercedesme.ece" />
+        <package android:name="com.mbusa.mmusa.android" />
+        <!-- Ford -->
+        <package android:name="com.ford.fordpass" />
+        <!-- Volvo -->
+        <package android:name="se.volvo.vcc" />
+        <!-- Toyota -->
+        <package android:name="com.toyota.oneapp" />
+        <!-- Hyundai (MyHyundai with Bluelink, USA) -->
+        <package android:name="com.stationdm.bluelink" />
+        <!-- Kia (Kia Access, USA; the European Kia Connect app is not confirmed yet) -->
+        <package android:name="com.myuvo.link" />
+        <!-- Peugeot -->
+        <package android:name="com.psa.mym.mypeugeot" />
+        <!-- Opel -->
+        <package android:name="com.psa.mym.myopel" />
+        <!-- Renault -->
+        <package android:name="com.myrsm.android" />
+        <!-- Cupra -->
+        <package android:name="com.cupra.mycupra" />
+        <!-- Nissan -->
+        <package android:name="com.nissan.mynissan" />
+        <!-- Mazda -->
+        <package android:name="com.interrait.mymazda" />
+        <!-- Polestar -->
+        <package android:name="com.polestar.explore" />
+        <!-- Tesla -->
+        <package android:name="com.teslamotors.tesla" />
     </queries>
 </manifest>
