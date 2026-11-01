@@ -431,7 +431,10 @@ private fun TripCard(engine: NavEngine, fill: Boolean) {
             CarStat(Geo.fmtDur(e.secs), if (e.delayMin >= 1) "+${e.delayMin} Min." else "Verbleibend", dc)
             CarStat(e.arrive, "Ankunft", c.text)
             CarStat(Geo.fmtDist(e.dist, engine.imperial), "Entfernung", c.text)
-            engine.evArrivalPct()?.let { p -> CarStat("$p%", "Akku", if (p < 10) Bad else if (p < 20) Warn else Good) }
+            // the battery and range the car reports now (as the app's chip), then the battery expected at arrival
+            engine.evNowPct()?.let { p -> CarStat("$p%", "Akku jetzt", if (p < 10) Bad else if (p < 20) Warn else c.text) }
+            engine.evNowKm()?.let { k -> CarStat("$k km", "Reichweite", c.text) }
+            engine.evArrivalPct()?.let { p -> CarStat("$p%", "Akku Ankunft", if (p < 10) Bad else if (p < 20) Warn else Good) }
         }
         if (fill) Row(Modifier.fillMaxWidth().padding(start = 16.dp, end = 10.dp, top = 4.dp, bottom = 10.dp), verticalAlignment = Alignment.CenterVertically) {
             Row(Modifier.weight(1f), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) { stats() }
