@@ -170,8 +170,9 @@ fun speedTint(engine: com.headunit.launcher.NavEngine): Color? {
     val sp = engine.fix?.speed ?: return null
     if (engine.limitEstimated || lim <= 0) return null
     val r = (sp / lim).toFloat()
-    if (r < 0.85f) return null
-    return androidx.compose.ui.graphics.lerp(LocalVw.current.text, Warn, ((r - 0.85f) / 0.12f).coerceIn(0f, 1f))
+    // normal colour up to the limit, amber once over it (it used to warm up from 85% of the limit)
+    if (r <= 1.0f) return null
+    return Warn
 }
 
 @Composable

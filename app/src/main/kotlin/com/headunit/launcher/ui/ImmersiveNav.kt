@@ -865,8 +865,10 @@ private fun SpeedRing(engine: NavEngine, show: Boolean, k: Double) {
     val frac by androidx.compose.animation.core.animateFloatAsState(target, androidx.compose.animation.core.tween(350), label = "ring")
     val ratio = if (lim != null && lim > 0 && !engine.limitEstimated) (sp / lim).toFloat() else 0f
     val col = when {
+        // blue up to the limit (it used to turn amber and red from 90%, so 28 in a 30 zone looked like speeding);
+        // amber just over it, red from 5% over
         engine.overLimit || ratio > 1.04f -> Bad
-        ratio >= 0.9f -> androidx.compose.ui.graphics.lerp(Warn, Bad, ((ratio - 0.9f) / 0.14f).coerceIn(0f, 1f))
+        ratio > 1.0f -> Warn
         else -> c.accent
     }
     val arcCol by androidx.compose.animation.animateColorAsState(col, androidx.compose.animation.core.tween(400), label = "ringCol")
