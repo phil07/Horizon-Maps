@@ -5,6 +5,9 @@ Add user-facing Horizon Nav changes under **Unreleased** before publishing each 
 ## Unreleased
 
 ### Neu
+- Baustellen auf Autobahnen: Baustellen, Sperrungen und Warnungen der Autobahn GmbH erscheinen auf der Karte, als Warnung auf deiner Route mit Entfernung und als Ansage. Sie werden beim Routenstart und danach alle 5 Minuten geholt, ohne Schlüssel. Daten: Autobahn GmbH.
+- Ansagestimme wählen: Unter Einstellungen > Ton & Stimme wählst du eine installierte deutsche Stimme. Online-Stimmen klingen meist natürlicher, brauchen aber Internet. „Probe anhören“ spielt eine Beispielansage.
+- Hinweis ohne Blitzerdaten: Wenn weder das Offline-Paket noch OpenStreetMap Blitzer für die Gegend liefern, zeigt die Karte einen kleinen Hinweis, dass die Offline-Karte dieser Gegend geladen werden kann.
 - Horizon Nav über Google Play: Seit Juni 2026 zeigt Android Auto selbst installierte Navigations-Apps nicht mehr an, auch nicht mit „Unbekannte Quellen“. Für Android Auto gibt es Horizon Nav deshalb jetzt als Testversion über Google Play (Einladung per Testlink). Die Version von GitHub funktioniert auf dem Handy weiter wie bisher.
 - Stau melden: Unter „Hier melden“ gibt es jetzt auch „Stau“, auf dem Handy und in Android Auto. Die Meldung erscheint als orangefarbenes Symbol auf der Karte und gilt 30 Minuten; wie bei den anderen Meldungen wirst du vorher gewarnt.
 - Meldungen teilen: Deine Meldungen (Polizei, Unfall, Gefahr, Panne, mobiler Blitzer, Stau) gehen anonym an andere Horizon-Fahrer, nur Art, Ort und Zeit. Du siehst ihre Meldungen im Umkreis von 30 km und entlang deiner Route und wirst gewarnt wie bei deinen eigenen. Fährst du an einer vorbei, fragt die App kurz „Noch da?“: Mit „Weg“ verschwindet sie. Abschaltbar unter Einstellungen > Warnungen > Deine Meldungen > „Meldungen teilen“ (dann ohne jede Verbindung zum Server), dort steht auch, ob der Server erreichbar ist.
