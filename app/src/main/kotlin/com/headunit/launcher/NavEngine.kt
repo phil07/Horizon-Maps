@@ -1343,9 +1343,12 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         if (nm.contains("parking") || nm.contains("car park") || nm.contains("multi-storey") || nm.contains("multistorey")) return
         scope.launch {
             val list = withContext(Dispatchers.IO) {
+                val live = async { try { if (online()) ParkingLive.around(d.pos, 1000) else null } catch (e: Exception) { null } }
                 val tt = if (hasOnline && online()) try { netPoiNearby("parking", d.pos, 700) } catch (e: Exception) { null } else null
-                (tt?.takeIf { it.isNotEmpty() } ?: try { if (online()) Overpass.nearby("parking", d.pos, 700) else emptyList() } catch (e: Exception) { emptyList() })
-                    .map { it.copy(dist = Geo.dist(d.pos, it.place.pos)) }.filter { it.dist < 800.0 }.sortedBy { it.dist }.take(3)
+                val found = (tt?.takeIf { it.isNotEmpty() } ?: try { if (online()) Overpass.nearby("parking", d.pos, 700) else emptyList() } catch (e: Exception) { emptyList() })
+                    .map { it.copy(dist = Geo.dist(d.pos, it.place.pos)) }.filter { it.dist < 800.0 }
+                // car parks with live free spaces: the nearest with room first, full ones at the end
+                ParkingLive.sortNearby(ParkingLive.enrich(found, live.await().orEmpty(), d.pos, 800.0)).take(3)
             }
             if (route === r && dest === d) parkingNear = list
         }
@@ -2795,6 +2798,11 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
                     else { clearNearby(); addStop(best.place) }
                     return@launch
                 }
+                if (kind == "parking") {
+                    // live free spaces where the car park publishes them, and car parks only those sources know
+                    val live = withContext(Dispatchers.IO) { try { if (online()) ParkingLive.around(centre, radius) else null } catch (e: Exception) { null } }
+                    nearby = ParkingLive.sortNearby(ParkingLive.enrich(list, live.orEmpty(), origin, radius.toDouble())).take(15)
+                } else
                 nearby = sortNearby(list).take(15)
                 if (nearby.isEmpty()) toast(if (alongRoute) Lang.t("Nichts entlang der Route gefunden", "Nothing found along the route ahead") else Lang.t("Nichts in der Nähe gefunden", "Nothing found nearby"), 3000)
             } catch (e: Exception) { toast(searchFailText(e), 4500) }
@@ -3163,6 +3171,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
             try { checkWeatherWarnings(p) } catch (e: Exception) { }
             try { checkRescueLane(p) } catch (e: Exception) { }
             try { checkClearances(p) } catch (e: Exception) { }
+            try { garagesAt(p.pos, true) } catch (e: Exception) { }
         }
         // the first position of this session: the zoom you left the map at last time comes back (not on a route)
         if (!freeZoomRestored) { freeZoomRestored = true; if (route == null) zoomOffset = try { savedFreeZoom() } catch (e: Exception) { 0.0 } }
@@ -3577,7 +3586,38 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
     private var camsCount = -1
     init {
         map.onRouteCameras = { c -> knownCams = c; if (camerasOnMap()) mergeCams() }
-        map.onViewMoved = { c -> viewMoved(c) }
+        map.onViewMoved = { c -> viewMoved(c); garagesAt(c, false) }
+        map.onGarageTap = { g -> showGarage(g) }
+    }
+
+    // ---- car parks on the map, with their free spaces ----
+    private var garagesFetchedAt = 0L
+    private var garagesFetchedPos: LL? = null
+    private var garagesBusy = false
+    private var garagesShown = false
+
+    /** Looks up the car parks round [c] (your position while following, else the middle of the map) from city zoom in. */
+    private fun garagesAt(c: LL, fromFix: Boolean) {
+        if (!prefs.b(PreferenceKeys.GARAGES_MAP, true)) { if (garagesShown) { garagesShown = false; map.setGarages(emptyList()) }; return }
+        if (fromFix && !following) return
+        if (garagesBusy || map.zoomNow() < 12.5) return
+        val now = System.currentTimeMillis()
+        val last = garagesFetchedPos
+        if (last != null && now - garagesFetchedAt < 90_000L && Geo.dist(last, c) < 1200.0) return
+        garagesBusy = true; garagesFetchedAt = now; garagesFetchedPos = c
+        scope.launch {
+            try {
+                val l = withContext(Dispatchers.IO) { try { if (online()) ParkingLive.around(c, 4000) else null } catch (e: Exception) { null } }
+                if (l != null && prefs.b(PreferenceKeys.GARAGES_MAP, true)) { garagesShown = true; map.setGarages(l) }
+            } finally { garagesBusy = false }
+        }
+    }
+
+    /** A car park tapped on the map: its card with the free spaces, to drive there or add it as a stop. */
+    private fun showGarage(g: Garage) {
+        nearbyBusy = false
+        nearbyKind = "parking"
+        nearby = listOf(g.toNearby(fix?.pos ?: g.pos))
     }
 
     /** Where the map was last dragged to (when not following the car), and the last look there. */
@@ -4757,11 +4797,14 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         scope.launch {
             val list = kotlinx.coroutines.withTimeoutOrNull(15_000L) {
                 withContext(Dispatchers.IO) {
-                    try { if (hasOnline && online()) netPoiNearby("parking", d, 700) else Overpass.nearby("parking", d, 700) }
-                    catch (e: Exception) { try { Overpass.nearby("parking", d, 700) } catch (e2: Exception) { emptyList() } }
+                    val live = async { try { ParkingLive.around(d, 1000) } catch (e: Exception) { null } }
+                    val found = try { if (hasOnline && online()) netPoiNearby("parking", d, 700) else Overpass.nearby("parking", d, 700) }
+                        catch (e: Exception) { try { Overpass.nearby("parking", d, 700) } catch (e2: Exception) { emptyList() } }
+                    ParkingLive.enrich(found.map { it.copy(dist = Geo.dist(d, it.place.pos)) }, live.await().orEmpty(), d, 800.0)
                 }
             }
-            if (arrival === a) arrivalParking = list?.minByOrNull { Geo.dist(d, it.place.pos) }?.let { it.copy(dist = Geo.dist(d, it.place.pos)) }
+            // the nearest one with free spaces (a full one only when there's nothing else)
+            if (arrival === a) arrivalParking = list?.let { ParkingLive.sortNearby(it).firstOrNull() }
         }
     }
 

@@ -1980,6 +1980,13 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
             .iconAnchor(IconAnchor.BOTTOM))
         // speed cameras, roadworks and closures on the route
         for ((kind, nm) in hazardNames.withIndex()) addImg(st, nm, hazardBitmap(kind))
+        // car parks with their free spaces (a blue P and the count), from city zoom in
+        garageImgs.clear()
+        addS(st, GeoJsonSource.Builder("dl-garages").featureCollection(empty()).build())
+        addL(st, SymbolLayer("dl-garages", "dl-garages")
+            .iconImage(Expression.get("img")).iconAllowOverlap(false).iconIgnorePlacement(false)
+            .iconPitchAlignment(IconPitchAlignment.VIEWPORT).iconEmissiveStrength(1.0).iconAnchor(IconAnchor.BOTTOM)
+            .iconSize(zoomed(1.0, 13 to 0.42, 15 to 0.55, 18 to 0.7)).minZoom(13.0))
         // every speed camera around you, route or not: a small camera badge on the road (the route's own ones sit on top, bigger)
         addS(st, GeoJsonSource.Builder("dl-cams").featureCollection(empty()).build())
         addL(st, SymbolLayer("dl-cams", "dl-cams")
@@ -2299,7 +2306,74 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
 
     private fun pushAll() {
         pushLive(); pushRadar(); pushTurn()
-        pushRoute(); pushDest(); pushVia(); pushMe(); pushHazards(); pushCams(); pushSignals()
+        pushRoute(); pushDest(); pushVia(); pushMe(); pushHazards(); pushCams(); pushSignals(); pushGarages()
+    }
+
+    // ---- car parks with their free spaces ----
+    /** Tapped a car park on the map. */
+    var onGarageTap: ((Garage) -> Unit)? = null
+    private var garages: List<Garage> = emptyList()
+    private val garageImgs = HashSet<String>()
+
+    fun setGarages(list: List<Garage>) { main0.post { if (list != garages) { garages = list; pushGarages() } } }
+
+    fun zoomNow(): Double = try { mbMap.cameraState.zoom } catch (e: Throwable) { 0.0 }
+
+    private fun garageImg(g: Garage) = "dl-gar-${g.level()}-${g.badge()}"
+
+    private fun pushGarages() {
+        val st = style ?: return
+        val s = src("dl-garages") ?: return
+        try {
+            for (g in garages) { val id = garageImg(g); if (garageImgs.add(id)) addImg(st, id, garageBitmap(g)) }
+            s.featureCollection(FeatureCollection.fromFeatures(garages.map { g ->
+                Feature.fromGeometry(Point.fromLngLat(g.pos.lon, g.pos.lat)).also { it.addStringProperty("img", garageImg(g)) }
+            }))
+        } catch (e: Throwable) { }
+    }
+
+    /** A blue P with the free spaces beside it: green, amber when filling up, red when full, grey without a live count (then the size). */
+    private fun garageBitmap(g: Garage): Bitmap {
+        val txt = g.badge()
+        val tp = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xFFFFFFFF.toInt(); textSize = 34f; typeface = android.graphics.Typeface.DEFAULT_BOLD; textAlign = Paint.Align.CENTER }
+        val h = 64f
+        val pillW = if (txt.isEmpty()) 0f else maxOf(48f, tp.measureText(txt) + 26f)
+        val w = h + (if (pillW > 0) pillW - 8f else 0f)
+        val bmp = Bitmap.createBitmap(w.toInt() + 4, h.toInt() + 12, Bitmap.Config.ARGB_8888)
+        val c = Canvas(bmp)
+        val shadow = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0x55000000 }
+        if (pillW > 0) {
+            val col = when (g.level()) { 1 -> 0xFF1E9E52; 2 -> 0xFFF59E0B; 3 -> 0xFFDC2626; else -> 0xFF6B7280 }.toInt()
+            val r = RectF(h - 14f, 10f, w, h - 6f)
+            c.drawRoundRect(RectF(r.left, r.top + 3f, r.right, r.bottom + 3f), 22f, 22f, shadow)
+            c.drawRoundRect(r, 22f, 22f, Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xFFFFFFFF.toInt() })
+            c.drawRoundRect(RectF(r.left + 3f, r.top + 3f, r.right - 3f, r.bottom - 3f), 19f, 19f, Paint(Paint.ANTI_ALIAS_FLAG).apply { color = col })
+            tp.textSize = 28f
+            c.drawText(txt, r.left + 8f + (r.width() - 8f) / 2f, r.centerY() - (tp.descent() + tp.ascent()) / 2f, tp)
+        }
+        val sq = RectF(2f, 2f, h - 2f, h - 2f)
+        c.drawRoundRect(RectF(sq.left, sq.top + 4f, sq.right, sq.bottom + 4f), 14f, 14f, shadow)
+        c.drawRoundRect(sq, 14f, 14f, Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xFFFFFFFF.toInt() })
+        c.drawRoundRect(RectF(sq.left + 4f, sq.top + 4f, sq.right - 4f, sq.bottom - 4f), 11f, 11f, Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xFF2E6FD8.toInt() })
+        tp.textSize = 40f
+        c.drawText("P", sq.centerX(), sq.centerY() - (tp.descent() + tp.ascent()) / 2f, tp)
+        return bmp
+    }
+
+    /** A tap near a car park's badge (about 30 dp), from city zoom in. */
+    private fun garageAt(sp: android.graphics.PointF): Garage? {
+        val gs = garages
+        if (gs.isEmpty() || zoomNow() < 13.0) return null
+        val dp = mapView.resources.displayMetrics.density
+        val px = pixels(gs.map { it.pos })
+        if (px.size != gs.size) return null
+        var best: Garage? = null; var bd = 30.0 * dp
+        for (k in gs.indices) {
+            // the badge stands above its point
+            val d = Math.hypot(px[k].x - sp.x, px[k].y - 16 * dp - sp.y)
+            if (d < bd) { bd = d; best = gs[k] }
+        }
+        return best
     }
 
     private var cams: List<LL> = emptyList()
@@ -3938,7 +4012,7 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
     fun tapAt(sp: android.graphics.PointF): Boolean {
         // a tap during the route fly-through skips straight to the overview
         flyDone?.let { d -> flyDone = null; flyToken++; try { mapView.camera.cancelAllAnimators() } catch (e: Throwable) { }; d(); return true }
-        if (liveLines.isEmpty()) return false
+        if (liveLines.isEmpty()) { val g = garageAt(sp) ?: return false; onGarageTap?.invoke(g); return true }
         return try {
             val dp = mapView.resources.displayMetrics.density
             // the cards first (about 190 x 65 dp, standing on their point): easy to hit while driving
@@ -3969,7 +4043,7 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
                     if (d < bd) { bd = d; best = i }
                 }
             }
-            if (best >= 0) { onAltTap?.invoke(best); true } else false
+            if (best >= 0) { onAltTap?.invoke(best); true } else garageAt(sp)?.let { g -> onGarageTap?.invoke(g); true } ?: false
         } catch (e: Exception) { false }
     }
 

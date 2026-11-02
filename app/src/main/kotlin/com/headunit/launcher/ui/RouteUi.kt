@@ -286,11 +286,35 @@ fun ParkingCard(engine: NavEngine, modifier: Modifier = Modifier) {
                 }
                 Text(n.place.name, color = c.text, fontSize = 14.sp, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f).padding(start = 10.dp))
+                ParkSpaces(n)
                 // a walk at about 80 m a minute
                 Text(maxOf(1, Math.round(n.dist / 80.0).toInt()).let { Lang.t("$it Min. zu Fuß", "$it min walk") }, color = c.sub, fontSize = 12.sp, modifier = Modifier.padding(start = 8.dp, end = 8.dp))
             }
         }
     }
+}
+
+/** A car park's free spaces as a small coloured pill ("281 frei" green, amber when filling up, "Voll" red), or its size in grey. */
+@Composable
+fun ParkSpaces(n: com.headunit.launcher.Nearby, big: Boolean = false) {
+    val total = n.total ?: 0
+    val free = n.free
+    val closed = n.open == false
+    val txt = when {
+        closed -> Lang.t("Geschlossen", "Closed")
+        free != null && free <= 0 -> Lang.t("Voll", "Full")
+        free != null -> Lang.t("$free frei", "$free free")
+        total > 0 -> Lang.t("$total Plätze", "$total spaces")
+        else -> return
+    }
+    val col = when {
+        closed || (free != null && free <= 0) -> Color(0xFFDC2626)
+        free == null -> Color(0xFF6B7280)
+        free < 20 || (total > 0 && free < total * 0.2) -> Color(0xFFF59E0B)
+        else -> Color(0xFF1E9E52)
+    }
+    Text(txt, color = Color.White, fontSize = if (big) 15.sp else 12.sp, fontWeight = FontWeight.Bold, maxLines = 1,
+        modifier = Modifier.padding(start = 8.dp).clip(RoundedCornerShape(50)).background(col).padding(horizontal = if (big) 10.dp else 8.dp, vertical = 3.dp))
 }
 
 /** Shown while the GPS has dropped out (a tunnel): the arrow is being kept moving along the route. */

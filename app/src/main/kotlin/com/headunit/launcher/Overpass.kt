@@ -9,7 +9,9 @@ import java.net.URLEncoder
 
 /** A place found nearby or along the route. [price] is pence per litre (fuel), [detourMin] the rough extra time to call there (-1 when not known). */
 /** [price] is in pence or cents a litre; [unit] says which ("p" or "€"), so it can be shown the local way (139.9p, €1.789). */
-data class Nearby(val place: Place, val dist: Double, val extra: String, val price: Double? = null, val detourMin: Int = -1, val ahead: Boolean = false, val unit: String = "p", val kw: Int? = null, val op: String? = null)
+data class Nearby(val place: Place, val dist: Double, val extra: String, val price: Double? = null, val detourMin: Int = -1, val ahead: Boolean = false, val unit: String = "p", val kw: Int? = null, val op: String? = null,
+    /** Car parks: free spaces now (null: no live count), all spaces, and whether it is open. */
+    val free: Int? = null, val total: Int? = null, val open: Boolean? = null)
 
 /** A fuel price the local way: "139.9p" in the UK, "1,789 €" in Germany ("€1.789" in English). [price] is in pence or cents a litre. */
 fun fmtFuelPrice(price: Double, unit: String): String =

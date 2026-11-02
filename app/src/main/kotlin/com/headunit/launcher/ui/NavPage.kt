@@ -441,6 +441,7 @@ internal fun ArrivalCard(engine: NavEngine, a: ArrivalInfo, modifier: Modifier =
                     Text(stringResource(R.string.ui_034), color = c.sub, fontSize = 12.sp)
                     Text(pk.place.name, color = c.text, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
+                ParkSpaces(pk)
                 Text(Geo.fmtDist(pk.dist, imp), color = c.sub, fontSize = 13.sp, modifier = Modifier.padding(horizontal = 8.dp))
                 Text(stringResource(R.string.ui_019), color = c.accent, fontSize = 15.sp, fontWeight = FontWeight.Bold)
             }
@@ -504,9 +505,12 @@ internal fun NearbyCard(engine: NavEngine) {
                     }
                     Column(Modifier.weight(1f).padding(start = 12.dp)) {
                         Text(n.place.name, color = c.text, fontSize = 16.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                        val sub = listOfNotNull(n.extra.takeIf { it.isNotBlank() }, n.place.sub.takeIf { it.isNotBlank() && engine.nearbyKind == "fuel" }).joinToString(" · ")
+                        val parkLive = n.free != null || n.total != null || n.open != null
+                        // (a car park's free spaces get their own coloured pill, so they're not repeated here)
+                        val sub = listOfNotNull(n.extra.takeIf { it.isNotBlank() && !parkLive }, n.place.sub.takeIf { it.isNotBlank() && engine.nearbyKind == "fuel" }).joinToString(" · ")
                         if (sub.isNotBlank()) Text(sub, color = c.sub, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     }
+                    if (n.free != null || n.total != null || n.open != null) ParkSpaces(n)
                     if (n.price != null) Text(com.headunit.launcher.fmtFuelPrice(n.price, n.unit), color = c.text, fontSize = 16.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(start = 8.dp))
                     Column(horizontalAlignment = Alignment.End, modifier = Modifier.padding(start = 10.dp)) {
                         Text(Geo.fmtDist(n.dist, engine.imperial), color = c.accent, fontSize = 14.sp, fontWeight = FontWeight.Bold, modifier = Modifier.clip(RoundedCornerShape(50)).background(c.accent.copy(alpha = 0.14f)).padding(horizontal = 10.dp, vertical = 4.dp))
