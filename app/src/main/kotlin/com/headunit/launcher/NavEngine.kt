@@ -4817,12 +4817,31 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
     private fun pickBestVoice() {
         val t = tts ?: return
         try {
+            // the voice chosen in Settings, when it is still installed
+            val chosen = prefs.s(PreferenceKeys.TTS_VOICE, "").takeIf { it.isNotBlank() }
+            if (chosen != null) { t.voices?.firstOrNull { it.name == chosen }?.let { t.voice = it; return } }
             val lang = t.language?.language ?: return
             val best = t.voices
                 ?.filter { it.locale.language == lang && it.features?.contains(TextToSpeech.Engine.KEY_FEATURE_NOT_INSTALLED) != true }
                 ?.maxByOrNull { it.quality }
             if (best != null) t.voice = best
         } catch (e: Exception) { }
+    }
+
+    /** The installed voices in the app's language, best first, for the Settings list. */
+    fun installedVoices(): List<android.speech.tts.Voice> {
+        val t = tts ?: return emptyList()
+        return try {
+            val lang = t.language?.language ?: return emptyList()
+            (t.voices ?: emptySet()).filter { it.locale.language == lang && it.features?.contains(TextToSpeech.Engine.KEY_FEATURE_NOT_INSTALLED) != true }
+                .sortedByDescending { it.quality }
+        } catch (e: Exception) { emptyList() }
+    }
+
+    /** Uses the voice [name] from now on (kept across restarts). */
+    fun useVoice(name: String) {
+        prefs.put(PreferenceKeys.TTS_VOICE, name)
+        try { tts?.voices?.firstOrNull { it.name == name }?.let { tts?.voice = it } } catch (e: Exception) { }
     }
 
     fun handleVoice(raw: String): String? {

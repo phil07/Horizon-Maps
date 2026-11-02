@@ -557,6 +557,16 @@ private fun SoundSection(prefs: Prefs, engine: NavEngine) {
         SChoice("Sprachkanal", listOf("nav" to "Navigation", "media" to "Medien"), prefs.s(PreferenceKeys.VOICE_CHANNEL, "nav"),
             "Falls du Töne hörst, aber keine Sprache, wähle Medien") { prefs.put(PreferenceKeys.VOICE_CHANNEL, it) }
         SItem("Stimme und Sprache", "Nutzt die System-Sprachausgabe") { SButton("Öffnen") { openSystemSettings(ctx, "com.android.settings.TTS_SETTINGS") } }
+        // the installed German voices: the more natural ones (Google's network voices) need internet, the others work offline
+        val voices = remember { engine.installedVoices().take(8) }
+        if (voices.isEmpty()) SNote("Keine deutsche Stimme gefunden. Lade eine unter „Stimme und Sprache“ herunter, dann erscheint sie hier.")
+        else {
+            val saved = prefs.s(PreferenceKeys.TTS_VOICE, "")
+            SChoice("Ansagestimme", voices.mapIndexed { i, v -> v.name to "Stimme ${i + 1} · " + (if (v.isNetworkConnectionRequired) "online" else "offline") },
+                if (voices.any { it.name == saved }) saved else voices.first().name,
+                "Online-Stimmen klingen meist natürlicher, brauchen aber Internet. Die erste ist die beste installierte.") { engine.useVoice(it) }
+            SButton("Probe anhören") { engine.speak(Lang.t("Nach 500 Metern links abbiegen.", "In 500 metres, turn left."), true) }
+        }
         SItem("Lautstärke") { SButton("Öffnen") { openSystemSettings(ctx, Settings.ACTION_SOUND_SETTINGS) } }
     }
 }

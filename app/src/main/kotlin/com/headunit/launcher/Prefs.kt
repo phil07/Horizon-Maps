@@ -220,6 +220,8 @@ internal object PreferenceKeys {
     const val ZONEWARN = "zonewarn"
     const val TT_MAP_FIX = "ttmapfix"
     const val VOICE_CHANNEL = "voicechan"
+    /** The system speech voice chosen in Settings (its name); empty = the best installed one. */
+    const val TTS_VOICE = "ttsvoice"
     const val TANKERKOENIG_KEY = "tkkey"
     const val VOICE_ROADS = "voiceroads"
     const val AVOID_TOLL_COUNTRIES = "avoid_toll_cc"
