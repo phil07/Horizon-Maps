@@ -997,7 +997,32 @@ private fun AboutSection(prefs: Prefs, engine: NavEngine) {
     val ctx = LocalContext.current
     val pkg = android.net.Uri.parse("package:" + ctx.packageName)
     SGroup("Horizon Nav") {
-        SItem("Version", BuildConfig.VERSION_NAME)
+        // seven quick taps on the version reveal the log export (see DebugLog)
+        var taps by remember { mutableStateOf(0) }
+        var lastTap by remember { mutableStateOf(0L) }
+        var logsOn by remember { mutableStateOf(com.headunit.launcher.DebugLog.unlocked) }
+        SItem("Version", BuildConfig.VERSION_NAME, onClick = {
+            val now = System.currentTimeMillis()
+            taps = if (now - lastTap > 3000) 1 else taps + 1
+            lastTap = now
+            if (taps >= 7) {
+                taps = 0
+                if (!logsOn) { logsOn = true; com.headunit.launcher.DebugLog.unlocked = true; engine.toast("Log-Optionen eingeblendet", 2500) }
+            }
+        })
+        if (logsOn) SItem("Logs", "Letzte Meldungen der App in die Zwischenablage kopieren. Enthält eventuell Standort- oder Routendaten.") {
+            SButton("Kopieren") {
+                engine.toast("Logs werden gesammelt …", 2000)
+                Thread {
+                    val text = com.headunit.launcher.DebugLog.dump()
+                    try {
+                        val cm = ctx.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as? android.content.ClipboardManager
+                        cm?.setPrimaryClip(android.content.ClipData.newPlainText("Horizon Nav Logs", text))
+                    } catch (e: Exception) { }
+                    android.os.Handler(android.os.Looper.getMainLooper()).post { engine.toast("Logs kopiert", 3000) }
+                }.start()
+            }
+        }
         if (com.headunit.launcher.Updater.enabled) {
             SItem("Nach Updates suchen", engine.updateStatus.ifBlank { null }) {
                 val u = engine.appUpdate
