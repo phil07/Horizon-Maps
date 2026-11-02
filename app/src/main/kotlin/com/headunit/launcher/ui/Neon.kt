@@ -1,6 +1,30 @@
 package com.headunit.launcher.ui
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CutCornerShape
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.sp
+import com.headunit.launcher.NavEngine
 import androidx.compose.material3.Typography
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -55,6 +79,10 @@ object Neon {
         onBg = Color(0xFFEAF4FF), onBgSub = Color(0xFF8C98AE),
     )
 
+    /** The game-like red for what isn't selected (the tabs), and the cyan of its roads and selections. */
+    val red = Color(0xFFFF3B4E)
+    val cyan = Color(0xFF19F0FF)
+
     /** Text on the accent colour: near-black on the bright ones. */
     val onAccent = Color(0xFF05060B)
 
@@ -95,4 +123,68 @@ fun RoundedCornerShape(size: Dp): Shape {
 fun RoundedCornerShape(percent: Int): Shape {
     if (!Neon.on || percent < 20) return androidx.compose.foundation.shape.RoundedCornerShape(percent)
     return CutCornerShape((percent * 0.6f).toInt().coerceIn(10, 30))
+}
+
+// ---- the game-like details: tabs, selection brackets, the grid over the map, the place box ----
+
+/** Four corner brackets round a box (a selection frame), drawn in [color]. */
+fun Modifier.neonBrackets(color: Color, len: Dp = 10.dp, width: Dp = 1.5.dp): Modifier = drawBehind {
+    val l = len.toPx(); val w = width.toPx(); val x = size.width; val y = size.height
+    fun ln(a: Offset, b: Offset) = drawLine(color, a, b, w)
+    ln(Offset(0f, l), Offset(0f, 0f)); ln(Offset(0f, 0f), Offset(l, 0f))
+    ln(Offset(x - l, 0f), Offset(x, 0f)); ln(Offset(x, 0f), Offset(x, l))
+    ln(Offset(0f, y - l), Offset(0f, y)); ln(Offset(0f, y), Offset(l, y))
+    ln(Offset(x - l, y), Offset(x, y)); ln(Offset(x, y), Offset(x, y - l))
+}
+
+/**
+ * The top bar of a page in the neon look: the titles in capitals in a row (scrolling when there are many), the open one in the accent
+ * colour with a line under it, the others in red, and short brackets at both ends of the bar.
+ */
+@Composable
+fun NeonTabs(titles: List<String>, selected: Int, onSelect: (Int) -> Unit, modifier: Modifier = Modifier) {
+    val a = Neon.accent ?: return
+    val scroll = rememberScrollState()
+    Box(modifier.fillMaxWidth().padding(bottom = 8.dp).neonBrackets(a.copy(alpha = 0.8f), 8.dp)) {
+        Row(Modifier.horizontalScroll(scroll).padding(horizontal = 12.dp), horizontalArrangement = Arrangement.spacedBy(20.dp), verticalAlignment = Alignment.CenterVertically) {
+            titles.forEachIndexed { i, t ->
+                val on = i == selected
+                Text(t.uppercase(), color = if (on) a else Neon.red, fontSize = 14.sp, fontWeight = if (on) FontWeight.Bold else FontWeight.Medium,
+                    letterSpacing = 1.2.sp, maxLines = 1, overflow = TextOverflow.Clip,
+                    modifier = Modifier.clickable { onSelect(i) }.drawBehind {
+                        val y = size.height - 1.dp.toPx()
+                        drawLine(if (on) a else Neon.red.copy(alpha = 0.35f), Offset(0f, y), Offset(size.width, y), if (on) 2.dp.toPx() else 1.dp.toPx())
+                    }.padding(vertical = 10.dp))
+            }
+        }
+    }
+}
+
+/** A faint dashed grid over the map, as on the game's map screen. */
+fun Modifier.neonGrid(color: Color): Modifier = drawBehind {
+    val step = 56.dp.toPx(); val dash = PathEffect.dashPathEffect(floatArrayOf(4.dp.toPx(), 6.dp.toPx()))
+    var x = step / 2
+    while (x < size.width) { drawLine(color, Offset(x, 0f), Offset(x, size.height), 1f, pathEffect = dash); x += step }
+    var y = step / 2
+    while (y < size.height) { drawLine(color, Offset(0f, y), Offset(size.width, y), 1f, pathEffect = dash); y += step }
+}
+
+/** The small box with the time and the road you are on (bottom right of the map), like the game's place box. */
+@Composable
+fun NeonPlaceBox(engine: NavEngine, modifier: Modifier = Modifier) {
+    val a = Neon.accent ?: return
+    var now by remember { androidx.compose.runtime.mutableLongStateOf(System.currentTimeMillis()) }
+    LaunchedEffect(Unit) { while (true) { now = System.currentTimeMillis(); kotlinx.coroutines.delay(15_000) } }
+    val time = remember(now) { java.text.SimpleDateFormat("HH:mm", java.util.Locale.getDefault()).format(java.util.Date(now)) }
+    val road = engine.roadNow
+    Column(
+        modifier.padding(top = 6.dp).background(Color(0xCC05060B), CutCornerShape(topStart = 4.dp, topEnd = 12.dp, bottomEnd = 4.dp, bottomStart = 12.dp))
+            .border(1.dp, a.copy(alpha = 0.5f), CutCornerShape(topStart = 4.dp, topEnd = 12.dp, bottomEnd = 4.dp, bottomStart = 12.dp))
+            .padding(horizontal = 14.dp, vertical = 6.dp),
+        horizontalAlignment = Alignment.End,
+    ) {
+        Text(time, color = a, fontSize = 20.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+        if (road.isNotBlank()) Text(road.uppercase(), color = Neon.red, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, letterSpacing = 1.sp, maxLines = 1, overflow = TextOverflow.Ellipsis,
+            modifier = androidx.compose.ui.Modifier.padding(top = 1.dp))
+    }
 }

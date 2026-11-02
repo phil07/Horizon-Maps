@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""Makes NeonLut.kt: colour look-up tables (32x32x32 cubes as 1024x32 PNGs, block = blue, x = red, y = green) that turn Mapbox
-Standard's night map into a neon one: a near-black blue city, roads and labels glowing in the accent colour, water deep blue,
-parks dark teal; strongly coloured things (traffic, markers) are kept. Run: python3 tools/make_neon_lut.py > app/src/main/kotlin/com/headunit/launcher/NeonLut.kt"""
+"""Makes NeonLut.kt: a colour look-up table (a 32x32x32 cube as a 1024x32 PNG, block = blue, x = red, y = green) that turns Mapbox
+Standard's night map into a neon one: a near-black blue city, roads and labels glowing cyan, water deep blue, parks dark teal;
+strongly coloured things (traffic, markers) are kept. (The buildings are the app's own red blocks, not part of this.) Run: python3 tools/make_neon_lut.py > app/src/main/kotlin/com/headunit/launcher/NeonLut.kt"""
 import base64, colorsys, io
 from PIL import Image
 
@@ -60,13 +60,10 @@ def make(acc):
     return base64.b64encode(buf.getvalue()).decode()
 
 print("package com.headunit.launcher\n")
-print("/**\n * The neon look's map colours: one colour look-up table per accent (a 32x32x32 cube as a 1024x32 PNG), given to the Standard\n"
-      " * style as its custom theme. Made by tools/make_neon_lut.py.\n */\nobject NeonLut {")
-print("    fun of(id: String): String = when (id) { \"cyan\" -> CYAN; \"magenta\" -> MAGENTA; else -> YELLOW }\n")
-for name, acc in ACCENTS.items():
-    b = make(acc)
-    print(f"    private const val {name.upper()}: String =")
-    chunks = [b[i:i + 120] for i in range(0, len(b), 120)]
-    print(" +\n".join(f'        "{c}"' for c in chunks))
-    print()
+print("/**\n * The neon look's map colours: a colour look-up table (a 32x32x32 cube as a 1024x32 PNG), given to the Standard style as its\n"
+      " * custom theme. Made by tools/make_neon_lut.py.\n */\nobject NeonLut {")
+b = make(ACCENTS["cyan"])
+print("    const val BASE64: String =")
+chunks = [b[i:i + 120] for i in range(0, len(b), 120)]
+print(" +\n".join(f'        "{c}"' for c in chunks))
 print("}")

@@ -199,9 +199,12 @@ private fun SettingsBody(prefs: Prefs, engine: NavEngine, onClose: () -> Unit) {
             }
         }
         // the chosen section (each opens at the top), sliding up gently into place
-        if (!narrowS || !showList) androidx.compose.animation.AnimatedContent(
+        if (!narrowS || !showList) Column(Modifier.weight(1f).fillMaxHeight()) {
+        // the neon look: the sections as a bar of tabs at the top
+        if (Neon.on) NeonTabs(sections.map { it.title }, cat, { cat = it; highlight = null })
+        androidx.compose.animation.AnimatedContent(
             targetState = cat,
-            modifier = Modifier.weight(1f).fillMaxHeight(),
+            modifier = Modifier.weight(1f).fillMaxWidth(),
             transitionSpec = {
                 (androidx.compose.animation.fadeIn(androidx.compose.animation.core.tween(220, delayMillis = 60)) +
                     androidx.compose.animation.slideInVertically(androidx.compose.animation.core.tween(260)) { it / 24 }) togetherWith
@@ -241,6 +244,7 @@ private fun SettingsBody(prefs: Prefs, engine: NavEngine, onClose: () -> Unit) {
             }
           }
         }
+        }
     }
 }
 
@@ -248,12 +252,12 @@ private fun SettingsBody(prefs: Prefs, engine: NavEngine, onClose: () -> Unit) {
 
 @Composable
 private fun MapLookSection(prefs: Prefs, engine: NavEngine) {
-    SGroup("Design", footer = if (prefs.s(PreferenceKeys.LOOK, "standard") == "neon") "Neon ist immer ein Nachtdesign: dunkle Stadt, leuchtende Straßen, Karten mit abgeschrägten Ecken. Es ändert nur das Aussehen, nicht die Funktionen. Schrift: Rajdhani (SIL Open Font License)." else null) {
+    SGroup("Design", footer = if (prefs.s(PreferenceKeys.LOOK, "standard") == "neon") "Neon ist immer ein Nachtdesign: rote Gebäude, cyanfarbene Straßen, gelbe Route, abgeschrägte Ecken, Reiter oben in Großbuchstaben. Es ändert nur das Aussehen, nicht die Funktionen. Schrift: Rajdhani (SIL Open Font License)." else null) {
         SChoice("Aussehen", listOf("standard" to "Standard", "neon" to "Neon"), prefs.s(PreferenceKeys.LOOK, "standard"),
-            "Neon: dunkle Stadt mit leuchtenden Linien, abgeschrägten Ecken und technischer Schrift. Gilt auf der Karte, in der Navigation, in den Einstellungen und in Android Auto.") { prefs.put(PreferenceKeys.LOOK, it) }
+            "Neon: dunkle Stadt mit roten 3D-Gebäuden und cyanfarbenen Straßen, gelber Route, abgeschrägten Ecken und technischer Schrift. Gilt auf der Karte, in der Navigation, in den Einstellungen und in Android Auto.") { prefs.put(PreferenceKeys.LOOK, it) }
         if (prefs.s(PreferenceKeys.LOOK, "standard") == "neon")
             SChoice("Neonfarbe", listOf("yellow" to "Gelb", "cyan" to "Cyan", "magenta" to "Magenta"), prefs.s(PreferenceKeys.NEON_ACCENT, "yellow"),
-                "Farbe der Straßen, der Route, der Linien und Hervorhebungen.") { prefs.put(PreferenceKeys.NEON_ACCENT, it) }
+                "Farbe der Menüs, Linien und Hervorhebungen. Die Karte bleibt rot und cyan mit gelber Route.") { prefs.put(PreferenceKeys.NEON_ACCENT, it) }
     }
     SGroup("Tag und Nacht") {
         SChoice("Tag und Nacht", listOf("auto" to "Auto", "lights" to "Scheinwerfer", "sun" to "Sonnenstand", "times" to "Feste Zeiten", "day" to "Tag", "night" to "Nacht"), prefs.s(PreferenceKeys.THEME, "auto"),

@@ -406,6 +406,7 @@ private fun MapScreen(engine: NavEngine, onSettings: () -> Unit) {
                 Column(horizontalAlignment = if (engine.mirrored) Alignment.Start else Alignment.End) {
                     EvNowChip(engine)
                     ImmSpeed(engine)
+                    if (Neon.on) NeonPlaceBox(engine)
                 }
             }
         }

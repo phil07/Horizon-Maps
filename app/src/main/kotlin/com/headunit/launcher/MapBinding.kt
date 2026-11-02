@@ -366,7 +366,7 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
         // to or from the classic map: a different style; between full and lite: just Standard's settings
         if (wasLightest || v == "lightest") { if (isMapboxStyle(wantedStyle)) setStyleUrl(baseStyle()) }
         else {
-            setBase("show3dObjects", Value.valueOf(buildings3d && v == "full"))
+            setBase("show3dObjects", Value.valueOf(b3dStd() && v == "full"))
             setBase("showPointOfInterestLabels", Value.valueOf(!lite && !poiMoving))
             setBase("showTransitLabels", Value.valueOf(!lite))
             setBase("showLandmarkIcons", Value.valueOf(!lite))
@@ -376,8 +376,12 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
         }
     }
 
+    /** The neon look is on: Standard's own 3D buildings, facades and landmarks give way to the app's red blocks. */
+    private val neonMap: Boolean get() = colours == "neon"
+    private fun b3dStd() = buildings3d && !neonMap
+
     fun setColours(c: String) {
-        val v = if (c in setOf("mapbox", "horizon", "faded", "grey", "neon-yellow", "neon-cyan", "neon-magenta")) c else "mapbox"
+        val v = if (c in setOf("mapbox", "horizon", "faded", "grey", "neon")) c else "mapbox"
         if (v == colours) return
         colours = v
         // the colours are part of how the map loads (and Horizon is a different base map), so it's loaded again
@@ -418,15 +422,15 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
         // shop and place labels rest on the light map and (on the full map) while you're on the move: placing them is the costly part
         c.put("showPointOfInterestLabels", !lite && !poiMoving)
         c.put("showTransitLabels", !lite)
-        if (!sat) c.put("show3dObjects", buildings3d && MapStylePolicy.supportsFullDetailFeatures(mapDetail))
+        if (!sat) c.put("show3dObjects", b3dStd() && MapStylePolicy.supportsFullDetailFeatures(mapDetail))
         // (colour themes are only for the drawn map: Standard Satellite has none, so nothing is sent for it)
         if (!sat) when (colours) {
             "faded" -> c.put("theme", "faded")
             "grey" -> c.put("theme", "monochrome")
             // Mapbox's own colours with a gentle purple-blue hint (mostly at night), from a colour look-up table
             "horizon" -> if (!sat) { c.put("theme", "custom"); c.put("theme-data", HorizonLut.BASE64) }
-            // the neon look: a dark city with glowing roads in the accent colour
-            "neon-yellow", "neon-cyan", "neon-magenta" -> { c.put("theme", "custom"); c.put("theme-data", NeonLut.of(colours.removePrefix("neon-"))) }
+            // the neon look: a dark blue city with cyan glowing roads (the buildings are the app's own red blocks, see installNeonCity)
+            "neon" -> { c.put("theme", "custom"); c.put("theme-data", NeonLut.BASE64) }
         }
         return c
     }
@@ -716,7 +720,51 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
         return bmp
     }
 
+    /** A hexagon path of radius [r] round ([cx], [cy]), pointing up (the neon look's marker shape). */
+    private fun hexPath(cx: Float, cy: Float, r: Float): Path = Path().apply {
+        for (k in 0 until 6) {
+            val a = Math.toRadians(-90.0 + 60.0 * k)
+            val x = cx + r * Math.cos(a).toFloat(); val y = cy + r * Math.sin(a).toFloat()
+            if (k == 0) moveTo(x, y) else lineTo(x, y)
+        }
+        close()
+    }
+
+    /** The neon look's marker: a hexagon in [fill] with a dark [inner] mark, and a point below it when [tip] (the destination). */
+    private fun neonHex(w: Int, h: Int, cx: Float, cy: Float, r: Float, fill: Int, bolt: Boolean, tip: Boolean): Bitmap {
+        val bmp = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
+        val c = Canvas(bmp)
+        if (tip) c.drawPath(Path().apply { moveTo(cx - r * 0.45f, cy + r * 0.9f); lineTo(cx, h - 6f); lineTo(cx + r * 0.45f, cy + r * 0.9f); close() },
+            Paint(Paint.ANTI_ALIAS_FLAG).apply { color = fill })
+        val hex = hexPath(cx, cy, r)
+        c.drawPath(hex, Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xFF05060B.toInt() })
+        c.drawPath(hexPath(cx, cy, r - 5f), Paint(Paint.ANTI_ALIAS_FLAG).apply { color = fill })
+        val dark = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xFF05060B.toInt() }
+        if (bolt) {
+            val k = r / 35f
+            c.drawPath(Path().apply {
+                moveTo(cx + 7 * k, cy - 32 * k); lineTo(cx - 19 * k, cy + 5 * k); lineTo(cx - 3 * k, cy + 5 * k); lineTo(cx - 9 * k, cy + 32 * k)
+                lineTo(cx + 19 * k, cy - 7 * k); lineTo(cx + 3 * k, cy - 7 * k); lineTo(cx + 10 * k, cy - 32 * k); close()
+            }, dark)
+        } else c.drawRect(cx - r * 0.3f, cy - r * 0.3f, cx + r * 0.3f, cy + r * 0.3f, dark)
+        return bmp
+    }
+
+    /** The neon look's selection frame round the destination marker: four cyan corner brackets (same canvas as the pin). */
+    private fun neonFrameBitmap(): Bitmap {
+        val bmp = Bitmap.createBitmap(96, 128, Bitmap.Config.ARGB_8888)
+        val c = Canvas(bmp)
+        val p = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xFF19F0FF.toInt(); style = Paint.Style.STROKE; strokeWidth = 5f; strokeCap = Paint.Cap.SQUARE }
+        val l = 5f; val t = 0f; val rr = 91f; val b = 88f; val n = 22f
+        c.drawLine(l, t + n, l, t, p); c.drawLine(l, t, l + n, t, p)
+        c.drawLine(rr - n, t, rr, t, p); c.drawLine(rr, t, rr, t + n, p)
+        c.drawLine(l, b - n, l, b, p); c.drawLine(l, b, l + n, b, p)
+        c.drawLine(rr - n, b, rr, b, p); c.drawLine(rr, b, rr, b - n, p)
+        return bmp
+    }
+
     private fun pinBitmap(): Bitmap {
+        if (neonMap) return neonHex(96, 128, 48f, 44f, 36f, 0xFFFCEE0A.toInt(), false, true)
         val bmp = Bitmap.createBitmap(96, 128, Bitmap.Config.ARGB_8888)
         val c = Canvas(bmp)
         val path = Path().apply {
@@ -732,6 +780,7 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
 
     /** A charging stop on the way: a teal disc with a white lightning bolt (ring and shadow like the other markers). */
     private fun viaEvBitmap(): Bitmap {
+        if (neonMap) return neonHex(96, 96, 48f, 48f, 42f, 0xFF19F0FF.toInt(), true, false)
         val bmp = Bitmap.createBitmap(96, 96, Bitmap.Config.ARGB_8888)
         val c = Canvas(bmp)
         c.drawCircle(48f, 50f, 42f, Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0x55000000 })
@@ -747,6 +796,7 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
 
     /** Any other stop on the way: a smaller neutral grey disc with a white centre, so it doesn't compete with the destination pin. */
     private fun viaStopBitmap(): Bitmap {
+        if (neonMap) return neonHex(64, 64, 32f, 32f, 28f, 0xFFEAF4FF.toInt(), false, false)
         val bmp = Bitmap.createBitmap(64, 64, Bitmap.Config.ARGB_8888)
         val c = Canvas(bmp)
         c.drawCircle(32f, 34f, 27f, Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0x55000000 })
@@ -846,8 +896,8 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
         facadesOn = facades; landmarksOn = landmarks; pathsOn = paths; terrainOn = terrain; furnitureOn = furniture; clearOn = clear
         if (tapSelect != tapSelectOn) { tapSelectOn = tapSelect; if (!tapSelect) clearSelection() }
         main0.post {
-            setBase("show3dFacades", Value.valueOf(facadesOn && buildings3d && MapStylePolicy.supportsFullDetailFeatures(mapDetail)))
-            setBase("show3dLandmarks", Value.valueOf(landmarksOn && MapStylePolicy.supportsFullDetailFeatures(mapDetail)))
+            setBase("show3dFacades", Value.valueOf(facadesOn && b3dStd() && MapStylePolicy.supportsFullDetailFeatures(mapDetail)))
+            setBase("show3dLandmarks", Value.valueOf(landmarksOn && !neonMap && MapStylePolicy.supportsFullDetailFeatures(mapDetail)))
             setBase("showPedestrianRoads", Value.valueOf(pathsOn))
             if (rebuild && style != null) reinstall()
         }
@@ -1137,6 +1187,31 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
                 false
             })
         } catch (e: Throwable) { android.util.Log.w("MapBinding", "tap highlight: ${e.message}") }
+    }
+
+
+    /**
+     * The neon look's buildings: dark red blocks with a bright red edge, from Mapbox Streets' building footprints (Standard's own 3D
+     * buildings are off then). Lit as "emissive", so night doesn't darken them. Flat footprints when 3D buildings are off.
+     */
+    private fun installNeonCity(st: Style) {
+        addS(st, VectorSource.Builder("dl-nsrc").url("mapbox://mapbox.mapbox-streets-v8").build())
+        val notUnder = Expression.fromRaw("[\"!=\",[\"get\",\"underground\"],\"true\"]")
+        val colour = Expression.fromRaw("[\"interpolate\",[\"linear\"],[\"to-number\",[\"get\",\"height\"],8],0,\"#5A0C1A\",30,\"#7C1022\",90,\"#A3162E\",220,\"#C81E3A\"]")
+        if (buildings3d) {
+            addL(st, FillExtrusionLayer("dl-nbld", "dl-nsrc").sourceLayer("building").minZoom(13.0).inSlot("middle")
+                .filter(Expression.fromRaw("[\"all\",[\"!=\",[\"get\",\"extrude\"],\"false\"],[\"!=\",[\"get\",\"underground\"],\"true\"]]"))
+                .fillExtrusionColor(colour)
+                .fillExtrusionHeight(Expression.fromRaw("[\"interpolate\",[\"linear\"],[\"zoom\"],13,0,13.8,[\"to-number\",[\"get\",\"height\"],8]]"))
+                .fillExtrusionBase(Expression.fromRaw("[\"interpolate\",[\"linear\"],[\"zoom\"],13,0,13.8,[\"to-number\",[\"get\",\"min_height\"],0]]"))
+                .fillExtrusionOpacity(0.96).fillExtrusionVerticalGradient(true).fillExtrusionEmissiveStrength(0.9))
+        } else {
+            addL(st, FillLayer("dl-nbld", "dl-nsrc").sourceLayer("building").minZoom(13.0).inSlot("middle").filter(notUnder)
+                .fillColor(colour).fillOpacity(0.95).fillEmissiveStrength(0.9))
+        }
+        addL(st, LineLayer("dl-nbld-edge", "dl-nsrc").sourceLayer("building").minZoom(13.5).inSlot("middle").filter(notUnder)
+            .lineColor("#FF4A5E").lineOpacity(0.85).lineEmissiveStrength(1.0)
+            .lineWidth(Expression.fromRaw("[\"interpolate\",[\"linear\"],[\"zoom\"],13.5,0.4,16,0.9,19,1.8]")))
     }
 
     /** Takes the app's own layers off the map and puts them back (after a day / night change), leaving Standard as it is. */
@@ -1825,8 +1900,8 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
             // lane markings, turn arrows, stop lines and 3D overpasses where Mapbox has them (Full 3D only)
             setBase("showHdRoads", Value.valueOf(MapStylePolicy.supportsFullDetailFeatures(mapDetail)))
             // detailed building fronts, landmark buildings, footpaths (Settings > Map)
-            setBase("show3dFacades", Value.valueOf(facadesOn && buildings3d && MapStylePolicy.supportsFullDetailFeatures(mapDetail)))
-            setBase("show3dLandmarks", Value.valueOf(landmarksOn && MapStylePolicy.supportsFullDetailFeatures(mapDetail)))
+            setBase("show3dFacades", Value.valueOf(facadesOn && b3dStd() && MapStylePolicy.supportsFullDetailFeatures(mapDetail)))
+            setBase("show3dLandmarks", Value.valueOf(landmarksOn && !neonMap && MapStylePolicy.supportsFullDetailFeatures(mapDetail)))
             setBase("showPedestrianRoads", Value.valueOf(pathsOn))
             // your destination's building is lit up in the app's blue as you get close
             setBase("colorBuildingHighlight", Value.valueOf("#7FB3FF"))
@@ -2024,11 +2099,18 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
             .iconImage(Expression.get("img")).iconEmissiveStrength(1.0)
             .iconAllowOverlap(true).iconIgnorePlacement(true).iconPitchAlignment(IconPitchAlignment.VIEWPORT)
             .iconSize(zoomed(1.0, 8 to 0.4, 13 to 0.5, 16 to 0.62, 18 to 0.72)))
-        if (im) {
+        if (im || neonMap) {
             addImg(st, "dl-pin", pinBitmap())
             addL(st, SymbolLayer("dl-dest-dot", "dl-dest")
                 .iconImage("dl-pin").iconAnchor(IconAnchor.BOTTOM).iconEmissiveStrength(1.0)
                 .iconAllowOverlap(true).iconIgnorePlacement(true).iconSize(0.6))
+            // the neon look: a cyan selection frame round the marker
+            if (neonMap) {
+                addImg(st, "dl-pin-frame", neonFrameBitmap())
+                addL(st, SymbolLayer("dl-dest-frame", "dl-dest")
+                    .iconImage("dl-pin-frame").iconAnchor(IconAnchor.BOTTOM).iconEmissiveStrength(1.0)
+                    .iconAllowOverlap(true).iconIgnorePlacement(true).iconSize(0.6))
+            }
         } else addL(st, CircleLayer("dl-dest-dot", "dl-dest")
             .circleRadius(10.0).circleColor("#ff3b30").circleStrokeColor("#ffffff").circleStrokeWidth(3.0).circleEmissiveStrength(1.0))
         if (!im) {
@@ -2058,6 +2140,7 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
         placeLocator()
         pushAll()
         installExtras(st)
+        if (neonMap && !satellite) try { installNeonCity(st) } catch (e: Throwable) { android.util.Log.w("MapBinding", "neon city: ${e.message}") }
         // the rain radar, if it's on, goes back under the route
         pushRadar()
     }
@@ -2066,10 +2149,15 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
         val satChanged = sat != satellite
         android.util.Log.w("MapBinding", "satellite: setView sat=$sat (was $satellite), style set=${wantedStyle != null}")
         satellite = sat
+        val b3dChanged = buildings3d != b3d
         buildings3d = b3d
         // satellite is Mapbox's Standard Satellite style (a style of its own, so the map reloads); 3D buildings is one of Standard's settings
         if (satChanged && wantedStyle != null) { val r = onRestyle; if (r != null) r() else setStyleUrl(baseStyle()) }
-        else if (!sat && slotsOn) setBase("show3dObjects", Value.valueOf(buildings3d && MapStylePolicy.supportsFullDetailFeatures(mapDetail)))
+        else if (!sat && slotsOn) {
+            setBase("show3dObjects", Value.valueOf(b3dStd() && MapStylePolicy.supportsFullDetailFeatures(mapDetail)))
+            // the neon look's own blocks are drawn again (solid or flat)
+            if (neonMap && b3dChanged && style != null) reinstall()
+        }
         else if (!sat) style?.let { st ->
             // the Horizon colours' own 3D buildings
             try {
@@ -2166,7 +2254,7 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
         setBase("showPointOfInterestLabels", Value.valueOf(!lite && !poiMoving))
         setBase("showTransitLabels", Value.valueOf(!lite))
         if (!satellite) {
-            setBase("show3dObjects", Value.valueOf(buildings3d && !lite))
+            setBase("show3dObjects", Value.valueOf(b3dStd() && !lite))
             setBase("showLandmarkIcons", Value.valueOf(!lite))
         }
     }
@@ -2300,8 +2388,8 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
     private var mainOff = 0
 
     /** Route colour: blue (a deeper blue by day, like the progress bar), amber where traffic is slow, red where it's heavy. */
-    /** The neon look's accent as the route's colour (the route line is drawn in it where traffic flows), else null. */
-    private fun neonRoute(): String? = when (colours) { "neon-yellow" -> "#FCEE0A"; "neon-cyan" -> "#19F0FF"; "neon-magenta" -> "#FF3CCB"; else -> null }
+    /** The neon look's yellow as the route's colour (the route line is drawn in it where traffic flows), else null. */
+    private fun neonRoute(): String? = if (colours == "neon") "#FCEE0A" else null
 
     private fun sevColor(im: Boolean = false, day: Boolean = false): Expression = Expression.switchCase(
         Expression.eq(Expression.get("sev"), lit(2)), col(if (im) "#D93025" else "#FF4D4D"),

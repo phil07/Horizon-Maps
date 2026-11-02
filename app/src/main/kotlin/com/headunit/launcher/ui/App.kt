@@ -129,7 +129,7 @@ fun App(prefs: Prefs, engine: NavEngine, map: MapBinding) {
     // Settings > Map: how much detail, which colours, and where Mapbox's logo goes
     val mapDetail = prefs.mapDetail()
     LaunchedEffect(mapDetail) { map.setMapDetail(mapDetail) }
-    val mapColours = Neon.accentId?.let { "neon-$it" } ?: prefs.s(PreferenceKeys.MAP_COLOURS, "mapbox")
+    val mapColours = (if (Neon.on) "neon" else null) ?: prefs.s(PreferenceKeys.MAP_COLOURS, "mapbox")
     LaunchedEffect(mapColours) { map.setColours(mapColours) }
     val logoCorner = prefs.s(PreferenceKeys.MAPBOX_LOGO, "tr")
     LaunchedEffect(logoCorner) { map.setLogoCorner(logoCorner) }
@@ -310,6 +310,8 @@ fun App(prefs: Prefs, engine: NavEngine, map: MapBinding) {
                         }
                     }
                 }
+                // neon look: a faint dashed grid over the map, as in the game's map screen (it doesn't take touches)
+                if (Neon.on && !settings) Box(Modifier.fillMaxSize().neonGrid((Neon.accent ?: Color.Cyan).copy(alpha = 0.07f)))
                 // neon look: faint scan lines over everything (they don't take touches)
                 if (Neon.on) androidx.compose.foundation.Canvas(Modifier.fillMaxSize()) {
                     val step = 3.dp.toPx(); val th = 1.dp.toPx(); val col = Color.Black.copy(alpha = 0.12f)
