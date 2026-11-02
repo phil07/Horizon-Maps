@@ -1191,20 +1191,42 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
 
 
     /**
-     * The neon look's buildings: dark red blocks with a bright red edge, from Mapbox Streets' building footprints (Standard's own 3D
-     * buildings are off then). Lit as "emissive", so night doesn't darken them. Flat footprints when 3D buildings are off.
+     * The neon look's city, drawn from Mapbox Streets' data (Standard's own buildings are off then): built-up ground in a deep red,
+     * the roads as wide cyan bands with a dark middle and a glow, and the buildings as one connected mass of red blocks with a bright
+     * edge. Lit as "emissive", so night doesn't darken them. Flat footprints when 3D buildings are off.
      */
     private fun installNeonCity(st: Style) {
         addS(st, VectorSource.Builder("dl-nsrc").url("mapbox://mapbox.mapbox-streets-v8").build())
         val notUnder = Expression.fromRaw("[\"!=\",[\"get\",\"underground\"],\"true\"]")
-        val colour = Expression.fromRaw("[\"interpolate\",[\"linear\"],[\"to-number\",[\"get\",\"height\"],8],0,\"#5A0C1A\",30,\"#7C1022\",90,\"#A3162E\",220,\"#C81E3A\"]")
+        // built-up ground, a deep red under everything
+        addL(st, FillLayer("dl-nland", "dl-nsrc").sourceLayer("landuse").minZoom(8.0).inSlot("bottom")
+            .filter(Expression.fromRaw("[\"match\",[\"get\",\"class\"],[\"residential\",\"commercial_area\",\"industrial\",\"retail\",\"agriculture\"],true,false]"))
+            .fillColor("#2A0610").fillOpacity(0.85).fillEmissiveStrength(1.0))
+        // roads: a soft glow, the cyan edge and the dark middle (the edge is wider than the middle, so each band shows a cyan outline,
+        // and where roads meet the outlines merge)
+        val roadFilter = Expression.fromRaw("[\"all\",[\"match\",[\"get\",\"class\"],[\"motorway\",\"motorway_link\",\"trunk\",\"trunk_link\",\"primary\",\"primary_link\",\"secondary\",\"secondary_link\",\"tertiary\",\"tertiary_link\",\"street\",\"street_limited\",\"service\",\"pedestrian\"],true,false],[\"!=\",[\"get\",\"structure\"],\"tunnel\"]]")
+        val cls = "[\"match\",[\"get\",\"class\"],[\"motorway\",\"trunk\"],1.0,[\"motorway_link\",\"trunk_link\",\"primary\"],0.8,[\"primary_link\",\"secondary\",\"secondary_link\"],0.65,[\"tertiary\",\"tertiary_link\"],0.55,[\"street\",\"street_limited\"],0.45,0.3]"
+        // (the zoom has to be the outermost expression, so the road class goes inside each of its steps)
+        fun band(k: Double) = Expression.fromRaw("[\"interpolate\",[\"exponential\",1.5],[\"zoom\"]," +
+            listOf(8 to 0.6, 12 to 3.0, 14 to 7.0, 17 to 20.0, 20 to 52.0).joinToString(",") { (z, w) -> "$z,[\"*\",${w * k},$cls]" } + "]")
+        addL(st, LineLayer("dl-nroad-glow", "dl-nsrc").sourceLayer("road").minZoom(9.0).inSlot("bottom").filter(roadFilter)
+            .lineColor("#19F0FF").lineOpacity(0.16).lineBlur(5.0).lineEmissiveStrength(1.0).lineCap(LineCap.ROUND).lineJoin(LineJoin.ROUND).lineWidth(band(1.9)))
+        addL(st, LineLayer("dl-nroad-edge", "dl-nsrc").sourceLayer("road").minZoom(9.0).inSlot("bottom").filter(roadFilter)
+            .lineColor("#19F0FF").lineOpacity(0.95).lineBlur(0.6).lineEmissiveStrength(1.0).lineCap(LineCap.ROUND).lineJoin(LineJoin.ROUND).lineWidth(band(1.0)))
+        addL(st, LineLayer("dl-nroad-mid", "dl-nsrc").sourceLayer("road").minZoom(9.0).inSlot("bottom").filter(roadFilter)
+            .lineColor("#06182B").lineOpacity(1.0).lineEmissiveStrength(1.0).lineCap(LineCap.ROUND).lineJoin(LineJoin.ROUND).lineWidth(band(0.74)))
+        // buildings: one connected red mass. A fat outline in the same red closes the gaps between blocks.
+        val colour = Expression.fromRaw("[\"interpolate\",[\"linear\"],[\"to-number\",[\"get\",\"height\"],8],0,\"#6E0F1F\",40,\"#85122A\",160,\"#A01734\"]")
+        addL(st, LineLayer("dl-nbld-fat", "dl-nsrc").sourceLayer("building").minZoom(13.0).inSlot("middle").filter(notUnder)
+            .lineColor("#6E0F1F").lineOpacity(0.95).lineEmissiveStrength(1.0).lineJoin(LineJoin.ROUND)
+            .lineWidth(Expression.fromRaw("[\"interpolate\",[\"linear\"],[\"zoom\"],13,1.5,16,5,19,16]")))
         if (buildings3d) {
             addL(st, FillExtrusionLayer("dl-nbld", "dl-nsrc").sourceLayer("building").minZoom(13.0).inSlot("middle")
                 .filter(Expression.fromRaw("[\"all\",[\"!=\",[\"get\",\"extrude\"],\"false\"],[\"!=\",[\"get\",\"underground\"],\"true\"]]"))
                 .fillExtrusionColor(colour)
                 .fillExtrusionHeight(Expression.fromRaw("[\"interpolate\",[\"linear\"],[\"zoom\"],13,0,13.8,[\"to-number\",[\"get\",\"height\"],8]]"))
                 .fillExtrusionBase(Expression.fromRaw("[\"interpolate\",[\"linear\"],[\"zoom\"],13,0,13.8,[\"to-number\",[\"get\",\"min_height\"],0]]"))
-                .fillExtrusionOpacity(0.96).fillExtrusionVerticalGradient(true).fillExtrusionEmissiveStrength(0.9))
+                .fillExtrusionOpacity(0.97).fillExtrusionVerticalGradient(true).fillExtrusionEmissiveStrength(0.9))
         } else {
             addL(st, FillLayer("dl-nbld", "dl-nsrc").sourceLayer("building").minZoom(13.0).inSlot("middle").filter(notUnder)
                 .fillColor(colour).fillOpacity(0.95).fillEmissiveStrength(0.9))

@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CutCornerShape
@@ -24,6 +25,8 @@ import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.sp
+import com.headunit.launcher.Geo
+import com.headunit.launcher.Lang
 import com.headunit.launcher.NavEngine
 import androidx.compose.material3.Typography
 import androidx.compose.runtime.getValue
@@ -186,5 +189,43 @@ fun NeonPlaceBox(engine: NavEngine, modifier: Modifier = Modifier) {
         Text(time, color = a, fontSize = 20.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
         if (road.isNotBlank()) Text(road.uppercase(), color = Neon.red, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, letterSpacing = 1.sp, maxLines = 1, overflow = TextOverflow.Ellipsis,
             modifier = androidx.compose.ui.Modifier.padding(top = 1.dp))
+    }
+}
+
+/** The game-like quest box on the map's right: the destination as a title, with the way left (distance, time, arrival) under it. */
+@Composable
+fun NeonQuestBox(engine: NavEngine, modifier: Modifier = Modifier) {
+    val a = Neon.accent ?: return
+    val dest = engine.dest ?: return
+    if (engine.route == null || engine.previewing) return
+    val shape = CutCornerShape(topStart = 4.dp, topEnd = 12.dp, bottomEnd = 4.dp, bottomStart = 12.dp)
+    val yellow = Color(0xFFFCEE0A)
+    Column(
+        modifier.padding(bottom = 6.dp).widthIn(max = 230.dp).background(Color(0xCC05060B), shape).border(1.dp, yellow.copy(alpha = 0.6f), shape)
+            .padding(horizontal = 14.dp, vertical = 8.dp),
+        horizontalAlignment = Alignment.End,
+    ) {
+        Text(Lang.t("AKTUELLES ZIEL", "CURRENT DESTINATION"), color = yellow, fontSize = 11.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.4.sp)
+        Text(dest.name.uppercase(), color = Color(0xFFEAF4FF), fontSize = 16.sp, fontWeight = FontWeight.Bold, maxLines = 2, overflow = TextOverflow.Ellipsis, letterSpacing = 0.6.sp)
+        engine.eta?.let { e ->
+            Text(Geo.fmtDist(e.dist, engine.imperial) + " · " + (e.secs / 60).toInt() + " min · " + e.arrive, color = a, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        }
+    }
+}
+
+/** The key bar along the bottom (like the game's): zoom out, zoom in and re-centre as small boxes with a letter and a label. */
+@Composable
+fun NeonKeyBar(engine: NavEngine, modifier: Modifier = Modifier) {
+    val a = Neon.accent ?: return
+    @Composable fun key(sym: String, label: String, onClick: () -> Unit) {
+        Row(Modifier.clickable(onClick = onClick).padding(horizontal = 6.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+            Text(sym, color = a, fontSize = 13.sp, fontWeight = FontWeight.Bold, modifier = Modifier.border(1.dp, a.copy(alpha = 0.8f), CutCornerShape(3.dp)).padding(horizontal = 6.dp, vertical = 1.dp))
+            Text(label.uppercase(), color = Color(0xFFEAF4FF), fontSize = 12.sp, fontWeight = FontWeight.SemiBold, letterSpacing = 1.sp, modifier = Modifier.padding(start = 6.dp))
+        }
+    }
+    Row(modifier.background(Color(0xB005060B), CutCornerShape(topStart = 10.dp, topEnd = 10.dp)).padding(horizontal = 10.dp), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+        key("−", Lang.t("Herauszoomen", "Zoom out")) { engine.zoom(-1.0) }
+        key("+", Lang.t("Hineinzoomen", "Zoom in")) { engine.zoom(1.0) }
+        key("◎", Lang.t("Zentrieren", "Centre")) { engine.recenter(true) }
     }
 }

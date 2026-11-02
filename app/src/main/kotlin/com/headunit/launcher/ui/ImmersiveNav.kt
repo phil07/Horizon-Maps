@@ -404,12 +404,15 @@ private fun MapScreen(engine: NavEngine, onSettings: () -> Unit) {
             CompositionLocalProvider(LocalDensity provides Density(baseSpeedDensity.density * speedSize, baseSpeedDensity.fontScale)) {
                 // the car's battery level sits right above the speed, on the same side
                 Column(horizontalAlignment = if (engine.mirrored) Alignment.Start else Alignment.End) {
+                    if (Neon.on) NeonQuestBox(engine)
                     EvNowChip(engine)
                     ImmSpeed(engine)
                     if (Neon.on) NeonPlaceBox(engine)
                 }
             }
         }
+        // neon look: the key bar along the bottom (wide screens)
+        if (Neon.on && !narrow && !previewing) NeonKeyBar(engine, Modifier.align(Alignment.BottomCenter))
 
         // ---- bottom left: hazards and the trip card
         if (!previewing && engine.arrival == null) {
@@ -426,7 +429,7 @@ private fun MapScreen(engine: NavEngine, onSettings: () -> Unit) {
 
         // ---- bottom centre: re-centre once you have panned away, or zoomed in / out with the buttons (it puts the zoom back to automatic)
         AnimatedVisibility(
-            !previewing && (!engine.following || kotlin.math.abs(engine.zoomOffset) > 0.01) && engine.arrival == null, modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = if (narrow && tripPx > 0) tripH + 10.dp else 18.dp),
+            !previewing && (!engine.following || kotlin.math.abs(engine.zoomOffset) > 0.01) && engine.arrival == null, modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = if (narrow && tripPx > 0) tripH + 10.dp else if (Neon.on && !narrow) 52.dp else 18.dp),
             enter = fadeIn(tween(200)) + androidx.compose.animation.scaleIn(tween(220), initialScale = 0.85f), exit = fadeOut(tween(150)) + androidx.compose.animation.scaleOut(tween(150), targetScale = 0.9f),
         ) {
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {

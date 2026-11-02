@@ -56,7 +56,7 @@ internal fun SGroup(title: String? = null, footer: String? = null, content: @Com
     Column(Modifier.fillMaxWidth().padding(bottom = 14.dp)) {
         if (title != null) Text(title.uppercase(), color = c.sub, fontSize = 11.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.2.sp, modifier = Modifier.padding(start = 6.dp, bottom = 6.dp))
         // the same card look as the map screen: soft surface with a hairline edge
-        Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(22.dp)).background(c.panel).border(1.dp, c.line, RoundedCornerShape(22.dp)).padding(horizontal = 18.dp, vertical = 6.dp).animateContentSize(), content = content)
+        Column(Modifier.fillMaxWidth().then(if (Neon.on) Modifier.neonBrackets(c.accent, 12.dp, 2.dp) else Modifier).clip(RoundedCornerShape(22.dp)).background(c.panel).border(1.dp, c.line, RoundedCornerShape(22.dp)).padding(horizontal = 18.dp, vertical = 6.dp).animateContentSize(), content = content)
         if (footer != null) Text(footer, color = c.sub, fontSize = 12.sp, modifier = Modifier.padding(start = 8.dp, end = 8.dp, top = 6.dp))
     }
 }
