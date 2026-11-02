@@ -223,6 +223,8 @@ class CarNavSession : Session() {
         applyTheme()
         try { engine.startLocation() } catch (e: Exception) { }
         engine.restoreFreeZoomNow()
+        // the phone's layer choices (traffic on the route only, rain radar) on the car map too
+        try { engine.applyLayer(PreferenceKeys.ROUTETRAFFICONLY); engine.applyLayer(PreferenceKeys.RAIN_RADAR) } catch (e: Exception) { }
         mapScreen?.start()
         // asked for a destination before the map was up (Android Auto opened the app for it)
         pendingNav?.let { pendingNav = null; takeNav(it) }
@@ -514,7 +516,7 @@ class MapScreen(carContext: CarContext, private val holder: CarHolder) : Screen(
         val t = e.turn; val eta = e.eta
         // Android Auto's buttons only change with the state (rebuilding them every second while the distance counts down made the
         // host redo its layout for nothing); the turn and distance go to the car's displays through updateTrip
-        val sig = "${guiding}|${e.previewing}|${e.active}|${e.routes.size}|${e.busy}|${e.simMode}|${e.faster?.savedMin}|${e.soundMode}"
+        val sig = "${guiding}|${e.previewing}|${e.active}|${e.routes.size}|${e.busy}|${e.simMode}|${e.faster?.savedMin}|${e.soundMode}|${e.following}"
         if (sig != lastSig) { lastSig = sig; invalidate() }
         val tsig = "${t?.maneuver}|${t?.street}|${t?.exit}|${t?.dist?.let { Math.round(it / 10) }}|${eta?.secs?.let { Math.round(it / 30) }}|${eta?.dist?.let { Math.round(it / 100) }}|${System.identityHashCode(t?.lanes)}"
         if (guiding && t != null && eta != null && tsig != lastTrip) {
@@ -607,7 +609,9 @@ class MapScreen(carContext: CarContext, private val holder: CarHolder) : Screen(
             .addAction(Action.PAN)
             .addAction(Action.Builder().setIcon(icon(R.drawable.ic_car_plus)).setOnClickListener { e?.zoom(0.7) }.build())
             .addAction(Action.Builder().setIcon(icon(R.drawable.ic_car_minus)).setOnClickListener { e?.zoom(-0.7) }.build())
-            .addAction(Action.Builder().setIcon(icon(R.drawable.ic_car_recenter)).setOnClickListener { e?.recenter(byUser = true) }.build())
+            // (Android Auto allows four buttons here: while the map follows the car, Zentrieren isn't needed and the layers take its place)
+            .addAction(if (e == null || e.following) Action.Builder().setIcon(icon(R.drawable.ic_car_layers)).setOnClickListener { screenManager.push(LayersScreen(carContext, holder)) }.build()
+                else Action.Builder().setIcon(icon(R.drawable.ic_car_recenter)).setOnClickListener { e.recenter(byUser = true) }.build())
             .build()
         val b = NavigationTemplate.Builder().setActionStrip(strip.build()).setMapActionStrip(mapStrip)
         // the turn card, trip figures and the "working out the route" spinner are the app's own, drawn on the map (see CarOverlay):
@@ -917,6 +921,34 @@ class ReportScreen(carContext: CarContext, private val holder: CarHolder) : Scre
         try { e.report(kind) } catch (x: Exception) { }
         try { androidx.car.app.CarToast.makeText(carContext, Lang.t("${e.reportName(kind)}-Meldung hier gespeichert", "${e.reportName(kind)} report saved here"), androidx.car.app.CarToast.LENGTH_SHORT).show() } catch (x: Exception) { }
         screenManager.pop()
+    }
+}
+
+/** Ebenen: what the car map shows, as switches (the same settings as on the phone). */
+class LayersScreen(carContext: CarContext, private val holder: CarHolder) : Screen(carContext) {
+    private val prefs = Prefs(carContext.applicationContext)
+
+    private fun row(title: String, key: String, def: Boolean): Row = Row.Builder().setTitle(title)
+        .setToggle(Toggle.Builder { on -> prefs.put(key, on); holder.engine?.applyLayer(key); invalidate() }.setChecked(prefs.b(key, def)).build()).build()
+
+    override fun onGetTemplate(): Template {
+        val e = holder.engine
+        // most important first: a car that shows fewer rows loses the last ones
+        val rows = listOf(
+            Row.Builder().setTitle(Lang.t("3D-Ansicht", "3D view"))
+                .setToggle(Toggle.Builder { _ -> holder.engine?.toggleTilt(); invalidate() }.setChecked(e?.tilt3d != false).build()).build(),
+            row(Lang.t("Verkehr", "Traffic"), PreferenceKeys.TRAFFIC, true),
+            row(Lang.t("Satellit", "Satellite"), PreferenceKeys.SATELLITE, false),
+            row(Lang.t("Blitzer", "Speed cameras"), PreferenceKeys.CAMERA_MAP, true),
+            row(Lang.t("Meldungen & Baustellen", "Reports & roadworks"), PreferenceKeys.HAZARD_ICONS, true),
+            row(Lang.t("Parkhäuser", "Car parks"), PreferenceKeys.GARAGES_MAP, true),
+            row(Lang.t("Regenradar", "Rain radar"), PreferenceKeys.RAIN_RADAR, false),
+            row(Lang.t("Verkehr nur auf der Route", "Traffic on route only"), PreferenceKeys.ROUTETRAFFICONLY, false),
+        )
+        val max = try { carContext.getCarService(ConstraintManager::class.java).getContentLimit(ConstraintManager.CONTENT_LIMIT_TYPE_LIST) } catch (x: Exception) { 6 }
+        val list = ItemList.Builder()
+        for (r in rows.take(max.coerceAtLeast(1))) list.addItem(r)
+        return ListTemplate.Builder().setTitle(Lang.t("Ebenen", "Layers")).setHeaderAction(Action.BACK).setSingleList(list.build()).build()
     }
 }
 

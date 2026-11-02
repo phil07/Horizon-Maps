@@ -4620,6 +4620,23 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
     private var radarOnNow = false
 
     /** Switches the rain radar layer on or off; while on it picks up the newest radar picture every 10 minutes. */
+    /** A layer switched in the car's Ebenen list: shown or hidden on this engine's map straight away. */
+    fun applyLayer(key: String) {
+        when (key) {
+            PreferenceKeys.TRAFFIC -> applyStyle(lastDark)
+            PreferenceKeys.SATELLITE, PreferenceKeys.BUILDINGS_3D -> map.setView(prefs.b(PreferenceKeys.SATELLITE, false), prefs.b(PreferenceKeys.BUILDINGS_3D, true))
+            PreferenceKeys.ROUTETRAFFICONLY -> map.setHideOtherTraffic(prefs.b(PreferenceKeys.ROUTETRAFFICONLY, false))
+            PreferenceKeys.RAIN_RADAR -> setRadarOn(prefs.b(PreferenceKeys.RAIN_RADAR, false))
+            PreferenceKeys.CAMERA_MAP -> mergeCams()
+            PreferenceKeys.HAZARD_ICONS -> { hazardSig = -1; pushHazards(hzProgress) }
+            PreferenceKeys.GARAGES_MAP -> {
+                garagesFetchedPos = null
+                if (!prefs.b(PreferenceKeys.GARAGES_MAP, true)) { garagesShown = false; map.setGarages(emptyList()) }
+                else (if (following) fix?.pos else map.center())?.let { garagesAt(it, false) }
+            }
+        }
+    }
+
     fun setRadarOn(on: Boolean) {
         if (on == radarOnNow) return
         radarOnNow = on
