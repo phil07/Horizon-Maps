@@ -1781,6 +1781,8 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
             if (prefs.b(PreferenceKeys.AVOID_UNPAVED, true)) "unpavedRoads" else null,
         )
         TomTomRest.routeType = if (prefs.b(PreferenceKeys.ROUTE_ECO, false)) "eco" else "fastest"
+        // Settings > Fahrzeug: a motorhome's or trailer's size, weight and top speed
+        Vehicle.active = Vehicle.from(prefs)
         // electric: TomTom's eco route for an electric car uses the least battery, from how much the car uses at different speeds
         TomTomRest.evParams = if (isEv && prefs.b(PreferenceKeys.ROUTE_ECO, false)) {
             val k = evKwhPerKm() * 100.0
@@ -2282,7 +2284,10 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
             val lim = speedLimit
             val tolUnits = prefs.s(PreferenceKeys.TRAFFIC_WARNING, "5").toIntOrNull() ?: 5
             val tol = tolUnits * (if (imperial) 0.44704 else 0.27778)
-            val over = prefs.b(PreferenceKeys.SPEEDWARN, false) && lim != null && !limitEstimated && p.speed > lim + tol && p.speed > 4.0
+            // a motorhome's or trailer's own top speed counts where it's below the road's limit (Settings > Fahrzeug)
+            val vmax = Vehicle.active.maxMs
+            val overVehicle = vmax != null && (lim == null || vmax < lim) && p.speed > vmax + tol
+            val over = prefs.b(PreferenceKeys.SPEEDWARN, false) && p.speed > 4.0 && ((lim != null && !limitEstimated && p.speed > lim + tol) || overVehicle)
             overLimit = over
             if (over && soundMode != 2 && now - lastBeep > 9000) {
                 lastBeep = now
@@ -4076,7 +4081,8 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
                 val span = max(1.0, d.end - d.off)
                 d.secs * ((d.end - max(progress, d.off)) / span).coerceIn(0.0, 1.0)
             }
-            val secs = r.freeFlow * frac + ahead
+            // a motorhome or trailer is slower than the limit on fast roads (Settings > Fahrzeug)
+            val secs = r.freeFlow * frac + ahead + Vehicle.extraSecs(r.limits, progress, Vehicle.active.maxMs)
             val delayMin = Math.round(ahead / 60.0).toInt()
             val arrive = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date(System.currentTimeMillis() + (secs * 1000).toLong()))
             eta = EtaInfo(arrive, rem, secs, delayMin)

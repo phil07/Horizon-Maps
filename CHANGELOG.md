@@ -9,6 +9,7 @@ Add user-facing Horizon Nav changes under **Unreleased** before publishing each 
 - Satellitenbilder sichtbar: Die Luftbilder lagen unter der beigen Grundfläche der Karte und waren deshalb nicht zu sehen. Jetzt liegen sie darüber.
 
 ### Neu
+- Fahrzeugprofile: Unter Einstellungen > Fahrzeug wählst du Pkw, Wohnmobil oder Anhänger. Wohnmobil und Anhänger haben ein eigenes Höchsttempo, mit dem die Ankunftszeit rechnet und ab dem die Tempowarnung warnt. Höhe, Breite, Länge und Gewicht gehen an TomTom und Mapbox, damit die Route zu niedrige Brücken und Gewichtsgrenzen meidet, soweit deren Daten sie kennen.
 - Parkplatz über Bluetooth: Trennt sich das Handy vom Auto-Bluetooth, wird der Standort als Parkplatz gespeichert, auch ohne Android Auto. Das Auto erkennt die App am Bluetooth-Typ (Autoradio oder Freisprecheinrichtung) oder daran, dass es beim Start von Android Auto verbunden war. Abschaltbar unter Einstellungen > Ankunft.
 - Neue Sprachbefehle über den Mikrofon-Knopf: „Wo steht mein Auto?“ öffnet den Fußweg zum Parkplatz, „Hier geparkt“ merkt den Standort, „Satellit an“ und „Satellit aus“ schalten die Karte um, „Wie schnell darf ich?“ sagt das Tempolimit, „Stau melden“ meldet einen Stau.
 - Karte im Funkloch: Beim Navigationsstart wird die Karte entlang der Route jetzt automatisch gespeichert, auch über mobile Daten. Im Satellitenmodus werden auch die Straßenkarte und die Mapbox-Luftbilder gespeichert. Abschalten oder auf WLAN begrenzen lässt sich das unter Offline-Karten.

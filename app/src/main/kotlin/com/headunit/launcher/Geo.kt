@@ -351,7 +351,7 @@ object TomTomRest {
         val prefs = avoid.joinToString("") { "&avoid=$it" } + (if (routeType != "fastest") "&routeType=$routeType" else "")
         // the direction you are travelling stops the route sending you the wrong way down the road you are on (used when rerouting)
         val hd = if (headingDeg >= 0) "&vehicleHeading=${headingDeg.toInt() % 360}" else ""
-        val classic = "$CLASSIC/$loc/json?key=$k&maxAlternatives=$n&traffic=true&routeRepresentation=polyline&instructionsType=text$prefs$hd"
+        val classic = "$CLASSIC/$loc/json?key=$k&maxAlternatives=$n&traffic=true&routeRepresentation=polyline&instructionsType=text$prefs$hd${Vehicle.tomtomParams()}"
         val attempts = ArrayList<String>()
         if (quick) {
             // rerouting: only two quick tries, so a weak signal does not leave you waiting through ten slow requests
