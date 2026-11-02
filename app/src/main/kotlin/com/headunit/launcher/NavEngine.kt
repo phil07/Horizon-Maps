@@ -432,6 +432,15 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
      * driving (the two services time the same road differently, which would offer "faster" routes that aren't), nor with eco
      * routes (TomTom's only), nor when one of them isn't working.
      */
+    /** The way you're driving (degrees), when moving and [from] is where you are; -1 otherwise. Sent with every route request, so
+     *  the route starts the way you're going (not with a U-turn behind you) and a check for a faster way compares like with like. */
+    private fun driveHeading(from: LL? = null): Double {
+        val f = fix ?: return -1.0
+        if (f.speed < 2.0 || f.heading < 0) return -1.0
+        if (from != null && Geo.dist(from, f.pos) > 80.0) return -1.0
+        return f.heading
+    }
+
     private fun netRoutes(from: LL, to: LL, alternatives: Boolean, departAtMs: Long = 0L, via: List<LL> = emptyList(), headingDeg: Double = -1.0, quick: Boolean = false,
                           askBoth: Boolean = false): List<Route> =
         netRoutesRaw(from, to, alternatives, departAtMs, via, headingDeg, quick, askBoth)
@@ -713,8 +722,9 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
                 tts?.setAudioAttributes(speechAttrs)
                 tts?.setOnUtteranceProgressListener(object : android.speech.tts.UtteranceProgressListener() {
                     override fun onStart(id: String?) {}
-                    override fun onDone(id: String?) { unduck() }
-                    @Deprecated("Deprecated in Java") override fun onError(id: String?) { unduck() }
+                    override fun onDone(id: String?) { if (id?.startsWith("nav") == true) uttDone(id) else unduck() }
+                    override fun onStop(id: String?, interrupted: Boolean) { if (id?.startsWith("nav") == true) uttDone(id) }
+                    @Deprecated("Deprecated in Java") override fun onError(id: String?) { if (id?.startsWith("nav") == true) uttDone(id) else unduck() }
                 })
             }
         }
@@ -1313,7 +1323,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         if (need.isEmpty()) return rs
         val alt = withContext(Dispatchers.IO) {
             val keep = TomTomRest.avoid
-            try { TomTomRest.avoid = (keep + "tollRoads").distinct(); netRoutes(from, to, true, departMs, via.map { it.pos }, askBoth = true) }
+            try { TomTomRest.avoid = (keep + "tollRoads").distinct(); netRoutes(from, to, true, departMs, via.map { it.pos }, driveHeading(from), askBoth = true) }
             catch (e: Exception) { emptyList() }
             finally { TomTomRest.avoid = keep }
         }
@@ -1874,10 +1884,11 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
                 var usedOffline = false
                 val rs0 = withContext(Dispatchers.IO) {
                     val haveOffline = OfflineRouter.installed(ctx)
-                    if (haveOffline && (!hasOnline || !online())) { usedOffline = true; OfflineRouter.routes(ctx, from, to.pos, via.map { it.pos }) }
-                    else try { netRoutes(from, to.pos, true, departMs, via.map { it.pos }, askBoth = true) }
+                    val hd = driveHeading(from)
+                    if (haveOffline && (!hasOnline || !online())) { usedOffline = true; OfflineRouter.routes(ctx, from, to.pos, via.map { it.pos }, hd) }
+                    else try { netRoutes(from, to.pos, true, departMs, via.map { it.pos }, hd, askBoth = true) }
                     catch (e: Exception) {
-                        if (haveOffline && NavigationFallbackPolicy.shouldUseOffline(e)) { usedOffline = true; OfflineRouter.routes(ctx, from, to.pos, via.map { it.pos }) } else throw e
+                        if (haveOffline && NavigationFallbackPolicy.shouldUseOffline(e)) { usedOffline = true; OfflineRouter.routes(ctx, from, to.pos, via.map { it.pos }, hd) } else throw e
                     }
                 }
                 if (rs0.isEmpty()) throw IllegalStateException("No route found")
@@ -2066,6 +2077,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         map.setRoute(emptyList(), emptyList()); map.setDest(null); map.setVia(emptyList()); map.setTurnPulse(false); laneKey = null; map.setLanes(emptyList()); map.setLaneSign(null, emptyList()); laneSignFor = -1.0; bubbleLanes = null; map.setLaneBubble(null, emptyList()); map.setRouteShift(emptyList()); laneLatAt = null; laneShiftEnd = 0.0
         map.highlightDestination(null)
         stopSim()
+        speechQ.clear(); playing = null; playingId = ""
         tts?.stop()
         // a stopped announcement never reports done: put the music back up here
         spoken = 0; unduck()
@@ -2784,7 +2796,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         try {
             val from = fix?.pos ?: return@withContext null
             val pl = netGeocode(countryCode(), q, from).firstOrNull() ?: return@withContext null
-            val r = netRoutes(from, pl.pos, false).firstOrNull() ?: return@withContext null
+            val r = netRoutes(from, pl.pos, false, headingDeg = driveHeading(from)).firstOrNull() ?: return@withContext null
             Pair(pl, Math.round(r.time / 60.0).toInt())
         } catch (e: Exception) { null }
     }
@@ -4344,7 +4356,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         scope.launch {
             try {
                 syncRoutePrefs(f.pos, d.pos)
-                val rs = withContext(Dispatchers.IO) { netRoutes(f.pos, d.pos, true, 0L, viaPts) }
+                val rs = withContext(Dispatchers.IO) { netRoutes(f.pos, d.pos, true, 0L, viaPts, driveHeading(f.pos)) }
                 if (rs.size < 2 || route !== cur) return@launch
                 // how much of each candidate runs along the road we are already following
                 fun overlap(r: Route): Double {
@@ -4411,7 +4423,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         scope.launch {
             try {
                 syncRoutePrefs(f.pos, d.pos)
-                val rs = withContext(Dispatchers.IO) { netRoutes(f.pos, d.pos, false, 0L, viaPts, -1.0, true) }
+                val rs = withContext(Dispatchers.IO) { netRoutes(f.pos, d.pos, false, 0L, viaPts, driveHeading(f.pos), true) }
                 val fresh = rs.firstOrNull() ?: return@launch
                 if (route !== cur) return@launch
                 refreshTraffic(cur, fresh, at)
@@ -4702,11 +4714,11 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
             val fFrom = if (familiar) 330.0 else 520.0
             // a heads-up well ahead on fast roads, then the main call-out, then the final one at the junction
             if (!familiar && d <= 1700 && d > 1100 && p0Speed() > 18.0 && !arriving && said.add("${k}e"))
-                speak("In ${Geo.spoken(d, imperial)}, $phrase")
+                speak("In ${Geo.spoken(d, imperial)}, $phrase", turn = true)
             if (d <= fFrom && d > 200 && said.add("${k}f"))
-                speak(if (arriving) "In ${Geo.spoken(d, imperial)} erreichen Sie Ihr Ziel" + (if (side.isNotEmpty()) ". Das Ziel liegt $side" else "") else "In ${Geo.spoken(d, imperial)}, $phrase$lane")
+                speak(if (arriving) "In ${Geo.spoken(d, imperial)} erreichen Sie Ihr Ziel" + (if (side.isNotEmpty()) ". Das Ziel liegt $side" else "") else "In ${Geo.spoken(d, imperial)}, $phrase$lane", turn = true)
             if (d <= 120 && said.add("${k}n"))
-                speak(if (arriving) (if (side.isNotEmpty()) "Das Ziel liegt $side" else "Sie haben Ihr Ziel erreicht") else phrase.replaceFirstChar { it.uppercase() })
+                speak(if (arriving) (if (side.isNotEmpty()) "Das Ziel liegt $side" else "Sie haben Ihr Ziel erreicht") else phrase.replaceFirstChar { it.uppercase() }, turn = true)
         }
         // arrived: at the end of the route and really there (not just level with the end of the route on another road)
         val atEnd = rem < 25 && fix.let { f -> f == null || Geo.dist(f.pos, dest?.pos ?: r.pts.last()) < 120.0 || Geo.dist(f.pos, r.pts.last()) < 120.0 }
@@ -4809,7 +4821,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
             val r = kotlinx.coroutines.withTimeoutOrNull(15_000L) {
                 withContext(Dispatchers.IO) {
                     try {
-                        if (hasOnline && online()) { live = true; netRoutes(here, pl.pos, false, 0L, emptyList(), -1.0, true).firstOrNull() }
+                        if (hasOnline && online()) { live = true; netRoutes(here, pl.pos, false, 0L, emptyList(), driveHeading(here), true).firstOrNull() }
                         // (no offline routing for this: it loads large files into memory, too heavy for a suggestion in the background)
                         else null
                     } catch (e: Exception) { null }
@@ -4850,7 +4862,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
                 if (Geo.dist(here, p.pos) < 800.0) { slotMins[k] = 0; continue }
                 val r = kotlinx.coroutines.withTimeoutOrNull(15_000L) {
                     withContext(Dispatchers.IO) {
-                        try { if (online()) netRoutes(here, p.pos, false, 0L, emptyList(), -1.0, true).firstOrNull() else null } catch (e: Exception) { null }
+                        try { if (online()) netRoutes(here, p.pos, false, 0L, emptyList(), driveHeading(here), true).firstOrNull() else null } catch (e: Exception) { null }
                     }
                 }
                 if (route != null) return@launch
@@ -5920,17 +5932,70 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         }
     }
 
-    fun speak(text: String, alert: Boolean = false) {
+    // ---- the announcement queue ----
+    // Announcements used to go straight into the speech engine's own queue, each waiting for the one before: after a weather note,
+    // a camera and a jam, "In 500 m take the exit" came so late that the exit was already there. Now the app keeps its own queue:
+    // a turn call goes first (it cuts short a plain note, never a warning), replaces any older turn call still waiting, and
+    // anything that has waited too long to still be right is dropped.
+
+    /** [kind]: 0 a note, 1 a warning, 2 a turn call. */
+    private class Utt(val text: String, val kind: Int, val at: Long)
+    private val speechQ = ArrayDeque<Utt>()
+    private var playing: Utt? = null
+    private var playingId = ""
+    private var uttSeq = 0
+    private val speechMain = android.os.Handler(android.os.Looper.getMainLooper())
+
+    /** [turn]: a turn-by-turn call ("In 500 m, take the exit"), which has to be on time. */
+    fun speak(text: String, alert: Boolean = false, turn: Boolean = false) {
         if (quiet()) return
         val m = soundMode
         if (m == 2 || (m == 1 && !alert) || !ttsReady) return
-        val ch = prefs.s(PreferenceKeys.VOICE_CHANNEL, "nav")
-        if (ch != voiceChan) { voiceChan = ch; try { tts?.setAudioAttributes(speechAttrs) } catch (e: Exception) { } }
-        spoken++
-        duck()
-        // every announcement waits for the one before it to be finished (none cuts another off half way); the queue is played in order
-        val r = tts?.speak(text, TextToSpeech.QUEUE_ADD, null, "nav")
-        if (r == TextToSpeech.ERROR) unduck()
+        val u = Utt(text, if (turn) 2 else if (alert) 1 else 0, android.os.SystemClock.elapsedRealtime())
+        if (android.os.Looper.myLooper() == android.os.Looper.getMainLooper()) enqueue(u) else speechMain.post { enqueue(u) }
+    }
+
+    private fun enqueue(u: Utt) {
+        if (u.kind == 2) {
+            // older turn calls and plain notes still waiting are out of date now
+            speechQ.removeAll { it.kind != 1 }
+            speechQ.addFirst(u)
+            val p = playing
+            // a note (or an older turn call) being read out is cut short; a warning is finished first
+            if (p != null && p.kind != 1) { playing = null; playingId = ""; try { tts?.stop() } catch (e: Exception) { } }
+        } else speechQ.addLast(u)
+        playNext()
+    }
+
+    private fun playNext() {
+        if (playing != null) return
+        val now = android.os.SystemClock.elapsedRealtime()
+        while (true) {
+            val u = speechQ.removeFirstOrNull() ?: break
+            // how long each may wait: a turn call only a few seconds (the distance in it is soon wrong), a warning half a minute
+            val maxAge = when (u.kind) { 2 -> 6_000L; 1 -> 30_000L; else -> 15_000L }
+            if (now - u.at > maxAge) continue
+            val ch = prefs.s(PreferenceKeys.VOICE_CHANNEL, "nav")
+            if (ch != voiceChan) { voiceChan = ch; try { tts?.setAudioAttributes(speechAttrs) } catch (e: Exception) { } }
+            spoken = 1
+            duck()
+            val id = "nav${++uttSeq}"
+            playing = u; playingId = id
+            val r = tts?.speak(u.text, TextToSpeech.QUEUE_ADD, null, id)
+            if (r == TextToSpeech.ERROR) { playing = null; playingId = ""; continue }
+            return
+        }
+        // nothing left to say: the music comes back up
+        spoken = 1; unduck()
+    }
+
+    /** The speech engine finished (or stopped) [id]: the next one, if it's still the current one. */
+    private fun uttDone(id: String?) {
+        speechMain.post {
+            if (id == null || id != playingId) return@post
+            playing = null; playingId = ""
+            playNext()
+        }
     }
 
     // ---- demo drive ----
