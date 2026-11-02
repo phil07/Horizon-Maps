@@ -11,22 +11,30 @@ Move items to **Done** as they ship, and add new requests at the bottom of the r
 ## Features requested
 
 2. **Change the app's language.** Asked on r/Androidheadunits. Parked for now.
-6. **Import saved places from Google Maps** (from a Google Takeout file).
-7. **Copy offline map packs from another device.** For example, download on a phone or PC at home and copy them across by USB, for when the car can't reach home Wi-Fi.
+6. **Import saved places from Google Maps** (from a Google Takeout file). *Skipped for now (owner's decision, 2 Nov 2026).*
+7. **Copy offline map packs from another device.** For example, download on a phone or PC at home and copy them across by USB, for when the car can't reach home Wi-Fi. *Not needed (owner's decision, 2 Nov 2026).*
 8. **Smaller offline packs**, such as Singapore on its own instead of Singapore, Malaysia and Brunei together, and town names for every country in a shared pack.
 9. **Swap the search bar for a search icon**, for people who want even more of the map on show.
 10. **Choose where your arrow sits on screen.** Requested on Android Auto, for one car where the centre felt too far left. The automatic centring added since may cover this. Check before building.
 11. **Radarbot integration** for speed cameras on the route. Radarbot doesn't offer a public way in, so this may not be possible. The app's own camera data is used instead.
-12. **Map options on Android Auto.** Layers such as traffic and satellite, and reports. Android Auto only allows a few buttons of its own, so this needs a different approach there.
 13. **Android Auto voice search.** Pressing Android Auto's own mic and asking for a place says "Sorry, I didn't understand". "Navigate to …" with the app named may already work. Needs testing.
 
 ## Can't be fixed in the app
 
 - **The app not showing up in Android Auto on some phones**, especially GrapheneOS and LineageOS, or without installing through AAEnabler. Android Auto only lists unofficial apps under certain conditions; the app shows a note about AAEnabler.
-- **Some speed limits are wrong.** They come from the map data (OpenStreetMap / Mapbox). Wrong limits can be corrected on openstreetmap.org.
-- **Waze-style live police alerts.** These need lots of users reporting nearby. The app's own reports (police, crash, hazard) only show on your own map.
+- **Some speed limits are still wrong.** Several sources now vote on the limit (HERE, TomTom, Mapbox, OpenStreetMap, Mapillary road signs, Autobahn roadworks and drivers' own reports), and a wrong value can be reported by tapping the sign or under Melden in the car. Where every source is wrong, it can also be corrected on openstreetmap.org.
+- **Waze-style live police alerts.** Reports (police, crash, hazard, jam…) are now shared with other Horizon Nav drivers through the reports server, but they only help where enough people use the app.
 
 ## Done (from these requests)
+
+- Map options on Android Auto (#12): a layers button with switches for 3D, traffic, satellite, cameras, reports, car parks, rain radar and route-only traffic.
+- Share your arrival time as a live link (map, position, arrival time, distance left), from the phone or the car.
+- Live car park occupancy: on arrival, in the parking search and on the map.
+- Automatic rerouting onto a faster route (with a set minimum saving, an announcement and "Alte Route" to go back).
+- Motorhome / caravan: pitches, water & waste, LPG in the quick search, and low-bridge height warnings.
+- DWD severe weather warnings on the route ahead (Germany), and the rescue lane reminder in motorway jams.
+- Speed limits from several sources at once, with a dispute dot, details on tap, and drivers' own limit reports.
+- Search puts the town ("Berlin") before nearby streets ("Berliner Straße"); results in German, "offline" only without signal.
 
 - Custom default zoom, with reset.
 - Traffic overview when stopped (with a setting).
