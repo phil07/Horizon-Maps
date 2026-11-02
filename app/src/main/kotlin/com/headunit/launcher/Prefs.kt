@@ -186,6 +186,9 @@ internal object PreferenceKeys {
     const val STOPPED_OVERVIEW = "stopview"
     /** Where you left the car, "lat,lon,time" (saved on the phone when Android Auto disconnects). */
     const val PARKED_SPOT = "parkedspot"
+    const val PARK_BLUETOOTH = "parkbt"
+    const val CAR_BT_DEVICES = "carbtdevices"
+    const val CAR_BT_LAST = "carbtlast"
     /** Phone-to-car link: the pairing code, this device's part ("car" receives, "phone" sends), and the last message taken. */
     const val LINK_CODE = "linkcode"
     const val LINK_ROLE = "linkrole"

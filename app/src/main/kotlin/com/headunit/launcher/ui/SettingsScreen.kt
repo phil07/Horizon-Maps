@@ -457,6 +457,7 @@ private fun GuidanceSection(prefs: Prefs) {
         SToggle(prefs, "Ankunftsmoment", "arrivalfx", true, "Kamera schwenkt zum Ziel und zeigt Parkplätze")
         SToggle(prefs, "Parkplätze nahe dem Ziel", "parkprompt", true, "Parkplatzvorschläge vor der Ankunft")
         SToggle(prefs, "Rückroute", "routeback", true, "Ein Tipp für den Weg zurück zum Startort")
+        SToggle(prefs, "Parkplatz über Bluetooth merken", "parkbt", true, "Wenn sich das Handy vom Auto-Bluetooth trennt, wird der Standort als Parkplatz gespeichert (auch ohne Android Auto)")
     }
 }
 

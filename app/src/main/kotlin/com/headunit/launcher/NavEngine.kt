@@ -1142,6 +1142,8 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
     private fun handleLocationInner(l: Location, first: Boolean) {
         run {
             val t = System.currentTimeMillis()
+            // kept for "where you parked" when the car's Bluetooth goes (CarBluetooth)
+            if (!l.hasAccuracy() || l.accuracy < 60f) CarBluetooth.noteFix(LL(l.latitude, l.longitude), if (l.hasSpeed()) l.speed else 0f)
             // where you are exactly (and which way you're facing), for the map to open right there next time
             if (t - startSavedAt > 15_000 && (!l.hasAccuracy() || l.accuracy < 60f)) {
                 startSavedAt = t
@@ -4898,6 +4900,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
             val k = when {
                 has("police", "cop", "polizei", "kontrolle") -> "police"; has("accident", "crash", "unfall") -> "accident"
                 has("breakdown", "broken", "panne", "liegengeblieben") -> "breakdown"; has("camera", "blitzer", "radar") -> "mobilecam"
+                has("traffic jam", "jam", "stau") -> "jam"
                 else -> "hazard"
             }
             report(k); return ""
@@ -4950,6 +4953,42 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         if (has("zoom out", "rauszoomen", "herauszoomen", "weiter weg", "verkleinern")) { zoom(-1.0); return "" }
         if (has("north up", "norden oben", "nach norden")) { if (!northUp) toggleNorthUp(); return "" }
         if (t == "3d" || t == "2d" || has("three d", "two d", "drei d", "zwei d")) { if ((t.contains("3") || t.contains("three") || t.contains("drei")) != tilt3d) toggleTilt(); return "" }
+        // where you parked: "wo steht mein Auto", "zum Auto", "hier geparkt"
+        if (has("where did i park", "where is my car", "where's my car", "back to the car", "wo steht mein auto", "wo ist mein auto", "wo hab ich geparkt", "wo habe ich geparkt", "zum auto", "zurück zum auto")) {
+            val ps = prefs.s(PreferenceKeys.PARKED_SPOT, "").split(',')
+            val la = ps.getOrNull(0)?.toDoubleOrNull(); val lo = ps.getOrNull(1)?.toDoubleOrNull()
+            if (la == null || lo == null) { say(Lang.t("Es ist kein Parkplatz gespeichert", "No parking spot is saved")); return "" }
+            val d = fix?.pos?.let { Geo.dist(it, LL(la, lo)) }
+            say(if (d != null) Lang.t("Dein Auto steht ${Geo.spokenPlain(d, imperial)} entfernt. Ich öffne den Fußweg.", "Your car is ${Geo.spoken(d, imperial)} away. Opening walking directions.")
+                else Lang.t("Ich öffne den Fußweg zu deinem Auto", "Opening walking directions to your car"))
+            try {
+                ctx.startActivity(android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(String.format(Locale.US, "google.navigation:q=%.6f,%.6f&mode=w", la, lo)))
+                    .addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK))
+            } catch (e: Exception) {
+                try { ctx.startActivity(android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(String.format(Locale.US, "geo:%.6f,%.6f?q=%.6f,%.6f", la, lo, la, lo))).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)) } catch (x: Exception) { }
+            }
+            return ""
+        }
+        if (has("i parked here", "remember where i parked", "hier geparkt", "parkplatz merken", "merk dir den parkplatz", "ich parke hier")) {
+            val p = fix?.pos
+            if (p == null) say(Lang.t("Ich kenne deinen Standort gerade nicht", "I don't know where you are right now"))
+            else { prefs.put(PreferenceKeys.PARKED_SPOT, String.format(Locale.US, "%.6f,%.6f,%d", p.lat, p.lon, System.currentTimeMillis())); say(Lang.t("Parkplatz gemerkt", "Parking spot saved")) }
+            return ""
+        }
+        // satellite photos on or off
+        if (has("satellite", "satellit", "luftbild")) {
+            val on = !has(" off", "aus", "normal", "standard")
+            prefs.put(PreferenceKeys.SATELLITE, on); say(if (on) Lang.t("Satellitenkarte an", "Satellite on") else Lang.t("Satellitenkarte aus", "Satellite off")); return ""
+        }
+        // the speed limit here
+        if (has("speed limit", "tempolimit", "wie schnell darf ich", "geschwindigkeitsbegrenzung", "höchstgeschwindigkeit", "wie schnell ist hier erlaubt")) {
+            val lim = speedLimit?.let { Math.round(it * 3.6) }
+            say(if (lim == null && noLimit) Lang.t("Hier gibt es kein Tempolimit", "There's no speed limit here")
+                else if (lim == null) Lang.t("Das Tempolimit hier kenne ich nicht", "I don't know the speed limit here")
+                else if (imperial) Lang.t("Hier gilt ${Math.round(lim / 1.609)} Meilen pro Stunde", "The limit here is ${Math.round(lim / 1.609)} miles per hour")
+                else Lang.t("Hier gilt $lim Kilometer pro Stunde", "The limit here is $lim kilometres per hour"))
+            return ""
+        }
         if (has("what time", "wie spät", "uhrzeit", "wieviel uhr", "wie viel uhr")) { say(Lang.t("Es ist ${f.format(Date())}", "It's ${f.format(Date())}")); return "" }
         // "take me to …", "navigate to …", "fahr nach …", "navigiere zu …"
         Regex("^(?:go to|take me to|navigate to|drive to|directions to|head to|find|search for|show me)\\s+(.+)$").find(t)?.let { return "search:" + it.groupValues[1] }

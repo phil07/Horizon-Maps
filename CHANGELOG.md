@@ -9,6 +9,8 @@ Add user-facing Horizon Nav changes under **Unreleased** before publishing each 
 - Satellitenbilder sichtbar: Die Luftbilder lagen unter der beigen Grundfläche der Karte und waren deshalb nicht zu sehen. Jetzt liegen sie darüber.
 
 ### Neu
+- Parkplatz über Bluetooth: Trennt sich das Handy vom Auto-Bluetooth, wird der Standort als Parkplatz gespeichert, auch ohne Android Auto. Das Auto erkennt die App am Bluetooth-Typ (Autoradio oder Freisprecheinrichtung) oder daran, dass es beim Start von Android Auto verbunden war. Abschaltbar unter Einstellungen > Ankunft.
+- Neue Sprachbefehle über den Mikrofon-Knopf: „Wo steht mein Auto?“ öffnet den Fußweg zum Parkplatz, „Hier geparkt“ merkt den Standort, „Satellit an“ und „Satellit aus“ schalten die Karte um, „Wie schnell darf ich?“ sagt das Tempolimit, „Stau melden“ meldet einen Stau.
 - Karte im Funkloch: Beim Navigationsstart wird die Karte entlang der Route jetzt automatisch gespeichert, auch über mobile Daten. Im Satellitenmodus werden auch die Straßenkarte und die Mapbox-Luftbilder gespeichert. Abschalten oder auf WLAN begrenzen lässt sich das unter Offline-Karten.
 - Luftbilder offline: Luftbilder der Landesämter und von EOX werden auf dem Handy gespeichert (bis 500 MB) und ohne Netz wieder angezeigt. Beim Routenstart lädt die App die Luftbilder 300 m beidseits der Strecke vorab, standardmäßig nur im WLAN. Einstellbar unter Einstellungen > Kartenkonten > Satellitenbilder, dort lässt sich der Speicher auch leeren.
 - Satellitenquelle wählen: Unter Einstellungen > Kartenkonten > Satellitenbilder lässt sich die Quelle fest einstellen (Automatisch, Mapbox, Landesamt, Esri, MapTiler, EOX). Lehnt Mapbox ab, merkt sich die App den Ersatz 24 Stunden.

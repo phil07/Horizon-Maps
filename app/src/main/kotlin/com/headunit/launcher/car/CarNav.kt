@@ -215,6 +215,8 @@ class CarNavSession : Session() {
         engine.isCar = true
         // back in the car: the "Your car" spot on the phone isn't needed any more
         try { prefs.put(PreferenceKeys.PARKED_SPOT, "") } catch (e: Exception) { }
+        // the Bluetooth device that just connected is the car (for "where you parked" without Android Auto)
+        try { com.headunit.launcher.CarBluetooth.carStarted(app) } catch (e: Exception) { }
         holder.map = map; holder.engine = engine
         surface.engine = engine
         CarTicks.tick = { surface.tick() }
