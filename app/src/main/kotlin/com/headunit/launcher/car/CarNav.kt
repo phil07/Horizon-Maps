@@ -320,6 +320,11 @@ class CarSurface(private val carContext: CarContext, private val onReady: (MapBi
             m.lampsEnabled(false)
             // a touch thicker route line on the car screen, where it looked thin against the buildings
             m.routeBoost = 1.2f
+            // the satellite and 3D-building choices from the phone's settings apply to the car map as well (it used to ignore them)
+            try {
+                val carPrefs = Prefs(p.context.applicationContext)
+                m.setView(carPrefs.b(PreferenceKeys.SATELLITE, false), carPrefs.b(PreferenceKeys.BUILDINGS_3D, true))
+            } catch (e: Throwable) { }
             val root = FrameLayout(p.context)
             root.addView(m.mapView, FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT))
             root.addView(m.roadView, FrameLayout.LayoutParams(1, 1))

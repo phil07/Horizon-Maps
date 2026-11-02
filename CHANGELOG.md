@@ -5,6 +5,7 @@ Add user-facing Horizon Nav changes under **Unreleased** before publishing each 
 ## Unreleased
 
 ### Neu
+- Satellit auf der Autokarte: Die Satellitenkarte wird jetzt auch auf dem Display im Auto angezeigt. Vorher wurde die Einstellung dort ignoriert.
 - Log-Export für die Fehlersuche: In den Einstellungen unter „Horizon Nav“ siebenmal schnell auf die Version tippen. Dann erscheint „Logs“, und die letzten Meldungen lassen sich in die Zwischenablage kopieren.
 - Satellitenkarte geladen: Die Satellitenkarte zeigt jetzt die Luftbilder unter den Straßen. Vorher blieb der Hintergrund bei vielen Geräten leer. Wenn Mapbox die Luftbilder wegen zu vieler Anfragen sperrt, kommen sie automatisch von EOX.
 - Blitzer beim Start: Die App lädt die Blitzer um deinen Standort schon beim Start, auch wenn Android Auto verbunden ist und die Karte noch nicht offen ist. Der Hinweis „Keine Blitzerdaten“ erscheint nur einmal für 5 Sekunden, nicht bei jeder fehlgeschlagenen Suche.
