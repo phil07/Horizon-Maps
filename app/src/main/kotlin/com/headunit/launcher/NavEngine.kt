@@ -2361,7 +2361,11 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         // TomTom has no way to say "no limit": where OpenStreetMap says so outright, an answer of its from the stretch before doesn't count
         if (tt != null && !osmNone) votes += SpeedVote.Vote("TomTom", tt.ms, SpeedVote.W_TOMTOM)
         if (mb != null) votes += SpeedVote.Vote("Mapbox", if (mb <= 0.0) SpeedVote.NONE else mb, SpeedVote.W_MAPBOX)
-        if (routeMs != null && routeMs > 0.0) votes += SpeedVote.Vote(Lang.t("Route", "Route"), routeMs, SpeedVote.W_ROUTE)
+        // the route's limit is its service's own data: where that service already answered for this road it isn't counted twice
+        // (TomTom's route and TomTom's road lookup both voting 30 outweighed OpenStreetMap and Mapbox saying 50)
+        val rsrc = route?.source.orEmpty()
+        val sameAsRoute = (rsrc == "tomtom" && tt != null && !osmNone) || (rsrc == "mapbox" && mb != null)
+        if (routeMs != null && routeMs > 0.0 && !sameAsRoute) votes += SpeedVote.Vote(Lang.t("Route", "Route"), routeMs, SpeedVote.W_ROUTE)
         signNow(signs, p, hd, osm)?.let { s ->
             val w = SpeedVote.signWeight(if (s.seenAt > 0) System.currentTimeMillis() - s.seenAt else 0L)
             if (w > 0.0) votes += SpeedVote.Vote(Lang.t("Schild", "Sign"), s.ms, w)

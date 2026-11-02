@@ -521,7 +521,7 @@ object MapboxRest {
                 if (s1 > s0 + 5.0) tun += s0 to s1
             }
         } catch (e: Exception) { }
-        return Route(pts, cum, steps, total, time, delay, laneSecs, sev).also { it.delays = delays; it.limits = limits; it.incidents = incidents; it.tunnels = tun }
+        return Route(pts, cum, steps, total, time, delay, laneSecs, sev).also { it.delays = delays; it.limits = limits; it.incidents = incidents; it.tunnels = tun; it.source = "mapbox" }
     }
 
     // ------------------------------------------------------------------ search

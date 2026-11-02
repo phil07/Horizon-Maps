@@ -49,6 +49,8 @@ class Route(
     @Volatile var limits: List<LimitSec> = emptyList()
     /** Incidents on the route that came with it (Mapbox routes carry them; TomTom's are looked up separately). */
     @Volatile var incidents: List<Incident> = emptyList()
+    /** Whose route this is ("tomtom", "mapbox", "offline"): its speed limits are that service's own data. */
+    @Volatile var source: String = ""
 }
 
 /** The posted limit [ms] (m/s) from [off] to [end] metres along a route. */
@@ -647,7 +649,7 @@ object TomTomRest {
         } catch (e: Exception) { /* speed limits are optional */ }
         val s = r.optJSONObject("summary")
         val len = s?.optDouble("lengthInMeters", 0.0)?.takeIf { it > 0 } ?: cum.lastOrNull() ?: 0.0
-        return Route(pts, cum, steps, len, s?.optDouble("travelTimeInSeconds", 0.0) ?: 0.0, s?.optDouble("trafficDelayInSeconds", 0.0) ?: 0.0, laneSecs, sev).also { it.delays = delays; it.limits = limits }
+        return Route(pts, cum, steps, len, s?.optDouble("travelTimeInSeconds", 0.0) ?: 0.0, s?.optDouble("trafficDelayInSeconds", 0.0) ?: 0.0, laneSecs, sev).also { it.delays = delays; it.limits = limits; it.source = "tomtom" }
     }
 }
 
