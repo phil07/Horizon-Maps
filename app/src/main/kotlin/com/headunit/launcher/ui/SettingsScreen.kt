@@ -990,6 +990,9 @@ private fun KeysSection(prefs: Prefs, engine: NavEngine) {
             prefs.s(PreferenceKeys.SAT_SOURCE, "auto"), "Landesamt: Luftbilder der Vermessungsämter in Deutschland, außerhalb Esri, MapTiler oder EOX") { prefs.put(PreferenceKeys.SAT_SOURCE, it) }
         SChoice("Straßen über dem Luftbild", listOf("subtle" to "Dezent", "normal" to "Normal", "strong" to "Kräftig"),
             prefs.s(PreferenceKeys.SAT_HYBRID, "normal")) { prefs.put(PreferenceKeys.SAT_HYBRID, it) }
+        SChoice("Luftbilder vorab laden", listOf("wifi" to "Nur WLAN", "always" to "Immer", "off" to "Aus"),
+            prefs.s(PreferenceKeys.SAT_PREFETCH, "wifi"), "Beim Routenstart die Luftbilder 300 m beidseits der Strecke speichern (Landesamt und EOX)") { prefs.put(PreferenceKeys.SAT_PREFETCH, it) }
+        SatStoreItem()
         SFieldItem("Esri API-Schlüssel", prefs.s(PreferenceKeys.ESRI_KEY, ""), "Kostenlos auf location.arcgis.com, mit Zugriff auf Basemaps",
             placeholder = "Schlüssel einfügen") { prefs.put(PreferenceKeys.ESRI_KEY, it.trim()) }
         SFieldItem("MapTiler API-Schlüssel", prefs.s(PreferenceKeys.MAPTILER_KEY, ""), "Kostenlos auf cloud.maptiler.com",
@@ -1410,5 +1413,24 @@ private fun MapColoursPicker(value: String, onPick: (String) -> Unit) {
                 }
             }
         }
+    }
+}
+
+/** The satellite photo store's size, a route being fetched ahead, and a button to empty it. */
+@Composable
+private fun SatStoreItem() {
+    val ctx = androidx.compose.ui.platform.LocalContext.current
+    var mb by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(-1L) }
+    var progress by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf("") }
+    androidx.compose.runtime.LaunchedEffect(Unit) {
+        while (true) {
+            mb = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { com.headunit.launcher.SatTileCache.sizeBytes(ctx) } / (1024 * 1024)
+            val t = com.headunit.launcher.SatTileCache.prefetchTotal
+            progress = if (t > 0) " · Route: ${com.headunit.launcher.SatTileCache.prefetchDone} von $t" else ""
+            kotlinx.coroutines.delay(2000)
+        }
+    }
+    SItem("Luftbild-Speicher", (if (mb < 0) "…" else "$mb MB von 500 MB") + progress) {
+        SButton("Leeren", danger = true) { com.headunit.launcher.SatTileCache.clear(ctx); mb = 0 }
     }
 }

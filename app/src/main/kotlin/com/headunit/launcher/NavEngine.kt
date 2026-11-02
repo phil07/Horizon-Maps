@@ -1895,6 +1895,14 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         following = true
         // Settings > Offline maps > Save every route's map: the Mapbox map along this route, kept for when signal drops
         try { route?.let { r -> MapboxOffline.autoSaveRoute(ctx, prefs, offlineRouteName(), r.pts, onWifi()) } } catch (e: Throwable) { }
+        // Settings > Satellitenbilder > Luftbilder vorab laden: the satellite photos along this route, kept on the phone
+        try {
+            val mode = prefs.s(PreferenceKeys.SAT_PREFETCH, "wifi")
+            val plan = map.satPrefetchPlan()
+            if (plan != null && mode != "off" && (mode == "always" || onWifi())) route?.let { r ->
+                SatTileCache.prefetchRoute(ctx, r.pts, plan.first, plan.second) { mode == "always" || onWifi() }
+            }
+        } catch (e: Throwable) { }
         routeWx.firstOrNull { it.code in 51..67 || it.code in 80..82 || it.code in 95..99 || it.code in 71..77 || it.code in 85..86 || it.rain >= 70 }?.let {
             val snow = it.code in 71..77 || it.code in 85..86
             val inT = if (it.minutes >= 60) "${it.minutes / 60} h ${it.minutes % 60} Min." else "${it.minutes} Min."

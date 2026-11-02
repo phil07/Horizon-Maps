@@ -518,7 +518,8 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
                 SatProvider.MAPTILER -> RasterSource.Builder("dl-sat").tiles(listOf(SatelliteSources.maptilerTiles(prefs.s(PreferenceKeys.MAPTILER_KEY, ""))))
                     .tileSize(512).maxzoom(20L).attribution(SatelliteSources.MAPTILER_CREDIT).build()
                 // EOX's Sentinel-2 photos stop at zoom 13 (free for non-commercial use, attribution required)
-                SatProvider.EOX -> RasterSource.Builder("dl-sat").tiles(listOf(SatelliteSources.EOX_TILES)).tileSize(256).maxzoom(13L)
+                // (through the photo store on the phone: kept for later, and for routes fetched ahead)
+                SatProvider.EOX -> RasterSource.Builder("dl-sat").tiles(listOf(SatTileCache.tileUrl(ctx, "eox") ?: SatelliteSources.EOX_TILES)).tileSize(256).maxzoom(13L)
                     .attribution(SatelliteSources.EOX_CREDIT).build()
             }
             addS(st, src)
@@ -533,7 +534,7 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
             if (states) for (w in SatelliteSources.states) {
                 try {
                     val id = "dl-sat-de-${w.code}"
-                    addS(st, RasterSource.Builder(id).tiles(listOf(SatelliteSources.wmsTiles(w))).tileSize(256)
+                    addS(st, RasterSource.Builder(id).tiles(listOf(SatTileCache.tileUrl(ctx, "de-${w.code}") ?: SatelliteSources.wmsTiles(w))).tileSize(256)
                         .bounds(listOf(w.west, w.south, w.east, w.north)).minzoom(12L).maxzoom(19L).attribution("Luftbilder " + w.credit).build())
                     put(RasterLayer("$id-photo", id).rasterFadeDuration(0.0).rasterBrightnessMax(bright).minZoom(12.0))
                 } catch (e: Throwable) { android.util.Log.w("MapBinding", "satellite ${w.code}: ${e.message}") }
@@ -2067,6 +2068,20 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
                 else if (b3d && colours == "horizon") recolourClassic(st)
             } catch (e: Throwable) { }
         }
+    }
+
+    /**
+     * Which stored photo sources the map shows now, for fetching a route's photos ahead: (state photos, EOX), or null when
+     * satellite is off. Before the map has loaded with satellite, it's worked out the same way the map will.
+     */
+    fun satPrefetchPlan(): Pair<Boolean, Boolean>? {
+        if (!satellite) return null
+        val chain = satChain()
+        val choice = satChoice()
+        val step = if (satStep >= 0) satStep else SatelliteSources.startIndex(choice, chain, prefs.s(PreferenceKeys.SAT_REMEMBERED, ""),
+            prefs.s(PreferenceKeys.SAT_REMEMBERED_AT, "0").toLongOrNull() ?: 0L, System.currentTimeMillis())
+        val prov = chain[step.coerceIn(0, chain.size - 1)]
+        return SatelliteSources.withStates(choice, prov) to (prov == SatProvider.EOX)
     }
 
     /**

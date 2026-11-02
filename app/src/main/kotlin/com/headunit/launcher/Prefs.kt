@@ -65,6 +65,7 @@ internal object PreferenceKeys {
     const val MAPTILER_KEY = "maptilerkey"
     const val SAT_SOURCE = "satsource"
     const val SAT_HYBRID = "sathybrid"
+    const val SAT_PREFETCH = "satprefetch"
     const val SAT_REMEMBERED = "satremembered"
     const val SAT_REMEMBERED_AT = "satrememberedat"
     const val MAPBOX_AUTO_NETWORK = "mbautonet"
