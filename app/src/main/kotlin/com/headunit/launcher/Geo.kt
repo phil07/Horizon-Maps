@@ -51,6 +51,8 @@ class Route(
     @Volatile var incidents: List<Incident> = emptyList()
     /** Whose route this is ("tomtom", "mapbox", "offline"): its speed limits are that service's own data. */
     @Volatile var source: String = ""
+    /** The heights along the route (loaded after it, for the battery estimate), or null. */
+    @Volatile var elev: Elevation.Profile? = null
 }
 
 /** The posted limit [ms] (m/s) from [off] to [end] metres along a route. */
@@ -664,7 +666,7 @@ object Weather {
         Now(cur.getDouble("temperature_2m"), cur.getInt("weather_code"))
     } catch (e: Exception) { null }
 
-    class Hour(val label: String, val temp: Double, val code: Int, val rain: Int)
+    class Hour(val label: String, val temp: Double, val code: Int, val rain: Int, val windKmh: Double = 0.0, val windFrom: Double = 0.0)
     class Day(val label: String, val code: Int, val max: Double, val min: Double)
     class Forecast(
         val temp: Double, val feels: Double, val code: Int, val windKmh: Double,
@@ -674,7 +676,7 @@ object Weather {
     fun forecast(p: LL): Forecast? = try {
         val url = "https://api.open-meteo.com/v1/forecast?latitude=${p.lat}&longitude=${p.lon}" +
             "&current=temperature_2m,apparent_temperature,weather_code,wind_speed_10m" +
-            "&hourly=temperature_2m,weather_code,precipitation_probability" +
+            "&hourly=temperature_2m,weather_code,precipitation_probability,wind_speed_10m,wind_direction_10m" +
             "&daily=weather_code,temperature_2m_max,temperature_2m_min,sunrise,sunset&forecast_days=6&timezone=auto"
         val c = URL(url).openConnection() as HttpURLConnection
         c.connectTimeout = 10000; c.readTimeout = 15000
@@ -684,11 +686,12 @@ object Weather {
         val h = j.getJSONObject("hourly")
         val times = h.getJSONArray("time"); val temps = h.getJSONArray("temperature_2m")
         val codes = h.getJSONArray("weather_code"); val pops = h.getJSONArray("precipitation_probability")
+        val winds = h.optJSONArray("wind_speed_10m"); val dirs = h.optJSONArray("wind_direction_10m")
         val hours = ArrayList<Hour>()
         for (i in 0 until times.length()) {
             val t = times.getString(i)
             if (t.substring(0, 13) < nowHour) continue
-            hours += Hour(t.substring(11, 16), temps.getDouble(i), codes.getInt(i), pops.optInt(i, 0))
+            hours += Hour(t.substring(11, 16), temps.getDouble(i), codes.getInt(i), pops.optInt(i, 0), winds?.optDouble(i, 0.0)?.takeIf { !it.isNaN() } ?: 0.0, dirs?.optDouble(i, 0.0)?.takeIf { !it.isNaN() } ?: 0.0)
             if (hours.size >= 12) break
         }
         val d = j.getJSONObject("daily")

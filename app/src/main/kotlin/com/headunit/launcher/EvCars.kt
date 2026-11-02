@@ -238,7 +238,7 @@ object EvCars {
      * min(the car's curve at that % (linear interpolation; if no curve, the car's max kW; if no car, 50 kW), stationKw (if null,
      * assume 50 kW)). Returns 0 when toPct <= fromPct.
      */
-    fun chargeMinutes(p: Prefs, fromPct: Double, toPct: Double, batteryKwh: Double, stationKw: Int?): Int {
+    fun chargeMinutes(p: Prefs, fromPct: Double, toPct: Double, batteryKwh: Double, stationKw: Int?, powerFactor: Double = 1.0): Int {
         val from = fromPct.coerceIn(0.0, 100.0)
         val to = toPct.coerceIn(0.0, 100.0)
         if (to <= from || batteryKwh <= 0.0) return 0
@@ -252,7 +252,7 @@ object EvCars {
             val next = minOf(Math.floor(pct) + 1.0, to)
             val mid = (pct + next) / 2.0
             val carKw = if (hasCar && curve.isNotEmpty()) curveAt(curve, mid) else flatKw
-            val kw = minOf(carKw, station).coerceAtLeast(1.0)
+            val kw = (minOf(carKw * powerFactor.coerceIn(0.3, 1.0), station)).coerceAtLeast(1.0)
             hours += batteryKwh * (next - pct) / 100.0 / kw
             pct = next
         }

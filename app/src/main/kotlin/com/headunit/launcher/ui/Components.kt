@@ -167,7 +167,8 @@ fun RollText(
 fun speedTint(engine: com.headunit.launcher.NavEngine): Color? {
     if (engine.overLimit) return Bad
     val lim = engine.speedLimit ?: return null
-    val sp = engine.fix?.speed ?: return null
+    if (engine.fix == null) return null
+    val sp = engine.shownSpeed
     if (engine.limitEstimated || lim <= 0) return null
     val r = (sp / lim).toFloat()
     // normal colour up to the limit, amber once over it (it used to warm up from 85% of the limit)

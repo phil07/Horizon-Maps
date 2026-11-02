@@ -921,6 +921,17 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
     // road numbers on routes are written the way this country signs them ("A 4" in Germany, never the E-number)
     init { RoadRefs.country = detectedCountry.uppercase() }
 
+    /** The car's own speed (Android Auto), when it sends one: shown on the speedometer instead of the GPS speed. */
+    var carSpeedMs by mutableStateOf<Double?>(null)
+        private set
+    init { CarData.onSpeed = { v -> carSpeedMs = v } }
+
+    /** The speed to show: the car's own while it's coming in, else the GPS speed. */
+    val shownSpeed: Double get() {
+        val c = carSpeedMs
+        return if (c != null && CarData.fresh(3000L) != null) c else fix?.speed ?: 0.0
+    }
+
     /**
      * Traffic drives on the left here (UK, Ireland…): roundabouts go clockwise and U-turn lanes are on the right. From the
      * country you're in; only when that isn't known yet from which side the car is driven from.
@@ -1290,7 +1301,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
                 val pos = pointAt(r, total * fr).first
                 val f = withContext(Dispatchers.IO) { Weather.forecast(pos) } ?: continue
                 val h = f.hours.getOrNull(Math.round(secs / 3600.0).toInt().coerceIn(0, f.hours.size - 1)) ?: continue
-                out += RouteWx(Math.round(secs / 60.0).toInt(), h.code, h.temp, h.rain)
+                out += RouteWx(Math.round(secs / 60.0).toInt(), h.code, h.temp, h.rain, total * fr, h.windKmh, h.windFrom)
             }
             routeWx = out
         }
@@ -2353,19 +2364,22 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
             if (osmNone) votes += SpeedVote.Vote("OSM", SpeedVote.NONE, SpeedVote.W_OSM)
             else if (osm.ms > 0.0) votes += SpeedVote.Vote("OSM", osm.ms, if (osm.estimated) SpeedVote.W_GUESS else SpeedVote.W_OSM, osm.estimated)
         }
-        if (hv != null) votes += SpeedVote.Vote("HERE", if (hv <= 0.0) SpeedVote.NONE else hv, SpeedVote.W_HERE)
+        // OpenStreetMap knows a time rule here that doesn't apply now ("30 @ (22:00-06:00)" in the afternoon): another service
+        // giving exactly that value most likely has the rule, not the limit for now, so it counts like a guess
+        fun cw(v: Double, full: Double) = if (osm != null && !osm.estimated && osm.ms > 0.0 && abs(v - osm.ms) > 0.6 && osm.idle.any { abs(it - v) < 0.6 }) SpeedVote.W_GUESS else full
+        if (hv != null) votes += SpeedVote.Vote("HERE", if (hv <= 0.0) SpeedVote.NONE else hv, if (hv <= 0.0) SpeedVote.W_HERE else cw(hv, SpeedVote.W_HERE))
         // HERE answered for this very road without a number, and OpenStreetMap has no posted limit here: on an Autobahn or
         // Schnellstraße that means no general limit, not the last sign seen (a failed request doesn't count)
         else if (hk.isNotEmpty() && hereWay == way && HereRest.lastError == null && osm != null && osm.major && !(osm.ms > 0.0 && !osm.estimated))
             votes += SpeedVote.Vote("HERE", SpeedVote.NONE, SpeedVote.W_HERE)
         // TomTom has no way to say "no limit": where OpenStreetMap says so outright, an answer of its from the stretch before doesn't count
-        if (tt != null && !osmNone) votes += SpeedVote.Vote("TomTom", tt.ms, SpeedVote.W_TOMTOM)
-        if (mb != null) votes += SpeedVote.Vote("Mapbox", if (mb <= 0.0) SpeedVote.NONE else mb, SpeedVote.W_MAPBOX)
+        if (tt != null && !osmNone) votes += SpeedVote.Vote("TomTom", tt.ms, cw(tt.ms, SpeedVote.W_TOMTOM))
+        if (mb != null) votes += SpeedVote.Vote("Mapbox", if (mb <= 0.0) SpeedVote.NONE else mb, if (mb <= 0.0) SpeedVote.W_MAPBOX else cw(mb, SpeedVote.W_MAPBOX))
         // the route's limit is its service's own data: where that service already answered for this road it isn't counted twice
         // (TomTom's route and TomTom's road lookup both voting 30 outweighed OpenStreetMap and Mapbox saying 50)
         val rsrc = route?.source.orEmpty()
         val sameAsRoute = (rsrc == "tomtom" && tt != null && !osmNone) || (rsrc == "mapbox" && mb != null)
-        if (routeMs != null && routeMs > 0.0 && !sameAsRoute) votes += SpeedVote.Vote(Lang.t("Route", "Route"), routeMs, SpeedVote.W_ROUTE)
+        if (routeMs != null && routeMs > 0.0 && !sameAsRoute) votes += SpeedVote.Vote(Lang.t("Route", "Route"), routeMs, cw(routeMs, SpeedVote.W_ROUTE))
         signNow(signs, p, hd, osm)?.let { s ->
             val w = SpeedVote.signWeight(if (s.seenAt > 0) System.currentTimeMillis() - s.seenAt else 0L)
             if (w > 0.0) votes += SpeedVote.Vote(Lang.t("Schild", "Sign"), s.ms, w)
@@ -3137,6 +3151,8 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
     private var mAt = 0L
     private var mProg = 0.0
     private var mSpeed = 0.0
+    /** In a tunnel with the car's speed coming in: the metres driven since the last fix, by the car's speed. */
+    private var drRun = -1.0
     private var mPos: LL? = null
     private var mHead = 0.0
     // camera targets (set once per fix) and the eased values actually shown
@@ -3268,13 +3284,16 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         val dr = drOk && rawAge > 3.0 && rawAge < 120.0
         if (dr != deadReckoning) deadReckoning = dr
         if (dr) camTargetAt = now
-        gSpeed += (mSpeed - gSpeed) * (1.0 - Math.exp(-dt / 1.2))
+        // in a tunnel the car's own speed (when it sends it) says how far you've really gone: braking in a jam inside is followed too
+        val carV = if (dr) CarData.fresh() else null
+        if (carV != null) { if (drRun < 0) drRun = gSpeed * age; drRun += carV * dt } else if (!dr) drRun = -1.0
+        gSpeed += ((carV ?: mSpeed) - gSpeed) * (1.0 - Math.exp(-dt / 1.2))
         if (mSpeed < 0.2 && gSpeed < 0.15) gSpeed = 0.0
         val r = glideRoute
         var lookB = gHead
         if (glideOnRoute && r != null) {
             // distance along the route: run on at the current speed, nudge towards where the latest fix says we are, and never go backwards
-            val target = mProg + gSpeed * age
+            val target = mProg + (if (dr && drRun >= 0) drRun else gSpeed * age)
             var np = gProg + gSpeed * dt
             val err = target - np
             np = if (abs(err) > 60.0) target else np + (err * (1.0 - Math.exp(-dt / 2.5))).coerceIn(-(0.3 * gSpeed + 0.4) * dt, (0.3 * gSpeed + 0.4) * dt)
@@ -3497,6 +3516,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
             } else offCount = 0
         } else if (newFix) offCount = 0
         try { if (newFix) checkEvRange() } catch (e: Exception) { }
+        try { if (newFix) checkFuelRange() } catch (e: Exception) { }
         val now = System.currentTimeMillis()
         // while the map follows you, only a window of the route is drawn (cheap to redraw); once you move or zoom the map yourself,
         // the whole rest of the route is drawn, so zooming out shows all of it (it used to stop a few miles ahead)
@@ -4716,10 +4736,14 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
                 d.secs * ((d.end - max(progress, d.off)) / span).coerceIn(0.0, 1.0)
             }
             // a motorhome or trailer is slower than the limit on fast roads (Settings > Fahrzeug)
-            val secs = r.freeFlow * frac + ahead + Vehicle.extraSecs(r.limits, progress, Vehicle.active.maxMs)
+            // the free-flowing part at your own pace (learned on stretches without traffic, at most 15 % either way)
+            trackPace(r, progress)
+            // electric: the charging stops still ahead, each with its charging time and about 5 minutes to get off, plug in and back on
+            val charge = if (isEv) evPlanned.filter { st -> via.any { Geo.dist(it.pos, st.n.place.pos) < 30.0 } }.sumOf { (it.minutes + 5) * 60.0 } else 0.0
+            val secs = r.freeFlow * frac * etaPace() + ahead + Vehicle.extraSecs(r.limits, progress, Vehicle.active.maxMs) + charge
             val delayMin = Math.round(ahead / 60.0).toInt()
             val arrive = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date(System.currentTimeMillis() + (secs * 1000).toLong()))
-            eta = EtaInfo(arrive, rem, secs, delayMin)
+            eta = EtaInfo(arrive, rem, secs, delayMin, charge)
             routeFrac = (1.0 - frac).toFloat().coerceIn(0f, 1f)
             pruneLiveAlts(progress)
             saveResumeBeat()
@@ -4795,13 +4819,18 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
             val phrase = if (arriving) word else smartPhrase(cur, nxt, word, tail, jc)
             // on roads you drive a lot the early heads-ups are skipped and the main one comes a little later
             val familiar = prefs.b(PreferenceKeys.SMARTVOICE, true) && onRoad.isNotBlank() && (roadFam[onRoad] ?: 0) >= 6
-            val fFrom = if (familiar) 330.0 else 520.0
-            // a heads-up well ahead on fast roads, then the main call-out, then the final one at the junction
-            if (!familiar && d <= 1700 && d > 1100 && p0Speed() > 18.0 && !arriving && said.add("${k}e"))
+            // the call-outs come a set time before the turn, not at set distances: at 130 km/h much further out than at 50.
+            // About 45 s ahead on fast roads (a heads-up), 15 s (the main one; less on roads you know) and 4 s (at the junction),
+            // each kept within sensible distances
+            val v = max(p0Speed(), 8.0)
+            val nAt = (v * 4.0).coerceIn(60.0, 200.0)
+            val fAt = (v * (if (familiar) 11.0 else 15.0)).coerceIn(if (familiar) 180.0 else 250.0, 800.0)
+            val eAt = (v * 45.0).coerceIn(900.0, 2200.0)
+            if (!familiar && d <= eAt && d > fAt + 400.0 && p0Speed() > 18.0 && !arriving && said.add("${k}e"))
                 speak("In ${Geo.spoken(d, imperial)}, $phrase", turn = true)
-            if (d <= fFrom && d > 200 && said.add("${k}f"))
+            if (d <= fAt && d > nAt + 60.0 && said.add("${k}f"))
                 speak(if (arriving) "In ${Geo.spoken(d, imperial)} erreichen Sie Ihr Ziel" + (if (side.isNotEmpty()) ". Das Ziel liegt $side" else "") else "In ${Geo.spoken(d, imperial)}, $phrase$lane", turn = true)
-            if (d <= 120 && said.add("${k}n"))
+            if (d <= nAt && said.add("${k}n"))
                 speak(if (arriving) (if (side.isNotEmpty()) "Das Ziel liegt $side" else "Sie haben Ihr Ziel erreicht") else phrase.replaceFirstChar { it.uppercase() }, turn = true)
         }
         // arrived: at the end of the route and really there (not just level with the end of the route on another road)
@@ -5272,6 +5301,11 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
     private var evRefDist = 0.0
     private var evRefModel = 0.0
     private val evRefKm = DoubleArray(3)
+    /** Since the battery reading: the modelled kWh for climbing, and the kWh that going downhill could give back. */
+    private var evRefUp = 0.0
+    private var evRefDown = 0.0
+    private var evLastH: Double? = null
+    private var evHRoute: Route? = null
     /** How fast you drive against the limit on this trip (distance weighted), and where there's no limit. */
     private var evStyleSum = 0.0; private var evStyleM = 0.0
     private var evFreeSum = 0.0; private var evFreeM = 0.0
@@ -5303,14 +5337,31 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
 
     /** Every few metres driven (electric): the modelled use, how you drive against the limit, and learning from the battery level. */
     private fun evTrack(speedMs: Double, d: Double) {
-        if (!isEv) return
         val kmh = speedMs * 3.6
-        val kwh = d / 1000.0 * evBaseKwhPerKm() * EvModel.speedFactor(kmh) * EvModel.tempFactor(evTemp())
-        evSinceRead += kwh; evSinceNav += kwh
-        if (evRefPct >= 0) { evRefModel += kwh; evRefKm[EvModel.bucket(kmh)] += d / 1000.0 }
+        // how you drive against the limit: for every car (it also goes into the arrival time and a fuel car's range)
         val lim = speedLimit
         if (lim != null && lim > 5.0 && speedMs > lim * 0.6 && speedMs > 8.0) { evStyleSum += speedMs / lim * d; evStyleM += d }
         else if (lim == null && noLimit && kmh > 90.0) { evFreeSum += kmh * d; evFreeM += d }
+        if (!isEv) return
+        // the road's own use (speed, cold, wind, rain), then the hill climbed or gone down since the last point
+        val wx = routeWx.takeIf { it.isNotEmpty() && route != null }?.minByOrNull { abs(it.off - curProgress) }
+        val flatK = d / 1000.0 * evBaseKwhPerKm() * EvModel.speedFactor(kmh) * EvModel.tempFactor(evTemp()) *
+            (if (wx != null) EvModel.wxFactor(EvModel.Wx(wx.off, wx.windKmh, wx.windFrom, wx.wet, wx.snow), kmh, fix?.heading?.toDouble()) else 1.0)
+        var up = 0.0; var down = 0.0
+        val r = route; val prof = r?.elev
+        if (r != null && prof != null && !previewing) {
+            if (evHRoute !== r) { evHRoute = r; evLastH = null }
+            val h = EvModel.Env(prof.off, prof.h).heightAt(curProgress)
+            val last = evLastH
+            if (h != null && last != null && abs(h - last) < 150.0) {
+                val g = EvModel.gradeKwh(h - last, evMass(), 1.0)
+                if (g >= 0) up = g else down = -g
+            }
+            evLastH = h
+        } else evLastH = null
+        val kwh = flatK + up - down * evRegen()
+        evSinceRead += kwh; evSinceNav += kwh
+        if (evRefPct >= 0) { evRefModel += flatK; evRefUp += up; evRefDown += down; evRefKm[EvModel.bucket(kmh)] += d / 1000.0 }
         val now = System.currentTimeMillis()
         if (evTemp() == null && now - evTempAt > 30 * 60_000L && route != null) {
             evTempAt = now
@@ -5327,17 +5378,105 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
             val drop = evRefPct - pct
             if (drop >= 5 && tripDist - evRefDist >= 10_000 && evRefModel > 0.5) {
                 // what the battery really lost against what the model said (without its buffer and corrections)
-                val ratio = (drop / 100.0 * evBatteryKwh() / evRefModel).coerceIn(0.6, 1.8)
+                val actual = drop / 100.0 * evBatteryKwh()
                 val b = evRefKm.indices.maxByOrNull { evRefKm[it] } ?: 1
                 val l = evLearned()
-                l[b] = (l[b] * 0.7 + ratio * 0.3).coerceIn(0.6, 1.8)
-                prefs.put(PreferenceKeys.EV_LEARN, EvModel.formatLearned(l))
+                val regen = evRegen()
+                if (evRefDown >= 0.5 && evRefDown * regen >= 0.15 * (evRefModel + evRefUp)) {
+                    // mostly downhill: what came back on the way down is what's learned
+                    val est = ((evRefModel * l[b] + evRefUp - actual) / evRefDown).coerceIn(0.3, 0.85)
+                    prefs.put(PreferenceKeys.EV_REGEN, String.format(java.util.Locale.US, "%.3f", (regen * 0.7 + est * 0.3).coerceIn(0.3, 0.85)))
+                } else {
+                    val ratio = ((actual - evRefUp + regen * evRefDown) / evRefModel).coerceIn(0.6, 1.8)
+                    l[b] = (l[b] * 0.7 + ratio * 0.3).coerceIn(0.6, 1.8)
+                    prefs.put(PreferenceKeys.EV_LEARN, EvModel.formatLearned(l))
+                }
                 evStartRef(pct)
             }
         }
     }
 
-    private fun evStartRef(pct: Int) { evRefPct = pct; evRefDist = tripDist; evRefModel = 0.0; evRefKm.fill(0.0) }
+    private fun evStartRef(pct: Int) { evRefPct = pct; evRefDist = tripDist; evRefModel = 0.0; evRefUp = 0.0; evRefDown = 0.0; evRefKm.fill(0.0) }
+
+    /** Of the energy going downhill, the share that comes back (learned from the battery level; 60 % to start with). */
+    private fun evRegen(): Double = (prefs.s(PreferenceKeys.EV_REGEN, "").toDoubleOrNull() ?: EvModel.DEFAULT_REGEN).coerceIn(0.3, 0.85)
+
+    private fun evMass(): Double = EvModel.massFor(evBatteryKwh())
+
+    /** The hills and the weather along [r], for the estimate. */
+    private fun evEnv(r: Route): EvModel.Env {
+        val prof = r.elev
+        if (prof == null) evLoadElev(r)
+        val wx = (if (route === r || routes.getOrNull(0) === r) routeWx else emptyList()).map { EvModel.Wx(it.off, it.windKmh, it.windFrom, it.wet, it.snow) }
+        return EvModel.Env(prof?.off ?: DoubleArray(0), prof?.h ?: DoubleArray(0), evMass(), evRegen(), wx) { off -> pointAt(r, off).second }
+    }
+
+    private var elevAskedFor: Route? = null
+
+    /** Loads the heights along [r] once (in the background), when online. */
+    private fun evLoadElev(r: Route) {
+        if (r.elev != null || elevAskedFor === r || !online()) return
+        elevAskedFor = r
+        val tok = if (hasMapbox) mbToken else null
+        scope.launch { r.elev = withContext(Dispatchers.IO) { try { Elevation.along(r, tok) { pointAt(r, it).first } } catch (e: Exception) { null } } }
+    }
+
+    /** Waits (up to 15 s) for the heights along [r], for planning the charging stops. */
+    private suspend fun evElevNow(r: Route) {
+        if (r.elev != null || !online()) return
+        elevAskedFor = r
+        val tok = if (hasMapbox) mbToken else null
+        r.elev = withContext(Dispatchers.IO) { kotlinx.coroutines.withTimeoutOrNull(15_000L) { try { Elevation.along(r, tok) { pointAt(r, it).first } } catch (e: Exception) { null } } }
+    }
+
+    /** Clears what's been learned about your driving and your car's use. */
+    fun resetLearned() {
+        listOf(PreferenceKeys.EV_LEARN, PreferenceKeys.EV_STYLE, PreferenceKeys.EV_FREE_KMH, PreferenceKeys.EV_REGEN, PreferenceKeys.ETA_PACE).forEach { prefs.put(it, "") }
+        paceReal = 0.0; pacePred = 0.0
+        evStyleSum = 0.0; evStyleM = 0.0; evFreeSum = 0.0; evFreeM = 0.0
+    }
+
+    /** What's been learned, for Settings: (style ×, open-motorway km/h, regen share, use per town/country/motorway). */
+    fun learnedSummary(): List<Pair<String, String>> {
+        val l = evLearned()
+        val out = ArrayList<Pair<String, String>>()
+        out += Lang.t("Tempo gegenüber Limit", "Speed against the limit") to String.format(Locale.getDefault(), "%+.0f %%", (evStyle() - 1.0) * 100)
+        out += Lang.t("Tempo ohne Limit", "Speed with no limit") to "${Math.round(evFreeKmh())} km/h"
+        out += Lang.t("Fahrzeit gegenüber Routenplan", "Driving time against the route's") to String.format(Locale.getDefault(), "%+.0f %%", (etaPace() - 1.0) * 100)
+        if (isEv) {
+            out += Lang.t("Rückgewinnung bergab", "Regained downhill") to "${Math.round(evRegen() * 100)} %"
+            out += Lang.t("Verbrauch Stadt / Land / Autobahn", "Use town / country / motorway") to l.joinToString(" / ") { String.format(Locale.getDefault(), "%+.0f %%", (it - 1.0) * 100) }
+        }
+        return out
+    }
+
+    // ---- your pace against the route's own time (for the arrival time) ----
+    private var paceRoute: Route? = null
+    private var paceProg = 0.0
+    private var paceAt = 0L
+    private var paceReal = 0.0
+    private var pacePred = 0.0
+
+    /**
+     * Every 500 m or so on the route: the seconds it really took against the seconds the route said for it, counted only where
+     * there's no traffic on that stretch and you didn't stop for long.
+     */
+    private fun trackPace(r: Route, progress: Double) {
+        val now = android.os.SystemClock.elapsedRealtime()
+        if (paceRoute !== r || previewing || simMode != 0) { paceRoute = r; paceProg = progress; paceAt = now; return }
+        val d = progress - paceProg
+        if (d < 0.0 || d > 5000.0) { paceProg = progress; paceAt = now; return }
+        if (d < 500.0) return
+        val real = (now - paceAt) / 1000.0
+        val pred = if (r.len > 0) r.freeFlow * d / r.len else 0.0
+        val jam = r.delays.any { it.end > paceProg && it.off < progress } || SharedReports.items.any { it.kind == "jam" && fix?.let { f -> Geo.dist(it.pos, f.pos) < 3000.0 } == true }
+        if (!jam && pred > 5.0 && real in pred * 0.5..pred * 2.0) { paceReal += real; pacePred += pred }
+        paceProg = progress; paceAt = now
+    }
+
+    /** Your pace: this trip's once 5 minutes are counted, else what's been learned (1.0 = the route's own time). */
+    private fun etaPace(): Double = if (pacePred >= 300.0) (paceReal / pacePred).coerceIn(0.85, 1.15)
+        else (prefs.s(PreferenceKeys.ETA_PACE, "").toDoubleOrNull() ?: 1.0).coerceIn(0.85, 1.15)
 
     /** A route is over: how you drove against the limit is kept for the next trips (blended in). */
     private fun evTripDone() {
@@ -5349,12 +5488,17 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
             val old = (prefs.s(PreferenceKeys.EV_FREE_KMH, "").toDoubleOrNull() ?: 140.0)
             prefs.put(PreferenceKeys.EV_FREE_KMH, String.format(java.util.Locale.US, "%.1f", (old * 0.6 + evFreeSum / evFreeM * 0.4).coerceIn(100.0, 250.0)))
         }
+        if (pacePred >= 300.0) {
+            val old = (prefs.s(PreferenceKeys.ETA_PACE, "").toDoubleOrNull() ?: 1.0)
+            prefs.put(PreferenceKeys.ETA_PACE, String.format(java.util.Locale.US, "%.3f", (old * 0.6 + paceReal / pacePred * 0.4).coerceIn(0.85, 1.15)))
+        }
+        paceReal = 0.0; pacePred = 0.0; paceRoute = null
         evStyleSum = 0.0; evStyleM = 0.0; evFreeSum = 0.0; evFreeM = 0.0; evSinceNav = 0.0
     }
 
     /** kWh the rest of route [r] takes from [from] metres, with your speed, the limits, the weather and what's been learned. */
     private fun evRouteKwh(r: Route, from: Double, avgKmh: Double): Double =
-        EvModel.kwh(from, r.len, r.limits, avgKmh.coerceIn(20.0, 140.0), evStyle(), evFreeKmh(), evBaseKwhPerKm(), evTemp(), evLearned())
+        EvModel.kwh(from, r.len, r.limits, avgKmh.coerceIn(20.0, 140.0), evStyle(), evFreeKmh(), evBaseKwhPerKm(), evTemp(), evLearned(), evEnv(r))
 
     fun evArrivalPct(): Int? {
         if (!isEv) return null
@@ -5366,7 +5510,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
             ?: evNowKm()?.let { val (start, full) = evRangeKm(); start / full * 100.0 }
         val startPct = if (now != null) now - evSinceRead / batt * 100.0
             else prefs.i(PreferenceKeys.EV_CHARGE_PCT, 80).coerceIn(1, 100) - (if (navStartMs > 0) evSinceNav else 0.0) / batt * 100.0
-        val avgKmh = if (e.secs > 30) e.dist / e.secs * 3.6 else 60.0
+        val avgKmh = if (e.secs - e.chargeSecs > 30) e.dist / (e.secs - e.chargeSecs) * 3.6 else 60.0
         val need = evRouteKwh(r, (r.len - e.dist).coerceAtLeast(0.0), avgKmh)
         return Math.round(startPct - need / batt * 100.0).toInt().coerceIn(0, 100)
     }
@@ -5423,14 +5567,17 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         val chargerKm = prefs.i(PreferenceKeys.EV_CHARGER_KM, 30).coerceIn(0, 500).toDouble()
         val (startKm0, full0) = evRangeKm()
         val lenKm = r.len / 1000.0
-        // the range counts as far as this route's speeds, the weather and the safety margin allow (EvModel), not the rated km
-        val rf = try {
-            if (lenKm > 1.0 && r.time > 60) (evRouteKwh(r, 0.0, r.len / r.time * 3.6) / (lenKm * evBaseKwhPerKm())).coerceIn(0.7, 2.5) else 1.0
-        } catch (e: Exception) { 1.0 }
-        val startKm = startKm0 / rf; val full = full0 / rf
-        if (startKm - lenKm >= destKm) return
         evPlanningFor = r
         scope.launch { try {
+            // the heights along the route first (hills change the range a lot)
+            evElevNow(r)
+            if (route !== r && routes.getOrNull(0) !== r) return@launch
+            // the range counts as far as this route's speeds, hills, the weather and the safety margin allow (EvModel), not the rated km
+            val rf = try {
+                if (lenKm > 1.0 && r.time > 60) (evRouteKwh(r, 0.0, r.len / r.time * 3.6) / (lenKm * evBaseKwhPerKm())).coerceIn(0.5, 2.5) else 1.0
+            } catch (e: Exception) { 1.0 }
+            val startKm = startKm0 / rf; val full = full0 / rf
+            if (startKm - lenKm >= destKm) return@launch
             val cands = withContext(Dispatchers.IO) { chargersAlong(r) }
             if (route !== r) return@launch
             val ids = ChargeOperators.selected(prefs)
@@ -5454,7 +5601,9 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
                     // charge only as far as the destination needs (with its reserve), never past full
                     val target = min(full, max(arr, (lenKm - ck) + destKm))
                     // the car's charging curve, capped by what this charger delivers
-                    val mins = EvCars.chargeMinutes(prefs, arr / full * 100.0, target / full * 100.0, batt, c.kw).coerceAtLeast(0)
+                    // a cold battery charges slower; one warmed by a long drive (an hour or more since the start or the last stop) less so
+                    val pf = EvModel.chargeTempFactor(evTemp(), warm = ck - s >= 100.0)
+                    val mins = EvCars.chargeMinutes(prefs, arr / full * 100.0, target / full * 100.0, batt, c.kw, pf).coerceAtLeast(0)
                     stops += EvStop(c, Math.round(arr / full * 100.0).toInt().coerceIn(0, 100), Math.round(target / full * 100.0).toInt().coerceIn(0, 100), mins, ChargeOperators.matches(c, ids))
                     s = ck; range = target
                 }
@@ -5584,6 +5733,82 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
                 } catch (e: Exception) { null }
             }
             if (route === r) fuelSuggestion = best
+        }
+    }
+
+    // ---- a petrol or diesel car's range ----
+    /** The km the tank still goes (by your speed and the limits ahead), or null when the fill level is unknown. */
+    var fuelRangeKm by mutableStateOf<Int?>(null)
+    private var fuelWarned = false
+    private var fuelCheckAt = 0L
+
+    /**
+     * A petrol or diesel car: how far the tank goes, from the car's fill level (Android Auto) and the tank size and use set in
+     * Settings, counted along the route with the speeds you'll drive (EvModel.litres). Under 80 km: a warning (once, until you've
+     * filled up) with the nearest fuel station ahead.
+     */
+    private fun checkFuelRange() {
+        if (isEv) { fuelRangeKm = null; return }
+        val now = System.currentTimeMillis()
+        if (now - fuelCheckAt < 20_000L) return
+        fuelCheckAt = now
+        val at = prefs.s(PreferenceKeys.FUEL_NOW_AT, "").toLongOrNull() ?: 0L
+        if (now - at > 15 * 60_000L) { fuelRangeKm = null; return }
+        val l100 = prefs.s(PreferenceKeys.FUELMPG, "").toDoubleOrNull()?.takeIf { it in 2.0..30.0 } ?: 7.0
+        val pct = prefs.s(PreferenceKeys.FUEL_NOW_PCT, "").toIntOrNull()
+        val carKm = prefs.s(PreferenceKeys.FUEL_NOW_KM, "").toIntOrNull()
+        val tank = prefs.s(PreferenceKeys.FUEL_TANK_L, "").toDoubleOrNull()?.takeIf { it in 10.0..200.0 }
+        // the litres left: the fill level × the tank, else the car's own range at its rated use
+        val litres = when {
+            pct != null && tank != null -> pct / 100.0 * tank
+            carKm != null -> carKm * l100 / 100.0
+            pct != null -> pct / 100.0 * 50.0
+            else -> { fuelRangeKm = null; return }
+        }
+        val r = route
+        val km: Double = if (r != null && !previewing) {
+            // along the route: the point where the litres run out (searched in steps), past the end at the rated use
+            val from = curProgress
+            val avg = eta?.let { e -> if (e.secs - e.chargeSecs > 30) e.dist / (e.secs - e.chargeSecs) * 3.6 else null } ?: 70.0
+            fun use(to: Double) = EvModel.litres(from, to, r.limits, avg.coerceIn(20.0, 140.0), evStyle(), evFreeKmh(), l100)
+            val all = use(r.len)
+            if (all <= litres) (r.len - from) / 1000.0 + (litres - all) / (l100 * EvModel.BUFFER) * 100.0
+            else {
+                var lo = from; var hi = r.len
+                repeat(18) { val m = (lo + hi) / 2; if (use(m) <= litres) lo = m else hi = m }
+                (lo - from) / 1000.0
+            }
+        } else litres / (l100 * 1.1 * EvModel.BUFFER) * 100.0
+        fuelRangeKm = Math.round(km).toInt()
+        if (km >= 95.0) { fuelWarned = false; return }
+        if (km >= 80.0 || fuelWarned) return
+        fuelWarned = true
+        val n = Math.round(km).toInt()
+        speak(Lang.t("Tankreichweite nur noch etwa $n Kilometer", "Fuel range only about $n kilometres"), alert = true)
+        toast(Lang.t("Tank: noch etwa $n km. Suche Tankstelle…", "Fuel: about $n km left. Looking for a fuel station…"), 6000)
+        val p0 = fix?.pos ?: return
+        scope.launch {
+            val st = withContext(Dispatchers.IO) {
+                try {
+                    if (r != null) {
+                        val prog = curProgress
+                        val line = RouteExtras.line(r, prog, min(r.len, prog + km * 1000.0 * 0.9), 1500.0, 45)
+                        val along = if (hasKey && online()) TomTomRest.poiAlong(apiKey, "fuel", line, 600).mapNotNull { (n, secs) ->
+                            val pr = RouteExtras.project(r, n.place.pos, 3000.0, prog) ?: return@mapNotNull null
+                            n.copy(dist = pr.first, detourMin = if (secs >= 0) Math.round(secs / 60.0).toInt() else detour(pr.second), ahead = true)
+                        } else emptyList()
+                        (along.ifEmpty { Overpass.nearbyAlong("fuel", line, 1500).mapNotNull { n ->
+                            val pr = RouteExtras.project(r, n.place.pos, 2000.0, prog) ?: return@mapNotNull null
+                            n.copy(dist = pr.first, detourMin = detour(pr.second), ahead = true)
+                        } }).filter { it.dist > prog }.minByOrNull { it.dist - prog + it.detourMin * 1000.0 }
+                    } else {
+                        PoiSearch.kindOf("tankstelle")?.let { k -> PoiSearch.osmByKind(k, p0, 15_000).firstOrNull() }
+                            ?.let { pl -> Nearby(pl, Geo.dist(p0, pl.pos), "", null, 0, true) }
+                    }
+                } catch (e: Exception) { null }
+            } ?: return@launch
+            fuelSuggestion = st
+            toast(Lang.t("Nächste Tankstelle: ${st.place.name}", "Nearest fuel station: ${st.place.name}"), 6000)
         }
     }
 

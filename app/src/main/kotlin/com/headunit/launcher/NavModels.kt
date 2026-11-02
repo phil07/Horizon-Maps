@@ -6,7 +6,10 @@ package com.headunit.launcher
  * the same large source file.
  */
 class Fix(val pos: LL, val heading: Double, val speed: Double, val alt: Double, val acc: Double = 0.0)
-class RouteWx(val minutes: Int, val code: Int, val temp: Double, val rain: Int)
+class RouteWx(val minutes: Int, val code: Int, val temp: Double, val rain: Int, val off: Double = 0.0, val windKmh: Double = 0.0, val windFrom: Double = 0.0) {
+    val snow: Boolean get() = code in 71..77 || code in 85..86
+    val wet: Boolean get() = code in 51..67 || code in 80..82 || code in 95..99
+}
 
 class TurnInfo(
     val dist: Double, val street: String, val maneuver: String, val thenManeuver: String?, val thenText: String, val lanes: LaneSec? = null,
@@ -51,4 +54,5 @@ class RadarItem(val kind: String, val dist: Double, val label: String)
 /** "Work · 23 min · light traffic": where you are probably going now, with the live time. */
 class Prediction(val place: Place, val title: String, val mins: Int, val delayMin: Int, val note: String)
 class IncidentAhead(val label: String, val dist: Double, val delaySec: Int)
-class EtaInfo(val arrive: String, val dist: Double, val secs: Double, val delayMin: Int)
+/** [chargeSecs]: of [secs], the time at the charging stops still ahead (charging, and getting off and back on the road). */
+class EtaInfo(val arrive: String, val dist: Double, val secs: Double, val delayMin: Int, val chargeSecs: Double = 0.0)

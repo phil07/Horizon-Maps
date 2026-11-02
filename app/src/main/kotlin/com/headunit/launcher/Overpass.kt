@@ -127,7 +127,9 @@ object Overpass {
                 /** A motorway or trunk road (Schnellstraße): with no limit tagged here, a posted limit before it has ended. */
                 val major: Boolean = false,
                 /** From a rule for certain times (maxspeed:conditional): other sources don't know these, so it wins over them. */
-                val timed: Boolean = false)
+                val timed: Boolean = false,
+                /** The limits of this road's time rules that don't apply right now (m/s): another source saying one of these is likely that rule. */
+                val idle: List<Double> = emptyList())
 
     /** Set when the last speed-limit lookup failed (no network, server busy…), null when it worked. */
     @Volatile var lastError: String? = null
@@ -306,8 +308,11 @@ object Overpass {
                 t.optString(condKey).ifBlank { t.optString("maxspeed:conditional") }.takeIf { it.isNotBlank() }
                     ?.let { ConditionalLimit.at(it, country, java.util.Calendar.getInstance()) }
             } catch (e: Exception) { null }
+            val idle = if (cond != null) emptyList() else try {
+                t.optString(condKey).ifBlank { t.optString("maxspeed:conditional") }.takeIf { it.isNotBlank() }?.let { ConditionalLimit.values(it, country) } ?: emptyList()
+            } catch (e: Exception) { emptyList() }
             if (cond != null) { if (cond < 0) Limit(-1.0, false, road, w.id, names, sure, noLimit = true, timed = true) else Limit(cond, false, road, w.id, names, sure, timed = true) }
-            else if (posted != null) Limit(posted, false, road, w.id, names, sure)
+            else if (posted != null) Limit(posted, false, road, w.id, names, sure, idle = idle)
             else if (unposted) Limit(-1.0, false, road, w.id, names, sure, noLimit = none)
             else {
                 val isMajor = t.optString("highway") in setOf("motorway", "trunk", "motorway_link", "trunk_link")

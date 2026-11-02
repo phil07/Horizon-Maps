@@ -230,7 +230,7 @@ private fun SettingsBody(prefs: Prefs, engine: NavEngine, onClose: () -> Unit) {
                         5 -> AlertsSection(prefs, engine)
                         6 -> SoundSection(prefs, engine)
                         7 -> { PlacesSection(engine); PhoneLinkGroup(prefs); SharingGroups(prefs) }
-                        8 -> FuelSection(prefs)
+                        8 -> FuelSection(prefs, engine)
                         9 -> { OfflineMapsContent(prefs, engine); OfflinePlacesGroup(engine) }
                         10 -> ScreenSection(prefs, engine)
                         11 -> AndroidAutoSection(prefs)
@@ -783,7 +783,7 @@ private fun SharingGroups(prefs: Prefs) {
 // ------------------------------------------------------------------ Fuel & charging
 
 @Composable
-private fun FuelSection(prefs: Prefs) {
+private fun FuelSection(prefs: Prefs, engine: NavEngine) {
     val ctx = LocalContext.current
     val sc = rememberCoroutineScope()
     SGroup("Kraftstoffpreise") {
@@ -830,6 +830,18 @@ private fun FuelSection(prefs: Prefs) {
     } else SGroup("Kraftstoffkosten auf der Route") {
         SFieldItem("Verbrauch (Liter pro 100 km)", prefs.s(PreferenceKeys.FUELMPG, ""), placeholder = "z. B. 6.5", number = true) { s -> prefs.put(PreferenceKeys.FUELMPG, s.filter { it.isDigit() || it == '.' }.take(5)) }
         SFieldItem("Kraftstoffpreis (Cent pro Liter)", prefs.s(PreferenceKeys.FUELPPL, ""), placeholder = "z. B. 175.9", number = true) { s -> prefs.put(PreferenceKeys.FUELPPL, s.filter { it.isDigit() || it == '.' }.take(6)) }
+        SFieldItem("Tankinhalt (Liter)", prefs.s(PreferenceKeys.FUEL_TANK_L, ""), "Für die Tank-Reichweite: wie viel in den vollen Tank passt", placeholder = "z. B. 50", number = true) { s -> prefs.put(PreferenceKeys.FUEL_TANK_L, s.filter { it.isDigit() }.take(3)) }
+    }
+    LearnedGroup(engine)
+}
+
+/** What the app has learned about your driving (and an electric car's use), with a button to start again. */
+@Composable
+private fun LearnedGroup(engine: NavEngine) {
+    var rows by remember { mutableStateOf(engine.learnedSummary()) }
+    SGroup("Gelernt aus deinen Fahrten", footer = "Fließt in Ankunftszeit, Akku- und Tank-Reichweite ein. Lernt bei jeder Fahrt weiter.") {
+        rows.forEach { (k, v) -> SItem(k, v) }
+        SItem("Gelerntes zurücksetzen") { SButton("Zurücksetzen", danger = true) { engine.resetLearned(); rows = engine.learnedSummary() } }
     }
 }
 

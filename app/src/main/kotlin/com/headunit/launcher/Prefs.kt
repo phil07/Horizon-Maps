@@ -150,6 +150,11 @@ internal object PreferenceKeys {
     const val FLYOVER = "flyover"
     const val FORCESETUP = "forcesetup"
     const val FUELMPG = "fuelmpg"
+    /** A petrol or diesel car: the tank's size in litres, and the fill level and range the car last sent (with when). */
+    const val FUEL_TANK_L = "fueltankl"
+    const val FUEL_NOW_PCT = "fuelnowpct"
+    const val FUEL_NOW_KM = "fuelnowkm"
+    const val FUEL_NOW_AT = "fuelnowat"
     const val FUELPPL = "fuelppl"
     const val FURNITURE3D = "furniture3d"
     const val GLASS = "glass"
@@ -269,6 +274,10 @@ internal object PreferenceKeys {
     /** How fast you usually drive against the posted limit (1.0 = at the limit), and on roads with no limit (km/h). */
     const val EV_STYLE = "evstyle"
     const val EV_FREE_KMH = "evfreekmh"
+    /** Of the energy going downhill, the share that comes back (learned). */
+    const val EV_REGEN = "evregen"
+    /** Your driving time against the route's own, on stretches without traffic (learned, 1.0 = the same). */
+    const val ETA_PACE = "etapace"
     /** The car's battery level now (from the widget or Android Auto). Separate from the charge you want to arrive with. */
     const val EV_NOW_PCT = "evnow"
     const val EV_MIN_ARRIVE = "evminarr"

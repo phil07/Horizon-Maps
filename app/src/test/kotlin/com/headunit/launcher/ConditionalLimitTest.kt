@@ -36,4 +36,10 @@ class ConditionalLimitTest {
         assertEquals(120, kmh(ConditionalLimit.at(c, "DE", at(Calendar.MONDAY, 12))))
         assertEquals(-1.0, ConditionalLimit.at(c, "DE", at(Calendar.MONDAY, 22))!!, 0.0)
     }
+
+    @Test fun valuesListsCarRulesOnly() {
+        val v = ConditionalLimit.values("30 @ (22:00-06:00); 60 @ (weight>7.5)", "DE")
+        org.junit.Assert.assertEquals(1, v.size)
+        org.junit.Assert.assertEquals(30 / 3.6, v[0], 1e-9)
+    }
 }

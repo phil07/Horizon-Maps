@@ -33,4 +33,38 @@ class EvModelTest {
         val l = EvModel.parseLearned("1.1,bad,5")
         assertEquals(1.1, l[0], 1e-9); assertEquals(1.0, l[1], 1e-9); assertEquals(1.0, l[2], 1e-9)
     }
+
+    @Test fun hillsCostAndGiveBack() {
+        val ones = doubleArrayOf(1.0, 1.0, 1.0)
+        val flat = EvModel.kwh(0.0, 10_000.0, emptyList(), 80.0, 1.0, 140.0, 0.18, 20.0, ones)
+        val up = EvModel.Env(doubleArrayOf(0.0, 10_000.0), doubleArrayOf(100.0, 400.0), 2000.0, 0.6)
+        val down = EvModel.Env(doubleArrayOf(0.0, 10_000.0), doubleArrayOf(400.0, 100.0), 2000.0, 0.6)
+        val kUp = EvModel.kwh(0.0, 10_000.0, emptyList(), 80.0, 1.0, 140.0, 0.18, 20.0, ones, up)
+        val kDown = EvModel.kwh(0.0, 10_000.0, emptyList(), 80.0, 1.0, 140.0, 0.18, 20.0, ones, down)
+        // 300 m up with 2 t: 2000 × 9.81 × 300 J ≈ 1.63 kWh at the wheels, more from the battery
+        assertEquals(flat + 2000 * 9.81 * 300 / 0.88 / 3.6e6 * 1.10, kUp, 0.02)
+        assertTrue(kDown < flat)
+        assertTrue(kDown >= 0.0)
+    }
+
+    @Test fun headwindCostsMore() {
+        val against = EvModel.Wx(0.0, 40.0, 0.0, false, false)
+        // driving north (0°) into a wind from the north
+        assertTrue(EvModel.wxFactor(against, 120.0, 0.0) > 1.15)
+        // the same wind from behind helps, but only half counts
+        val behind = EvModel.wxFactor(against, 120.0, 180.0)
+        assertTrue(behind < 1.0 && behind > 0.85)
+        assertEquals(1.07, EvModel.wxFactor(EvModel.Wx(0.0, 0.0, 0.0, true, false), 100.0, null), 1e-9)
+    }
+
+    @Test fun coldCharging() {
+        assertEquals(1.0, EvModel.chargeTempFactor(15.0, false), 1e-9)
+        assertEquals(0.6, EvModel.chargeTempFactor(-10.0, false), 1e-9)
+        assertEquals(0.8, EvModel.chargeTempFactor(-10.0, true), 1e-9)
+    }
+
+    @Test fun fuelBySpeed() {
+        val l = EvModel.litres(0.0, 100_000.0, listOf(LimitSec(0.0, 100_000.0, 130 / 3.6)), 80.0, 1.0, 140.0, 6.0)
+        assertEquals(6.0 * 1.32 * 1.10, l, 0.05)
+    }
 }

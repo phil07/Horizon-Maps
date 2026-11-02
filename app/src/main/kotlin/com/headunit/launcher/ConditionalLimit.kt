@@ -29,6 +29,24 @@ object ConditionalLimit {
         return null
     }
 
+    /**
+     * Every limit [cond] names for a car (m/s), whether it applies now or not. A limit from another source that equals one of
+     * these while it does not apply (a "30 at night" outside the night) is most likely that rule, not the limit for now.
+     */
+    fun values(cond: String, country: String): List<Double> {
+        val out = ArrayList<Double>()
+        for (rule in splitTop(cond)) {
+            val at = rule.indexOf('@'); if (at < 0) continue
+            val c = rule.substring(at + 1).lowercase()
+            // rules for lorries, trailers and the like are not a car's
+            if (Regex("weight|axle|hgv|trailer|goods|bus|length|width|height|caravan|motorcoach").containsMatchIn(c)) continue
+            val m = Regex("^(\\d+)\\s*(mph|km/h|kmh|kph)?$").find(rule.substring(0, at).trim().lowercase()) ?: continue
+            val n = m.groupValues[1].toDouble()
+            out += if (m.groupValues[2] == "mph" || country == "GB" || country == "US") n * MPH else n / 3.6
+        }
+        return out
+    }
+
     /** Splits at ";" that are not inside brackets. */
     internal fun splitTop(s: String): List<String> {
         val out = ArrayList<String>(); var depth = 0; val cur = StringBuilder()
