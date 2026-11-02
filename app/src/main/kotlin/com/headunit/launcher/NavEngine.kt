@@ -2224,6 +2224,35 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         limitOkAt = routeLimitAt; limitOkPos = p.pos
     }
 
+    /**
+     * The speed cameras around the car (6 km), looked up as soon as there is a fix: at the start too, and also while the phone is
+     * quiet with Android Auto connected, where the road check (updateRoadInfo) waits. A failed lookup is tried again after about
+     * half a minute.
+     */
+    private fun lookCamerasAround(p: Fix) {
+        if (!camerasOnMap()) return
+        val now = System.currentTimeMillis()
+        val cp = camPos
+        if (now - camAt <= 120000 || (cp != null && Geo.dist(cp, p.pos) <= 2500)) return
+        camAt = now; camPos = p.pos
+        scope.launch {
+            var src = Lang.t("Offline-Karte", "offline map")
+            val found = withContext(Dispatchers.IO) { localCameras(p.pos, 6000.0) ?: Overpass.cameras(p.pos, 6000).also { src = "OpenStreetMap" } }
+            val at = java.text.SimpleDateFormat("HH:mm", Locale.getDefault()).format(java.util.Date())
+            // a failed lookup (weak signal, busy server) keeps the ones already shown and tries again in about half a minute
+            if (found == null) { camAt = System.currentTimeMillis() - 90_000L; camPos = null; if (aroundCams.isEmpty()) showNoCamData(); camNote = Lang.t("$at: Suche fehlgeschlagen (${Overpass.lastNote.take(60)})", "$at: lookup failed (${Overpass.lastNote.take(60)})") }
+            else { camNoData = false; addAroundCams(found); mergeCams(); camNote = Lang.t("$at: ${found.size} Blitzer im Umkreis von 6 km ($src)", "$at: ${found.size} cameras within 6 km ($src)") }
+        }
+    }
+
+    private var noCamJob: kotlinx.coroutines.Job? = null
+    /** Shows the "no camera data" note for 5 seconds, then hides it again. */
+    private fun showNoCamData() {
+        camNoData = true
+        noCamJob?.cancel()
+        noCamJob = scope.launch { delay(5000L); camNoData = false }
+    }
+
     private fun updateRoadInfo(p: Fix) {
         val now = System.currentTimeMillis()
         if (simMode == 0) {
@@ -2285,19 +2314,6 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         try { checkWrongWay(p) } catch (e: Exception) { }
         noteCameraBan()
         if (!camerasOnMap()) { cameraDist = null; if (cameras.isNotEmpty()) { cameras = emptyList(); map.setCameras(emptyList()) }; camPos = null; return }
-        val cp = camPos
-        if (now - camAt > 120000 && (cp == null || Geo.dist(cp, p.pos) > 2500)) {
-            camAt = now; camPos = p.pos
-            // the cameras within 6 km: warned about as you approach, and drawn on the map (route or not)
-            scope.launch {
-                var src = Lang.t("Offline-Karte", "offline map")
-                val found = withContext(Dispatchers.IO) { localCameras(p.pos, 6000.0) ?: Overpass.cameras(p.pos, 6000).also { src = "OpenStreetMap" } }
-                val at = java.text.SimpleDateFormat("HH:mm", Locale.getDefault()).format(java.util.Date())
-                // a failed lookup (weak signal, busy server) keeps the ones already shown and tries again in about half a minute
-                if (found == null) { camAt = System.currentTimeMillis() - 90_000L; camPos = null; camNoData = aroundCams.isEmpty(); camNote = Lang.t("$at: Suche fehlgeschlagen (${Overpass.lastNote.take(60)})", "$at: lookup failed (${Overpass.lastNote.take(60)})") }
-                else { camNoData = false; addAroundCams(found); mergeCams(); camNote = Lang.t("$at: ${found.size} Blitzer im Umkreis von 6 km ($src)", "$at: ${found.size} cameras within 6 km ($src)") }
-            }
-        }
         // the cameras on the map follow the route coming and going, and the ones you've passed drop off
         if (now - camsMergedAt > 4000L) { camsMergedAt = now; mergeCams() }
         var best: LL? = null
@@ -2877,6 +2893,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
             lastMeasured = p
             posDt = if (lastPosAt == 0L) 1000L else (tNow - lastPosAt).coerceIn(500L, 2500L)
             lastPosAt = tNow
+            try { lookCamerasAround(p) } catch (e: Exception) { }
             try { updateRoadInfo(p); trackParking(p) } catch (e: Exception) { android.util.Log.w("NavEngine", "road info failed", e) }
             try { checkArea(p.pos) } catch (e: Exception) { }
         }
@@ -3317,7 +3334,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
             // the offline pack's own camera list first (no internet needed), then OpenStreetMap
             val found = withContext(Dispatchers.IO) { localCameras(c, 6000.0) ?: Overpass.cameras(c, 6000) }
             // a failed lookup keeps the cameras already shown; the next drag tries again
-            if (found == null) { viewFetched = null; camNoData = aroundCams.isEmpty(); camNote = Lang.t("Suche am Kartenausschnitt fehlgeschlagen (${Overpass.lastNote.take(60)})", "Lookup at the map view failed (${Overpass.lastNote.take(60)})"); return@launch }
+            if (found == null) { viewFetched = null; if (aroundCams.isEmpty()) showNoCamData(); camNote = Lang.t("Suche am Kartenausschnitt fehlgeschlagen (${Overpass.lastNote.take(60)})", "Lookup at the map view failed (${Overpass.lastNote.take(60)})"); return@launch }
             camNoData = false
             addAroundCams(found)
             camNote = Lang.t("${found.size} Blitzer am Kartenausschnitt (OpenStreetMap)", "${found.size} cameras at the map view (OpenStreetMap)")
