@@ -1675,7 +1675,9 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
     private fun rankResults(q: String, near: LL?, net: List<Place>, extra: List<Place>): List<Place> {
         val all = ArrayList<Pair<Place, Int>>()
         net.forEachIndexed { i, p -> all += p to i }
-        extra.forEachIndexed { i, p ->
+        extra.forEachIndexed { i, raw ->
+            // with signal the downloaded results are mixed in with the online ones: no "offline" note on them
+            val p = SearchRank.online(raw)
             // the same place found online and in a downloaded list: keep the online one, but a town stays a town
             val dup = all.firstOrNull { it.first.name.equals(p.name, true) && Geo.dist(it.first.pos, p.pos) < (if (p.town) 3000 else 300) || Geo.dist(it.first.pos, p.pos) < 40 }
             if (dup == null) all += p to (1000 + i) else if (p.town && dup.first.name.equals(p.name, true)) dup.first.town = true

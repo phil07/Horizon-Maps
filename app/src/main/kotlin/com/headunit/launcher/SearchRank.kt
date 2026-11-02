@@ -18,6 +18,45 @@ internal object SearchRank {
     /** The offline pack's kinds (places.tsv) that are a town or city. */
     val PACK_TOWNS = setOf("City", "Town", "Village", "Municipality", "Borough")
 
+    /** Added to a result found in the downloaded lists; shown only when searching with no signal (see [online]). */
+    const val OFFLINE = " · offline"
+
+    /** A downloaded result as shown in a search with signal: without the "offline" note (it's mixed in with the online ones). */
+    fun online(p: Place): Place = if (p.sub.endsWith(OFFLINE)) Place(p.name, p.sub.removeSuffix(OFFLINE), p.pos).town(p.town) else p
+
+    /** The offline pack's kinds (OpenStreetMap's words: "Street", "Fuel", "Car wash") in the app's language. */
+    fun kindName(kind: String): String {
+        if (!Lang.de) return kind
+        return KINDS_DE[kind.lowercase()] ?: kind
+    }
+
+    private val KINDS_DE = mapOf(
+        "street" to "Straße", "city" to "Stadt", "town" to "Stadt", "village" to "Dorf", "municipality" to "Gemeinde",
+        "borough" to "Stadtbezirk", "suburb" to "Stadtteil", "quarter" to "Stadtviertel", "neighbourhood" to "Wohngebiet",
+        "hamlet" to "Weiler", "isolated dwelling" to "Einzelsiedlung", "locality" to "Ort", "farm" to "Hof", "square" to "Platz",
+        "island" to "Insel", "islet" to "Insel",
+        "fuel" to "Tankstelle", "charging station" to "Ladestation", "parking" to "Parkplatz", "parking space" to "Parkplatz",
+        "car wash" to "Waschanlage", "restaurant" to "Restaurant", "fast food" to "Schnellimbiss", "cafe" to "Café", "bar" to "Bar",
+        "pub" to "Kneipe", "biergarten" to "Biergarten", "ice cream" to "Eisdiele", "bank" to "Bank", "atm" to "Geldautomat",
+        "pharmacy" to "Apotheke", "hospital" to "Krankenhaus", "clinic" to "Klinik", "doctors" to "Arztpraxis", "dentist" to "Zahnarzt",
+        "school" to "Schule", "kindergarten" to "Kindergarten", "university" to "Universität", "college" to "Hochschule",
+        "library" to "Bücherei", "townhall" to "Rathaus", "police" to "Polizei", "fire station" to "Feuerwehr",
+        "post office" to "Post", "place of worship" to "Kirche", "theatre" to "Theater", "cinema" to "Kino", "toilets" to "Toilette",
+        "supermarket" to "Supermarkt", "bakery" to "Bäckerei", "butcher" to "Metzgerei", "convenience" to "Laden",
+        "kiosk" to "Kiosk", "clothes" to "Bekleidung", "shoes" to "Schuhe", "hairdresser" to "Friseur", "car" to "Autohaus",
+        "car repair" to "Autowerkstatt", "doityourself" to "Baumarkt", "hardware" to "Eisenwaren", "furniture" to "Möbel",
+        "electronics" to "Elektronik", "chemist" to "Drogerie", "florist" to "Blumen", "beverages" to "Getränkemarkt",
+        "department store" to "Kaufhaus", "mall" to "Einkaufszentrum", "garden centre" to "Gartencenter", "optician" to "Optiker",
+        "hotel" to "Hotel", "motel" to "Motel", "guest house" to "Pension", "hostel" to "Herberge", "camp site" to "Campingplatz",
+        "caravan site" to "Wohnmobilstellplatz", "attraction" to "Sehenswürdigkeit", "museum" to "Museum", "viewpoint" to "Aussichtspunkt",
+        "information" to "Information", "zoo" to "Zoo", "theme park" to "Freizeitpark", "picnic site" to "Rastplatz",
+        "park" to "Park", "playground" to "Spielplatz", "sports centre" to "Sportzentrum", "stadium" to "Stadion",
+        "swimming pool" to "Schwimmbad", "pitch" to "Sportplatz", "golf course" to "Golfplatz", "fitness centre" to "Fitnessstudio",
+        "marina" to "Hafen", "station" to "Bahnhof", "halt" to "Haltepunkt", "tram stop" to "Straßenbahnhaltestelle",
+        "subway entrance" to "U-Bahn-Eingang", "platform" to "Bahnsteig", "office" to "Büro", "company" to "Firma",
+        "government" to "Behörde", "insurance" to "Versicherung", "estate agent" to "Makler", "lawyer" to "Anwalt",
+    )
+
     /** Whether a Nominatim (OpenStreetMap) result is a town, city or region. */
     fun nominatimTown(x: JSONObject): Boolean {
         val cat = x.optString("category"); val type = x.optString("type")

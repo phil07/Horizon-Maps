@@ -28,6 +28,12 @@ class SearchRankTest {
         assertEquals(listOf(20.0, 200.0, 1.0), out.map { it.km })
     }
 
+    @Test fun onlineDropsOfflineNoteKeepsTown() {
+        val p = SearchRank.online(Place("Berlin", "Stadt" + SearchRank.OFFLINE, LL(52.5, 13.4)).town(true))
+        assertEquals("Stadt", p.sub)
+        assertTrue(p.town)
+    }
+
     @Test fun recognisesStreets() {
         assertTrue(SearchRank.streety("Berliner Str"))
         assertTrue(SearchRank.streety("Hauptstraße"))
