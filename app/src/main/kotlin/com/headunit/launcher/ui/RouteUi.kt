@@ -464,6 +464,21 @@ fun ZonesRow(engine: NavEngine) {
     }
 }
 
+/** Route options row: the countries on this route whose motorways need a vignette, and any section tolls. */
+@Composable
+fun VignetteRow(engine: NavEngine) {
+    val v = engine.routeVignette
+    if (v.isEmpty()) return
+    val c = LocalVw.current
+    Row(
+        Modifier.floating(50.dp).padding(horizontal = 16.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        Icon(Icons.Rounded.Warning, null, tint = Warn, modifier = Modifier.size(20.dp))
+        Text(com.headunit.launcher.Vignette.summary(v), color = c.text, fontSize = 13.sp, maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))
+    }
+}
+
 // ------------------------------------------------------------------ night sky
 
 /**

@@ -406,6 +406,7 @@ private fun RoutesSection(prefs: Prefs) {
                 }
             }
         }
+        if (!prefs.b(PreferenceKeys.AVOID_TOLL, false)) SToggle(prefs, "Vignettenpflichtige Straßen meiden", PreferenceKeys.AVOID_VIGNETTE, false, "In Österreich, der Schweiz, Slowenien, Tschechien, der Slowakei, Ungarn, Bulgarien und Rumänien, wenn du nur durchfährst (liegt Start oder Ziel dort, bleibt es bei der Vignette für dieses Land)")
         SToggle(prefs, "Autobahnen vermeiden", "avoid_motorway", false)
         SToggle(prefs, "Fähren vermeiden", "avoid_ferry", false)
         SToggle(prefs, "Unbefestigte Straßen vermeiden", "avoid_unpaved", true)
@@ -536,6 +537,7 @@ private fun AlertsSection(prefs: Prefs, engine: NavEngine) {
         SToggle(prefs, "Bahnübergänge und Furten", "railford", false, "Warnschild und Sprachwarnung")
         SToggle(prefs, "Wetterhinweise", "wxadvice", true, "Hinweis bei Regen, Schnee, Nebel oder Glätte")
         SToggle(prefs, "Unwetterwarnungen (DWD)", "dwdwarn", true, "Amtliche Warnungen vor Glätte, Sturm, Starkregen und Nebel auf der Strecke der nächsten Stunde (Deutschland)")
+        SToggle(prefs, "Vignetten-Hinweis", PreferenceKeys.VIGNETTE_WARN, true, "Etwa 30 km vor einem Land mit Vignettenpflicht oder Streckenmaut (Brenner, Tauern …) eine Ansage")
         SToggle(prefs, "Rettungsgasse", "rescuelane", true, "Hinweis im Stau auf der Autobahn, wie die Rettungsgasse gebildet wird")
     }
     SGroup(Lang.t("Deine Meldungen", "Your reports"), footer = Lang.t("Meldungen über die Optionen-Taste auf der Karte erstellen.", "Create reports with the options button on the map.")) {

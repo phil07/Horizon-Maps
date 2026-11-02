@@ -186,6 +186,7 @@ internal fun BoxScope.RoutePreview(engine: NavEngine) {
     val eco = engine.prefs.b(PreferenceKeys.ROUTE_ECO, false)
     val evPlan = if (ev) engine.evPlanned else emptyList()
     ZonesRow(engine)
+    VignetteRow(engine)
     // one compact row: the "Options" button and a one-line summary of what is chosen; the rain warning stays visible
     val summary = buildList {
         val m = engine.departMin

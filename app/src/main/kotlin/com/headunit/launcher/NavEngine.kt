@@ -1293,8 +1293,56 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
     }
 
     /** Which clean air / low emission zones the chosen route goes into, for the route options. */
+    // ---- vignettes ----
+    /** The vignette countries on the route (shown under the route choice, and said before the border). */
+    var routeVignette by mutableStateOf<List<Vignette.Need>>(emptyList()); private set
+    private var vignetteRoute: Route? = null
+    private val vignetteSaid = HashSet<String>()
+
+    /**
+     * Settings > Routes "Vignettenpflichtige Straßen meiden": when the best route uses a vignette road in a country you only pass
+     * through, it's asked again without toll roads; the new one is kept if it needs fewer vignettes.
+     */
+    private suspend fun avoidVignette(rs: List<Route>, from: LL, to: LL, departMs: Long): List<Route> {
+        if (!prefs.b(PreferenceKeys.AVOID_VIGNETTE, false) || prefs.b(PreferenceKeys.AVOID_TOLL, false)) return rs
+        val ends = setOfNotNull(Vignette.countryOf(to), Vignette.countryOf(from))
+        val need = withContext(Dispatchers.Default) { try { Vignette.along(rs[0]) } catch (e: Exception) { emptyList() } }.filter { it.cc !in ends }
+        if (need.isEmpty()) return rs
+        val alt = withContext(Dispatchers.IO) {
+            val keep = TomTomRest.avoid
+            try { TomTomRest.avoid = (keep + "tollRoads").distinct(); netRoutes(from, to, true, departMs, via.map { it.pos }, askBoth = true) }
+            catch (e: Exception) { emptyList() }
+            finally { TomTomRest.avoid = keep }
+        }
+        if (alt.isEmpty()) return rs
+        val need2 = withContext(Dispatchers.Default) { try { Vignette.along(alt[0]) } catch (e: Exception) { need } }.filter { it.cc !in ends }
+        if (need2.size >= need.size) return rs
+        val extra = Math.round((alt[0].time - rs[0].time) / 60.0).toInt()
+        toast(Lang.t("Route ohne Vignette" + (if (extra > 0) " (+$extra Min.)" else ""), "Route without a vignette" + (if (extra > 0) " (+$extra min)" else "")), 4000)
+        return alt
+    }
+
+    /** Before the border: once per country and route, about 30 km ahead (or straight away when it's nearer). */
+    private fun checkVignette(r: Route, progress: Double) {
+        if (vignetteRoute !== r || previewing || simMode != 0 || !prefs.b(PreferenceKeys.VIGNETTE_WARN, true)) return
+        for (n in routeVignette) {
+            val ahead = n.off - progress
+            if (ahead < 0 || ahead > 30_000.0 || !vignetteSaid.add(n.cc)) continue
+            speak(Vignette.spoken(n), true)
+            showNotice(Notice("toll", Lang.t("Vignettenpflicht in ${Vignette.name(n.cc)}", "Vignette needed in ${Vignette.name(n.cc)}"),
+                Lang.t("Ab etwa ${Geo.fmtDist(ahead, imperial)}", "From about ${Geo.fmtDist(ahead, imperial)}") + (if (n.special.isNotEmpty()) Lang.t(" · Streckenmaut ", " · section toll ") + n.special.joinToString(", ") else ""), 2), 20_000L)
+            break
+        }
+    }
+
     private fun updateRouteZones() {
-        val r = route ?: run { routeZones = emptyList(); return }
+        val r = route ?: run { routeZones = emptyList(); routeVignette = emptyList(); vignetteRoute = null; return }
+        if (vignetteRoute !== r) {
+            scope.launch {
+                val vs = withContext(Dispatchers.Default) { try { Vignette.along(r) } catch (e: Exception) { emptyList() } }
+                if (route === r) { if (vignetteRoute == null || vignetteRoute?.let { o -> o.pts.lastOrNull() != r.pts.lastOrNull() } == true) vignetteSaid.clear(); routeVignette = vs; vignetteRoute = r }
+            }
+        }
         scope.launch {
             val zs = withContext(Dispatchers.Default) { try { Zones.entries(r, Zones.all(ctx)).map { it.first } } catch (e: Exception) { emptyList() } }
             if (route === r) { routeZones = zs.map { it.name }.distinct(); routeZoneCountries = zs.map { it.country }.toSet() }
@@ -1821,7 +1869,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
             try {
                 val departMs = if (departInMin > 0) System.currentTimeMillis() + departInMin * 60_000L else 0L
                 var usedOffline = false
-                val rs = withContext(Dispatchers.IO) {
+                val rs0 = withContext(Dispatchers.IO) {
                     val haveOffline = OfflineRouter.installed(ctx)
                     if (haveOffline && (!hasOnline || !online())) { usedOffline = true; OfflineRouter.routes(ctx, from, to.pos, via.map { it.pos }) }
                     else try { netRoutes(from, to.pos, true, departMs, via.map { it.pos }, askBoth = true) }
@@ -1829,7 +1877,8 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
                         if (haveOffline && NavigationFallbackPolicy.shouldUseOffline(e)) { usedOffline = true; OfflineRouter.routes(ctx, from, to.pos, via.map { it.pos }) } else throw e
                     }
                 }
-                if (rs.isEmpty()) throw IllegalStateException("No route found")
+                if (rs0.isEmpty()) throw IllegalStateException("No route found")
+                val rs = if (usedOffline) rs0 else avoidVignette(rs0, from, to.pos, departMs)
                 if (usedOffline) toast(ctx.getString(R.string.toast_030), 4000)
                 if (rs[0].steps.isEmpty()) toast(if (lastRouteProvider == "mapbox") Lang.t("Mapbox hat für diese Route keine Abbiegehinweise geliefert", "Mapbox returned no turn instructions for this route") else Lang.t("Dieser Schlüssel liefert keine Abbiegehinweise. Prüfe, ob er Zugriff auf die TomTom Routing API hat", "This key returned no turn instructions. Check it has TomTom Routing API access"), 6000)
                 if (departInMin > 0 && !usedOffline && !departApplied) toast(ctx.getString(R.string.toast_007), 4000)
@@ -1980,7 +2029,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
                                 if (haveOffline && NavigationFallbackPolicy.shouldUseOffline(e)) OfflineRouter.routes(ctx, f.pos, d.pos, via.map { it.pos }, hd) else throw e
                             }
                         }
-                        if (rs.isNotEmpty()) { routes = rs; active = 0; said.clear(); offCount = 0; lastIdx = 0; trustProg = -1.0; clearLiveAlts(); drawRoutes(); cardsForStartAlts(); err = null; break }
+                        if (rs.isNotEmpty()) { routes = rs; active = 0; said.clear(); offCount = 0; lastIdx = 0; trustProg = -1.0; clearLiveAlts(); drawRoutes(); cardsForStartAlts(); updateRouteZones(); err = null; break }
                         err = "no route found"
                     } catch (e: Exception) { err = e.message ?: "unknown error" }
                     if (attempt < 3) delay(2500)
@@ -5477,6 +5526,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
 
     /** Once a second while navigating: fetches and places services, bumps, schools and average speed checks, and raises their alerts. */
     private fun routeExtrasTick(r: Route, progress: Double) {
+        try { checkVignette(r, progress) } catch (e: Exception) { }
         if (previewing) return
         // your destination's building lights up for the last 400 m (and goes back to normal when you get there)
         run {
