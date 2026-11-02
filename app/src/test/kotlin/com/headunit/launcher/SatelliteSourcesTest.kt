@@ -30,4 +30,21 @@ class SatelliteSourcesTest {
             assertTrue(s.code, SatelliteSources.wmsTiles(s).contains("{bbox-epsg-3857}"))
         }
     }
+
+    @Test fun fixedChoiceEndsWithEox() {
+        assertEquals(listOf(SatProvider.EOX), SatelliteSources.chain("esri", "", "m"))
+        assertEquals(listOf(SatProvider.ESRI, SatProvider.EOX), SatelliteSources.chain("esri", "e", ""))
+        assertEquals(listOf(SatProvider.MAPTILER, SatProvider.EOX), SatelliteSources.chain("landesamt", "", "m"))
+        assertTrue(SatelliteSources.withStates("landesamt", SatProvider.EOX))
+        assertFalse(SatelliteSources.withStates("esri", SatProvider.ESRI))
+    }
+
+    @Test fun rememberedSourceOnlyInAutoAndFor24Hours() {
+        val chain = SatelliteSources.chain("e", "")
+        val now = 100_000_000L
+        assertEquals(1, SatelliteSources.startIndex("auto", chain, "ESRI", now - 1000, now))
+        assertEquals(0, SatelliteSources.startIndex("auto", chain, "ESRI", now - SatelliteSources.REMEMBER_MS - 1, now))
+        assertEquals(0, SatelliteSources.startIndex("mapbox", chain, "ESRI", now - 1000, now))
+        assertEquals(0, SatelliteSources.startIndex("auto", chain, "MAPTILER", now - 1000, now))
+    }
 }

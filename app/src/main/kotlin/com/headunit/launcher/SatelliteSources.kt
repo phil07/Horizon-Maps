@@ -19,16 +19,54 @@ internal data class StateWms(
  */
 internal object SatelliteSources {
 
-    /** The worldwide photo sources in the order they're tried; Esri and MapTiler only with a key. */
-    fun chain(esriKey: String, maptilerKey: String): List<SatProvider> = buildList {
-        add(SatProvider.MAPBOX)
-        if (esriKey.isNotBlank()) add(SatProvider.ESRI)
-        if (maptilerKey.isNotBlank()) add(SatProvider.MAPTILER)
-        add(SatProvider.EOX)
+    /** The automatic order of the worldwide photo sources; Esri and MapTiler only with a key. */
+    fun chain(esriKey: String, maptilerKey: String): List<SatProvider> = chain(AUTO, esriKey, maptilerKey)
+
+    /**
+     * The sources to try for a choice in Settings ("auto", "mapbox", "landesamt", "esri", "maptiler", "eox"). A fixed choice
+     * still ends with EOX, so a refused key or a missing one never leaves the map without photos.
+     */
+    fun chain(choice: String, esriKey: String, maptilerKey: String): List<SatProvider> {
+        val esri = esriKey.isNotBlank(); val mt = maptilerKey.isNotBlank()
+        return when (choice) {
+            "mapbox" -> listOf(SatProvider.MAPBOX, SatProvider.EOX)
+            "landesamt" -> buildList { if (esri) add(SatProvider.ESRI); if (mt) add(SatProvider.MAPTILER); add(SatProvider.EOX) }
+            "esri" -> if (esri) listOf(SatProvider.ESRI, SatProvider.EOX) else listOf(SatProvider.EOX)
+            "maptiler" -> if (mt) listOf(SatProvider.MAPTILER, SatProvider.EOX) else listOf(SatProvider.EOX)
+            "eox" -> listOf(SatProvider.EOX)
+            else -> buildList { add(SatProvider.MAPBOX); if (esri) add(SatProvider.ESRI); if (mt) add(SatProvider.MAPTILER); add(SatProvider.EOX) }
+        }
     }
+    const val AUTO = "auto"
 
     /** The state photos are laid over the worldwide ones as soon as Mapbox isn't the source any more. */
-    fun withStates(p: SatProvider): Boolean = p != SatProvider.MAPBOX
+    fun withStates(p: SatProvider): Boolean = withStates(AUTO, p)
+
+    /** Whether the state offices' photos go over the worldwide ones: automatic once Mapbox isn't the source, or chosen. */
+    fun withStates(choice: String, p: SatProvider): Boolean = when (choice) {
+        AUTO -> p != SatProvider.MAPBOX
+        "landesamt" -> true
+        else -> false
+    }
+
+    /** How long a source Mapbox had to give way to is remembered (so Mapbox isn't asked again on every start). */
+    const val REMEMBER_MS = 24L * 60 * 60 * 1000
+
+    /** Where to start in [chain]: in automatic mode at the source remembered from the last 24 hours, otherwise at the start. */
+    fun startIndex(choice: String, chain: List<SatProvider>, remembered: String, rememberedAt: Long, now: Long): Int {
+        if (choice != AUTO || remembered.isEmpty() || now - rememberedAt !in 0 until REMEMBER_MS) return 0
+        return chain.indexOfFirst { it.name == remembered }.coerceAtLeast(0)
+    }
+
+    /** Everything the satellite settings say, in one text (read inside Compose, so a change in Settings is noticed at once). */
+    fun signature(p: Prefs): String = listOf(PreferenceKeys.SAT_SOURCE, PreferenceKeys.ESRI_KEY, PreferenceKeys.MAPTILER_KEY, PreferenceKeys.SAT_HYBRID)
+        .joinToString("|") { p.s(it, "") }
+
+    /** "subtle", "normal" or "strong": how much the roads and labels stand out over the photos. */
+    fun lineOpacity(hybrid: String): Double? = when (hybrid) { "subtle" -> 0.45; "strong" -> 1.0; else -> null }
+    fun labelOpacity(hybrid: String): Double? = if (hybrid == "subtle") 0.75 else null
+    /** Strong darkens the photos a little, so the roads stand out. */
+    fun photoBrightness(hybrid: String): Double = if (hybrid == "strong") 0.7 else 1.0
 
     /** How much one refused tile counts towards moving on: a refused key after 3 tiles, too many requests (429) after 10. */
     fun refusals(message: String?): Int {

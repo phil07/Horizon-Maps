@@ -5,9 +5,13 @@ Add user-facing Horizon Nav changes under **Unreleased** before publishing each 
 ## Unreleased
 
 ### Behoben
+- Weniger Log-Meldungen: Die Warnung „dl-clip is not requested type“ füllt die Logs nicht mehr zweimal pro Sekunde.
 - Satellitenbilder sichtbar: Die Luftbilder lagen unter der beigen Grundfläche der Karte und waren deshalb nicht zu sehen. Jetzt liegen sie darüber.
 
 ### Neu
+- Satellitenquelle wählen: Unter Einstellungen > Kartenkonten > Satellitenbilder lässt sich die Quelle fest einstellen (Automatisch, Mapbox, Landesamt, Esri, MapTiler, EOX). Lehnt Mapbox ab, merkt sich die App den Ersatz 24 Stunden.
+- Straßen über dem Luftbild: Ebenfalls unter Satellitenbilder lassen sich Straßen und Beschriftungen auf Dezent, Normal oder Kräftig stellen.
+- Satellit sofort im Auto: Satellit und die Satelliteneinstellungen wechseln auf dem Display im Auto sofort mit, ohne Android Auto neu zu verbinden.
 - Schärfere Satellitenbilder: Wenn Mapbox die Luftbilder ablehnt, kommen sie in Deutschland von den Landesvermessungsämtern (bis 20 cm pro Pixel). Außerhalb Deutschlands kommen sie von Esri oder MapTiler, wenn du unter Einstellungen > Kartenkonten > Satellitenbilder einen Schlüssel einträgst. Ohne Schlüssel kommen sie von EOX.
 - Satellit auf der Autokarte: Die Satellitenkarte wird jetzt auch auf dem Display im Auto angezeigt. Vorher wurde die Einstellung dort ignoriert.
 - Log-Export für die Fehlersuche: In den Einstellungen unter „Horizon Nav“ siebenmal schnell auf die Version tippen. Dann erscheint „Logs“, und die letzten Meldungen lassen sich in die Zwischenablage kopieren.

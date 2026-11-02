@@ -250,9 +250,24 @@ class CarSurface(private val carContext: CarContext, private val onReady: (MapBi
             field = v
             if (v != null) {
                 v.setCarViewport(width, height, currentDpi)
-                overlay?.setContent { com.headunit.launcher.ui.CarOverlay(v, area, dark, uiScale, actions) }
+                overlay?.setContent { CarMapSettings(); com.headunit.launcher.ui.CarOverlay(v, area, dark, uiScale, actions) }
             }
         }
+    /**
+     * The phone's satellite, 3D-building and satellite-source settings, applied to the car map as they change (switching to
+     * satellite on the phone while connected used to reach the car only after reconnecting).
+     */
+    @androidx.compose.runtime.Composable
+    private fun CarMapSettings() {
+        val ctx = overlay?.context ?: return
+        val prefs = androidx.compose.runtime.remember { Prefs(ctx.applicationContext) }
+        val sat = prefs.b(PreferenceKeys.SATELLITE, false)
+        val b3d = prefs.b(PreferenceKeys.BUILDINGS_3D, true)
+        val sig = com.headunit.launcher.SatelliteSources.signature(prefs)
+        androidx.compose.runtime.LaunchedEffect(sat, b3d) { map?.setView(sat, b3d) }
+        androidx.compose.runtime.LaunchedEffect(sig) { map?.setSatSource(sig) }
+    }
+
     /** What the app's own search bar and Lang.t("Gespeichert & zuletzt", "Saved & recent") chip open (set by the map screen). */
     var actions: com.headunit.launcher.ui.CarActions = object : com.headunit.launcher.ui.CarActions { override fun search() {}; override fun places() {}; override fun nearby(kind: String) {}; override fun settings() {} }
     /** How much larger the app's cards are drawn on the car screen than its own pixel density would make them (same as the map). */

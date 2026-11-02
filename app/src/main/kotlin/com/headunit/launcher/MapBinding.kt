@@ -127,12 +127,13 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
     /** Mapbox's own map couldn't get a piece of map (with no signal: an area it hasn't stored). */
     var onTileMissing: (() -> Unit)? = null
     private var satellite = false
-    // index into satChain(): moves on when the current photo source refuses its tiles (429 / 401 / 403)
-    private var satStep = 0
-    /** The satellite sources to try (Esri and MapTiler only once their key is in Settings). */
-    private fun satChain(): List<SatProvider> {
-        return SatelliteSources.chain(prefs.s(PreferenceKeys.ESRI_KEY, ""), prefs.s(PreferenceKeys.MAPTILER_KEY, ""))
-    }
+    // index into satChain(): moves on when the current photo source refuses its tiles (429 / 401 / 403); -1 = not chosen yet
+    private var satStep = -1
+    private fun satChoice() = prefs.s(PreferenceKeys.SAT_SOURCE, SatelliteSources.AUTO)
+    /** The satellite sources to try (Settings > Satellitenbilder; Esri and MapTiler only once their key is in Settings). */
+    private fun satChain(): List<SatProvider> =
+        SatelliteSources.chain(satChoice(), prefs.s(PreferenceKeys.ESRI_KEY, ""), prefs.s(PreferenceKeys.MAPTILER_KEY, ""))
+    private var satSig: String? = null
     private var satFails = 0
     private var buildings3d = true
     private var lite = false
@@ -190,7 +191,17 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
                 satFails += SatelliteSources.refusals(e.message)
                 if (satFails >= SatelliteSources.REFUSALS_TO_SWITCH && satStep < satChain().size - 1) {
                     satFails = 0
-                    main0.post { if (satStep >= satChain().size - 1) return@post; satStep++; android.util.Log.w("MapBinding", "satellite: source refused, next=${satChain().getOrNull(satStep)}"); style?.let { dropSatellite(it) }; reinstall() }
+                    main0.post {
+                        val chain = satChain()
+                        if (satStep >= chain.size - 1) return@post
+                        satStep++
+                        android.util.Log.w("MapBinding", "satellite: source refused, next=${chain.getOrNull(satStep)}")
+                        // remembered for 24 hours, so the next start doesn't ask the refusing source again
+                        if (satChoice() == SatelliteSources.AUTO) chain.getOrNull(satStep)?.let {
+                            prefs.put(PreferenceKeys.SAT_REMEMBERED, it.name); prefs.put(PreferenceKeys.SAT_REMEMBERED_AT, System.currentTimeMillis().toString())
+                        }
+                        style?.let { dropSatellite(it) }; reinstall()
+                    }
                 }
             }
             // only the style itself failing is reported (a missing tile now and then is normal)
@@ -491,8 +502,14 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
     private fun addSatellite(st: Style) {
         try {
             val chain = satChain()
+            val choice = satChoice()
+            if (satStep < 0) satStep = SatelliteSources.startIndex(choice, chain, prefs.s(PreferenceKeys.SAT_REMEMBERED, ""),
+                prefs.s(PreferenceKeys.SAT_REMEMBERED_AT, "0").toLongOrNull() ?: 0L, System.currentTimeMillis())
             val prov = chain[satStep.coerceIn(0, chain.size - 1)]
-            android.util.Log.w("MapBinding", "satellite: install, source already there=${st.styleSourceExists("dl-sat")}, source=$prov, states=${SatelliteSources.withStates(prov)}, layers=${st.styleLayers.size}")
+            val states = SatelliteSources.withStates(choice, prov)
+            val hybrid = prefs.s(PreferenceKeys.SAT_HYBRID, "normal")
+            val bright = SatelliteSources.photoBrightness(hybrid)
+            android.util.Log.w("MapBinding", "satellite: install, source already there=${st.styleSourceExists("dl-sat")}, choice=$choice, source=$prov, states=$states, hybrid=$hybrid, layers=${st.styleLayers.size}")
             if (st.styleSourceExists("dl-sat")) return
             val src = when (prov) {
                 SatProvider.MAPBOX -> RasterSource.Builder("dl-sat").url("mapbox://mapbox.satellite").tileSize(256).maxzoom(17L).build()
@@ -510,21 +527,34 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
             val below = st.styleLayers.firstOrNull { it.type != "background" }?.id
             android.util.Log.w("MapBinding", "satellite: photo layer below=$below")
             fun put(l: RasterLayer) { if (below != null) st.addLayerBelow(l, below) else st.addLayer(l) }
-            put(RasterLayer("dl-sat-photo", "dl-sat").rasterFadeDuration(0.0))
+            put(RasterLayer("dl-sat-photo", "dl-sat").rasterFadeDuration(0.0).rasterBrightnessMax(bright))
             // Once Mapbox isn't the source: the state surveying offices' 20 cm photos inside Germany, over the worldwide ones
             // (each state's service is transparent outside its state, and only asked within its rough area, from zoom 12)
-            if (SatelliteSources.withStates(prov)) for (w in SatelliteSources.states) {
+            if (states) for (w in SatelliteSources.states) {
                 try {
                     val id = "dl-sat-de-${w.code}"
                     addS(st, RasterSource.Builder(id).tiles(listOf(SatelliteSources.wmsTiles(w))).tileSize(256)
                         .bounds(listOf(w.west, w.south, w.east, w.north)).minzoom(12L).maxzoom(19L).attribution("Luftbilder " + w.credit).build())
-                    put(RasterLayer("$id-photo", id).rasterFadeDuration(0.0).minZoom(12.0))
+                    put(RasterLayer("$id-photo", id).rasterFadeDuration(0.0).rasterBrightnessMax(bright).minZoom(12.0))
                 } catch (e: Throwable) { android.util.Log.w("MapBinding", "satellite ${w.code}: ${e.message}") }
             }
             // The streets style's opaque land, water and building fills would cover the photos: hide them in satellite mode.
             // Roads, labels and symbols stay on top of the photos.
+            // How much the streets style's own roads and labels stand out over the photos (Settings > Satellitenbilder)
+            val lineOp = SatelliteSources.lineOpacity(hybrid)
+            val labelOp = SatelliteSources.labelOpacity(hybrid)
             for (info in st.styleLayers) {
-                if (info.type == "fill" || info.type == "fill-extrusion" || info.type == "background") try { st.setStyleLayerProperty(info.id, "visibility", Value.valueOf("none")) } catch (e: Throwable) { }
+                if (info.id.startsWith("dl-")) continue
+                try {
+                    when (info.type) {
+                        "fill", "fill-extrusion", "background" -> st.setStyleLayerProperty(info.id, "visibility", Value.valueOf("none"))
+                        "line" -> if (lineOp != null) st.setStyleLayerProperty(info.id, "line-opacity", Value.valueOf(lineOp))
+                        "symbol" -> if (labelOp != null) {
+                            st.setStyleLayerProperty(info.id, "text-opacity", Value.valueOf(labelOp))
+                            st.setStyleLayerProperty(info.id, "icon-opacity", Value.valueOf(labelOp))
+                        }
+                    }
+                } catch (e: Throwable) { }
             }
         } catch (e: Throwable) { android.util.Log.w("MapBinding", "satellite: ${e.message}") }
     }
@@ -2039,6 +2069,20 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
         }
     }
 
+    /**
+     * The satellite settings changed (source, keys or how strong the roads show): with satellite on, the map loads again so the
+     * new photos and road look apply at once. [sig] is everything those settings say, so the same settings again do nothing.
+     */
+    fun setSatSource(sig: String) {
+        val first = satSig == null
+        if (sig == satSig) return
+        satSig = sig
+        if (first) return
+        satStep = -1; satFails = 0
+        // loaded again even though it's the same style address (setStyleUrl alone would skip it)
+        if (satellite && isMapboxStyle(wantedStyle)) { loadedStyle = null; setStyleUrl(baseStyle()) }
+    }
+
     /** The style the map should show: Standard, or the streets style with the photos under it when satellite is on. */
     fun baseStyle(): String = when (MapStylePolicy.choose(satellite, mapDetail, nightStyle)) {
         BaseMapStyle.DARK_STREETS -> Style.DARK
@@ -2267,7 +2311,9 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
 
     // (never throws: asking a style that's being replaced by a newer one is an error in the map engine, and these are called from
     // posted jobs that can run just as the map reloads; that was a crash in the old map engine)
-    private fun src(id: String): GeoJsonSource? = try { style?.getSourceAs<GeoJsonSource>(id) } catch (e: Throwable) { null }
+    // asked only when the source is there: Mapbox logs a warning for every missing one (the clear-view area is asked for
+    // twice a second, and isn't on the map in satellite mode, so the log filled with "dl-clip is not requested type")
+    private fun src(id: String): GeoJsonSource? = try { style?.takeIf { it.styleSourceExists(id) }?.getSourceAs<GeoJsonSource>(id) } catch (e: Throwable) { null }
 
     /** The route line's stretch moved into the lane you need before a junction (from the road's line, back onto it), or empty. */
     private var routeShift: List<LL> = emptyList()

@@ -152,6 +152,8 @@ fun App(prefs: Prefs, engine: NavEngine, map: MapBinding) {
     val sat = prefs.b(PreferenceKeys.SATELLITE, false)
     val b3d = prefs.b(PreferenceKeys.BUILDINGS_3D, true)
     LaunchedEffect(sat, b3d) { map.setView(sat, b3d) }
+    val satSig = com.headunit.launcher.SatelliteSources.signature(prefs)
+    LaunchedEffect(satSig) { map.setSatSource(satSig) }
     val lampGap = prefs.s(PreferenceKeys.LAMPGAP, "40").toDoubleOrNull() ?: 40.0
     val lampsOn = prefs.b(PreferenceKeys.LAMPS, true)
     LaunchedEffect(lampsOn) { map.lampsEnabled(lampsOn) }

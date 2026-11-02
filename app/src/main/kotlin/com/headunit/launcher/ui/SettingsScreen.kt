@@ -985,7 +985,11 @@ private fun KeysSection(prefs: Prefs, engine: NavEngine) {
         SFieldItem("Mapbox Zugangstoken", prefs.s(PreferenceKeys.MAPBOX_TOKEN, ""), "Öffentliches Token (beginnt mit pk.) einfügen",
             placeholder = "Token einfügen") { prefs.put(PreferenceKeys.MAPBOX_TOKEN, com.headunit.launcher.MapboxRest.clean(it)) }
     }
-    SGroup("Satellitenbilder", footer = "Reihenfolge: Mapbox, dann die Luftbilder der Landesämter (nur Deutschland), dann Esri, dann MapTiler, zuletzt EOX Sentinel-2. Ohne Schlüssel wird der Anbieter übersprungen. Ein neuer Schlüssel gilt ab dem nächsten Umschalten auf Satellit.") {
+    SGroup("Satellitenbilder", footer = "Automatisch: Mapbox, dann die Luftbilder der Landesämter (nur Deutschland), dann Esri, dann MapTiler, zuletzt EOX Sentinel-2. Ohne Schlüssel wird ein Anbieter übersprungen. Lehnt Mapbox ab, merkt sich die App den Ersatz 24 Stunden.") {
+        SChoice("Quelle", listOf("auto" to "Automatisch", "mapbox" to "Mapbox", "landesamt" to "Landesamt", "esri" to "Esri", "maptiler" to "MapTiler", "eox" to "EOX"),
+            prefs.s(PreferenceKeys.SAT_SOURCE, "auto"), "Landesamt: Luftbilder der Vermessungsämter in Deutschland, außerhalb Esri, MapTiler oder EOX") { prefs.put(PreferenceKeys.SAT_SOURCE, it) }
+        SChoice("Straßen über dem Luftbild", listOf("subtle" to "Dezent", "normal" to "Normal", "strong" to "Kräftig"),
+            prefs.s(PreferenceKeys.SAT_HYBRID, "normal")) { prefs.put(PreferenceKeys.SAT_HYBRID, it) }
         SFieldItem("Esri API-Schlüssel", prefs.s(PreferenceKeys.ESRI_KEY, ""), "Kostenlos auf location.arcgis.com, mit Zugriff auf Basemaps",
             placeholder = "Schlüssel einfügen") { prefs.put(PreferenceKeys.ESRI_KEY, it.trim()) }
         SFieldItem("MapTiler API-Schlüssel", prefs.s(PreferenceKeys.MAPTILER_KEY, ""), "Kostenlos auf cloud.maptiler.com",
