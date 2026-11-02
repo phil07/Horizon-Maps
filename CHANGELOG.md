@@ -4,6 +4,9 @@ Add user-facing Horizon Nav changes under **Unreleased** before publishing each 
 
 ## Unreleased
 
+### Verbessert
+- Gespeichert & Zuletzt zugeklappt: Die Liste unter der Suchleiste ist beim Start der App und bei jeder Verbindung mit dem Auto zugeklappt und hält die Karte frei. Ein Tipp klappt sie auf.
+
 ### Behoben
 - Suche findet Städte zuerst: Bei „berlin“ steht jetzt Berlin oben, danach die Berliner Straße in der Nähe. Vorher kamen immer erst die nächstgelegenen Straßen. Wer einen Straßennamen tippt („Berliner Str“, „Hauptstraße 5“), bekommt weiter die nächste Straße zuerst.
 - Suchtreffer auf Deutsch: Treffer aus dem Offline-Paket heißen jetzt „Straße“, „Tankstelle“, „Stadt“ usw. statt „Street“ und „Fuel“. Der Hinweis „offline“ erscheint nur noch, wenn du ohne Empfang suchst.

@@ -50,6 +50,8 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
     var simMode by mutableIntStateOf(0)
     var message by mutableStateOf<String?>(null)
     var busy by mutableStateOf(false)
+    /** Saved & recent under the search bar starts folded on every start (app or car connection); a tap unfolds it until the next one. */
+    var quickFolded by mutableStateOf(true)
     var previewing by mutableStateOf(false)
     var northUp by mutableStateOf(false)
     var results by mutableStateOf<List<Place>>(emptyList())

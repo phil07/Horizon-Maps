@@ -1314,11 +1314,11 @@ private fun ImmQuick(engine: NavEngine, showSaved: Boolean = true) {
         // three places on show to keep the map clear; "All" opens the rest (it used to be a list up to five tall)
         AnimatedVisibility(showSaved && engine.prefs.b(PreferenceKeys.QUICKLIST, true),
             enter = fadeIn(tween(200)) + androidx.compose.animation.expandVertically(tween(240)), exit = fadeOut(tween(140)) + androidx.compose.animation.shrinkVertically(tween(200))) {
-        // tapping the header folds the list down to this one line (and back), remembered between drives
-        val folded = engine.prefs.b(PreferenceKeys.QUICKFOLD, false)
+        // folded down to this one line on every start; tapping the header unfolds it (and folds it again)
+        val folded = engine.quickFolded
         Column(Modifier.fillMaxWidth().panel(10.dp, RoundedCornerShape(22.dp), c.surface).padding(vertical = 2.dp).animateContentSize(tween(200))) {
             Row(Modifier.fillMaxWidth().padding(start = 6.dp, end = 6.dp), verticalAlignment = Alignment.CenterVertically) {
-                Row(Modifier.weight(1f).clip(RoundedCornerShape(12.dp)).clickable { engine.prefs.put(PreferenceKeys.QUICKFOLD, !folded) }.padding(start = 8.dp, top = 8.dp, bottom = 8.dp),
+                Row(Modifier.weight(1f).clip(RoundedCornerShape(12.dp)).clickable { engine.quickFolded = !folded }.padding(start = 8.dp, top = 8.dp, bottom = 8.dp),
                     verticalAlignment = Alignment.CenterVertically) {
                     Text(stringResource(R.string.ui_040), color = c.sub, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))
                     Icon(if (folded) Icons.Rounded.KeyboardArrowDown else Icons.Rounded.KeyboardArrowUp,
