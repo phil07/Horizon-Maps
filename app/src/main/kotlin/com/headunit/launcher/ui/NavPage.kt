@@ -40,6 +40,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.PropaneTank
+import androidx.compose.material.icons.rounded.WaterDrop
+import androidx.compose.material.icons.rounded.RvHookup
 import androidx.compose.material.icons.rounded.BookmarkAdd
 import androidx.compose.foundation.layout.widthIn
 import com.headunit.launcher.LaneSec
@@ -460,13 +463,18 @@ private fun nearbyIcon(kind: String?): androidx.compose.ui.graphics.vector.Image
     "food" -> Icons.Rounded.Restaurant
     "coffee", "services" -> Icons.Rounded.LocalCafe
     "toilets" -> Icons.Rounded.Wc
+    "camp" -> Icons.Rounded.RvHookup
+    "dump" -> Icons.Rounded.WaterDrop
+    "lpg" -> Icons.Rounded.PropaneTank
     else -> Icons.Rounded.LocalParking
 }
 
 private fun nearbyTitle(kind: String?): String = when (kind) {
     "fuel" -> Lang.t("Tankstellen", "Fuel stations"); "charging" -> Lang.t("Ladesäulen", "Charging points")
     "food" -> Lang.t("Essen", "Food"); "coffee" -> Lang.t("Kaffee", "Coffee")
-    "toilets" -> Lang.t("Toiletten", "Toilets"); "services" -> Lang.t("Raststätten", "Services"); else -> Lang.t("Parkplätze", "Car parks")
+    "toilets" -> Lang.t("Toiletten", "Toilets"); "services" -> Lang.t("Raststätten", "Services")
+    "camp" -> Lang.t("Stellplätze", "Motorhome pitches"); "dump" -> Lang.t("Ver- & Entsorgung", "Water & waste"); "lpg" -> Lang.t("Autogas", "LPG")
+    else -> Lang.t("Parkplätze", "Car parks")
 }
 
 @Composable

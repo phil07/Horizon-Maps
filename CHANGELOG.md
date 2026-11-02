@@ -14,6 +14,8 @@ Add user-facing Horizon Nav changes under **Unreleased** before publishing each 
 - Satellitenbilder sichtbar: Die Luftbilder lagen unter der beigen Grundfläche der Karte und waren deshalb nicht zu sehen. Jetzt liegen sie darüber.
 
 ### Neu
+- Wohnmobil-Suche: Mit dem Profil Wohnmobil oder Anhänger (Einstellungen > Fahrzeug) gibt es in der Schnellsuche Stellplätze und Campingplätze, Ver- und Entsorgung sowie Autogas, auf dem Handy und im Auto, entlang der Route oder in der Nähe.
+- Höhenwarnung: Mit dem Profil Wohnmobil oder Anhänger warnt die App rund 1,5 km vorher vor Brücken und Durchfahrten auf der Route, die niedriger sind als dein Fahrzeug, mit Karte und Ansage.
 - Unwetterwarnungen vom DWD: Amtliche Warnungen des Deutschen Wetterdienstes (ab „markant“: Glätte, Sturm, Starkregen, dichter Nebel) für die Strecke, die du in der nächsten Stunde fährst, ohne Route für deinen Standort. Jede Warnung kommt einmal als Karte und Ansage. Abschaltbar unter Einstellungen > Unterwegs.
 - Rettungsgasse: Im Stau auf der Autobahn (gemeldeter Stau und langsamer als 30 km/h) zeigt die App einmal, wie die Rettungsgasse gebildet wird, und sagt es an. In Deutschland, Österreich, der Schweiz, Tschechien, der Slowakei und Slowenien.
 - Tempolimits melden: Ein Tipp auf das Tempo-Schild zeigt, was jede Quelle sagt, und darunter „Stimmt“ oder den richtigen Wert zum Melden. Im Auto geht das über Melden > Tempolimit. Meldungen werden anonym geteilt und fließen in die Abstimmung ein: Je mehr Fahrer dasselbe melden, desto stärker zählt es. Meldungen gelten ein Jahr und zählen mit dem Alter weniger.

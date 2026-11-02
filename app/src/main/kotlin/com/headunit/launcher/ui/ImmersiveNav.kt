@@ -48,6 +48,8 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.PropaneTank
+import androidx.compose.material.icons.rounded.RvHookup
 import androidx.compose.material.icons.rounded.Park
 import androidx.compose.material.icons.rounded.DirectionsWalk
 import androidx.compose.foundation.layout.offset
@@ -608,6 +610,10 @@ private fun OptionsSheet(engine: NavEngine, shareEta: () -> Unit, wide: Boolean 
                     if (engine.route != null) TileSpec(Icons.Rounded.LocalParking, Lang.t("Parken", "Parking"), Color(0xFF4C8DFF), find("parking")) else null,
                     if (engine.route != null) TileSpec(Icons.Rounded.Apartment, Lang.t("Raststätten", "Services"), Color(0xFF12A4B4), find("services")) else null,
                     if (engine.dest != null) TileSpec(Icons.Rounded.Place, Lang.t("Parken am Ziel", "Park at end"), Color(0xFFEA4335), { engine.loadNearby("parking", true); close() }) else null,
+                    // a motorhome or a car with a caravan (Settings > Fahrzeug)
+                    if (engine.camperProfile) TileSpec(Icons.Rounded.RvHookup, Lang.t("Stellplätze", "Pitches"), Color(0xFF2E7D32), find("camp")) else null,
+                    if (engine.camperProfile) TileSpec(Icons.Rounded.WaterDrop, Lang.t("Entsorgung", "Water & waste"), Color(0xFF0288D1), find("dump")) else null,
+                    if (engine.camperProfile) TileSpec(Icons.Rounded.PropaneTank, Lang.t("Gas", "LPG"), Color(0xFFEF6C00), find("lpg")) else null,
                 )
                 SheetHeading(if (engine.route != null) Lang.t("Entlang der Route finden", "Find along the route") else Lang.t("In der Nähe finden", "Find nearby"))
                 WideTiles(4, finds)
@@ -1156,7 +1162,14 @@ private fun ImmChips(engine: NavEngine, focusSearch: () -> Unit) {
             }
         }
         // things to find nearby: always all five on show, no scrolling sideways to find them
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+        // (with a motorhome or caravan profile: pitches, water & waste and LPG instead of charging, food and coffee)
+        if (engine.camperProfile) Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+            FindButton(Icons.Rounded.LocalGasStation, Color(0xFFEA4335), Lang.t("Tankstellen in der Nähe", "Fuel nearby")) { engine.loadNearby("fuel", false) }
+            FindButton(Icons.Rounded.RvHookup, Color(0xFF2E7D32), Lang.t("Stellplätze in der Nähe", "Pitches nearby")) { engine.loadNearby("camp", false) }
+            FindButton(Icons.Rounded.WaterDrop, Color(0xFF0288D1), Lang.t("Ver- und Entsorgung in der Nähe", "Water and waste nearby")) { engine.loadNearby("dump", false) }
+            FindButton(Icons.Rounded.PropaneTank, Color(0xFFEF6C00), Lang.t("Autogas in der Nähe", "LPG nearby")) { engine.loadNearby("lpg", false) }
+            FindButton(Icons.Rounded.LocalParking, Color(0xFF4C8DFF), Lang.t("Parkplätze in der Nähe", "Parking nearby")) { engine.loadNearby("parking", false) }
+        } else Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             FindButton(Icons.Rounded.LocalGasStation, Color(0xFFEA4335), Lang.t("Tankstellen in der Nähe", "Fuel nearby")) { engine.loadNearby("fuel", false) }
             FindButton(Icons.Rounded.EvStation, Color(0xFF34A853), Lang.t("Ladesäulen in der Nähe", "Charging nearby")) { engine.loadNearby("charging", false) }
             FindButton(Icons.Rounded.Restaurant, Color(0xFFF29900), Lang.t("Essen in der Nähe", "Food nearby")) { engine.loadNearby("food", false) }

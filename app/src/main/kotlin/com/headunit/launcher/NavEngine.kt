@@ -2386,6 +2386,56 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         return SharedReports.items.any { it.kind == "jam" && Geo.dist(it.pos, p) < 1500.0 }
     }
 
+    // ---- height warning (motorhome / caravan) ----
+
+    /** Height limits on the route ahead lower than your vehicle (offset along the route, the limit, a name). */
+    private var lowSpots: List<Triple<Double, Double, String>> = emptyList()
+    private var lowRoute: Route? = null
+    private var lowUpTo = 0.0
+    private var lowBusy = false
+    private val lowSaid = HashSet<Long>()
+
+    /**
+     * With a motorhome or caravan profile: bridges and underpasses on the route lower than your vehicle (OpenStreetMap's
+     * maxheight), looked up 100 km at a time; one about 1.5 km ahead is shown and announced once.
+     */
+    private fun checkClearances(p: Fix) {
+        val r = route ?: return
+        if (previewing) return
+        val v = Vehicle.active
+        if (v.isCar || v.heightM <= 0.0) return
+        val prog = curProgress
+        if (r !== lowRoute) { lowRoute = r; lowSpots = emptyList(); lowUpTo = 0.0; lowSaid.clear() }
+        if (!lowBusy && online() && prog + 30_000.0 > lowUpTo && lowUpTo < r.len) {
+            lowBusy = true
+            val from = max(prog, lowUpTo - 500.0); val to = min(r.len, from + 100_000.0)
+            scope.launch {
+                try {
+                    val found = withContext(Dispatchers.IO) { Overpass.clearances(RouteExtras.line(r, from, to, 40.0, 2500)) }
+                    if (found != null && route === r) {
+                        val add = found.filter { it.heightM < v.heightM + 0.1 }.mapNotNull { c ->
+                            val pr = RouteExtras.project(r, c.pos, 25.0, from) ?: return@mapNotNull null
+                            Triple(pr.first, c.heightM, c.name)
+                        }
+                        lowSpots = (lowSpots + add).distinctBy { Math.round(it.first / 30.0) }.sortedBy { it.first }
+                        lowUpTo = to
+                    }
+                } finally { lowBusy = false }
+            }
+        }
+        val next = lowSpots.firstOrNull { it.first > prog - 20.0 } ?: return
+        val dist = next.first - prog
+        val key = Math.round(next.first / 30.0)
+        if (dist > 1500.0 || key in lowSaid) return
+        lowSaid += key
+        val h = String.format(Locale.GERMANY, "%.1f", next.second)
+        val d = Geo.fmtDist(dist, imperial)
+        showNotice(Notice("wx", Lang.t("Durchfahrtshöhe $h m in $d", "Height limit $h m in $d"),
+            Lang.t("Dein Fahrzeug ist ${String.format(Locale.GERMANY, "%.1f", v.heightM)} m hoch", "Your vehicle is ${String.format(Locale.UK, "%.1f", v.heightM)} m high") +
+                (if (next.third.isNotBlank()) " · ${next.third}" else ""), 3), 25_000L)
+        speak(Lang.t("Achtung, Durchfahrtshöhe $h Meter in $d. Dein Fahrzeug ist zu hoch.", "Caution, height limit $h metres in $d. Your vehicle is too high."), true)
+    }
+
     /** While navigating a TomTom route: the posted limit for exactly where you are on it, updated with every GPS fix. */
     private fun applyRouteLimit(r: Route, prog: Double, p: Fix) {
         val secs = r.limits
@@ -2621,13 +2671,18 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
      */
     fun addBestStop(kind: String) { loadNearby(kind, false, pickBest = true) }
 
+    /** The places only a motorhome or a car with a caravan looks for (shown with that profile in Settings > Fahrzeug). */
+    val CAMPER_KINDS = setOf("camp", "dump", "lpg")
+    val camperProfile: Boolean get() = !Vehicle.from(prefs).isCar
+
     fun loadNearby(kind: String, nearDest: Boolean, pickBest: Boolean = false) {
         val centre = (if (nearDest) dest?.pos else null) ?: fix?.pos ?: map.center() ?: run { toast(ctx.getString(R.string.toast_019)); return }
         val origin = fix?.pos ?: centre
         val rt = route
         val alongRoute = rt != null && !nearDest && kind != "parking"
         val progress = if (rt != null && !previewing) curProgress else 0.0
-        val radius = if (nearDest) 900 else if (kind == "parking") 2000 else if (kind == "toilets" || kind == "coffee") 3000 else 6000
+        val camper = kind in CAMPER_KINDS
+        val radius = if (nearDest) 900 else if (camper) 25_000 else if (kind == "parking") 2000 else if (kind == "toilets" || kind == "coffee") 3000 else 6000
         val fuelType = prefs.s(PreferenceKeys.FUEL_TYPE, "E10")
         // (Fuel Finder has no E85 prices, and its station list would show every station rather than ones selling it)
         val fuelLive = kind == "fuel" && FuelFinder.configured(prefs) && fuelType != "E85"
@@ -2682,6 +2737,15 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
                             } else if (Geo.dist(centre, s0.pos) <= radius) out += Nearby(Place(s0.name, s0.sub, s0.pos), Geo.dist(origin, s0.pos), "", s0.cents, unit = "€")
                         }
                         if (out.isNotEmpty()) return@async out
+                    }
+                    // a motorhome's places: only OpenStreetMap knows pitches, dump stations and LPG (a wider strip along the route)
+                    if (camper) {
+                        return@async if (alongRoute && rt != null) {
+                            Overpass.nearbyAlong(kind, RouteExtras.line(rt, progress, progress + 80_000.0, 3000.0, 45), 3000).mapNotNull { n ->
+                                val pr = RouteExtras.project(rt, n.place.pos, 4000.0, progress) ?: return@mapNotNull null
+                                if (pr.first < progress - 100) null else n.copy(dist = pr.first - progress, detourMin = detour(pr.second), ahead = true)
+                            }
+                        } else Overpass.nearby(kind, centre, radius).map { it.copy(dist = Geo.dist(origin, it.place.pos)) }
                     }
                     // bioethanol: only stations mapped as selling E85 (TomTom's search can't tell which do)
                     val e85 = kind == "fuel" && fuelType == "E85"
@@ -3098,6 +3162,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
             try { checkArea(p.pos) } catch (e: Exception) { }
             try { checkWeatherWarnings(p) } catch (e: Exception) { }
             try { checkRescueLane(p) } catch (e: Exception) { }
+            try { checkClearances(p) } catch (e: Exception) { }
         }
         // the first position of this session: the zoom you left the map at last time comes back (not on a route)
         if (!freeZoomRestored) { freeZoomRestored = true; if (route == null) zoomOffset = try { savedFreeZoom() } catch (e: Exception) { 0.0 } }

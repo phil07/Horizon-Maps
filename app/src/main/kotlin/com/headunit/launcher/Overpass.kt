@@ -489,13 +489,53 @@ object Overpass {
         "coffee" -> "[\"amenity\"=\"cafe\"]"
         "toilets" -> "[\"amenity\"=\"toilets\"]"
         "services" -> "[\"highway\"~\"^(services|rest_area)$\"]"
+        // for a motorhome: pitches and camp sites, waste water and fresh water, LPG (Autogas) and gas bottles
+        "camp" -> "[\"tourism\"~\"^(caravan_site|camp_site)$\"]"
+        "dump" -> "[\"amenity\"~\"^(sanitary_dump_station|water_point)$\"]"
+        "lpg" -> "[\"amenity\"=\"fuel\"][\"fuel:lpg\"=\"yes\"]"
         else -> "[\"amenity\"=\"parking\"]"
     }
 
     fun kindLabel(kind: String): String = when (kind) {
         "fuel" -> Lang.t("Tankstelle", "Fuel station"); "fuel_e85" -> Lang.t("E85-Tankstelle", "E85 station"); "charging" -> Lang.t("Ladesäule", "Charging point")
         "food" -> Lang.t("Essen", "Food"); "coffee" -> Lang.t("Kaffee", "Coffee")
-        "toilets" -> Lang.t("Toiletten", "Toilets"); "services" -> Lang.t("Raststätte", "Services"); else -> Lang.t("Parkplatz", "Car park")
+        "toilets" -> Lang.t("Toiletten", "Toilets"); "services" -> Lang.t("Raststätte", "Services")
+        "camp" -> Lang.t("Stellplatz", "Motorhome pitch"); "dump" -> Lang.t("Ver-/Entsorgung", "Water / waste"); "lpg" -> Lang.t("Autogas", "LPG")
+        else -> Lang.t("Parkplatz", "Car park")
+    }
+
+    /** A place with a height limit (a bridge, an underpass, a tunnel), with its limit in metres. */
+    class Clearance(val pos: LL, val heightM: Double, val name: String)
+
+    /**
+     * The height limits within [radius] metres of [line] (the route ahead): roads and bridges tagged maxheight, and barriers
+     * (height restrictors) with one. Null when the servers didn't answer.
+     */
+    fun clearances(line: List<LL>, radius: Int = 20): List<Clearance>? {
+        if (line.size < 2) return emptyList()
+        val poly = line.joinToString(",") { String.format(java.util.Locale.US, "%.5f,%.5f", it.lat, it.lon) }
+        val q = "[out:json][timeout:25];(way(around:$radius,$poly)[\"maxheight\"];node(around:$radius,$poly)[\"maxheight\"];" +
+            "way(around:$radius,$poly)[\"maxheight:physical\"];);out center tags 300;"
+        val els = try { run(q, 6000, 20000, 2) } catch (e: Exception) { return null }
+        val out = ArrayList<Clearance>()
+        for (i in 0 until els.length()) {
+            val e = els.optJSONObject(i) ?: continue
+            val t = e.optJSONObject("tags") ?: continue
+            val h = parseHeight(t.optString("maxheight").ifBlank { t.optString("maxheight:physical") }) ?: continue
+            val c = e.optJSONObject("center")
+            val pos = if (c != null) LL(c.optDouble("lat"), c.optDouble("lon")) else if (e.has("lat")) LL(e.optDouble("lat"), e.optDouble("lon")) else continue
+            out += Clearance(pos, h, t.optString("name").ifBlank { t.optString("ref") })
+        }
+        return out
+    }
+
+    /** "3.5", "3,8 m", "4.0 m", "12'6\"" → metres; "default", "none", "below_default" and nonsense → null. */
+    fun parseHeight(v: String): Double? {
+        val s = v.trim().lowercase()
+        if (s.isEmpty()) return null
+        Regex("^(\\d+)'\\s*(\\d+)?\"?$").find(s)?.let { m -> return (m.groupValues[1].toInt() * 12 + (m.groupValues[2].toIntOrNull() ?: 0)) * 0.0254 }
+        val n = Regex("^(\\d+(?:[.,]\\d+)?)\\s*(m)?$").find(s)?.groupValues?.get(1)?.replace(',', '.')?.toDoubleOrNull() ?: return null
+        return n.takeIf { it in 1.0..6.0 }
     }
 
     /** kind: "fuel", "charging", "parking", "food", "coffee", "toilets" or "services". */
