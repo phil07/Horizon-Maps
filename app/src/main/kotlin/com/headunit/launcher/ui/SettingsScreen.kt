@@ -1220,7 +1220,9 @@ private fun EvWidgetItem(prefs: Prefs) {
         SToggle(prefs, "Widget automatisch aktualisieren", PreferenceKeys.EV_AUTOREFRESH, true, "Tippt mit Android Auto regelmäßig den Aktualisieren-Knopf im Widget an, auch bei gesperrtem Handy")
         if (prefs.b(PreferenceKeys.EV_AUTOREFRESH, true)) {
             val every = prefs.i(PreferenceKeys.EV_REFRESH_MIN, 1).coerceIn(1, 30)
-            SSlider("Aktualisieren alle", every.toFloat(), 1f..30f, " Min.", steps = 28, reset = 1f) { prefs.put(PreferenceKeys.EV_REFRESH_MIN, it.coerceIn(1, 30)) }
+            SSlider("Während der Navigation alle", every.toFloat(), 1f..30f, " Min.", steps = 28, reset = 1f) { prefs.put(PreferenceKeys.EV_REFRESH_MIN, it.coerceIn(1, 30)) }
+            val idle = prefs.i(PreferenceKeys.EV_REFRESH_IDLE_MIN, 10).coerceIn(1, 30)
+            SSlider("Ohne Navigation alle", idle.toFloat(), 1f..30f, " Min.", steps = 28, reset = 10f) { prefs.put(PreferenceKeys.EV_REFRESH_IDLE_MIN, it.coerceIn(1, 30)) }
             SNote("Achtung: Jedes Antippen fragt den Server des Herstellers ab (bei VW wird dafür das Auto geweckt). Sehr häufige Abfragen können gegen die Nutzungsbedingungen (AGB) des Herstellers verstoßen und dazu führen, dass Abfragen gedrosselt oder das Konto gesperrt wird. Nutzung auf eigene Verantwortung." +
                 if (every < 10) " Bei $every Min. wird sehr oft abgefragt." else "")
         }

@@ -181,6 +181,8 @@ internal object PreferenceKeys {
     const val EV_AUTOREFRESH = "evautorefresh"
     /** ...every this many minutes (1 to 30). */
     const val EV_REFRESH_MIN = "evrefreshmin"
+    /** Minutes between widget refreshes when no route is being driven (EV_REFRESH_MIN is the one while navigating). */
+    const val EV_REFRESH_IDLE_MIN = "evrefreshidlemin"
     /** Saved & recent on the phone folded down to its header line (tap the header to fold and unfold). */
     const val QUICKFOLD = "quickfold"
     /** The map in 3D (true) or flat 2D: remembered between drives, and shared by the phone / head unit and Android Auto. */

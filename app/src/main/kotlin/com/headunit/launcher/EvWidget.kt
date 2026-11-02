@@ -150,8 +150,11 @@ object EvWidget {
     // tap on the home screen does, even with the phone locked (as long as the button doesn't open a screen, which Android blocks
     // from the background). How often is set in Settings, every minute to every 30 (the maker's server wakes the car for each
     // request, and frequent requests can go against its terms of use: Settings says so).
-    private fun tapEveryMs(p: Prefs): Long = p.i(PreferenceKeys.EV_REFRESH_MIN, 1).coerceIn(1, 30) * 60_000L
+    // Every minute while a route is being driven, every 10 minutes otherwise (both set in Settings).
+    private fun tapEveryMs(p: Prefs): Long =
+        (if (RouteSync.anyGuiding()) p.i(PreferenceKeys.EV_REFRESH_MIN, 1) else p.i(PreferenceKeys.EV_REFRESH_IDLE_MIN, 10)).coerceIn(1, 30) * 60_000L
     private var tapPrefs: Prefs? = null
+    private var lastTapAt = 0L
     /** What the last tap did, with the time, for Settings ("" before the first one). */
     var refreshNote by mutableStateOf(""); private set
     private val tapJob = object : Runnable {
@@ -159,8 +162,10 @@ object EvWidget {
             val p = tapPrefs ?: return
             // the car's own reading is live: no need to wake the car through the maker's server
             // (switched off in Settings meanwhile: no tap, but it keeps checking, so switching it back on works at once)
-            if (p.b(PreferenceKeys.EV_AUTOREFRESH, true) && System.currentTimeMillis() - liveAt >= 10 * 60_000L) tapRefresh()
-            main.postDelayed(this, tapEveryMs(p))
+            // checked every minute, so starting or ending a route switches between the two intervals straight away
+            val now = System.currentTimeMillis()
+            if (p.b(PreferenceKeys.EV_AUTOREFRESH, true) && now - liveAt >= 10 * 60_000L && now - lastTapAt >= tapEveryMs(p) - 5_000L) { lastTapAt = now; tapRefresh() }
+            main.postDelayed(this, 60_000L)
             if (view == null) try { appCtx?.let { start(it, p) } } catch (e: Exception) { }
         }
     }
