@@ -51,6 +51,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.PropaneTank
 import androidx.compose.material.icons.rounded.RvHookup
 import androidx.compose.material.icons.rounded.Park
+import androidx.compose.material.icons.rounded.NorthEast
+import androidx.compose.material.icons.rounded.NorthWest
 import androidx.compose.material.icons.rounded.DirectionsWalk
 import androidx.compose.foundation.layout.offset
 import androidx.compose.ui.geometry.Offset
@@ -1037,18 +1039,21 @@ internal fun ImmTurnCard(
                     .padding(horizontal = 10.dp, vertical = if (compact) 5.dp else 7.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text("↗", color = Color.White, fontSize = if (car) 24.sp else if (compact) 19.sp else 22.sp, fontWeight = FontWeight.ExtraBold)
+                // a drawn arrow, as tall as the text (the "↗" character came out tiny in the car), pointing to the side the exit is on
+                val exitIcon = if (maneuverUpper.contains("LEFT")) androidx.compose.material.icons.Icons.Rounded.NorthWest else androidx.compose.material.icons.Icons.Rounded.NorthEast
+                val exitIconSize = if (car) 34.dp else if (compact) 24.dp else 28.dp
+                androidx.compose.material3.Icon(exitIcon, null, tint = Color.White, modifier = Modifier.size(exitIconSize))
                 Text(
                     if (exitLabel.isNotBlank()) Lang.t("AUSFAHRT  $exitLabel", "EXIT  $exitLabel") else Lang.t("AUSFAHRT", "EXIT / SLIP ROAD"),
                     color = Color.White,
-                    fontSize = if (car) 19.sp else if (compact) 13.sp else 15.sp,
+                    fontSize = if (car) 21.sp else if (compact) 13.sp else 15.sp,
                     fontWeight = FontWeight.ExtraBold,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.padding(start = 7.dp)
                 )
                 Spacer(Modifier.weight(1f))
-                Text("↗", color = Color.White.copy(alpha = 0.9f), fontSize = if (compact) 18.sp else 20.sp, fontWeight = FontWeight.Bold)
+                androidx.compose.material3.Icon(exitIcon, null, tint = Color.White.copy(alpha = 0.9f), modifier = Modifier.size(exitIconSize))
             }
         }
         // A proper UK direction sign: blue for motorways, green for primary roads, white for local roads.

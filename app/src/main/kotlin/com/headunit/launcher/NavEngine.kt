@@ -1248,7 +1248,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         val speed = if (l.hasSpeed()) l.speed.toDouble() else 0.0
         if (prev != null && speed > 0.8) {
             val d = Geo.dist(prev, cur)
-            if (d in 3.0..200.0) { tripDist += d; tripMoving += 1.0 }
+            if (d in 3.0..200.0) { tripDist += d; tripMoving += 1.0; try { evTrack(speed, d) } catch (e: Exception) { } }
         }
         if (speed > tripMax) tripMax = speed
         val firstFix = fix == null
@@ -2045,7 +2045,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         // the other screen (phone or car) follows onto the same trip
         dest?.let { d -> try { RouteSync.started(this, d, via) } catch (e: Exception) { } }
         said.clear(); lastIdx = 0; zoomOffset = 0.0
-        navStartMs = System.currentTimeMillis(); navStartDist = tripDist
+        navStartMs = System.currentTimeMillis(); navStartDist = tripDist; evSinceNav = 0.0
         lastFasterCheck = System.currentTimeMillis(); faster = null; lastTrafficAt = 0L; undoRoute = null; if (notice?.kind == "reroute") notice = null
         dest?.let { d -> prefs.put(PreferenceKeys.RESUME, org.json.JSONObject().put("n", d.name).put("s", d.sub).put("la", d.pos.lat).put("lo", d.pos.lon).put("t", System.currentTimeMillis()).toString()) }
         following = true
@@ -2132,6 +2132,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
 
     fun endRoute() {
         stopTripShare(quiet = true)
+        try { evTripDone() } catch (e: Exception) { }
         // (only a trip under way: cancelling a route choice leaves the other screen's trip alone)
         if (route != null && !previewing) try { RouteSync.ended(this) } catch (e: Exception) { }
         itineraryOpen = false
@@ -5257,21 +5258,113 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         return start to full
     }
 
+    // ---- electric: what the drive really uses (see EvModel) ----
+    /** The modelled kWh driven since the battery level was last read, and since the route started. */
+    private var evSinceRead = 0.0
+    private var evSinceNav = 0.0
+    private var evReadSeen = 0L
+    /** For learning: the battery level, and the modelled kWh (and per kind of road, the km) since then. */
+    private var evRefPct = -1
+    private var evRefDist = 0.0
+    private var evRefModel = 0.0
+    private val evRefKm = DoubleArray(3)
+    /** How fast you drive against the limit on this trip (distance weighted), and where there's no limit. */
+    private var evStyleSum = 0.0; private var evStyleM = 0.0
+    private var evFreeSum = 0.0; private var evFreeM = 0.0
+    private var evTempC: Double? = null
+    private var evTempAt = 0L
+
+    private fun evBaseKwhPerKm(): Double {
+        if (prefs.s(PreferenceKeys.EVMPK, "").isNotBlank()) return evKwhPerKm()
+        // no efficiency set: the car's own figure (its range against its battery level), when both are fresh
+        val km = evNowKm(); val pct = evNowPct()?.takeIf { (evNowAgeMin() ?: Long.MAX_VALUE) <= 60 }
+        if (km != null && pct != null && pct >= 5) return (evBatteryKwh() * pct / 100.0 / km).coerceIn(0.12, 0.35)
+        return 0.18
+    }
+
+    private fun evLearned(): DoubleArray = EvModel.parseLearned(prefs.s(PreferenceKeys.EV_LEARN, ""))
+
+    private fun evStyle(): Double = if (evStyleM > 3000) (evStyleSum / evStyleM).coerceIn(0.8, 1.3)
+        else (prefs.s(PreferenceKeys.EV_STYLE, "").toDoubleOrNull() ?: 1.0).coerceIn(0.8, 1.3)
+
+    private fun evFreeKmh(): Double = if (evFreeM > 3000) (evFreeSum / evFreeM).coerceIn(100.0, 220.0)
+        else (prefs.s(PreferenceKeys.EV_FREE_KMH, "").toDoubleOrNull() ?: 140.0).coerceIn(100.0, 220.0)
+
+    /** The outside temperature: the route's weather, else the weather here (fetched every 30 minutes while driving). */
+    private fun evTemp(): Double? {
+        routeWx.takeIf { it.isNotEmpty() }?.let { w -> return w.map { it.temp }.average() }
+        weather?.let { return it.tempC }
+        return evTempC
+    }
+
+    /** Every few metres driven (electric): the modelled use, how you drive against the limit, and learning from the battery level. */
+    private fun evTrack(speedMs: Double, d: Double) {
+        if (!isEv) return
+        val kmh = speedMs * 3.6
+        val kwh = d / 1000.0 * evBaseKwhPerKm() * EvModel.speedFactor(kmh) * EvModel.tempFactor(evTemp())
+        evSinceRead += kwh; evSinceNav += kwh
+        if (evRefPct >= 0) { evRefModel += kwh; evRefKm[EvModel.bucket(kmh)] += d / 1000.0 }
+        val lim = speedLimit
+        if (lim != null && lim > 5.0 && speedMs > lim * 0.6 && speedMs > 8.0) { evStyleSum += speedMs / lim * d; evStyleM += d }
+        else if (lim == null && noLimit && kmh > 90.0) { evFreeSum += kmh * d; evFreeM += d }
+        val now = System.currentTimeMillis()
+        if (evTemp() == null && now - evTempAt > 30 * 60_000L && route != null) {
+            evTempAt = now
+            val at = fix?.pos
+            if (at != null) scope.launch { evTempC = withContext(Dispatchers.IO) { try { Weather.fetch(at)?.tempC } catch (e: Exception) { null } } ?: evTempC }
+        }
+        // a new battery reading
+        val readAt = EvWidget.readAt(prefs)
+        if (readAt != evReadSeen) {
+            evReadSeen = readAt
+            evSinceRead = 0.0
+            val pct = evNowPct() ?: return
+            if (evRefPct < 0 || pct > evRefPct) { evStartRef(pct); return }   // first reading, or charged since
+            val drop = evRefPct - pct
+            if (drop >= 5 && tripDist - evRefDist >= 10_000 && evRefModel > 0.5) {
+                // what the battery really lost against what the model said (without its buffer and corrections)
+                val ratio = (drop / 100.0 * evBatteryKwh() / evRefModel).coerceIn(0.6, 1.8)
+                val b = evRefKm.indices.maxByOrNull { evRefKm[it] } ?: 1
+                val l = evLearned()
+                l[b] = (l[b] * 0.7 + ratio * 0.3).coerceIn(0.6, 1.8)
+                prefs.put(PreferenceKeys.EV_LEARN, EvModel.formatLearned(l))
+                evStartRef(pct)
+            }
+        }
+    }
+
+    private fun evStartRef(pct: Int) { evRefPct = pct; evRefDist = tripDist; evRefModel = 0.0; evRefKm.fill(0.0) }
+
+    /** A route is over: how you drove against the limit is kept for the next trips (blended in). */
+    private fun evTripDone() {
+        if (evStyleM > 5000) {
+            val old = (prefs.s(PreferenceKeys.EV_STYLE, "").toDoubleOrNull() ?: 1.0)
+            prefs.put(PreferenceKeys.EV_STYLE, String.format(java.util.Locale.US, "%.3f", (old * 0.6 + evStyleSum / evStyleM * 0.4).coerceIn(0.8, 1.3)))
+        }
+        if (evFreeM > 5000) {
+            val old = (prefs.s(PreferenceKeys.EV_FREE_KMH, "").toDoubleOrNull() ?: 140.0)
+            prefs.put(PreferenceKeys.EV_FREE_KMH, String.format(java.util.Locale.US, "%.1f", (old * 0.6 + evFreeSum / evFreeM * 0.4).coerceIn(100.0, 220.0)))
+        }
+        evStyleSum = 0.0; evStyleM = 0.0; evFreeSum = 0.0; evFreeM = 0.0; evSinceNav = 0.0
+    }
+
+    /** kWh the rest of route [r] takes from [from] metres, with your speed, the limits, the weather and what's been learned. */
+    private fun evRouteKwh(r: Route, from: Double, avgKmh: Double): Double =
+        EvModel.kwh(from, r.len, r.limits, avgKmh.coerceIn(20.0, 140.0), evStyle(), evFreeKmh(), evBaseKwhPerKm(), evTemp(), evLearned())
+
     fun evArrivalPct(): Int? {
         if (!isEv) return null
         val e = eta ?: return null
-        val driven = if (navStartMs > 0) max(0.0, tripDist - navStartDist) else 0.0
-        // with the widget's range: what's left after the trip, as a share of the full range
-        if (evNowKm() != null) {
-            val (start, full) = evRangeKm()
-            // a trip longer than the range shows 0 %, never a negative battery level
-            return Math.round((start - (driven + e.dist) / 1000.0) / full * 100.0).toInt().coerceIn(0, 100)
-        }
-        // else from the battery level (up to an hour old), or from the charge you set before the trip
-        val now = evNowPct()?.takeIf { (evNowAgeMin() ?: Long.MAX_VALUE) <= 60 }
-        val start = (now ?: prefs.i(PreferenceKeys.EV_CHARGE_PCT, 80)).coerceIn(1, 100)
-        val usedPct = (driven + e.dist) / 1000.0 * evKwhPerKm() / evBatteryKwh() * 100.0
-        return Math.round(start - usedPct).toInt().coerceIn(0, 100)
+        val r = route ?: return null
+        val batt = evBatteryKwh()
+        // where the battery is now: the car's reading less what's been driven since it, else the charge set before the trip
+        val now = evNowPct()?.takeIf { (evNowAgeMin() ?: Long.MAX_VALUE) <= 60 }?.toDouble()
+            ?: evNowKm()?.let { val (start, full) = evRangeKm(); start / full * 100.0 }
+        val startPct = if (now != null) now - evSinceRead / batt * 100.0
+            else prefs.i(PreferenceKeys.EV_CHARGE_PCT, 80).coerceIn(1, 100) - (if (navStartMs > 0) evSinceNav else 0.0) / batt * 100.0
+        val avgKmh = if (e.secs > 30) e.dist / e.secs * 3.6 else 60.0
+        val need = evRouteKwh(r, (r.len - e.dist).coerceAtLeast(0.0), avgKmh)
+        return Math.round(startPct - need / batt * 100.0).toInt().coerceIn(0, 100)
     }
 
     /** The battery level or the charge to arrive with changed on the route options: look again for a charging stop. */
@@ -5324,8 +5417,13 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         val batt = evBatteryKwh()
         val destKm = prefs.i(PreferenceKeys.EV_DEST_KM, 50).coerceIn(0, 500).toDouble()
         val chargerKm = prefs.i(PreferenceKeys.EV_CHARGER_KM, 30).coerceIn(0, 500).toDouble()
-        val (startKm, full) = evRangeKm()
+        val (startKm0, full0) = evRangeKm()
         val lenKm = r.len / 1000.0
+        // the range counts as far as this route's speeds, the weather and the safety margin allow (EvModel), not the rated km
+        val rf = try {
+            if (lenKm > 1.0 && r.time > 60) (evRouteKwh(r, 0.0, r.len / r.time * 3.6) / (lenKm * evBaseKwhPerKm())).coerceIn(0.7, 2.5) else 1.0
+        } catch (e: Exception) { 1.0 }
+        val startKm = startKm0 / rf; val full = full0 / rf
         if (startKm - lenKm >= destKm) return
         evPlanningFor = r
         scope.launch { try {

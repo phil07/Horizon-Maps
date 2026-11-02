@@ -264,6 +264,11 @@ internal object PreferenceKeys {
     const val GIVE_WAY = "giveway"
     const val EV_BATTERY_KWH = "evbatt"
     const val EV_CHARGE_PCT = "evcharge"
+    /** What the battery level showed against the estimate, per kind of road (town, country, motorway): "1.0,1.1,1.2". */
+    const val EV_LEARN = "evlearn"
+    /** How fast you usually drive against the posted limit (1.0 = at the limit), and on roads with no limit (km/h). */
+    const val EV_STYLE = "evstyle"
+    const val EV_FREE_KMH = "evfreekmh"
     /** The car's battery level now (from the widget or Android Auto). Separate from the charge you want to arrive with. */
     const val EV_NOW_PCT = "evnow"
     const val EV_MIN_ARRIVE = "evminarr"
