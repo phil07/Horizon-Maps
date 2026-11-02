@@ -121,6 +121,8 @@ internal object PreferenceKeys {
     const val AVOID_VIGNETTE = "avoid_vignette"
     const val VIGNETTE_WARN = "vignettewarn"
     const val WRONGWAY_REPORTS = "wrongwayreports"
+    /** Parkuhr: "end ms,lat,lon" (where the car is), or "" when no parking time runs. */
+    const val PARK_UNTIL = "parkuntil"
     const val AVOID_UNPAVED = "avoid_unpaved"
     const val AVOIDZONES = "avoidzones"
     const val BREAKREMIND = "breakremind"

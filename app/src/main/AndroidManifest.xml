@@ -107,6 +107,11 @@
             </intent-filter>
         </activity>
 
+        <!-- the parking time reminder (Parkuhr) and its "Aufheben" button -->
+        <receiver
+            android:name=".ParkTimerReceiver"
+            android:exported="false" />
+
         <receiver
             android:name=".CarBluetoothReceiver"
             android:exported="true">

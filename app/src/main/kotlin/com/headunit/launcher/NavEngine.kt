@@ -4993,6 +4993,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
 
     /** The arrival moment: the camera swoops down to the destination, and the nearest car park is looked up. */
     private fun arrivalMoment(a: ArrivalInfo) {
+        parkMinutes = 0
         stopTripShare(quiet = true)
         arrivalParking = null
         val d = a.place?.pos ?: return
@@ -5014,6 +5015,19 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
             // the nearest one with free spaces (a full one only when there's nothing else)
             if (arrival === a) arrivalParking = list?.let { ParkingLive.sortNearby(it).firstOrNull() }
         }
+    }
+
+    /** Parkuhr: the minutes chosen on the arrival card (0 none), so the card shows which one runs. */
+    var parkMinutes by mutableStateOf(0); private set
+
+    /** Starts (or, tapped again, stops) the parking time; the reminder comes 10 minutes before it ends. */
+    fun parkTimer(minutes: Int) {
+        if (parkMinutes == minutes) { ParkTimer.cancel(ctx, prefs); parkMinutes = 0; toast(Lang.t("Parkzeit aufgehoben", "Parking time cancelled"), 2000); return }
+        val car = fix?.pos ?: arrival?.place?.pos
+        ParkTimer.start(ctx, prefs, minutes, car)
+        parkMinutes = minutes
+        val end = java.text.SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date(System.currentTimeMillis() + minutes * 60_000L))
+        toast(Lang.t("Parkzeit bis $end: Erinnerung ${ParkTimer.BEFORE_MIN} Min. vorher", "Parked until $end: reminder ${ParkTimer.BEFORE_MIN} min before"), 3000)
     }
 
     /** Closes the arrival card and goes back to following the car. */

@@ -447,6 +447,12 @@ internal fun ArrivalCard(engine: NavEngine, a: ArrivalInfo, modifier: Modifier =
                 Text(stringResource(R.string.ui_019), color = c.accent, fontSize = 15.sp, fontWeight = FontWeight.Bold)
             }
         }
+        // Parkuhr: a reminder 10 minutes before the parking time ends, with the walk back to the car
+        Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+            Text(Lang.t("Parkzeit", "Parking"), color = c.sub, fontSize = 13.sp)
+            for ((m, label) in listOf(30 to Lang.t("30 Min.", "30 min"), 60 to Lang.t("1 Std.", "1 h"), 120 to Lang.t("2 Std.", "2 h"), 180 to Lang.t("3 Std.", "3 h")))
+                Pill(label, engine.parkMinutes == m, { engine.parkTimer(m) })
+        }
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             a.place?.let { p ->
                 var fav by remember { mutableStateOf(engine.places.isFavourite(p)) }
