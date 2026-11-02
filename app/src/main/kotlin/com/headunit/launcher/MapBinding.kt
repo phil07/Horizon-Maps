@@ -480,6 +480,11 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
             val below = st.styleLayers.firstOrNull { it.id != "background" }?.id
             val layer = RasterLayer("dl-sat-photo", "dl-sat").rasterFadeDuration(0.0)
             if (below != null) st.addLayerBelow(layer, below) else st.addLayer(layer)
+            // The streets style's opaque land, water and building fills would cover the photos: hide them in satellite mode.
+            // Roads, labels and symbols stay on top of the photos.
+            for (info in st.styleLayers) {
+                if (info.type == "fill" || info.type == "fill-extrusion") try { st.setStyleLayerProperty(info.id, "visibility", "none") } catch (e: Throwable) { }
+            }
         } catch (e: Throwable) { android.util.Log.w("MapBinding", "satellite: ${e.message}") }
     }
     private fun addS(st: Style, s: com.mapbox.maps.extension.style.StyleContract.StyleSourceExtension) {
