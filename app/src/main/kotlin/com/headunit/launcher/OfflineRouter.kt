@@ -477,10 +477,13 @@ object OfflineRouter {
             val pos = LL(la, lo)
             val starts = if (firstAscii && t - ls >= first.size && (first.indices).all { k -> low(buf[ls + k]) == first[k] }) 0.0
                          else if (!firstAscii && String(buf, ls, t - ls, Charsets.UTF_8).lowercase().startsWith(words[0])) 0.0 else 1.0
-            val far = if (near != null) minOf(Geo.dist(near, pos) / 1000.0, 999.0) else 0.0
+            val kind = String(buf, t + 1, t2 - t - 1, Charsets.UTF_8)
+            val town = kind in SearchRank.PACK_TOWNS
+            // towns and cities reach much further than streets: "berlin" finds Berlin ahead of the Berliner Straße round the corner
+            val far = (if (near != null) minOf(Geo.dist(near, pos) / 1000.0, 999.0) else 0.0) * (if (town) 0.02 else 1.0)
             val score = starts * 1e6 + far
             if (top.size < 8 || score < top.last().score) {
-                top += Hit(score, Place(String(buf, ls, t - ls, Charsets.UTF_8), String(buf, t + 1, t2 - t - 1, Charsets.UTF_8) + " · offline", pos))
+                top += Hit(score, Place(String(buf, ls, t - ls, Charsets.UTF_8), "$kind · offline", pos).town(town))
                 top.sortBy { it.score }
                 if (top.size > 8) top.removeAt(top.size - 1)
             }

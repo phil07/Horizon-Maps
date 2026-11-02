@@ -536,7 +536,7 @@ object MapboxRest {
         val name = pr.optString("name").ifBlank { pr.optString("full_address").substringBefore(',') }.ifBlank { q }
         val sub = pr.optString("full_address").takeIf { it.isNotBlank() && it != name && pr.optString("feature_type") == "poi" }
             ?: pr.optString("place_formatted")
-        return Place(name, sub, LL(lat, lon))
+        return Place(name, sub, LL(lat, lon)).town(pr.optString("feature_type") in SearchRank.MAPBOX_TOWNS)
     }
 
     /** Why the last Mapbox search failed (both of its searches), or null: shown instead of "no matches". */
@@ -618,7 +618,7 @@ object MapboxRest {
             for (i in 0 until arr.length()) {
                 val x = arr.getJSONObject(i)
                 val disp = x.optString("display_name")
-                addOne(Place(x.optString("name").ifBlank { disp.substringBefore(',') }, disp.substringAfter(", ", ""), LL(x.getDouble("lat"), x.getDouble("lon"))))
+                addOne(Place(x.optString("name").ifBlank { disp.substringBefore(',') }, disp.substringAfter(", ", ""), LL(x.getDouble("lat"), x.getDouble("lon"))).town(SearchRank.nominatimTown(x)))
             }
         } catch (e: Exception) { }
         return out

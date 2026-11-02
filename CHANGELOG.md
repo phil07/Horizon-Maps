@@ -5,6 +5,7 @@ Add user-facing Horizon Nav changes under **Unreleased** before publishing each 
 ## Unreleased
 
 ### Behoben
+- Suche findet Städte zuerst: Bei „berlin“ steht jetzt Berlin oben, danach die Berliner Straße in der Nähe. Vorher kamen immer erst die nächstgelegenen Straßen. Wer einen Straßennamen tippt („Berliner Str“, „Hauptstraße 5“), bekommt weiter die nächste Straße zuerst.
 - Weniger Log-Meldungen: Die Warnung „dl-clip is not requested type“ füllt die Logs nicht mehr zweimal pro Sekunde.
 - Satellitenbilder sichtbar: Die Luftbilder lagen unter der beigen Grundfläche der Karte und waren deshalb nicht zu sehen. Jetzt liegen sie darüber.
 

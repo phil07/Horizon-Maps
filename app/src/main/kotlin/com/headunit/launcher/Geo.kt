@@ -14,7 +14,13 @@ data class Step(val off: Double, val maneuver: String, val street: String, val m
     val rbIn: Double = -1.0, val rbOut: Double = -1.0, val rbExits: List<Double> = emptyList(),
     /** The motorway junction's name when the route data has it ("Frankfurter Kreuz", "Weiterstadt"); else it comes from OpenStreetMap (see Junctions). */
     val jct: String = "")
-data class Place(val name: String, val sub: String, val pos: LL)
+data class Place(val name: String, val sub: String, val pos: LL) {
+    /** Whether a search found this as a town, city or region, so those can come before streets (not saved, not compared). */
+    var town: Boolean = false
+}
+
+/** Marks a search result as a town, city or region (see [Place.town]). */
+fun Place.town(yes: Boolean): Place = apply { town = yes }
 
 class Incident(val id: String, val cat: String, val text: String, val delaySec: Int, val pts: List<LL>)
 class Lane(val dirs: List<String>, val follow: String?)
@@ -239,7 +245,7 @@ object TomTomRest {
             val free = addr?.optString("freeformAddress").orEmpty()
             val name = poi?.optString("name")?.takeIf { it.isNotBlank() } ?: free.ifBlank { q }
             val sub = if (poi != null) free else addr?.optString("country").orEmpty()
-            val p = Place(name, sub, LL(pos.getDouble("lat"), pos.getDouble("lon")))
+            val p = Place(name, sub, LL(pos.getDouble("lat"), pos.getDouble("lon"))).town(poi == null && x.optString("type") == "Geography")
             if (out.none { it.name == p.name && Geo.dist(it.pos, p.pos) < 60 }) out += p
         }
     }
@@ -277,7 +283,7 @@ object TomTomRest {
             for (i in 0 until arr.length()) {
                 val x = arr.getJSONObject(i)
                 val disp = x.optString("display_name")
-                val p = Place(x.optString("name").ifBlank { disp.substringBefore(',') }, disp.substringAfter(", ", ""), LL(x.getDouble("lat"), x.getDouble("lon")))
+                val p = Place(x.optString("name").ifBlank { disp.substringBefore(',') }, disp.substringAfter(", ", ""), LL(x.getDouble("lat"), x.getDouble("lon"))).town(SearchRank.nominatimTown(x))
                 if (out.none { Geo.dist(it.pos, p.pos) < 60 }) out += p
             }
         } catch (e: Exception) { }
@@ -728,6 +734,7 @@ object OsmSearch {
                 val sub = listOf(if (name != street) street else "", pr.optString("city").takeIf { it != name } ?: "", pr.optString("postcode"),
                     pr.optString("county").takeIf { pr.optString("city").isBlank() } ?: "").filter { it.isNotBlank() }.joinToString(", ")
                 val p = Place(name, sub, LL(co.getDouble(1), co.getDouble(0)))
+                    .town(pr.optString("osm_key") == "place" && pr.optString("osm_value") in SearchRank.OSM_TOWNS || pr.optString("type") == "city")
                 if (out.none { it.name == p.name && Geo.dist(it.pos, p.pos) < 60 }) out += p
             }
         } catch (e: Exception) { }
@@ -740,7 +747,7 @@ object OsmSearch {
             for (i in 0 until arr.length()) {
                 val x = arr.getJSONObject(i)
                 val disp = x.optString("display_name")
-                val p = Place(x.optString("name").ifBlank { disp.substringBefore(',') }, disp.substringAfter(", ", ""), LL(x.getDouble("lat"), x.getDouble("lon")))
+                val p = Place(x.optString("name").ifBlank { disp.substringBefore(',') }, disp.substringAfter(", ", ""), LL(x.getDouble("lat"), x.getDouble("lon"))).town(SearchRank.nominatimTown(x))
                 if (out.none { Geo.dist(it.pos, p.pos) < 60 }) out += p
             }
         } catch (e: Exception) { }

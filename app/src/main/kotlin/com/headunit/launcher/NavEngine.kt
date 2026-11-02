@@ -1668,17 +1668,19 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
 
     private var searchJob: kotlinx.coroutines.Job? = null
 
-    /** Puts exact and "starts with" name matches first (nearest first), then the rest with online results ahead of offline ones. */
+    /**
+     * Exact name matches first, then names starting with what you typed (towns and cities before streets, see [SearchRank]),
+     * then the rest with online results ahead of offline ones.
+     */
     private fun rankResults(q: String, near: LL?, net: List<Place>, extra: List<Place>): List<Place> {
-        val full = q.trim().lowercase()
         val all = ArrayList<Pair<Place, Int>>()
         net.forEachIndexed { i, p -> all += p to i }
-        extra.forEachIndexed { i, p -> if (all.none { it.first.name.equals(p.name, true) && Geo.dist(it.first.pos, p.pos) < 300 || Geo.dist(it.first.pos, p.pos) < 40 }) all += p to (1000 + i) }
-        fun strong(p: Place) = p.name.lowercase().let { it == full || it.startsWith(full) }
-        fun d(p: Place) = if (near != null) Geo.dist(near, p.pos) else 0.0
-        val top = all.filter { strong(it.first) }.sortedBy { d(it.first) }
-        val rest = all.filter { !strong(it.first) }.sortedBy { it.second }
-        return (top + rest).map { it.first }.take(15)
+        extra.forEachIndexed { i, p ->
+            // the same place found online and in a downloaded list: keep the online one, but a town stays a town
+            val dup = all.firstOrNull { it.first.name.equals(p.name, true) && Geo.dist(it.first.pos, p.pos) < (if (p.town) 3000 else 300) || Geo.dist(it.first.pos, p.pos) < 40 }
+            if (dup == null) all += p to (1000 + i) else if (p.town && dup.first.name.equals(p.name, true)) dup.first.town = true
+        }
+        return SearchRank.rank(q, all, { it.name }, { it.town }, { if (near != null) Geo.dist(near, it.pos) else 0.0 }).take(15)
     }
 
     fun search(q: String) {
