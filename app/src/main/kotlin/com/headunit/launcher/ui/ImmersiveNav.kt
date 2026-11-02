@@ -404,10 +404,10 @@ private fun MapScreen(engine: NavEngine, onSettings: () -> Unit) {
             CompositionLocalProvider(LocalDensity provides Density(baseSpeedDensity.density * speedSize, baseSpeedDensity.fontScale)) {
                 // the car's battery level sits right above the speed, on the same side
                 Column(horizontalAlignment = if (engine.mirrored) Alignment.Start else Alignment.End) {
-                    if (Neon.on) NeonQuestBox(engine)
+                    if (Neon.on && !narrow) NeonQuestBox(engine)
                     EvNowChip(engine)
                     ImmSpeed(engine)
-                    if (Neon.on) NeonPlaceBox(engine)
+                    if (Neon.on && !narrow) NeonPlaceBox(engine)
                 }
             }
         }
