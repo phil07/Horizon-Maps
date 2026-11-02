@@ -2048,7 +2048,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         cancelWaiting()
         map.stopFly()
         faster = null; resume = null; prefs.put(PreferenceKeys.RESUME, "{}")
-        incMatches = emptyList(); incidentAhead = null; incAt = 0L; incAlerted.clear(); abAt = 0L; abRoads = ""
+        incMatches = emptyList(); incidentAhead = null; incAt = 0L; incAlerted.clear(); abAt = 0L; abRoads = ""; wwItems = emptyList(); wwSaid.clear(); wwAt = 0L
         routeCams = emptyList(); camsRoute = null; camsAt = 0L; camsCount = -1; hazardSig = 0; policeSig = 0; map.setHazards(emptyList())
         via = emptyList(); evPlanned = emptyList(); evAutoDest = null; evStops = emptyList(); evWarning = null; stopMode = false; destRain = null; routeWx = emptyList()
         routes = emptyList(); active = 0; dest = null; turn = null; eta = null; lastIdx = 0; previewing = false; routeFrac = 0f; onRoad = ""
@@ -3648,6 +3648,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
     private fun incidentLabel(i: Incident): String = when (i.cat) {
         "roadWorks" -> Lang.t("Baustelle", "Roadworks"); "roadClosed" -> Lang.t("Straße gesperrt", "Road closed"); "accident" -> Lang.t("Unfall", "Accident")
         "jam" -> Lang.t("Stau", "Traffic jam"); "laneClosed" -> Lang.t("Fahrstreifen gesperrt", "Lane closed"); "danger" -> Lang.t("Gefahr", "Hazard")
+        "wrongway" -> Lang.t("Falschfahrer", "Wrong-way driver")
         else -> i.text.ifBlank { Lang.t("Störung", "Incident") }
     }
 
@@ -4180,7 +4181,61 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         return abItems
     }
 
+    // ---- wrong-way drivers reported on the motorway ahead ----
+    private var wwAt = 0L
+    private var wwBusy = false
+    private var wwItems: List<Incident> = emptyList()
+    private val wwSaid = HashSet<String>()
+
+    /**
+     * A driver going the wrong way reported on the motorway you're on, up to 30 km ahead (either carriageway: which way they're
+     * going is often not known). From Autobahn GmbH's warnings (asked every minute) and the traffic incidents already loaded.
+     */
+    private fun checkWrongWay(r: Route, progress: Double) {
+        if (!prefs.b(PreferenceKeys.WRONGWAY_REPORTS, true) || simMode != 0 || previewing) return
+        val now = System.currentTimeMillis()
+        val roads = r.steps.filter { it.off < progress + 30_000.0 }.let { st ->
+            // the road you're on now and the motorways in the next 30 km
+            val cur = st.lastOrNull { it.off <= progress }
+            (listOfNotNull(cur) + st.filter { it.off > progress })
+        }.mapNotNull { AutobahnRest.roadOf(it.street) }.distinct()
+        if (roads.isNotEmpty() && !wwBusy && now - wwAt > 60_000L) {
+            wwAt = now; wwBusy = true
+            scope.launch {
+                try { wwItems = withContext(Dispatchers.IO) { AutobahnRest.wrongWay(roads) } } catch (e: Exception) { }
+                finally { wwBusy = false }
+            }
+        }
+        val all = wwItems + incMatches.map { it.first }.filter { it.cat == "wrongway" || AutobahnRest.isWrongWay(it.text) }
+        for (inc in all) {
+            // the nearest point of the route ahead (30 km) within 400 m of the report: the other carriageway counts too
+            var bestOff = -1.0; var bestD = 400.0
+            for (q in inc.pts.take(30)) for (n in r.pts.indices) {
+                val c = r.cum[n]
+                if (c < progress - 100 || c > progress + 30_000) continue
+                val d = Geo.dist(r.pts[n], q)
+                if (d < bestD) { bestD = d; bestOff = c }
+            }
+            if (bestOff < 0) continue
+            val ahead = max(0.0, bestOff - progress)
+            // said when found, and again when it's under 5 km away
+            val stage = if (ahead < 5000) "near" else "far"
+            if (!wwSaid.add(inc.id + stage)) continue
+            if (stage == "near") wwSaid.add(inc.id + "far")
+            val text = Lang.t("Achtung, Falschfahrer gemeldet, etwa ${Geo.fmtDist(ahead, imperial)} voraus. Rechts fahren, nicht überholen.",
+                "Warning: wrong-way driver reported about ${Geo.fmtDist(ahead, imperial)} ahead. Keep right, don't overtake.")
+            chime(android.media.ToneGenerator.TONE_CDMA_EMERGENCY_RINGBACK)
+            raiseAlert("incident", text, 12_000)
+            showNotice(Notice("wrongway", Lang.t("Falschfahrer gemeldet", "Wrong-way driver reported"),
+                Lang.t("Etwa ${Geo.fmtDist(ahead, imperial)} voraus · rechts fahren, nicht überholen", "About ${Geo.fmtDist(ahead, imperial)} ahead · keep right, don't overtake"), 3), 60_000L)
+            speak(Lang.t("Achtung, Falschfahrer gemeldet, in ${Geo.spoken(ahead, imperial)}. Bitte rechts fahren und nicht überholen.",
+                "Warning, wrong-way driver reported ${Geo.spoken(ahead, imperial)} ahead. Keep right and don't overtake."), true)
+            break
+        }
+    }
+
     private fun checkIncidents(r: Route, progress: Double) {
+        try { checkWrongWay(r, progress) } catch (e: Exception) { }
         try { if (camerasOnMap()) updateRouteCams(r, progress); pushHazards(progress) } catch (e: Exception) { }
         // TomTom's incident data when there's a key; otherwise the incidents that came with a Mapbox route
         val fromRoute = (!hasKey || ttDown()) && r.incidents.isNotEmpty()
@@ -4219,7 +4274,8 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
                 if (found != null) { incMatches = found; try { applyIncidentSev(r, found) } catch (e: Exception) { } }
             }
         }
-        val next = incMatches.filter { it.second > progress - 30 }.minByOrNull { it.second }
+        // (wrong-way drivers have their own, louder warning: checkWrongWay)
+        val next = incMatches.filter { it.second > progress - 30 && it.first.cat != "wrongway" && !AutobahnRest.isWrongWay(it.first.text) }.minByOrNull { it.second }
         if (next == null) { incidentAhead = null; return }
         val d = max(0.0, next.second - progress)
         if (d > 15_000) { incidentAhead = null; return }

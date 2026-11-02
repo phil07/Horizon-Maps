@@ -120,6 +120,7 @@ internal object PreferenceKeys {
     const val AVOID_TOLL = "avoid_toll"
     const val AVOID_VIGNETTE = "avoid_vignette"
     const val VIGNETTE_WARN = "vignettewarn"
+    const val WRONGWAY_REPORTS = "wrongwayreports"
     const val AVOID_UNPAVED = "avoid_unpaved"
     const val AVOIDZONES = "avoidzones"
     const val BREAKREMIND = "breakremind"

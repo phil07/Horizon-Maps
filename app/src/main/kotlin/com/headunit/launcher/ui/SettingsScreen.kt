@@ -537,6 +537,7 @@ private fun AlertsSection(prefs: Prefs, engine: NavEngine) {
         SToggle(prefs, "Bahnübergänge und Furten", "railford", false, "Warnschild und Sprachwarnung")
         SToggle(prefs, "Wetterhinweise", "wxadvice", true, "Hinweis bei Regen, Schnee, Nebel oder Glätte")
         SToggle(prefs, "Unwetterwarnungen (DWD)", "dwdwarn", true, "Amtliche Warnungen vor Glätte, Sturm, Starkregen und Nebel auf der Strecke der nächsten Stunde (Deutschland)")
+        SToggle(prefs, "Falschfahrer-Meldungen", PreferenceKeys.WRONGWAY_REPORTS, true, "Alarm, wenn auf deiner Autobahn bis 30 km voraus ein Falschfahrer gemeldet ist (Autobahn GmbH und Verkehrsmeldungen)")
         SToggle(prefs, "Vignetten-Hinweis", PreferenceKeys.VIGNETTE_WARN, true, "Etwa 30 km vor einem Land mit Vignettenpflicht oder Streckenmaut (Brenner, Tauern …) eine Ansage")
         SToggle(prefs, "Rettungsgasse", "rescuelane", true, "Hinweis im Stau auf der Autobahn, wie die Rettungsgasse gebildet wird")
     }

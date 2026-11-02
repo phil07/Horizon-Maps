@@ -1018,7 +1018,7 @@ fun RoundaboutView(engine: NavEngine, t: com.headunit.launcher.TurnInfo, modifie
 fun NoticeCard(engine: NavEngine, big: Boolean = false) {
     val n = engine.notice ?: return
     val shape = RoundedCornerShape(if (big) 28.dp else 22.dp)
-    val bg = if (n.kind == "reroute") Color(0xFF1E7D4F) else if (n.kind == "lane") Color(0xFFD32F2F) else when (n.level) { 4 -> Color(0xFF8E24AA); 3 -> Color(0xFFD32F2F); else -> Color(0xFFEF6C00) }
+    val bg = if (n.kind == "reroute") Color(0xFF1E7D4F) else if (n.kind == "lane" || n.kind == "wrongway") Color(0xFFD32F2F) else when (n.level) { 4 -> Color(0xFF8E24AA); 3 -> Color(0xFFD32F2F); else -> Color(0xFFEF6C00) }
     Row(Modifier.fillMaxWidth().shadow(8.dp, shape).clip(shape).background(bg).clickable { engine.dismissNotice() }
         .padding(horizontal = if (big) 20.dp else 16.dp, vertical = if (big) 14.dp else 11.dp), verticalAlignment = Alignment.CenterVertically) {
         if (n.kind == "lane") RescueLaneIcon(if (big) 44.dp else 34.dp)

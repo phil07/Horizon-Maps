@@ -43,6 +43,7 @@ object AutobahnRest {
         // a warning is an accident or a jam when its text says so; otherwise it stays a general hazard
         val cat = when {
             cat0 != "danger" -> cat0
+            isWrongWay((desc + o.optString("title") + o.optString("subtitle")).joinToString(" ")) -> "wrongway"
             desc.any { it.contains("Unfall", true) } -> "accident"
             desc.any { it.contains("Stau", true) || it.contains("stockend", true) } -> "jam"
             else -> cat0
@@ -50,6 +51,23 @@ object AutobahnRest {
         val text = listOf(o.optString("title"), o.optString("subtitle")).map { it.trim() }.filter { it.isNotBlank() }.joinToString(" ")
         val id = o.optString("identifier").ifBlank { "$road-$service-${at.lat}-${at.lon}" }
         return Incident("ab-$id", cat, text.ifBlank { road }, 0, pts)
+    }
+
+    // ---- wrong-way drivers ----
+
+    private val WRONG_WAY = Regex("falschfahrer|geisterfahrer|falsche[rn]? (fahrt)?richtung|entgegenkommend|wrong[- ]?way|ghost driver|vehicle on wrong carriageway", RegexOption.IGNORE_CASE)
+
+    /** Whether an incident's text reports a driver going the wrong way. */
+    fun isWrongWay(text: String): Boolean = WRONG_WAY.containsMatchIn(text)
+
+    /** The wrong-way driver warnings on [roads] right now (only the warnings, so it can be asked every minute). Never throws. */
+    fun wrongWay(roads: List<String>): List<Incident> {
+        val out = ArrayList<Incident>()
+        for (road in roads) try {
+            val arr = JSONObject(get(BASE + road + "/services/warning")).optJSONArray("warning") ?: continue
+            for (i in 0 until arr.length()) parse(arr.optJSONObject(i) ?: continue, road, "warning", "danger")?.takeIf { it.cat == "wrongway" }?.let { out += it }
+        } catch (e: Exception) { }
+        return out
     }
 
     // ---- speed limits at roadworks ----
