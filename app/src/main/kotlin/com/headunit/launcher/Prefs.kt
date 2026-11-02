@@ -84,6 +84,8 @@ internal object PreferenceKeys {
     const val LIVE_ALTERNATIVES = "livealts"
     const val ALT_ROUTE_COLOUR = "altroutecolour"
     const val FASTER_ROUTE = "fasterroute"
+    const val AUTO_REROUTE = "autoreroute"
+    const val AUTO_REROUTE_MIN = "autoreroutemin"
     const val CAMERA_WARNINGS = "cameras"
     // the speed cameras drawn on the map: on by default, also where camera warnings are banned (they're only drawn, never announced)
     const val CAMERA_MAP = "cameramap"

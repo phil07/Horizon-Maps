@@ -14,6 +14,7 @@ Add user-facing Horizon Nav changes under **Unreleased** before publishing each 
 - Satellitenbilder sichtbar: Die Luftbilder lagen unter der beigen Grundfläche der Karte und waren deshalb nicht zu sehen. Jetzt liegen sie darüber.
 
 ### Neu
+- Automatische Umleitung: Findet die App unterwegs eine Route, die mindestens 5 Minuten schneller ist, wechselt sie selbst darauf, sagt es an und zeigt eine Karte mit „Alte Route“ zum Zurückwechseln. An- und abschaltbar, die Mindestersparnis (3, 5, 10 oder 15 Minuten) ist unter Einstellungen > Routen wählbar.
 - Wohnmobil-Suche: Mit dem Profil Wohnmobil oder Anhänger (Einstellungen > Fahrzeug) gibt es in der Schnellsuche Stellplätze und Campingplätze, Ver- und Entsorgung sowie Autogas, auf dem Handy und im Auto, entlang der Route oder in der Nähe.
 - Höhenwarnung: Mit dem Profil Wohnmobil oder Anhänger warnt die App rund 1,5 km vorher vor Brücken und Durchfahrten auf der Route, die niedriger sind als dein Fahrzeug, mit Karte und Ansage.
 - Unwetterwarnungen vom DWD: Amtliche Warnungen des Deutschen Wetterdienstes (ab „markant“: Glätte, Sturm, Starkregen, dichter Nebel) für die Strecke, die du in der nächsten Stunde fährst, ohne Route für deinen Standort. Jede Warnung kommt einmal als Karte und Ansage. Abschaltbar unter Einstellungen > Unterwegs.

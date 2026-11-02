@@ -415,6 +415,17 @@ private fun RoutesSection(prefs: Prefs) {
     SGroup("Routenauswahl") {
         SToggle(prefs, "Öko-Routen", "route_eco", false, "Kraftstoffsparend statt am schnellsten")
         SToggle(prefs, "Schnellere Routen anbieten", "fasterroute", true)
+        if (prefs.b(PreferenceKeys.FASTER_ROUTE, true)) {
+            SToggle(prefs, "Automatisch umleiten", "autoreroute", true, "Wechselt selbst auf eine schnellere Route, mit Ansage und „Alte Route“ zum Zurückwechseln")
+            if (prefs.b(PreferenceKeys.AUTO_REROUTE, true)) {
+                val m = prefs.i(PreferenceKeys.AUTO_REROUTE_MIN, 5)
+                SItem("Umleiten ab Ersparnis von", "So viele Minuten muss die neue Route mindestens schneller sein")
+                androidx.compose.foundation.layout.Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(bottom = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    for (v in listOf(3, 5, 10, 15)) Pill("$v Min", m == v, { prefs.put(PreferenceKeys.AUTO_REROUTE_MIN, v) })
+                }
+            }
+        }
         if (prefs.b(PreferenceKeys.FASTER_ROUTE, true)) SToggle(prefs, "Andere Routen auf der Karte anzeigen", "livealts", true, "Graue Linien mit +/- Minuten zum Antippen")
         SToggle(prefs, "Ziele vorschlagen", "predict", true, "Mit Live-Fahrzeit für Zuhause und Arbeitsplatz")
         SToggle(prefs, "Wetter auf der Route", "routewx", true)

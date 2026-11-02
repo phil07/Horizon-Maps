@@ -37,6 +37,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.EvStation
 import androidx.compose.ui.draw.scale
 import androidx.compose.material.icons.rounded.Warning
+import androidx.compose.material.icons.rounded.Route
 import androidx.compose.material.icons.rounded.TurnSlightRight
 import androidx.compose.material.icons.rounded.DirectionsWalk
 import androidx.compose.material.icons.rounded.School
@@ -978,14 +979,22 @@ fun RoundaboutView(engine: NavEngine, t: com.headunit.launcher.TurnInfo, modifie
 fun NoticeCard(engine: NavEngine, big: Boolean = false) {
     val n = engine.notice ?: return
     val shape = RoundedCornerShape(if (big) 28.dp else 22.dp)
-    val bg = if (n.kind == "lane") Color(0xFFD32F2F) else when (n.level) { 4 -> Color(0xFF8E24AA); 3 -> Color(0xFFD32F2F); else -> Color(0xFFEF6C00) }
+    val bg = if (n.kind == "reroute") Color(0xFF1E7D4F) else if (n.kind == "lane") Color(0xFFD32F2F) else when (n.level) { 4 -> Color(0xFF8E24AA); 3 -> Color(0xFFD32F2F); else -> Color(0xFFEF6C00) }
     Row(Modifier.fillMaxWidth().shadow(8.dp, shape).clip(shape).background(bg).clickable { engine.dismissNotice() }
         .padding(horizontal = if (big) 20.dp else 16.dp, vertical = if (big) 14.dp else 11.dp), verticalAlignment = Alignment.CenterVertically) {
         if (n.kind == "lane") RescueLaneIcon(if (big) 44.dp else 34.dp)
+        else if (n.kind == "reroute") Icon(Icons.Rounded.Route, null, tint = Color.White, modifier = Modifier.size(if (big) 36.dp else 28.dp))
         else Icon(Icons.Rounded.Warning, null, tint = Color.White, modifier = Modifier.size(if (big) 36.dp else 28.dp))
         Column(Modifier.padding(start = 12.dp).weight(1f)) {
             Text(n.title, color = Color.White, fontSize = if (big) 22.sp else 16.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
             Text(n.text, color = Color.White.copy(alpha = 0.92f), fontSize = if (big) 18.sp else 13.sp, maxLines = 2, overflow = TextOverflow.Ellipsis)
+        }
+        val act = n.action
+        if (act != null) {
+            Box(Modifier.padding(start = 10.dp).clip(RoundedCornerShape(50)).background(Color.White).clickable { engine.noticeAction() }
+                .padding(horizontal = if (big) 20.dp else 14.dp, vertical = if (big) 12.dp else 8.dp)) {
+                Text(act, color = bg, fontSize = if (big) 18.sp else 14.sp, fontWeight = FontWeight.Bold, maxLines = 1)
+            }
         }
     }
 }

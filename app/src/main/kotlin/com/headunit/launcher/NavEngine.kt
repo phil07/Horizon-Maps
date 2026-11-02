@@ -1904,7 +1904,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         dest?.let { d -> try { RouteSync.started(this, d, via) } catch (e: Exception) { } }
         said.clear(); lastIdx = 0; zoomOffset = 0.0
         navStartMs = System.currentTimeMillis(); navStartDist = tripDist
-        lastFasterCheck = System.currentTimeMillis(); faster = null; lastTrafficAt = 0L
+        lastFasterCheck = System.currentTimeMillis(); faster = null; lastTrafficAt = 0L; undoRoute = null; if (notice?.kind == "reroute") notice = null
         dest?.let { d -> prefs.put(PreferenceKeys.RESUME, org.json.JSONObject().put("n", d.name).put("s", d.sub).put("la", d.pos.lat).put("lo", d.pos.lon).put("t", System.currentTimeMillis()).toString()) }
         following = true
         // Settings > Offline maps > Save every route's map: the Mapbox map along this route, kept for when signal drops
@@ -2291,7 +2291,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
     // ---- notices: official weather warnings (DWD) and the rescue lane ----
 
     /** A notice card under the turn card: [kind] "wx" (weather warning) or "lane" (rescue lane). */
-    class Notice(val kind: String, val title: String, val text: String, val level: Int = 2)
+    class Notice(val kind: String, val title: String, val text: String, val level: Int = 2, val action: String? = null)
     var notice by mutableStateOf<Notice?>(null)
     private fun showNotice(n: Notice, ms: Long) { notice = n; scope.launch { delay(ms); if (notice === n) notice = null } }
     fun dismissNotice() { notice = null }
@@ -4124,11 +4124,25 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
                     liveAlts = list
                     map.setLiveAlts(list.map { it.line() }, list.map { it.bubble }, list.map { it.diffMin }, list.map { it.traffic })
                     val best = list.minByOrNull { it.diffMin }
+                    if (best != null && autoOn() && -best.diffMin >= autoMin()) {
+                        switchToAlt(list.indexOf(best), auto = true)
+                        announceAuto(cur, -best.diffMin)
+                        return@launch
+                    }
                     if (best != null && best.diffMin <= -3 && liveSaid.add(best.diffMin / 2)) speak(Lang.t("Eine schnellere Route spart ${-best.diffMin} Minuten. Tippe sie auf der Karte an, um zu wechseln.", "A faster route is available, saving ${-best.diffMin} minutes. Tap it on the map to switch."), true)
                     return@launch
                 }
                 val best = rs.filter { it !== same && overlap(it) < 0.8 }.minByOrNull { it.time } ?: return@launch
                 val saved = ((same.time - best.time) / 60.0).toInt()
+                if (autoOn() && saved >= autoMin()) {
+                    routes = listOf(best); active = 0
+                    said.clear(); offCount = 0; lastIdx = 0; trustProg = -1.0
+                    drawRoutes()
+                    updateRouteZones()
+                    fix?.let { onPosition(it, true) }
+                    announceAuto(cur, saved)
+                    return@launch
+                }
                 if (saved >= 3 && best.time < same.time * 0.95) {
                     faster = FasterRoute(best, saved)
                     speak(Lang.t("Eine schnellere Route spart $saved Minuten", "A faster route is available, saving $saved minutes"), true)
@@ -4202,6 +4216,45 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         toast(ctx.getString(R.string.toast_043), 2500)
     }
 
+    // ---- automatic rerouting: a faster way saving at least the set minutes is taken straight away, with a card to go back ----
+
+    /** The route given up by the last automatic switch, for "Alte Route" on the card. */
+    private var undoRoute: Route? = null
+    /** After going back to the old route, no automatic switch for a while (a faster way is still offered). */
+    private var autoPausedUntil = 0L
+
+    private fun autoOn() = prefs.b(PreferenceKeys.AUTO_REROUTE, true) && System.currentTimeMillis() > autoPausedUntil
+    private fun autoMin() = prefs.i(PreferenceKeys.AUTO_REROUTE_MIN, 5).coerceAtLeast(1)
+
+    private fun announceAuto(old: Route, saved: Int) {
+        undoRoute = old
+        speak(Lang.t("Schnellere Route gefunden. Die Route wurde geändert und spart etwa $saved Minuten.",
+            "Faster route found. Your route has been changed, saving about $saved minutes."), true)
+        val n = Notice("reroute", Lang.t("Route geändert", "Route changed"),
+            Lang.t("Spart etwa $saved Min. bis zum Ziel", "Saves about $saved min to your destination"), 1, Lang.t("Alte Route", "Old route"))
+        showNotice(n, 20_000L)
+        scope.launch { delay(20_500L); if (notice !== n && undoRoute === old && route !== old) undoRoute = null }
+    }
+
+    /** The button on a notice card: "Alte Route" goes back to the way you were on before the automatic switch. */
+    fun noticeAction() {
+        val n = notice ?: return
+        notice = null
+        if (n.kind != "reroute") return
+        val old = undoRoute ?: return
+        undoRoute = null
+        val now = System.currentTimeMillis()
+        autoPausedUntil = now + 15 * 60_000L
+        routes = listOf(old); active = 0
+        said.clear(); offCount = 0; lastIdx = 0; trustProg = -1.0; liveSaid.clear()
+        clearLiveAlts()
+        lastFasterCheck = now
+        drawRoutes()
+        updateRouteZones()
+        toast(Lang.t("Alte Route wieder aktiv", "Back on your previous route"), 2500)
+        fix?.let { onPosition(it, true) }
+    }
+
     fun dismissFaster() { faster = null; lastFasterCheck = System.currentTimeMillis() + 300_000L }
 
     private val liveSaid = HashSet<Int>()
@@ -4230,7 +4283,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
     }
 
     /** Switches to one of the grey alternatives on the map. */
-    fun switchToAlt(i: Int) {
+    fun switchToAlt(i: Int, auto: Boolean = false) {
         val a = liveAlts.getOrNull(i) ?: return
         val old = route; val oldProg = curProgress
         routes = listOf(a.route); active = 0
@@ -4239,7 +4292,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         lastFasterCheck = System.currentTimeMillis()
         drawRoutes()
         updateRouteZones()
-        toast(if (a.diffMin < 0) Lang.t("Gewechselt: etwa ${-a.diffMin} Min. schneller", "Switched: about ${-a.diffMin} min quicker") else if (a.diffMin > 0) Lang.t("Gewechselt: etwa ${a.diffMin} Min. länger", "Switched: about ${a.diffMin} min longer") else Lang.t("Route gewechselt", "Switched route"), 3000)
+        if (!auto) toast(if (a.diffMin < 0) Lang.t("Gewechselt: etwa ${-a.diffMin} Min. schneller", "Switched: about ${-a.diffMin} min quicker") else if (a.diffMin > 0) Lang.t("Gewechselt: etwa ${a.diffMin} Min. länger", "Switched: about ${a.diffMin} min longer") else Lang.t("Route gewechselt", "Switched route"), 3000)
         fix?.let { onPosition(it, true) }
         // the way you were going stays on the map as an alternative, with its card (the other way round: slower becomes faster)
         if (old != null && old !== a.route && prefs.b(PreferenceKeys.LIVE_ALTERNATIVES, true)) {
