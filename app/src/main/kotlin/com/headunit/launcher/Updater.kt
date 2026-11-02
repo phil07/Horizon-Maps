@@ -109,7 +109,8 @@ object Updater {
      * endpoint is rate-limited, unavailable, or its first page does not include the target release.
      */
     fun installedReleaseNotes(version: String = BuildConfig.VERSION_NAME, previouslySeenVersion: String = "", ctx: android.content.Context? = null): String {
-        if (!enabled || !version.matches(Regex("1\\.0\\.\\d+"))) return ""
+        // (the Google Play build has no self-update, but it still shows the notes built into the app: it only skips GitHub)
+        if (!version.matches(Regex("1\\.0\\.\\d+"))) return ""
         val installedBuild = version.substringAfterLast('.').toIntOrNull() ?: return ""
         val previousBuild = previouslySeenVersion.takeIf { it.matches(Regex("1\\.0\\.\\d+")) }
             ?.substringAfterLast('.')?.toIntOrNull() ?: (installedBuild - 1)
@@ -121,6 +122,8 @@ object Updater {
         val bundled = try { ctx?.assets?.open("whatsnew.md")?.bufferedReader()?.use { it.readText() } } catch (_: Exception) { null }
             ?.takeIf { it.isNotBlank() }?.let { cleanReleaseNotes(it) }
         if (bundled != null && previousBuild == installedBuild - 1) return bundled
+        // the Play build doesn't reach GitHub at all: it shows the notes of this version only
+        if (!enabled) return bundled.orEmpty()
 
         // Direct tag endpoint is more reliable for the installed release than depending on list pagination.
         val installedFallback = bundled ?: fetchReleaseBody("v$version")?.let { cleanReleaseNotes(it) }
