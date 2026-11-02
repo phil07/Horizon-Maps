@@ -9,6 +9,8 @@ class EvModelTest {
         assertEquals(1.0, EvModel.speedFactor(80.0), 1e-9)
         assertTrue(EvModel.speedFactor(130.0) > 1.4)
         assertTrue(EvModel.speedFactor(50.0) < 1.0)
+        assertEquals(4.1, EvModel.speedFactor(250.0), 1e-9)
+        assertEquals(4.1, EvModel.speedFactor(300.0), 1e-9)
     }
 
     @Test fun coldCostsMore() {

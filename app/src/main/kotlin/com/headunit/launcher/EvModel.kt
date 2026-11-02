@@ -15,8 +15,8 @@ object EvModel {
     const val BUFFER = 1.10
 
     // consumption at each speed (km/h), relative to 80 km/h (about where a car's rated, mixed figure sits)
-    private val SPEEDS = doubleArrayOf(0.0, 30.0, 50.0, 70.0, 80.0, 100.0, 120.0, 130.0, 150.0, 170.0, 200.0)
-    private val FACTORS = doubleArrayOf(1.0, 0.88, 0.85, 0.93, 1.0, 1.15, 1.35, 1.48, 1.80, 2.15, 2.8)
+    private val SPEEDS = doubleArrayOf(0.0, 30.0, 50.0, 70.0, 80.0, 100.0, 120.0, 130.0, 150.0, 170.0, 200.0, 230.0, 250.0)
+    private val FACTORS = doubleArrayOf(1.0, 0.88, 0.85, 0.93, 1.0, 1.15, 1.35, 1.48, 1.80, 2.15, 2.8, 3.5, 4.1)
 
     /** Consumption at [kmh] relative to the rated one. */
     fun speedFactor(kmh: Double): Double {

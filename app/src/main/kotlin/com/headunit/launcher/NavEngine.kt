@@ -5291,8 +5291,8 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
     private fun evStyle(): Double = if (evStyleM > 3000) (evStyleSum / evStyleM).coerceIn(0.8, 1.3)
         else (prefs.s(PreferenceKeys.EV_STYLE, "").toDoubleOrNull() ?: 1.0).coerceIn(0.8, 1.3)
 
-    private fun evFreeKmh(): Double = if (evFreeM > 3000) (evFreeSum / evFreeM).coerceIn(100.0, 220.0)
-        else (prefs.s(PreferenceKeys.EV_FREE_KMH, "").toDoubleOrNull() ?: 140.0).coerceIn(100.0, 220.0)
+    private fun evFreeKmh(): Double = if (evFreeM > 3000) (evFreeSum / evFreeM).coerceIn(100.0, 250.0)
+        else (prefs.s(PreferenceKeys.EV_FREE_KMH, "").toDoubleOrNull() ?: 140.0).coerceIn(100.0, 250.0)
 
     /** The outside temperature: the route's weather, else the weather here (fetched every 30 minutes while driving). */
     private fun evTemp(): Double? {
@@ -5347,7 +5347,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         }
         if (evFreeM > 5000) {
             val old = (prefs.s(PreferenceKeys.EV_FREE_KMH, "").toDoubleOrNull() ?: 140.0)
-            prefs.put(PreferenceKeys.EV_FREE_KMH, String.format(java.util.Locale.US, "%.1f", (old * 0.6 + evFreeSum / evFreeM * 0.4).coerceIn(100.0, 220.0)))
+            prefs.put(PreferenceKeys.EV_FREE_KMH, String.format(java.util.Locale.US, "%.1f", (old * 0.6 + evFreeSum / evFreeM * 0.4).coerceIn(100.0, 250.0)))
         }
         evStyleSum = 0.0; evStyleM = 0.0; evFreeSum = 0.0; evFreeM = 0.0; evSinceNav = 0.0
     }
