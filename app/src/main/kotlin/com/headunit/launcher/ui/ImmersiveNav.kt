@@ -704,10 +704,14 @@ private fun TripArea(engine: NavEngine, shareEta: () -> Unit, narrow: Boolean = 
     val cam = engine.cameraDist
     val eta = engine.eta
     val radarOn = engine.prefs.b(PreferenceKeys.HAZARDRADAR, false)
-    if (inc == null && cam == null && eta == null && (!radarOn || engine.radar.isEmpty())) return
+    val noCams = engine.camNoData
+    if (inc == null && cam == null && eta == null && !noCams && (!radarOn || engine.radar.isEmpty())) return
     val mir = engine.mirrored
     Column(Modifier.padding(start = if (mir) 0.dp else 16.dp, end = if (mir) 16.dp else 0.dp, bottom = 16.dp).animateContentSize(), verticalArrangement = Arrangement.spacedBy(10.dp),
         horizontalAlignment = if (mir) Alignment.End else Alignment.Start) {
+        // no speed camera list here: the offline map of this area has them, Overpass not answering is the usual reason
+        if (noCams) Text(Lang.t("Keine Blitzerdaten: Offline-Karte dieser Gegend laden", "No camera data: download this area's offline map"),
+            color = c.sub, fontSize = 13.sp, modifier = Modifier.background(c.tile, RoundedCornerShape(8.dp)).padding(horizontal = 10.dp, vertical = 4.dp))
         // hazard radar: the next two miles at a glance (replaces the separate camera and incident badges)
         if (radarOn) HazardRadar(engine)
         else if ((inc != null && engine.alert?.kind != "incident") || (cam != null && engine.alert?.kind != "camera")) Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {

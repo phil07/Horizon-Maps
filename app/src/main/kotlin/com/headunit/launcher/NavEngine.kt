@@ -2294,8 +2294,8 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
                 val found = withContext(Dispatchers.IO) { localCameras(p.pos, 6000.0) ?: Overpass.cameras(p.pos, 6000).also { src = "OpenStreetMap" } }
                 val at = java.text.SimpleDateFormat("HH:mm", Locale.getDefault()).format(java.util.Date())
                 // a failed lookup (weak signal, busy server) keeps the ones already shown and tries again in about half a minute
-                if (found == null) { camAt = System.currentTimeMillis() - 90_000L; camPos = null; camNote = Lang.t("$at: Suche fehlgeschlagen (${Overpass.lastNote.take(60)})", "$at: lookup failed (${Overpass.lastNote.take(60)})") }
-                else { addAroundCams(found); mergeCams(); camNote = Lang.t("$at: ${found.size} Blitzer im Umkreis von 6 km ($src)", "$at: ${found.size} cameras within 6 km ($src)") }
+                if (found == null) { camAt = System.currentTimeMillis() - 90_000L; camPos = null; camNoData = aroundCams.isEmpty(); camNote = Lang.t("$at: Suche fehlgeschlagen (${Overpass.lastNote.take(60)})", "$at: lookup failed (${Overpass.lastNote.take(60)})") }
+                else { camNoData = false; addAroundCams(found); mergeCams(); camNote = Lang.t("$at: ${found.size} Blitzer im Umkreis von 6 km ($src)", "$at: ${found.size} cameras within 6 km ($src)") }
             }
         }
         // the cameras on the map follow the route coming and going, and the ones you've passed drop off
@@ -3258,6 +3258,8 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
 
     /** What the last camera search around you found, for Settings (so "none shown" can be told apart from "none found"). */
     var camNote by mutableStateOf("")
+    /** No camera list could be had here (no offline pack, OpenStreetMap not answering) and none is kept: the map says so. */
+    var camNoData by mutableStateOf(false)
     /** The cameras from the search around you (route or not). */
     private var aroundCams: List<LL> = emptyList()
 
@@ -3315,7 +3317,8 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
             // the offline pack's own camera list first (no internet needed), then OpenStreetMap
             val found = withContext(Dispatchers.IO) { localCameras(c, 6000.0) ?: Overpass.cameras(c, 6000) }
             // a failed lookup keeps the cameras already shown; the next drag tries again
-            if (found == null) { viewFetched = null; camNote = Lang.t("Suche am Kartenausschnitt fehlgeschlagen (${Overpass.lastNote.take(60)})", "Lookup at the map view failed (${Overpass.lastNote.take(60)})"); return@launch }
+            if (found == null) { viewFetched = null; camNoData = aroundCams.isEmpty(); camNote = Lang.t("Suche am Kartenausschnitt fehlgeschlagen (${Overpass.lastNote.take(60)})", "Lookup at the map view failed (${Overpass.lastNote.take(60)})"); return@launch }
+            camNoData = false
             addAroundCams(found)
             camNote = Lang.t("${found.size} Blitzer am Kartenausschnitt (OpenStreetMap)", "${found.size} cameras at the map view (OpenStreetMap)")
             mergeCams()
