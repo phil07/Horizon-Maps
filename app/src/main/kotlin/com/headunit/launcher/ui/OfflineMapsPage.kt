@@ -47,10 +47,10 @@ private fun MapboxOfflineGroup(prefs: Prefs, engine: NavEngine) {
         }
         val r = engine.route
         SItem(Lang.t("Karte für diese Route speichern", "Save the map for this route"), if (r == null) Lang.t("Plane zuerst eine Route", "Plan a route first") else engine.offlineRouteName() + Lang.t(" · ein Streifen entlang der Route · etwa ${off.routeMb(r.len)} MB", " · a strip along the route · about ${off.routeMb(r.len)} MB")) {
-            if (r != null && engine.hasMapbox) SButton(Lang.t("Speichern", "Save"), primary = true) { off.saveRoute(ctx, engine.offlineRouteName(), r.pts) }
+            if (r != null && engine.hasMapbox) SButton(Lang.t("Speichern", "Save"), primary = true) { off.saveRoute(ctx, engine.offlineRouteName(), r.pts, engine.map.isSatellite) }
         }
-        SToggle(prefs, Lang.t("Karte jeder Route speichern", "Save every route's map"), "mbautoroute", false, Lang.t("Beim Routenstart wird der Streifen im Hintergrund gespeichert", "When a route starts, its strip is saved in the background"))
-        if (prefs.b(PreferenceKeys.MBAUTOROUTE, false)) SChoice(Lang.t("Routen speichern", "Save routes"), listOf("wifi" to Lang.t("Nur im WLAN", "On Wi-Fi only"), "always" to Lang.t("Immer (nutzt mobile Daten)", "Always (uses mobile data)")), prefs.s(PreferenceKeys.MAPBOX_AUTO_NETWORK, "wifi")) { prefs.put(PreferenceKeys.MAPBOX_AUTO_NETWORK, it) }
+        SToggle(prefs, Lang.t("Karte jeder Route speichern", "Save every route's map"), "mbautoroute", true, Lang.t("Beim Routenstart wird der Streifen im Hintergrund gespeichert, damit die Karte in Funklöchern da bleibt", "When a route starts, its strip is saved in the background, so the map stays in dead spots"))
+        if (prefs.b(PreferenceKeys.MBAUTOROUTE, true)) SChoice(Lang.t("Routen speichern", "Save routes"), listOf("wifi" to Lang.t("Nur im WLAN", "On Wi-Fi only"), "always" to Lang.t("Immer (nutzt mobile Daten)", "Always (uses mobile data)")), prefs.s(PreferenceKeys.MAPBOX_AUTO_NETWORK, "always")) { prefs.put(PreferenceKeys.MAPBOX_AUTO_NETWORK, it) }
         if (off.saved.isNotEmpty() || off.busy != null) {
             SItem(Lang.t("Gespeichert", "Saved"), null)
             for (a in off.saved) {

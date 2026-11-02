@@ -1894,7 +1894,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         dest?.let { d -> prefs.put(PreferenceKeys.RESUME, org.json.JSONObject().put("n", d.name).put("s", d.sub).put("la", d.pos.lat).put("lo", d.pos.lon).put("t", System.currentTimeMillis()).toString()) }
         following = true
         // Settings > Offline maps > Save every route's map: the Mapbox map along this route, kept for when signal drops
-        try { route?.let { r -> MapboxOffline.autoSaveRoute(ctx, prefs, offlineRouteName(), r.pts, onWifi()) } } catch (e: Throwable) { }
+        try { route?.let { r -> MapboxOffline.autoSaveRoute(ctx, prefs, offlineRouteName(), r.pts, onWifi(), map.isSatellite) } } catch (e: Throwable) { }
         // Settings > Satellitenbilder > Luftbilder vorab laden: the satellite photos along this route, kept on the phone
         try {
             val mode = prefs.s(PreferenceKeys.SAT_PREFETCH, "wifi")

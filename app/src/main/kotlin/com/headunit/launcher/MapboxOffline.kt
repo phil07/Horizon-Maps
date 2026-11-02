@@ -47,6 +47,7 @@ object MapboxOffline {
     private val offline by lazy { OfflineManager() }
     private var running: Cancelable? = null
     private var stylePackAt = 0L
+    private var streetsPackAt = 0L
 
     private fun tileStore(): TileStore =
         MapboxOptions.mapsOptions.tileStore ?: TileStore.create().also { MapboxOptions.mapsOptions.tileStore = it }
@@ -88,7 +89,7 @@ object MapboxOffline {
     }
 
     /** A strip along [pts] (the route), named after where it goes. */
-    fun saveRoute(ctx: Context, name: String, pts: List<LL>) {
+    fun saveRoute(ctx: Context, name: String, pts: List<LL>, satellite: Boolean = false) {
         if (pts.size < 2) return
         // every route has its own area; a route to the same place again replaces the old one
         val id = "route-" + name.lowercase().replace(Regex("[^a-z0-9]+"), "-").trim('-').take(40)
@@ -98,18 +99,22 @@ object MapboxOffline {
         val box = doubleArrayOf(pts.minOf { it.lat } - 0.018, pts.minOf { it.lon } - 0.03, pts.maxOf { it.lat } + 0.018, pts.maxOf { it.lon } + 0.03)
         val step2 = maxOf(1, pts.size / 200)
         val thin = pts.filterIndexed { i, _ -> i % step2 == 0 || i == pts.size - 1 }
-        save(ctx, id, name, LineString.fromLngLats(line), box, thin)
+        save(ctx, id, name, LineString.fromLngLats(line), box, thin, satellite)
     }
 
-    /** Saves the strip of a route when you start following it, if Settings asks for that (on Wi-Fi only, unless set to always). */
-    fun autoSaveRoute(ctx: Context, prefs: Prefs, name: String, pts: List<LL>, onWifi: Boolean) {
-        if (!prefs.b(PreferenceKeys.MBAUTOROUTE, false)) return
-        if (prefs.s(PreferenceKeys.MAPBOX_AUTO_NETWORK, "wifi") == "wifi" && !onWifi) return
+    /**
+     * Saves the strip of a route when you start following it, so a dead spot on the way doesn't leave the map blank: on by default,
+     * also on mobile data (Settings > Offline maps can limit it to Wi-Fi or turn it off). In satellite mode the streets map and
+     * Mapbox's photos are saved as well.
+     */
+    fun autoSaveRoute(ctx: Context, prefs: Prefs, name: String, pts: List<LL>, onWifi: Boolean, satellite: Boolean = false) {
+        if (!prefs.b(PreferenceKeys.MBAUTOROUTE, true)) return
+        if (prefs.s(PreferenceKeys.MAPBOX_AUTO_NETWORK, "always") == "wifi" && !onWifi) return
         if (busy != null) return
-        saveRoute(ctx, name, pts)
+        saveRoute(ctx, name, pts, satellite)
     }
 
-    private fun save(ctx: Context, id: String, name: String, geometry: Geometry, box: DoubleArray, line: List<LL>? = null) {
+    private fun save(ctx: Context, id: String, name: String, geometry: Geometry, box: DoubleArray, line: List<LL>? = null, satellite: Boolean = false) {
         val app = ctx.applicationContext
         if (busy != null) { status = Lang.t("Es wird schon ${busy} gespeichert: warte, bis es fertig ist, oder stoppe es", "Already saving ${busy}: wait for it to finish, or stop it"); return }
         busy = name; progress = 0f; status = Lang.t("Startet…", "Starting…")
@@ -125,12 +130,24 @@ object MapboxOffline {
                     StylePackLoadOptions.Builder().glyphsRasterizationMode(GlyphsRasterizationMode.IDEOGRAPHS_RASTERIZED_LOCALLY).build(),
                     { _ -> }, { res -> if (res.error != null) stylePackAt = 0L })
             }
+            // satellite mode draws the streets style with Mapbox's photos under it: its style too, once a day at most
+            if (satellite && System.currentTimeMillis() - streetsPackAt > 86_400_000L) {
+                streetsPackAt = System.currentTimeMillis()
+                offline.loadStylePack(Style.MAPBOX_STREETS,
+                    StylePackLoadOptions.Builder().glyphsRasterizationMode(GlyphsRasterizationMode.IDEOGRAPHS_RASTERIZED_LOCALLY).build(),
+                    { _ -> }, { res -> if (res.error != null) streetsPackAt = 0L })
+            }
             val desc = offline.createTilesetDescriptor(
                 TilesetDescriptorOptions.Builder().styleURI(Style.STANDARD)
                     .pixelRatio(app.resources.displayMetrics.density).minZoom(0).maxZoom(16).build()
             )
+            val descs = ArrayList<com.mapbox.common.TilesetDescriptor>().apply { add(desc) }
+            if (satellite) descs.add(offline.createTilesetDescriptor(
+                TilesetDescriptorOptions.Builder().styleURI(Style.MAPBOX_STREETS).tilesets(listOf("mapbox://mapbox.satellite"))
+                    .pixelRatio(app.resources.displayMetrics.density).minZoom(0).maxZoom(16).build()
+            ))
             running = tileStore().loadTileRegion(id,
-                TileRegionLoadOptions.Builder().geometry(geometry).descriptors(listOf(desc))
+                TileRegionLoadOptions.Builder().geometry(geometry).descriptors(descs)
                     .metadata(Value(name)).acceptExpired(true).networkRestriction(NetworkRestriction.NONE).build(),
                 { p ->
                     val f = if (p.requiredResourceCount > 0) p.completedResourceCount.toFloat() / p.requiredResourceCount else 0f
