@@ -127,8 +127,12 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
     /** Mapbox's own map couldn't get a piece of map (with no signal: an area it hasn't stored). */
     var onTileMissing: (() -> Unit)? = null
     private var satellite = false
-    // Mapbox's satellite tiles refused with "429 Too Many Requests": after a few of those, the photos come from EOX instead
-    private var satEox = false
+    // index into satChain(): moves on when the current photo source refuses its tiles (429 / 401 / 403)
+    private var satStep = 0
+    /** The satellite sources to try (Esri and MapTiler only once their key is in Settings). */
+    private fun satChain(): List<SatProvider> {
+        return SatelliteSources.chain(prefs.s(PreferenceKeys.ESRI_KEY, ""), prefs.s(PreferenceKeys.MAPTILER_KEY, ""))
+    }
     private var satFails = 0
     private var buildings3d = true
     private var lite = false
@@ -181,9 +185,13 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
         // counted all the time: the automatic frame rate compares frames drawn with camera moves asked for
         subs += mbMap.subscribeRenderFrameStarted { PerfStats.renders++ }
         subs += mbMap.subscribeMapLoadingError { e ->
-            // Mapbox refuses satellite tiles (429): after ten of those, switch the photos to EOX
-            if (satellite && !satEox && e.type == MapLoadingErrorType.TILE && e.sourceId == "dl-sat" && (e.message ?: "").contains("429") && ++satFails >= 10) {
-                main0.post { style?.let { dropSatellite(it) }; satEox = true; satFails = 0; reinstall() }
+            // the satellite photo source refuses its tiles (429, or a key it doesn't accept): move on to the next source
+            if (satellite && e.type == MapLoadingErrorType.TILE && e.sourceId == "dl-sat") {
+                satFails += SatelliteSources.refusals(e.message)
+                if (satFails >= SatelliteSources.REFUSALS_TO_SWITCH && satStep < satChain().size - 1) {
+                    satFails = 0
+                    main0.post { if (satStep >= satChain().size - 1) return@post; satStep++; android.util.Log.w("MapBinding", "satellite: source refused, next=${satChain().getOrNull(satStep)}"); style?.let { dropSatellite(it) }; reinstall() }
+                }
             }
             // only the style itself failing is reported (a missing tile now and then is normal)
             if (e.type == MapLoadingErrorType.STYLE) onError?.invoke(e.message)
@@ -482,18 +490,37 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
      */
     private fun addSatellite(st: Style) {
         try {
-            android.util.Log.w("MapBinding", "satellite: install, source already there=${st.styleSourceExists("dl-sat")}, source=${if (satEox) "EOX" else "Mapbox"}, layers=${st.styleLayers.size}")
+            val chain = satChain()
+            val prov = chain[satStep.coerceIn(0, chain.size - 1)]
+            android.util.Log.w("MapBinding", "satellite: install, source already there=${st.styleSourceExists("dl-sat")}, source=$prov, states=${SatelliteSources.withStates(prov)}, layers=${st.styleLayers.size}")
             if (st.styleSourceExists("dl-sat")) return
-            // Mapbox's photos go to zoom 17 (fewer tiles asked at once); EOX's Sentinel-2 photos stop at zoom 13 (free for non-commercial use, attribution required)
-            val src = if (satEox) RasterSource.Builder("dl-sat").tiles(listOf("https://tiles.maps.eox.at/wmts/1.0.0/s2cloudless-2023_3857/default/GoogleMapsCompatible/{z}/{y}/{x}.jpg")).tileSize(256).maxzoom(13L).build()
-                      else RasterSource.Builder("dl-sat").url("mapbox://mapbox.satellite").tileSize(256).maxzoom(17L).build()
+            val src = when (prov) {
+                SatProvider.MAPBOX -> RasterSource.Builder("dl-sat").url("mapbox://mapbox.satellite").tileSize(256).maxzoom(17L).build()
+                SatProvider.ESRI -> RasterSource.Builder("dl-sat").tiles(listOf(SatelliteSources.esriTiles(prefs.s(PreferenceKeys.ESRI_KEY, ""))))
+                    .tileSize(256).maxzoom(19L).attribution(SatelliteSources.ESRI_CREDIT).build()
+                SatProvider.MAPTILER -> RasterSource.Builder("dl-sat").tiles(listOf(SatelliteSources.maptilerTiles(prefs.s(PreferenceKeys.MAPTILER_KEY, ""))))
+                    .tileSize(512).maxzoom(20L).attribution(SatelliteSources.MAPTILER_CREDIT).build()
+                // EOX's Sentinel-2 photos stop at zoom 13 (free for non-commercial use, attribution required)
+                SatProvider.EOX -> RasterSource.Builder("dl-sat").tiles(listOf(SatelliteSources.EOX_TILES)).tileSize(256).maxzoom(13L)
+                    .attribution(SatelliteSources.EOX_CREDIT).build()
+            }
             addS(st, src)
             // The streets style's opaque ground is a "background"-type layer named "land": the photos go right above it
             // (below the first layer that isn't a background), and the background itself is hidden.
             val below = st.styleLayers.firstOrNull { it.type != "background" }?.id
             android.util.Log.w("MapBinding", "satellite: photo layer below=$below")
-            val layer = RasterLayer("dl-sat-photo", "dl-sat").rasterFadeDuration(0.0)
-            if (below != null) st.addLayerBelow(layer, below) else st.addLayer(layer)
+            fun put(l: RasterLayer) { if (below != null) st.addLayerBelow(l, below) else st.addLayer(l) }
+            put(RasterLayer("dl-sat-photo", "dl-sat").rasterFadeDuration(0.0))
+            // Once Mapbox isn't the source: the state surveying offices' 20 cm photos inside Germany, over the worldwide ones
+            // (each state's service is transparent outside its state, and only asked within its rough area, from zoom 12)
+            if (SatelliteSources.withStates(prov)) for (w in SatelliteSources.states) {
+                try {
+                    val id = "dl-sat-de-${w.code}"
+                    addS(st, RasterSource.Builder(id).tiles(listOf(SatelliteSources.wmsTiles(w))).tileSize(256)
+                        .bounds(listOf(w.west, w.south, w.east, w.north)).minzoom(12L).maxzoom(19L).attribution("Luftbilder " + w.credit).build())
+                    put(RasterLayer("$id-photo", id).rasterFadeDuration(0.0).minZoom(12.0))
+                } catch (e: Throwable) { android.util.Log.w("MapBinding", "satellite ${w.code}: ${e.message}") }
+            }
             // The streets style's opaque land, water and building fills would cover the photos: hide them in satellite mode.
             // Roads, labels and symbols stay on top of the photos.
             for (info in st.styleLayers) {
@@ -503,8 +530,8 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
     }
     /** Takes the satellite photos out of the style again, so the other photo source can be added in their place. */
     private fun dropSatellite(st: Style) {
-        try { st.removeStyleLayer("dl-sat-photo") } catch (e: Throwable) { }
-        try { st.removeStyleSource("dl-sat") } catch (e: Throwable) { }
+        for (l in st.styleLayers.map { it.id }.filter { it.startsWith("dl-sat") }) try { st.removeStyleLayer(l) } catch (e: Throwable) { }
+        for (src in st.styleSources.map { it.id }.filter { it.startsWith("dl-sat") }) try { st.removeStyleSource(src) } catch (e: Throwable) { }
     }
     private fun addS(st: Style, s: com.mapbox.maps.extension.style.StyleContract.StyleSourceExtension) {
         try { st.addSource(s) } catch (e: Throwable) { android.util.Log.w("MapBinding", "source: ${e.message}") }

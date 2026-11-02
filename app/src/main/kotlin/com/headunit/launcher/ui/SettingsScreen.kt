@@ -985,6 +985,12 @@ private fun KeysSection(prefs: Prefs, engine: NavEngine) {
         SFieldItem("Mapbox Zugangstoken", prefs.s(PreferenceKeys.MAPBOX_TOKEN, ""), "Öffentliches Token (beginnt mit pk.) einfügen",
             placeholder = "Token einfügen") { prefs.put(PreferenceKeys.MAPBOX_TOKEN, com.headunit.launcher.MapboxRest.clean(it)) }
     }
+    SGroup("Satellitenbilder", footer = "Reihenfolge: Mapbox, dann die Luftbilder der Landesämter (nur Deutschland), dann Esri, dann MapTiler, zuletzt EOX Sentinel-2. Ohne Schlüssel wird der Anbieter übersprungen. Ein neuer Schlüssel gilt ab dem nächsten Umschalten auf Satellit.") {
+        SFieldItem("Esri API-Schlüssel", prefs.s(PreferenceKeys.ESRI_KEY, ""), "Kostenlos auf location.arcgis.com, mit Zugriff auf Basemaps",
+            placeholder = "Schlüssel einfügen") { prefs.put(PreferenceKeys.ESRI_KEY, it.trim()) }
+        SFieldItem("MapTiler API-Schlüssel", prefs.s(PreferenceKeys.MAPTILER_KEY, ""), "Kostenlos auf cloud.maptiler.com",
+            placeholder = "Schlüssel einfügen") { prefs.put(PreferenceKeys.MAPTILER_KEY, it.trim()) }
+    }
     if (engine.hasKey && engine.hasMapbox) SGroup("Routen, Suche und Verkehr") {
         SChoice("Nutzung", listOf("auto" to "Auto", "tomtom" to "TomTom", "mapbox" to "Mapbox"), prefs.s(PreferenceKeys.DATAPROV, "auto")) { prefs.put(PreferenceKeys.DATAPROV, it) }
     }

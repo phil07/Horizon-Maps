@@ -61,6 +61,8 @@ internal object PreferenceKeys {
     const val MAP_COLOURS = "mapcolours"
     const val MAP_RESOLUTION = "mapres"
     const val MAPBOX_TOKEN = "mbtoken"
+    const val ESRI_KEY = "esrikey"
+    const val MAPTILER_KEY = "maptilerkey"
     const val MAPBOX_AUTO_NETWORK = "mbautonet"
     const val MAPBOX_LOGO = "mblogo"
     const val ARROW_PERCENT = "arrowpct"
