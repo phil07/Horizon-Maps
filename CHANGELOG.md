@@ -4,6 +4,9 @@ Add user-facing Horizon Nav changes under **Unreleased** before publishing each 
 
 ## Unreleased
 
+### Behoben
+- Satellitenbilder sichtbar: Die Luftbilder lagen unter der beigen Grundfläche der Karte und waren deshalb nicht zu sehen. Jetzt liegen sie darüber.
+
 ### Neu
 - Satellit auf der Autokarte: Die Satellitenkarte wird jetzt auch auf dem Display im Auto angezeigt. Vorher wurde die Einstellung dort ignoriert.
 - Log-Export für die Fehlersuche: In den Einstellungen unter „Horizon Nav“ siebenmal schnell auf die Version tippen. Dann erscheint „Logs“, und die letzten Meldungen lassen sich in die Zwischenablage kopieren.

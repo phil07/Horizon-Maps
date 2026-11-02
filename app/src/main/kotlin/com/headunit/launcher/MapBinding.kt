@@ -482,20 +482,22 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
      */
     private fun addSatellite(st: Style) {
         try {
-            android.util.Log.i("MapBinding", "satellite: install, source already there=${st.styleSourceExists("dl-sat")}, source=${if (satEox) "EOX" else "Mapbox"}, layers=${st.styleLayers.size}")
+            android.util.Log.w("MapBinding", "satellite: install, source already there=${st.styleSourceExists("dl-sat")}, source=${if (satEox) "EOX" else "Mapbox"}, layers=${st.styleLayers.size}")
             if (st.styleSourceExists("dl-sat")) return
             // Mapbox's photos go to zoom 17 (fewer tiles asked at once); EOX's Sentinel-2 photos stop at zoom 13 (free for non-commercial use, attribution required)
             val src = if (satEox) RasterSource.Builder("dl-sat").tiles(listOf("https://tiles.maps.eox.at/wmts/1.0.0/s2cloudless-2023_3857/default/GoogleMapsCompatible/{z}/{y}/{x}.jpg")).tileSize(256).maxzoom(13L).build()
                       else RasterSource.Builder("dl-sat").url("mapbox://mapbox.satellite").tileSize(256).maxzoom(17L).build()
             addS(st, src)
-            val below = st.styleLayers.firstOrNull { it.id != "background" }?.id
-            android.util.Log.i("MapBinding", "satellite: photo layer below=$below")
+            // The streets style's opaque ground is a "background"-type layer named "land": the photos go right above it
+            // (below the first layer that isn't a background), and the background itself is hidden.
+            val below = st.styleLayers.firstOrNull { it.type != "background" }?.id
+            android.util.Log.w("MapBinding", "satellite: photo layer below=$below")
             val layer = RasterLayer("dl-sat-photo", "dl-sat").rasterFadeDuration(0.0)
             if (below != null) st.addLayerBelow(layer, below) else st.addLayer(layer)
             // The streets style's opaque land, water and building fills would cover the photos: hide them in satellite mode.
             // Roads, labels and symbols stay on top of the photos.
             for (info in st.styleLayers) {
-                if (info.type == "fill" || info.type == "fill-extrusion") try { st.setStyleLayerProperty(info.id, "visibility", Value.valueOf("none")) } catch (e: Throwable) { }
+                if (info.type == "fill" || info.type == "fill-extrusion" || info.type == "background") try { st.setStyleLayerProperty(info.id, "visibility", Value.valueOf("none")) } catch (e: Throwable) { }
             }
         } catch (e: Throwable) { android.util.Log.w("MapBinding", "satellite: ${e.message}") }
     }
@@ -1995,7 +1997,7 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
 
     fun setView(sat: Boolean, b3d: Boolean) {
         val satChanged = sat != satellite
-        android.util.Log.i("MapBinding", "satellite: setView sat=$sat (was $satellite), style set=${wantedStyle != null}")
+        android.util.Log.w("MapBinding", "satellite: setView sat=$sat (was $satellite), style set=${wantedStyle != null}")
         satellite = sat
         buildings3d = b3d
         // satellite is Mapbox's Standard Satellite style (a style of its own, so the map reloads); 3D buildings is one of Standard's settings
