@@ -992,7 +992,13 @@ private fun KeysSection(prefs: Prefs, engine: NavEngine) {
             placeholder = "Schlüssel einfügen") { prefs.put(PreferenceKeys.HERE_KEY, it.trim()) }
         if (prefs.s(PreferenceKeys.HERE_KEY, "").isNotBlank()) {
             val st = com.headunit.launcher.HereRest.status
-            SNote("HERE: " + st.ifBlank { "noch keine Abfrage (fragt bei freier Fahrt ohne Route, sobald du ein paar Meter gefahren bist)" })
+            SNote("HERE: " + st.ifBlank { "noch keine Abfrage (fragt, sobald du ein paar Meter gefahren bist)" })
+        }
+        SFieldItem("Mapillary Client-Token", prefs.s(PreferenceKeys.MAPILLARY_KEY, ""), "Tempo-Schilder von Straßenfotos, für genauere Tempolimits. Kostenlos auf mapillary.com/dashboard/developers",
+            placeholder = "Token einfügen (MLY|…)") { prefs.put(PreferenceKeys.MAPILLARY_KEY, it.trim()) }
+        if (prefs.s(PreferenceKeys.MAPILLARY_KEY, "").isNotBlank()) {
+            val st = com.headunit.launcher.Mapillary.status
+            SNote("Mapillary: " + st.ifBlank { "noch keine Abfrage (fragt, sobald du fährst)" })
         }
         SFieldItem("Mapbox Zugangstoken", prefs.s(PreferenceKeys.MAPBOX_TOKEN, ""), "Öffentliches Token (beginnt mit pk.) einfügen",
             placeholder = "Token einfügen") { prefs.put(PreferenceKeys.MAPBOX_TOKEN, com.headunit.launcher.MapboxRest.clean(it)) }

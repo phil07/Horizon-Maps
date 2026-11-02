@@ -63,6 +63,8 @@ internal object PreferenceKeys {
     const val MAPBOX_TOKEN = "mbtoken"
     const val ESRI_KEY = "esrikey"
     const val MAPTILER_KEY = "maptilerkey"
+    /** Mapillary client token, for speed limit signs recognised on street photos (Settings > Kartenkonten). */
+    const val MAPILLARY_KEY = "mapillarykey"
     const val SAT_SOURCE = "satsource"
     const val VEHICLE = "vehicle"
     const val TRIP_BUSINESS = "tripbusiness"

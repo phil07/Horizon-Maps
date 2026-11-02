@@ -244,9 +244,26 @@ fun HazardBadge(kind: String, label: String, dist: String) {
     }
 }
 
-/** UK-style speed limit roundel for the current road; pulses when the limit changes and tints when you're over it. */
+/**
+ * The speed limit sign for the current road. A small amber dot on its edge means the sources don't agree; on the phone a tap
+ * shows what each source said ("Schild 50 · TomTom 70 · OSM 50").
+ */
 @Composable
 fun SpeedLimitSign(engine: NavEngine, size: Dp, modifier: Modifier = Modifier, onClick: (() -> Unit)? = null) {
+    val details: () -> Unit = { engine.toast(engine.limitDetails.ifBlank { Lang.t("Keine Angaben der Quellen", "No details from the sources") }, 6000) }
+    val tap: (() -> Unit)? = onClick ?: if (!engine.isCar) details else null
+    Box(modifier) {
+        SpeedLimitFace(engine, size, Modifier, tap)
+        if (engine.limitDisputed && (engine.speedLimit != null || engine.noLimit)) Box(
+            Modifier.align(Alignment.TopEnd).size(size * 0.24f).shadow(3.dp, CircleShape).clip(CircleShape)
+                .background(Color(0xFFFFB300)).border(1.5.dp, Color.White, CircleShape)
+        )
+    }
+}
+
+/** UK-style speed limit roundel for the current road; pulses when the limit changes and tints when you're over it. */
+@Composable
+private fun SpeedLimitFace(engine: NavEngine, size: Dp, modifier: Modifier = Modifier, onClick: (() -> Unit)? = null) {
     val l = engine.speedLimit ?: run { if (engine.noLimit) NoLimitSign(size, modifier, onClick); return }
     val k = if (engine.imperial) 2.23694 else 3.6
     val n = (Math.round(l * k / 5.0) * 5).toInt()

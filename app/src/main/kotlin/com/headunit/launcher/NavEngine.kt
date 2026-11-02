@@ -89,6 +89,10 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
     var limitEstimated by mutableStateOf(false)
     /** The road has no general limit (an unrestricted Autobahn): the "end of all restrictions" sign shows instead of a number. Only while [speedLimit] is null. */
     var noLimit by mutableStateOf(false)
+    /** The sources don't agree on the limit shown (a small mark on the sign). */
+    var limitDisputed by mutableStateOf(false)
+    /** What each source said about the limit ("Schild 50 · TomTom 70 · OSM 50"), shown when the sign is tapped. */
+    var limitDetails by mutableStateOf("")
     private var limitOkAt = 0L
     private var limitOkPos: LL? = null
     private var limitFails = 0
@@ -2092,12 +2096,19 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
     private var pendLimit = -2.0
     private var pendHits = 0
 
-    /** True while the posted limits that came with the route are being shown (they're exact, so nothing else overrides them). */
+    /** The route's own limit where you are now (m/s), while navigating; it votes with the other sources. */
+    @Volatile private var routeLimitNow: Double? = null
+    /** The route's limit that the other sources outvoted, so it isn't put back on the sign with every GPS fix. */
+    @Volatile private var routeOverruled: Double? = null
+
+    /** True while the posted limits that came with the route are being shown (updated with every GPS fix). */
     private fun routeLimitLive() = route != null && !previewing && System.currentTimeMillis() - routeLimitAt < 4000L
 
     /**
-     * The limit of the road at [p]: with a TomTom key (built in or your own), TomTom's road data supplies it; OpenStreetMap supplies
-     * the road name, and the limit when TomTom has none or can't be reached.
+     * The limit of the road at [p], asked of every source at once and decided by a weighted vote (see [SpeedVote]): OpenStreetMap
+     * (which also gives the road name), HERE and TomTom with a key, Mapbox with a token, the route's own limits while navigating
+     * ([routeMs]), and the last speed sign passed as recognised on Mapillary's street photos. Each map source is asked again on a
+     * new stretch of road, otherwise only every 15 to 20 seconds.
      */
     private val mbTrail = ArrayList<LL>()
     @Volatile private var mbAt = 0L
@@ -2108,87 +2119,110 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
     @Volatile private var herePos: LL? = null
     @Volatile private var hereWay = -1L
     @Volatile private var hereLim: Double? = null
-    @Volatile private var hereOkAt = 0L
-    /** HERE answered in the last 30 seconds (with a key set): its limit is used before the route's own, also on a route. */
-    private fun hereFresh(): Boolean = prefs.s(PreferenceKeys.HERE_KEY, "").isNotBlank() && System.currentTimeMillis() - hereOkAt < 30_000L
 
-    private fun lookUpLimit(p: LL, hd: Double, routeHere: Boolean): Overpass.Limit? {
+    /** The last speed sign passed (Mapillary), with the road it was on: it counts until the road changes, or for 10 minutes. */
+    private class SeenSign(val sign: MlySign, val wayId: Long, val road: String, val pos: LL, val at: Long)
+    @Volatile private var seenSign: SeenSign? = null
+
+    /** The sign from Mapillary that applies at [p] now, or null (none passed, or the road has changed since). */
+    private fun signNow(signs: List<MlySign>?, p: LL, hd: Double, osm: Overpass.Limit?): MlySign? {
+        val now = System.currentTimeMillis()
+        val way = osm?.wayId ?: 0L
+        val road = osm?.road.orEmpty()
+        if (signs != null) Mapillary.passed(signs, p, hd)?.let { s ->
+            if (seenSign?.sign != s) seenSign = SeenSign(s, way, road, p, now)
+        }
+        val ss = seenSign ?: return null
+        val sameRoad = (way != 0L && way == ss.wayId) || (road.isNotBlank() && road == ss.road && Geo.dist(ss.pos, p) < 2500.0) ||
+            (way == 0L && road.isBlank() && Geo.dist(ss.pos, p) < 400.0)
+        if (!sameRoad || now - ss.at > 600_000L) { seenSign = null; return null }
+        // an "end of limit" sign: the limit it ended no longer counts, and it says nothing itself
+        return ss.sign.takeIf { !it.end }
+    }
+
+    private suspend fun lookUpLimit(p: LL, hd: Double, routeMs: Double?): Pair<Overpass.Limit?, SpeedVote.Result?> {
         // the country you're in (from where you are), not the head unit's language setting, which is often US English anywhere
-        val osm = Overpass.speedLimit(p, hd, if (Overpass.countryAt(p) == "GB") "GB" else detectedCountry.ifBlank { Overpass.countryAt(p) })
-        // your last few positions, for Mapbox to match to its roads
+        val cc = if (Overpass.countryAt(p) == "GB") "GB" else detectedCountry.ifBlank { Overpass.countryAt(p) }
+        val osm = Overpass.speedLimit(p, hd, cc)
+        // your last few positions, for HERE and Mapbox to match to their roads
         synchronized(mbTrail) {
             if (mbTrail.isEmpty() || Geo.dist(mbTrail.last(), p) > 15.0) { mbTrail.add(p); while (mbTrail.size > 5) mbTrail.removeAt(0) }
             if (Geo.dist(mbTrail.first(), p) > 600.0) { mbTrail.clear(); mbTrail.add(p) }
         }
-        if (!online()) return osm
+        if (!online()) return osm to null
         // a limit for certain times from OpenStreetMap ("30 @ 22:00-06:00"): the other sources only know the plain one
-        if (osm != null && osm.timed) return osm
-        // HERE first when you've put in a key: its road data is the most complete and up to date (Settings > Map accounts)
+        if (osm != null && osm.timed) return osm to null
+        val way = osm?.wayId ?: 0L
+        val trail = synchronized(mbTrail) { mbTrail.toList() }
         val hk = prefs.s(PreferenceKeys.HERE_KEY, "").trim()
-        if (hk.isNotEmpty()) {
-            val now = System.currentTimeMillis()
-            val way = osm?.wayId ?: 0L
-            val stale = now - hereAt > 20_000L || (herePos?.let { Geo.dist(it, p) > 250.0 } ?: true)
-            // a new stretch of road or an old answer, at most once every 4 seconds (a long way inside HERE's free allowance)
-            if ((way != hereWay || stale) && now - hereAt > 4000L) {
-                val trail = synchronized(mbTrail) { mbTrail.toList() }
-                if (trail.size >= 2) {
+        val mk = prefs.s(PreferenceKeys.MAPILLARY_KEY, "").trim()
+        val mph = cc == "GB" || cc == "US"
+        // every source at once
+        val (hv, tt, mb, signs) = kotlinx.coroutines.coroutineScope {
+            val hereJ = async(Dispatchers.IO) {
+                if (hk.isEmpty()) return@async null
+                val now = System.currentTimeMillis()
+                val stale = now - hereAt > 20_000L || (herePos?.let { Geo.dist(it, p) > 250.0 } ?: true)
+                // a new stretch of road or an old answer, at most once every 4 seconds (a long way inside HERE's free allowance)
+                if ((way != hereWay || stale) && now - hereAt > 4000L && trail.size >= 2) {
                     hereAt = now; herePos = p; hereWay = way
                     hereLim = try { HereRest.speedLimitNoted(hk, trail) } catch (e: Exception) { null }
                 }
+                if (osm == null || hereWay == way) hereLim else null
             }
-            val hv = if (osm == null || hereWay == way) hereLim else null
-            if (hv != null) {
-                hereOkAt = now
-                return if (hv <= 0.0) Overpass.Limit(-1.0, false, osm?.road ?: "", osm?.wayId ?: 0L, osm?.names ?: emptyList(), true, noLimit = true)
-                else Overpass.Limit(hv, false, osm?.road ?: "", osm?.wayId ?: 0L, osm?.names ?: emptyList(), true)
+            val ttJ = async(Dispatchers.IO) {
+                if (!hasKey || ttDown()) return@async null
+                val now = System.currentTimeMillis()
+                val stale = now - ttAt > 15_000L || (ttPos?.let { Geo.dist(it, p) > 200.0 } ?: true)
+                // a new stretch of road (OpenStreetMap splits roads where the limit changes) or an old answer, at most every 2.5 s
+                if ((way != ttWay || stale) && now - ttAt > 2500L) {
+                    ttAt = now; ttPos = p; ttWay = way
+                    ttLim = try { TomTomRest.speedLimit(apiKey, p, hd) } catch (e: Exception) { null }
+                }
+                if (osm == null || ttWay == way) ttLim else null
             }
-            // HERE answered for this very road without a number, and OpenStreetMap has no posted limit here: on an Autobahn or
-            // Schnellstraße that means no general limit, not the last sign seen (a failed request doesn't count)
-            if (hv == null && hereWay == way && HereRest.lastError == null && osm != null && osm.major && !osm.timed && !(osm.ms > 0.0 && !osm.estimated)) {
-                return Overpass.Limit(-1.0, false, osm.road, osm.wayId, osm.names, true, noLimit = true, major = true)
-            }
-        }
-        // on a route, the route's own limits are used when HERE has none (see applyRouteLimit)
-        if (routeHere) return osm
-        if (!hasKey || ttDown()) {
-            // no TomTom key (or TomTom not working right now) but a Mapbox token: Mapbox matches your last few positions to its roads and gives that road's limit
-            if (provider != "mapbox") return osm
-            val now = System.currentTimeMillis()
-            val way = osm?.wayId ?: 0L
-            val stale = now - mbAt > 20_000L || (mbPos?.let { Geo.dist(it, p) > 250.0 } ?: true)
-            // a new stretch of road or an old answer, at most once every 4 seconds
-            if ((way != mbWay || stale) && now - mbAt > 4000L) {
-                val trail = synchronized(mbTrail) { mbTrail.toList() }
-                if (trail.size >= 2) {
+            val mbJ = async(Dispatchers.IO) {
+                if (!hasMapbox) return@async null
+                val now = System.currentTimeMillis()
+                val stale = now - mbAt > 20_000L || (mbPos?.let { Geo.dist(it, p) > 250.0 } ?: true)
+                if ((way != mbWay || stale) && now - mbAt > 4000L && trail.size >= 2) {
                     mbAt = now; mbPos = p; mbWay = way
                     mbLim = try { MapboxRest.speedLimit(mbToken, trail) } catch (e: Exception) { null }
                 }
+                if (osm == null || mbWay == way) mbLim else null
             }
-            // OpenStreetMap first: Mapbox's limit is used only where OpenStreetMap has none, or only a guess
-            val osmHasLimit = osm != null && osm.ms > 0.0 && !osm.estimated
-            val v = (if (!osmHasLimit && (osm == null || mbWay == way)) mbLim else null) ?: return osm
-            // Mapbox says there is no limit here ("none", an unrestricted Autobahn): show the no-limit sign. It used to be dropped,
-            // so the sign stayed blank wherever OpenStreetMap didn't say so itself
-            if (v <= 0.0) return osm?.takeIf { it.noLimit } ?: Overpass.Limit(-1.0, false, osm?.road ?: "", osm?.wayId ?: 0L, osm?.names ?: emptyList(), true, noLimit = true)
-            return Overpass.Limit(v, false, osm?.road ?: "", osm?.wayId ?: 0L, osm?.names ?: emptyList(), true)
+            val mlyJ = async(Dispatchers.IO) { if (mk.isEmpty()) null else try { Mapillary.signsAround(mk, p, mph) } catch (e: Exception) { null } }
+            Quad(hereJ.await(), ttJ.await(), mbJ.await(), mlyJ.await())
         }
-        val tNow = System.currentTimeMillis()
-        val way = osm?.wayId ?: 0L
-        val stale = tNow - ttAt > 15_000L || (ttPos?.let { Geo.dist(it, p) > 200.0 } ?: true)
-        // a new stretch of road (OpenStreetMap splits roads where the limit changes) or an old answer: ask TomTom again,
-        // but never more than once every 2.5 seconds, which keeps well inside the free allowance
-        if ((way != ttWay || stale) && tNow - ttAt > 2500L) {
-            ttAt = tNow; ttPos = p; ttWay = way
-            ttLim = try { TomTomRest.speedLimit(apiKey, p, hd) } catch (e: Exception) { null }
+        val votes = ArrayList<SpeedVote.Vote>()
+        val osmNone = osm != null && osm.noLimit && !osm.estimated
+        if (osm != null) {
+            if (osmNone) votes += SpeedVote.Vote("OSM", SpeedVote.NONE, SpeedVote.W_OSM)
+            else if (osm.ms > 0.0) votes += SpeedVote.Vote("OSM", osm.ms, if (osm.estimated) SpeedVote.W_GUESS else SpeedVote.W_OSM, osm.estimated)
         }
-        // TomTom's limit whenever it has one (it's the more complete and up-to-date source); OpenStreetMap is the backup
-        // OpenStreetMap saying outright that there is no limit ("maxspeed=none", "DE:motorway") wins: TomTom has no way to say
-        // "no limit", so an answer of its from the stretch before would otherwise stay on the sign
-        if (osm != null && osm.noLimit && !osm.estimated) return osm
-        val tt = (if (osm == null || ttWay == way) ttLim else null) ?: return osm
-        return Overpass.Limit(tt.ms, false, osm?.road ?: "", osm?.wayId ?: 0L, osm?.names ?: emptyList(), true)
+        if (hv != null) votes += SpeedVote.Vote("HERE", if (hv <= 0.0) SpeedVote.NONE else hv, SpeedVote.W_HERE)
+        // HERE answered for this very road without a number, and OpenStreetMap has no posted limit here: on an Autobahn or
+        // Schnellstraße that means no general limit, not the last sign seen (a failed request doesn't count)
+        else if (hk.isNotEmpty() && hereWay == way && HereRest.lastError == null && osm != null && osm.major && !(osm.ms > 0.0 && !osm.estimated))
+            votes += SpeedVote.Vote("HERE", SpeedVote.NONE, SpeedVote.W_HERE)
+        // TomTom has no way to say "no limit": where OpenStreetMap says so outright, an answer of its from the stretch before doesn't count
+        if (tt != null && !osmNone) votes += SpeedVote.Vote("TomTom", tt.ms, SpeedVote.W_TOMTOM)
+        if (mb != null) votes += SpeedVote.Vote("Mapbox", if (mb <= 0.0) SpeedVote.NONE else mb, SpeedVote.W_MAPBOX)
+        if (routeMs != null && routeMs > 0.0) votes += SpeedVote.Vote(Lang.t("Route", "Route"), routeMs, SpeedVote.W_ROUTE)
+        signNow(signs, p, hd, osm)?.let { s ->
+            val w = SpeedVote.signWeight(if (s.seenAt > 0) System.currentTimeMillis() - s.seenAt else 0L)
+            if (w > 0.0) votes += SpeedVote.Vote(Lang.t("Schild", "Sign"), s.ms, w)
+        }
+        val res = SpeedVote.decide(votes, imperial) ?: return osm to null
+        android.util.Log.w("SpeedVote", "${res.details} -> ${SpeedVote.label(res.ms, imperial)}${if (res.disputed) " (uneinig)" else ""}")
+        // only OpenStreetMap for it: its own sureness (how closely the road was matched); any other source is sure
+        val sure = if (res.winners.all { it == "OSM" }) osm?.sure ?: false else true
+        val lim = if (res.ms == SpeedVote.NONE) Overpass.Limit(-1.0, false, osm?.road ?: "", way, osm?.names ?: emptyList(), sure, noLimit = true, major = osm?.major ?: false)
+            else Overpass.Limit(res.ms, res.estimated, osm?.road ?: "", way, osm?.names ?: emptyList(), sure, major = osm?.major ?: false)
+        return lim to res
     }
+
+    private data class Quad(val here: Double?, val tt: TomTomRest.RoadLimit?, val mb: Double?, val signs: List<MlySign>?)
 
     /**
      * Shows a looked-up limit. A guess from the road type is only shown when "Show estimated limits" is on (a blank sign is better
@@ -2224,7 +2258,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
     /** While navigating a TomTom route: the posted limit for exactly where you are on it, updated with every GPS fix. */
     private fun applyRouteLimit(r: Route, prog: Double, p: Fix) {
         val secs = r.limits
-        if (secs.isEmpty() || hereFresh()) return
+        if (secs.isEmpty()) { routeLimitNow = null; return }
         // a few metres ahead, to make up for the GPS being about a second behind
         val at = prog + min(max(p.speed, 0.0) * 0.8, 20.0)
         var lo = 0; var hi = secs.size - 1; var hit: LimitSec? = null
@@ -2233,8 +2267,12 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
             val sc = secs[m]
             if (at < sc.off) hi = m - 1 else if (at >= sc.end) lo = m + 1 else { hit = sc; break }
         }
-        if (hit == null) return      // no posted limit known for this stretch: the map data takes over
+        if (hit == null) { routeLimitNow = null; return }      // no posted limit known for this stretch: the map data takes over
+        routeLimitNow = hit.ms
         routeLimitAt = System.currentTimeMillis()
+        // the other sources outvoted this very value (a sign on the road, say): the vote's answer stays until the route's value changes
+        val over = routeOverruled
+        if (over != null) { if (SpeedVote.key(over) == SpeedVote.key(hit.ms)) return else routeOverruled = null }
         pendHits = 0; pendLimit = -2.0
         if (speedLimit != hit.ms || limitEstimated) { speedLimit = hit.ms; limitEstimated = false }
         if (noLimit) noLimit = false
@@ -2309,19 +2347,23 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
             limitAt = now; limitPos = p.pos; limitBusy = true
             // where the car really is: on the route line while navigating, or snapped to the road the map shows
             val look = (if (glideOnRoute) gPos else mPos)?.takeIf { Geo.dist(it, p.pos) < 40.0 } ?: p.pos
-            val routeHere = routeLimitLive()
+            val routeMs = if (routeLimitLive()) routeLimitNow else null
             scope.launch {
                 try {
                     val hd = if (p.speed > 2.0) p.heading else -1.0
-                    val r = withContext(Dispatchers.IO) { lookUpLimit(look, hd, routeHere) }
+                    val (r, vote) = withContext(Dispatchers.IO) { lookUpLimit(look, hd, routeMs) }
+                    limitDetails = vote?.details.orEmpty(); limitDisputed = vote?.disputed == true
+                    // while navigating, the vote's answer replaces the route's own only where they differ
+                    val overrule = routeMs != null && vote != null && SpeedVote.key(vote.ms) != SpeedVote.key(routeMs)
+                    routeOverruled = if (overrule) routeMs else null
                     if (r != null) {
                         if (r.wayId != 0L || r.road.isNotBlank()) noteRoad(r.road, hd); limitFails = 0
-                        if (!routeLimitLive() || hereFresh()) showLimit(r, p.pos)
+                        if (!routeLimitLive() || overrule) showLimit(r, p.pos)
                     } else if (Overpass.lastError == null) {
                         // looked fine, but you're not on a mapped road (a car park, a new estate): no road name or limit rather than the
                         // last road's
                         noteRoad("", hd)
-                        if (!routeLimitLive() || hereFresh()) showLimit(Overpass.Limit(-1.0, true), p.pos)
+                        if (!routeLimitLive()) showLimit(Overpass.Limit(-1.0, true), p.pos)
                     } else {
                         // keep showing the last known limit through a failed lookup; only drop it once it is clearly out of date (10 minutes or 3 km)
                         val okPos = limitOkPos
