@@ -10,6 +10,7 @@ Add user-facing Horizon Nav changes under **Unreleased** before publishing each 
 - Gespeichert & Zuletzt zugeklappt: Die Liste unter der Suchleiste ist beim Start der App und bei jeder Verbindung mit dem Auto zugeklappt und hält die Karte frei. Ein Tipp klappt sie auf.
 
 ### Behoben
+- Ankunftskarte in Android Auto: „Fertig“, „Rückweg“, „Ort speichern“, der Parkplatz-Vorschlag und die Parkzeit-Knöpfe reagieren jetzt auf Tippen auf dem Autobildschirm. Bisher kamen die Taps dort nicht an, und die Karte verschwand erst nach 20 Sekunden von selbst.
 - Abbiegeansagen kommen rechtzeitig: Ansagen warten nicht mehr alle der Reihe nach. Eine Abbiegeansage geht vor, unterbricht einen laufenden Hinweis (nie eine Warnung) und ersetzt eine ältere, noch wartende Abbiegeansage. Was zu lange gewartet hat, um noch zu stimmen, fällt weg (Abbiegeansagen nach 6 s, Hinweise nach 15 s, Warnungen nach 30 s).
 - Fahrtrichtung bei jeder Routenberechnung: Beim Start einer Route, bei der Suche nach schnelleren Routen, beim Verkehrs-Update, bei Offline-Routen und bei den Fahrzeiten nach Hause und zur Arbeit wird jetzt die Richtung mitgeschickt, in die du fährst. Die Route beginnt damit in Fahrtrichtung statt mit einem Wenden hinter dir; bisher galt das nur für die Neuberechnung nach dem Abkommen.
 - Gegenrichtung auf der Route: Wer wendet und auf der Route (oder der Gegenfahrbahn direkt daneben) in die andere Richtung fährt, bekommt nach etwa 5 Sekunden eine neue Route. Bisher galt das nicht als Abweichung, weil der Abstand zur Route klein blieb.

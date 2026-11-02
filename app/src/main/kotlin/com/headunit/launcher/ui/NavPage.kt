@@ -412,8 +412,10 @@ private fun ArrivalStat(value: String, label: String) {
 
 /** Shown for a few seconds after arriving, with how the trip went and a button to save the place. */
 @Composable
-internal fun ArrivalCard(engine: NavEngine, a: ArrivalInfo, modifier: Modifier = Modifier) {
+internal fun ArrivalCard(engine: NavEngine, a: ArrivalInfo, modifier: Modifier = Modifier, car: Boolean = false) {
     val c = LocalVw.current
+    // on the car screen taps only reach what has registered where it is (CarTaps): every button here does
+    @Composable fun Modifier.tap(id: String, action: () -> Unit): Modifier = if (car) this.carTap("arr-$id", action) else this
     val imp = engine.imperial
     val k = if (imp) 2.23694 else 3.6
     Column(
@@ -434,7 +436,7 @@ internal fun ArrivalCard(engine: NavEngine, a: ArrivalInfo, modifier: Modifier =
         }
         engine.arrivalParking?.let { pk ->
             Row(
-                Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(c.tile).clickable { engine.dismissArrival(); engine.startRoute(pk.place) }.padding(horizontal = 14.dp, vertical = 10.dp),
+                Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(c.tile).tap("park") { engine.dismissArrival(); engine.startRoute(pk.place) }.clickable { engine.dismissArrival(); engine.startRoute(pk.place) }.padding(horizontal = 14.dp, vertical = 10.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Icon(Icons.Rounded.LocalParking, null, tint = Color(0xFF4C8DFF), modifier = Modifier.size(26.dp))
@@ -451,16 +453,17 @@ internal fun ArrivalCard(engine: NavEngine, a: ArrivalInfo, modifier: Modifier =
         Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
             Text(Lang.t("Parkzeit", "Parking"), color = c.sub, fontSize = 13.sp)
             for ((m, label) in listOf(30 to Lang.t("30 Min.", "30 min"), 60 to Lang.t("1 Std.", "1 h"), 120 to Lang.t("2 Std.", "2 h"), 180 to Lang.t("3 Std.", "3 h")))
-                Pill(label, engine.parkMinutes == m, { engine.parkTimer(m) })
+                Pill(label, engine.parkMinutes == m, { engine.parkTimer(m) }, Modifier.tap("pk$m") { engine.parkTimer(m) })
         }
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             a.place?.let { p ->
                 var fav by remember { mutableStateOf(engine.places.isFavourite(p)) }
-                Pill(if (fav) Lang.t("Gespeichert", "Saved") else Lang.t("Ort speichern", "Save place"), fav, { fav = engine.places.toggleFavourite(p) })
+                Pill(if (fav) Lang.t("Gespeichert", "Saved") else Lang.t("Ort speichern", "Save place"), fav, { fav = engine.places.toggleFavourite(p) },
+                    Modifier.tap("fav") { fav = engine.places.toggleFavourite(p) })
             }
             // the way back to where this trip started (home, if it started there)
-            if (engine.tripFrom != null && engine.prefs.b(PreferenceKeys.ROUTEBACK, true)) Pill(Lang.t("Rückweg", "Route back"), false, { engine.routeBack() })
-            Pill(Lang.t("Fertig", "Done"), true, { engine.dismissArrival() })
+            if (engine.tripFrom != null && engine.prefs.b(PreferenceKeys.ROUTEBACK, true)) Pill(Lang.t("Rückweg", "Route back"), false, { engine.routeBack() }, Modifier.tap("back") { engine.routeBack() })
+            Pill(Lang.t("Fertig", "Done"), true, { engine.dismissArrival() }, Modifier.tap("done") { engine.dismissArrival() })
         }
     }
 }
