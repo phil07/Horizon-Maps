@@ -581,6 +581,9 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
     private var offCount = 0
     /** Off-route strikes before the route is recalculated: 2 (was 3) so a wrong turn is caught sooner. */
     private val REROUTE_STRIKES = 2
+    /** Since when (elapsed ms, 0 none) you've been going the wrong way along the route, and how far along it you were then. */
+    private var backSince = 0L
+    private var backProg = 0.0
     /**
      * A sudden jump onto the road next to the route (GPS reflections between buildings, two roads side by side) is not believed
      * at once: while you keep driving in the route's direction it is held for [SIDE_HOLD_MS], with the arrow kept on the route and
@@ -3387,6 +3390,12 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         } else if (gpsReliableForReroute && newFix) {
             // Still close to the route, but a vehicle moving away from its direction can indicate a wrong turn.
             val seg = Geo.bearing(r.pts[s.segmentIndex], r.pts[min(s.segmentIndex + 1, r.pts.size - 1)])
+            // driving along the route the other way (turned round, or on the other carriageway right next to it): the distance never
+            // gets big enough to count as leaving the route, so it's noticed by the direction and by going backwards along it
+            if (!isStill && p.speed > 3.0 && abs(angDiff(seg, p.heading)) > 130.0) {
+                if (backSince == 0L) { backSince = nowT; backProg = s.progress }
+                if (nowT - backSince > 5000L && backProg - s.progress > 25.0) { backSince = 0L; offCount = 0; reroute(); return }
+            } else backSince = 0L
             if (NavigationPolicy.shouldCountHeadingAwayStrike(s.dist, p.speed, angDiff(seg, p.heading))) {
                 if (++offCount >= REROUTE_STRIKES) reroute()
             } else offCount = 0

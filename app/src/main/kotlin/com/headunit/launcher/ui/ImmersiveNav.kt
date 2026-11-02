@@ -978,10 +978,14 @@ internal fun ImmTurnCard(
             Text(t.street, color = Color.White, fontSize = if (car) 26.sp else 16.sp, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(start = 12.dp))
         } else {
         val thenIcon = t.thenManeuver != null && engine.prefs.s(PreferenceKeys.THEN_STYLE, "row") == "icon"
-        Row(Modifier.padding(start = if (compact) 12.dp else 18.dp, end = if (compact) 12.dp else 16.dp, top = if (compact) 9.dp else 16.dp, bottom = if (compact) 8.dp else 12.dp), verticalAlignment = Alignment.CenterVertically) {
-            ManeuverArrow(t.maneuver, Geo.maneuverAngle(t.maneuver), Modifier.size(if (compact) 42.dp else 60.dp), roundaboutExit = t.exit, roundaboutClockwise = engine.leftTraffic, exitAngle = roundaboutTurn(t.rbIn, t.rbOut))
-            Column(Modifier.padding(start = if (compact) 9.dp else 16.dp).weight(1f)) {
-                RollText(Geo.fmtDist(t.dist, engine.imperial), Color.White, if (compact) 28.sp else 38.sp, fontWeight = FontWeight.Bold)
+        // Android Auto: the full card as big as the slim one (text as large as the car's own "Beenden" button beside it)
+        val distSp = if (car) 44.sp else if (compact) 28.sp else 38.sp
+        val streetSp = if (car) 24.sp else if (compact) 16.sp else 19.sp
+        val chipSp = if (car) 17.sp else 13.sp
+        Row(Modifier.padding(start = if (car) 20.dp else if (compact) 12.dp else 18.dp, end = if (compact && !car) 12.dp else 16.dp, top = if (car) 14.dp else if (compact) 9.dp else 16.dp, bottom = if (car) 12.dp else if (compact) 8.dp else 12.dp), verticalAlignment = Alignment.CenterVertically) {
+            ManeuverArrow(t.maneuver, Geo.maneuverAngle(t.maneuver), Modifier.size(if (car) 64.dp else if (compact) 42.dp else 60.dp), roundaboutExit = t.exit, roundaboutClockwise = engine.leftTraffic, exitAngle = roundaboutTurn(t.rbIn, t.rbOut))
+            Column(Modifier.padding(start = if (car) 16.dp else if (compact) 9.dp else 16.dp).weight(1f)) {
+                RollText(Geo.fmtDist(t.dist, engine.imperial), Color.White, distSp, fontWeight = FontWeight.Bold)
                 // (the tag of a motorway exit is "Ausfahrt 17", from Geo.stepTag; older builds wrote "Exit 17")
                 val exitTag = t.tag.startsWith("Exit") || t.tag.startsWith("Ausfahrt ")
                 val ukSign = engine.prefs.b(PreferenceKeys.UKSIGNS, true) && (t.sign.isNotBlank() && t.sign != t.street || exitTag)
@@ -989,13 +993,13 @@ internal fun ImmTurnCard(
                 // below already carries the exit number)
                 val jctChip = if (t.junction.isBlank() || t.maneuver.uppercase().startsWith("ROUNDABOUT")) "" else if (ukSign && exitTag) t.junctionName else t.junction
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    if (jctChip.isNotBlank()) Text(jctChip, color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis,
+                    if (jctChip.isNotBlank()) Text(jctChip, color = Color.White, fontSize = chipSp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.widthIn(max = 190.dp).clip(RoundedCornerShape(6.dp)).background(Color.White.copy(alpha = 0.18f)).padding(horizontal = 7.dp, vertical = 2.dp))
-                    else if (t.tag.isNotBlank() && !(ukSign && exitTag)) Text(t.tag, color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Bold, maxLines = 1,
+                    else if (t.tag.isNotBlank() && !(ukSign && exitTag)) Text(t.tag, color = Color.White, fontSize = chipSp, fontWeight = FontWeight.Bold, maxLines = 1,
                         modifier = Modifier.clip(RoundedCornerShape(6.dp)).background(Color.White.copy(alpha = 0.18f)).padding(horizontal = 7.dp, vertical = 2.dp))
-                    if (!ukSign && t.sign.isNotBlank() && t.sign != t.street) Text(t.sign, color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis,
+                    if (!ukSign && t.sign.isNotBlank() && t.sign != t.street) Text(t.sign, color = Color.White, fontSize = chipSp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.widthIn(max = 130.dp).clip(RoundedCornerShape(6.dp)).background(Color(0xFF1E8E55)).padding(horizontal = 7.dp, vertical = 2.dp))
-                    Text(t.street, color = Color.White, fontSize = if (compact) 16.sp else 19.sp, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Text(t.street, color = Color.White, fontSize = streetSp, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
             }
             // the turn straight after, as a small arrow (the "Then" line below is used instead when that style is chosen)
@@ -1033,11 +1037,11 @@ internal fun ImmTurnCard(
                     .padding(horizontal = 10.dp, vertical = if (compact) 5.dp else 7.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text("↗", color = Color.White, fontSize = if (compact) 19.sp else 22.sp, fontWeight = FontWeight.ExtraBold)
+                Text("↗", color = Color.White, fontSize = if (car) 24.sp else if (compact) 19.sp else 22.sp, fontWeight = FontWeight.ExtraBold)
                 Text(
                     if (exitLabel.isNotBlank()) Lang.t("AUSFAHRT  $exitLabel", "EXIT  $exitLabel") else Lang.t("AUSFAHRT", "EXIT / SLIP ROAD"),
                     color = Color.White,
-                    fontSize = if (compact) 13.sp else 15.sp,
+                    fontSize = if (car) 19.sp else if (compact) 13.sp else 15.sp,
                     fontWeight = FontWeight.ExtraBold,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
