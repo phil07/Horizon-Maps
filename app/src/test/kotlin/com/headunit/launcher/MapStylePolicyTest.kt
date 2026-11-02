@@ -5,8 +5,8 @@ import org.junit.Test
 
 class MapStylePolicyTest {
     @Test fun satelliteTakesPrecedenceOverDetailAndNightSettings() {
-        assertEquals(BaseMapStyle.STANDARD_SATELLITE, MapStylePolicy.choose(true, "lightest", true))
-        assertEquals(BaseMapStyle.STANDARD_SATELLITE, MapStylePolicy.choose(true, "full", false))
+        assertEquals(BaseMapStyle.STREETS, MapStylePolicy.choose(true, "lightest", true))
+        assertEquals(BaseMapStyle.STREETS, MapStylePolicy.choose(true, "full", false))
     }
 
     @Test fun lightestModeSelectsClassicStreetsStyle() {

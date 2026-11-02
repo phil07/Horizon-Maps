@@ -469,6 +469,19 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
         try { if (below != null && st.styleLayerExists(below)) st.addLayerBelow(l, below) else st.addLayer(l) }
         catch (e: Throwable) { android.util.Log.w("MapBinding", "layer ${l.layerId}: ${e.message}") }
     }
+    /**
+     * Satellite photos under the streets: Mapbox's own satellite tiles, drawn beneath the roads and labels (the streets style
+     * carries the rest). Replaces Mapbox Standard Satellite, which left the photos blank on the car's screen.
+     */
+    private fun addSatellite(st: Style) {
+        try {
+            if (st.styleSourceExists("dl-sat")) return
+            addS(st, RasterSource.Builder("dl-sat").url("mapbox://mapbox.satellite").tileSize(256).build())
+            val below = st.styleLayers.firstOrNull { it.id != "background" }?.id
+            val layer = RasterLayer("dl-sat-photo", "dl-sat").rasterFadeDuration(0.0)
+            if (below != null) st.addLayerBelow(layer, below) else st.addLayer(layer)
+        } catch (e: Throwable) { android.util.Log.w("MapBinding", "satellite: ${e.message}") }
+    }
     private fun addS(st: Style, s: com.mapbox.maps.extension.style.StyleContract.StyleSourceExtension) {
         try { st.addSource(s) } catch (e: Throwable) { android.util.Log.w("MapBinding", "source: ${e.message}") }
     }
@@ -1716,6 +1729,7 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
     private var lanesOnLayer: SymbolLayer? = null
 
     private fun install(st: Style) {
+        if (satellite) addSatellite(st)
         val im = theme == "immersive"
         val dayLook = !nightStyle
         bubImgs.clear(); laneImgs.clear()
@@ -1973,9 +1987,8 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
         }
     }
 
-    /** The style the map should show: Standard, or Standard Satellite when satellite is on. */
+    /** The style the map should show: Standard, or the streets style with the photos under it when satellite is on. */
     fun baseStyle(): String = when (MapStylePolicy.choose(satellite, mapDetail, nightStyle)) {
-        BaseMapStyle.STANDARD_SATELLITE -> Style.STANDARD_SATELLITE
         BaseMapStyle.DARK_STREETS -> Style.DARK
         BaseMapStyle.STREETS -> Style.MAPBOX_STREETS
         BaseMapStyle.STANDARD -> Style.STANDARD

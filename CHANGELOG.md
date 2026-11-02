@@ -5,6 +5,7 @@ Add user-facing Horizon Nav changes under **Unreleased** before publishing each 
 ## Unreleased
 
 ### Neu
+- Satellitenkarte geladen: Die Satellitenkarte zeigt jetzt die Luftbilder unter den Straßen. Vorher blieb der Hintergrund bei vielen Geräten leer.
 - Blitzer beim Start: Die App lädt die Blitzer um deinen Standort schon beim Start, auch wenn Android Auto verbunden ist und die Karte noch nicht offen ist. Der Hinweis „Keine Blitzerdaten“ erscheint nur einmal für 5 Sekunden, nicht bei jeder fehlgeschlagenen Suche.
 - Baustellen auf Autobahnen: Baustellen, Sperrungen und Warnungen der Autobahn GmbH erscheinen auf der Karte, als Warnung auf deiner Route mit Entfernung und als Ansage. Sie werden beim Routenstart und danach alle 5 Minuten geholt, ohne Schlüssel. Daten: Autobahn GmbH.
 - Ansagestimme wählen: Unter Einstellungen > Ton & Stimme wählst du eine installierte deutsche Stimme. Online-Stimmen klingen meist natürlicher, brauchen aber Internet. „Probe anhören“ spielt eine Beispielansage.
