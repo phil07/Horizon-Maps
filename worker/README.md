@@ -41,6 +41,10 @@ Jede Anfrage der App schickt den Header `X-Device: <zufällige ID>`.
 - `GET /v1/health` → `{"ok":true}`
 - `POST /v1/limits` mit `{"lat":48.1,"lon":11.5,"heading":90,"kmh":50}` (`kmh` 0 = kein Limit) → `{"ok":true,"replaced":0}`
 - `GET /v1/limits?s=&w=&n=&e=` (höchstens 0,2° je Seite) → `{"now":…,"limits":[{"lat","lon","h","kmh","t","mine"}]}`
+- `POST /v1/trips` mit `{"name":"Max","lat":…,"lon":…,"heading":90,"eta":<ms>,"rem":<m>}` → `{"id","key","url"}` (Link `/t/<id>`, max. 20 neue je Stunde und Gerät)
+- `POST /v1/trips/<id>` mit Header `X-Trip-Key` und denselben Feldern (Update) oder `{"end":true}` (beenden)
+- `GET /v1/trips/<id>` → `{"state":"live"|"ended"|"stale",…}`; nach 30 Min. ohne Update „stale“, Zeilen werden nach einem Tag gelöscht
+- `GET /t/<id>` → Webseite mit Karte (OpenStreetMap), Ankunftszeit und Restweg, lädt alle 15 s neu
 
 Tempo-Meldungen: Ein Gerät zählt pro Stelle einmal (eine neue Meldung desselben Geräts im Umkreis von 80 m in gleicher
 Richtung ersetzt die alte). Sie werden ein Jahr lang gehalten; höchstens 30 pro Gerät und 60 pro IP-Adresse je Stunde.

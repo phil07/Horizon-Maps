@@ -45,3 +45,21 @@ CREATE TABLE IF NOT EXISTS speed_reports (
 );
 CREATE INDEX IF NOT EXISTS speed_reports_lat_lon ON speed_reports (lat, lon);
 CREATE INDEX IF NOT EXISTS speed_reports_t ON speed_reports (t);
+
+-- shared trips ("Ankunftszeit teilen"): the driver's position, arrival time and distance left, seen by whoever has the link.
+-- id = the random link id; k = the write key only the app knows; t = last update (epoch ms). A trip shows as over when ended = 1
+-- or after 30 minutes without an update; rows go a day later.
+CREATE TABLE IF NOT EXISTS trips (
+  id TEXT PRIMARY KEY,
+  k TEXT NOT NULL,
+  device TEXT NOT NULL,
+  name TEXT NOT NULL,
+  lat REAL NOT NULL,
+  lon REAL NOT NULL,
+  h INTEGER NOT NULL,
+  eta INTEGER NOT NULL,
+  rem INTEGER NOT NULL,
+  t INTEGER NOT NULL,
+  ended INTEGER NOT NULL DEFAULT 0
+);
+CREATE INDEX IF NOT EXISTS trips_t ON trips (t);
