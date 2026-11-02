@@ -60,7 +60,7 @@ object AutobahnRest {
     private val rwCache = HashMap<String, Pair<Long, List<RoadworkLimit>>>()
 
     /** The roadworks with a limit on [road] ("A5"), fetched at most every 15 minutes; empty when there are none or no answer. */
-    fun roadworkLimits(road: String): List<RoadworkLimit> {
+    internal fun roadworkLimits(road: String): List<RoadworkLimit> {
         val now = System.currentTimeMillis()
         synchronized(rwCache) { rwCache[road]?.let { if (now - it.first < 15 * 60_000L) return it.second } }
         val list = try {
