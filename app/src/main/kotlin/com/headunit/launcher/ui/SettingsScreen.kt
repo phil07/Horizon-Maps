@@ -663,11 +663,21 @@ private fun TripsGroup(engine: NavEngine) {
     SGroup("Fahrtenbuch") {
         if (shown.isEmpty()) SNote("Noch keine Fahrten aufgezeichnet.")
         else SItem("${shown.size} Fahrten", Geo.fmtDist(shown.sumOf { it.dist }, engine.imperial) + " insgesamt") { SButton("Löschen", danger = true) { engine.trips.clear(); shown = emptyList() } }
+        if (shown.isNotEmpty()) {
+            val ctx = androidx.compose.ui.platform.LocalContext.current
+            SItem("Exportieren", "Als Tabelle (CSV) oder druckbare Monatsübersicht (PDF). Tippe eine Fahrt an, um sie als dienstlich oder privat zu markieren.") {
+                SButton("CSV") { com.headunit.launcher.TripExport.share(ctx, engine.prefs, shown, false)?.let { engine.toast("Export fehlgeschlagen: $it", 4000) } }
+                SButton("PDF", primary = true) { com.headunit.launcher.TripExport.share(ctx, engine.prefs, shown, true)?.let { engine.toast("Export fehlgeschlagen: $it", 4000) } }
+            }
+        }
+        val biz = com.headunit.launcher.TripExport.business(engine.prefs)
         shown.take(50).forEach { t ->
             val mins = ((t.end - t.start) / 60000L).toInt()
+            val isBiz = t.start in biz
             SItem(
                 fmt.format(java.util.Date(t.start)) + (if (t.to.isNotBlank()) " → ${t.to}" else ""),
-                "${Geo.fmtDur(mins * 60.0)} · in Fahrt ${Geo.fmtDur(t.moving.toDouble())} · max ${Math.round(t.maxSpeed * k)} $unit",
+                "${Geo.fmtDur(mins * 60.0)} · in Fahrt ${Geo.fmtDur(t.moving.toDouble())} · max ${Math.round(t.maxSpeed * k)} $unit · " + (if (isBiz) "Dienstlich" else "Privat"),
+                onClick = { com.headunit.launcher.TripExport.toggleBusiness(engine.prefs, t.start) },
             ) { Text(Geo.fmtDist(t.dist, engine.imperial), color = LocalVw.current.text, fontSize = 16.sp, fontWeight = FontWeight.Bold) }
         }
     }

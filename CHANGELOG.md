@@ -9,6 +9,7 @@ Add user-facing Horizon Nav changes under **Unreleased** before publishing each 
 - Satellitenbilder sichtbar: Die Luftbilder lagen unter der beigen Grundfläche der Karte und waren deshalb nicht zu sehen. Jetzt liegen sie darüber.
 
 ### Neu
+- Fahrtenbuch exportieren: Unter Einstellungen > Fahrtenbuch lassen sich die Fahrten als Tabelle (CSV) oder als druckbare Monatsübersicht (PDF) teilen. Ein Tipp auf eine Fahrt markiert sie als dienstlich oder privat; die PDF zeigt pro Monat die dienstlichen und privaten Kilometer.
 - Fahrzeugprofile: Unter Einstellungen > Fahrzeug wählst du Pkw, Wohnmobil oder Anhänger. Wohnmobil und Anhänger haben ein eigenes Höchsttempo, mit dem die Ankunftszeit rechnet und ab dem die Tempowarnung warnt. Höhe, Breite, Länge und Gewicht gehen an TomTom und Mapbox, damit die Route zu niedrige Brücken und Gewichtsgrenzen meidet, soweit deren Daten sie kennen.
 - Parkplatz über Bluetooth: Trennt sich das Handy vom Auto-Bluetooth, wird der Standort als Parkplatz gespeichert, auch ohne Android Auto. Das Auto erkennt die App am Bluetooth-Typ (Autoradio oder Freisprecheinrichtung) oder daran, dass es beim Start von Android Auto verbunden war. Abschaltbar unter Einstellungen > Ankunft.
 - Neue Sprachbefehle über den Mikrofon-Knopf: „Wo steht mein Auto?“ öffnet den Fußweg zum Parkplatz, „Hier geparkt“ merkt den Standort, „Satellit an“ und „Satellit aus“ schalten die Karte um, „Wie schnell darf ich?“ sagt das Tempolimit, „Stau melden“ meldet einen Stau.

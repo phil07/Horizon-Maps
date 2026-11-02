@@ -65,6 +65,7 @@ internal object PreferenceKeys {
     const val MAPTILER_KEY = "maptilerkey"
     const val SAT_SOURCE = "satsource"
     const val VEHICLE = "vehicle"
+    const val TRIP_BUSINESS = "tripbusiness"
     const val SAT_HYBRID = "sathybrid"
     const val SAT_PREFETCH = "satprefetch"
     const val SAT_REMEMBERED = "satremembered"
