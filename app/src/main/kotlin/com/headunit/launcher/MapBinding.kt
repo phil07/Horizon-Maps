@@ -483,7 +483,7 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
             // The streets style's opaque land, water and building fills would cover the photos: hide them in satellite mode.
             // Roads, labels and symbols stay on top of the photos.
             for (info in st.styleLayers) {
-                if (info.type == "fill" || info.type == "fill-extrusion") try { st.setStyleLayerProperty(info.id, "visibility", "none") } catch (e: Throwable) { }
+                if (info.type == "fill" || info.type == "fill-extrusion") try { st.setStyleLayerProperty(info.id, "visibility", Value.valueOf("none")) } catch (e: Throwable) { }
             }
         } catch (e: Throwable) { android.util.Log.w("MapBinding", "satellite: ${e.message}") }
     }
