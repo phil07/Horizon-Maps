@@ -2288,6 +2288,104 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         limitOkAt = System.currentTimeMillis(); limitOkPos = at
     }
 
+    // ---- notices: official weather warnings (DWD) and the rescue lane ----
+
+    /** A notice card under the turn card: [kind] "wx" (weather warning) or "lane" (rescue lane). */
+    class Notice(val kind: String, val title: String, val text: String, val level: Int = 2)
+    var notice by mutableStateOf<Notice?>(null)
+    private fun showNotice(n: Notice, ms: Long) { notice = n; scope.launch { delay(ms); if (notice === n) notice = null } }
+    fun dismissNotice() { notice = null }
+
+    private var wxAt = 0L
+    private var wxRoute: Route? = null
+    private var wxBusy = false
+    private val wxSaid = HashSet<String>()
+
+    /**
+     * The DWD's warnings (markant and worse) for the stretch you'll drive in the next hour, or where you are without a route: every
+     * 10 minutes, and at once for a new route. Each warning is shown and announced once.
+     */
+    private fun checkWeatherWarnings(p: Fix) {
+        if (!prefs.b(PreferenceKeys.DWD_WARN, true) || wxBusy || !online() || !DwdWarnings.inGermany(p.pos)) return
+        val now = System.currentTimeMillis()
+        val r = if (previewing) null else route
+        if (now - wxAt < 600_000L && r === wxRoute) return
+        wxAt = now; wxRoute = r; wxBusy = true
+        // the route ahead you'll reach within the hour (from its own average speed), a point every few kilometres
+        val line = ArrayList<LL>()
+        if (r != null && r.len > 0 && r.time > 0) {
+            val ahead = min(r.len - curProgress, min(r.len / r.time * 3600.0, 150_000.0))
+            val step = max(2000.0, ahead / 45)
+            var d = curProgress; var i = 0
+            while (d <= curProgress + ahead && line.size < 50) {
+                while (i < r.cum.size - 1 && r.cum[i + 1] < d) i++
+                line += r.pts[i]; d += step
+            }
+        }
+        if (line.isEmpty()) line += p.pos
+        scope.launch {
+            try {
+                val found = withContext(Dispatchers.IO) { DwdWarnings.along(line) } ?: return@launch
+                val t = System.currentTimeMillis()
+                // one warning covers many districts: the first one along the way is named
+                fun firstAlong(w: DwdWarning): Int { val b = w.box ?: return line.size; return line.indexOfFirst { it.lat in b[0]..b[2] && it.lon in b[1]..b[3] }.let { if (it < 0) line.size else it } }
+                val fresh = found.filter { DwdWarnings.current(it, t, 3_600_000L) && it.id !in wxSaid }
+                    .groupBy { it.id }.map { (_, ws) -> ws.minByOrNull { firstAlong(it) }!! }
+                    .sortedWith(compareByDescending<DwdWarning> { it.level }.thenBy { firstAlong(it) })
+                for (w in fresh.take(2)) {
+                    wxSaid += w.id
+                    val txt = DwdWarnings.text(w, t)
+                    showNotice(Notice("wx", txt.substringBefore(": "), txt.substringAfter(": "), w.level), 20_000L)
+                    speak(txt, true)
+                }
+            } finally { wxBusy = false }
+        }
+    }
+
+    /** On a motorway or Schnellstraße (from the last limit lookup), for the rescue lane notice. */
+    @Volatile private var onMotorway = false
+    private var slowSince = 0L
+    private var laneShownAt = 0L
+    private var fastSince = 0L
+
+    /**
+     * The rescue lane: on a motorway in a jam (reported on the route, by Autobahn GmbH or by other drivers) and slower than 30 km/h
+     * for 15 seconds, a card and a short announcement, once per jam (again only after you've been moving freely for 2 minutes, or
+     * after 20 minutes). Only where it's the law (Germany, Austria, Switzerland, Czechia, Slovakia, Slovenia).
+     */
+    private fun checkRescueLane(p: Fix) {
+        if (!prefs.b(PreferenceKeys.RESCUE_LANE, true)) return
+        val cc = detectedCountry.uppercase()
+        if (cc !in setOf("DE", "AT", "CH", "CZ", "SK", "SI")) return
+        val now = System.currentTimeMillis()
+        if (p.speed > 16.7) { if (fastSince == 0L) fastSince = now } else fastSince = 0L
+        // moving freely for 2 minutes: the jam is over, the next one gets its own notice
+        if (laneShownAt > 0 && fastSince > 0 && now - fastSince > 120_000L) laneShownAt = 0L
+        if (p.speed >= 8.3 || !onMotorway) { slowSince = 0L; return }
+        if (slowSince == 0L) slowSince = now
+        if (now - slowSince < 15_000L || (laneShownAt > 0 && now - laneShownAt < 20 * 60_000L)) return
+        if (!jamHere(p.pos)) return
+        laneShownAt = now
+        showNotice(Notice("lane", Lang.t("Rettungsgasse bilden", "Form a rescue lane"),
+            Lang.t("Ganz linke Spur nach links, alle anderen nach rechts", "Far left lane to the left, all others to the right")), 25_000L)
+        speak(Lang.t("Stau. Rettungsgasse bilden: ganz links nach links, alle anderen nach rechts.", "Traffic jam. Form a rescue lane: far left lane to the left, all others to the right."), true)
+    }
+
+    /** A jam where you are: on the route's traffic, a jam incident within 2 km, or another driver's jam report within 1.5 km. */
+    private fun jamHere(p: LL): Boolean {
+        val r = route
+        if (r != null && !previewing) {
+            val prog = curProgress
+            if (incMatches.any { (inc, off, _) -> (inc.cat.contains("jam", true) || inc.delaySec >= 60) && off in (prog - 1500)..(prog + 2000) }) return true
+            if (r.sev.isNotEmpty()) {
+                var i = 0
+                while (i < r.cum.size - 1 && r.cum[i + 1] < prog) i++
+                if ((i until min(r.sev.size, i + 30)).any { r.sev[it] >= 2 && r.cum[it] - prog < 1500 }) return true
+            }
+        }
+        return SharedReports.items.any { it.kind == "jam" && Geo.dist(it.pos, p) < 1500.0 }
+    }
+
     /** While navigating a TomTom route: the posted limit for exactly where you are on it, updated with every GPS fix. */
     private fun applyRouteLimit(r: Route, prog: Double, p: Fix) {
         val secs = r.limits
@@ -2390,6 +2488,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
                     val overrule = routeMs != null && vote != null && SpeedVote.key(vote.ms) != SpeedVote.key(routeMs)
                     routeOverruled = if (overrule) routeMs else null
                     if (r != null) {
+                        onMotorway = r.major || AutobahnRest.roadOf(r.road) != null
                         if (r.wayId != 0L || r.road.isNotBlank()) noteRoad(r.road, hd); limitFails = 0
                         if (!routeLimitLive() || overrule) showLimit(r, p.pos)
                     } else if (Overpass.lastError == null) {
@@ -2997,6 +3096,8 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
             try { lookCamerasAround(p) } catch (e: Exception) { }
             try { updateRoadInfo(p); trackParking(p) } catch (e: Exception) { android.util.Log.w("NavEngine", "road info failed", e) }
             try { checkArea(p.pos) } catch (e: Exception) { }
+            try { checkWeatherWarnings(p) } catch (e: Exception) { }
+            try { checkRescueLane(p) } catch (e: Exception) { }
         }
         // the first position of this session: the zoom you left the map at last time comes back (not on a route)
         if (!freeZoomRestored) { freeZoomRestored = true; if (route == null) zoomOffset = try { savedFreeZoom() } catch (e: Exception) { 0.0 } }

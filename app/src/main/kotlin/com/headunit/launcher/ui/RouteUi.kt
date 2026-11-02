@@ -973,6 +973,41 @@ fun RoundaboutView(engine: NavEngine, t: com.headunit.launcher.TurnInfo, modifie
     }
 }
 
+/** An official weather warning or the rescue lane, under the turn card (or under the search bar with no route); tap to close. */
+@Composable
+fun NoticeCard(engine: NavEngine, big: Boolean = false) {
+    val n = engine.notice ?: return
+    val shape = RoundedCornerShape(if (big) 28.dp else 22.dp)
+    val bg = if (n.kind == "lane") Color(0xFFD32F2F) else when (n.level) { 4 -> Color(0xFF8E24AA); 3 -> Color(0xFFD32F2F); else -> Color(0xFFEF6C00) }
+    Row(Modifier.fillMaxWidth().shadow(8.dp, shape).clip(shape).background(bg).clickable { engine.dismissNotice() }
+        .padding(horizontal = if (big) 20.dp else 16.dp, vertical = if (big) 14.dp else 11.dp), verticalAlignment = Alignment.CenterVertically) {
+        if (n.kind == "lane") RescueLaneIcon(if (big) 44.dp else 34.dp)
+        else Icon(Icons.Rounded.Warning, null, tint = Color.White, modifier = Modifier.size(if (big) 36.dp else 28.dp))
+        Column(Modifier.padding(start = 12.dp).weight(1f)) {
+            Text(n.title, color = Color.White, fontSize = if (big) 22.sp else 16.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(n.text, color = Color.White.copy(alpha = 0.92f), fontSize = if (big) 18.sp else 13.sp, maxLines = 2, overflow = TextOverflow.Ellipsis)
+        }
+    }
+}
+
+/** Three lanes seen from above, the left one pushed left and the others right, with the gap in between. */
+@Composable
+private fun RescueLaneIcon(size: androidx.compose.ui.unit.Dp) {
+    androidx.compose.foundation.Canvas(Modifier.size(size)) {
+        val w = this.size.width; val h = this.size.height
+        val car = androidx.compose.ui.geometry.Size(w * 0.18f, h * 0.3f)
+        val r = androidx.compose.ui.geometry.CornerRadius(w * 0.04f)
+        for (y in listOf(h * 0.12f, h * 0.58f)) {
+            drawRoundRect(Color.White, androidx.compose.ui.geometry.Offset(w * 0.02f, y), car, r)
+            drawRoundRect(Color.White, androidx.compose.ui.geometry.Offset(w * 0.58f, y), car, r)
+            drawRoundRect(Color.White, androidx.compose.ui.geometry.Offset(w * 0.80f, y), car, r)
+        }
+        // the gap: a dashed line down the middle
+        var y = 0f
+        while (y < h) { drawLine(Color.White.copy(alpha = 0.8f), androidx.compose.ui.geometry.Offset(w * 0.4f, y), androidx.compose.ui.geometry.Offset(w * 0.4f, y + h * 0.1f), strokeWidth = w * 0.04f); y += h * 0.2f }
+    }
+}
+
 /** A short, quiet note about the conditions (Lang.t("Starkregen · vorsichtig fahren, Tempo 50", "Heavy rain · take it steady, 50 limit")). */
 @Composable
 fun AdvicePill(text: String, modifier: Modifier = Modifier) {

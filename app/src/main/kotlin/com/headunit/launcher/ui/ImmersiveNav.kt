@@ -272,6 +272,7 @@ private fun MapScreen(engine: NavEngine, onSettings: () -> Unit) {
                         // resume cards stay too and the rest folds away
                         val cruising = engine.cruising
                         ImmChips(engine) { try { focus.requestFocus() } catch (_: Exception) {} }
+                        NoticeCard(engine)
                         AnimatedVisibility(!cruising, enter = fadeIn(tween(220)) + androidx.compose.animation.expandVertically(tween(260)), exit = fadeOut(tween(140)) + androidx.compose.animation.shrinkVertically(tween(200))) {
                             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                                 PlannedCard(engine)
@@ -307,6 +308,7 @@ private fun MapScreen(engine: NavEngine, onSettings: () -> Unit) {
                         }
                     }
                     engine.advice?.let { AdvicePill(it) }
+                    NoticeCard(engine)
                     AvgSpeedCard(engine)
                     ServicesCard(engine)
                     ParkingCard(engine)

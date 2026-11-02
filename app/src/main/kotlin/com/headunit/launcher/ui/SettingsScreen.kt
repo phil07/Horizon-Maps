@@ -523,6 +523,8 @@ private fun AlertsSection(prefs: Prefs, engine: NavEngine) {
         SToggle(prefs, "Pausenerinnerung nach 2 Stunden", "breakremind", false)
         SToggle(prefs, "Bahnübergänge und Furten", "railford", false, "Warnschild und Sprachwarnung")
         SToggle(prefs, "Wetterhinweise", "wxadvice", true, "Hinweis bei Regen, Schnee, Nebel oder Glätte")
+        SToggle(prefs, "Unwetterwarnungen (DWD)", "dwdwarn", true, "Amtliche Warnungen vor Glätte, Sturm, Starkregen und Nebel auf der Strecke der nächsten Stunde (Deutschland)")
+        SToggle(prefs, "Rettungsgasse", "rescuelane", true, "Hinweis im Stau auf der Autobahn, wie die Rettungsgasse gebildet wird")
     }
     SGroup(Lang.t("Deine Meldungen", "Your reports"), footer = Lang.t("Meldungen über die Optionen-Taste auf der Karte erstellen.", "Create reports with the options button on the map.")) {
         SToggle(prefs, Lang.t("Vor Meldungen voraus warnen", "Warn before reports ahead"), "policealerts", true)

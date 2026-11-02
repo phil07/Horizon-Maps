@@ -14,6 +14,8 @@ Add user-facing Horizon Nav changes under **Unreleased** before publishing each 
 - Satellitenbilder sichtbar: Die Luftbilder lagen unter der beigen Grundfläche der Karte und waren deshalb nicht zu sehen. Jetzt liegen sie darüber.
 
 ### Neu
+- Unwetterwarnungen vom DWD: Amtliche Warnungen des Deutschen Wetterdienstes (ab „markant“: Glätte, Sturm, Starkregen, dichter Nebel) für die Strecke, die du in der nächsten Stunde fährst, ohne Route für deinen Standort. Jede Warnung kommt einmal als Karte und Ansage. Abschaltbar unter Einstellungen > Unterwegs.
+- Rettungsgasse: Im Stau auf der Autobahn (gemeldeter Stau und langsamer als 30 km/h) zeigt die App einmal, wie die Rettungsgasse gebildet wird, und sagt es an. In Deutschland, Österreich, der Schweiz, Tschechien, der Slowakei und Slowenien.
 - Tempolimits melden: Ein Tipp auf das Tempo-Schild zeigt, was jede Quelle sagt, und darunter „Stimmt“ oder den richtigen Wert zum Melden. Im Auto geht das über Melden > Tempolimit. Meldungen werden anonym geteilt und fließen in die Abstimmung ein: Je mehr Fahrer dasselbe melden, desto stärker zählt es. Meldungen gelten ein Jahr und zählen mit dem Alter weniger.
 - Tempolimits an Autobahn-Baustellen: Baustellen der Autobahn GmbH mit Tempolimit („Max. 80 km/h“) zählen in der Abstimmung mit, nur in ihrer Fahrtrichtung und zu den angegebenen Zeiten.
 - Tempolimit aus allen Quellen: Die App fragt TomTom, HERE, Mapbox, OpenStreetMap und während der Navigation die Route gleichzeitig ab und nimmt den Wert, für den die meisten zuverlässigen Quellen sprechen. Sind sich die Quellen nicht einig, zeigt ein gelber Punkt am Tempo-Schild das an. Ein Tipp auf das Schild zeigt, was jede Quelle gesagt hat.

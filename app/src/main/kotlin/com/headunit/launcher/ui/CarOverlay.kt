@@ -231,6 +231,7 @@ private fun CarScreen(engine: NavEngine, a: android.graphics.Rect?, actions: Car
                         })
                 }
                 if (!compact) engine.advice?.let { AdvicePill(it) }
+                NoticeCard(engine, big = true)
             }
         }
 
@@ -259,7 +260,8 @@ private fun CarScreen(engine: NavEngine, a: android.graphics.Rect?, actions: Car
                     androidx.compose.material3.Icon(androidx.compose.material.icons.Icons.Rounded.Mic, null, tint = Color.White, modifier = Modifier.size(32.dp))
                 }
             }
-            CarChips(engine, actions, savedRows)
+            NoticeCard(engine, big = true)
+            CarChips(engine, actions, if (engine.notice != null) 0 else savedRows)
             // (portrait screens: battery and range stay here; on a landscape screen they sit above the speed, bottom right)
             if (portrait) EvPill(engine)
         }

@@ -230,6 +230,10 @@ internal object PreferenceKeys {
     const val UPDSNOOZE = "updsnooze"
     const val WRONGWAY = "wrongway"
     const val WXADVICE = "wxadvice"
+    /** Official DWD weather warnings (markant and worse) on the route ahead or where you are. */
+    const val DWD_WARN = "dwdwarn"
+    /** The rescue lane notice in a jam on the motorway. */
+    const val RESCUE_LANE = "rescuelane"
     const val ZEBRAS = "zebras"
     const val ZONEWARN = "zonewarn"
     const val TT_MAP_FIX = "ttmapfix"
