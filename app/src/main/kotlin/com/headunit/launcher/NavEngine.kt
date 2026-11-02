@@ -1992,6 +1992,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
     }
 
     fun endRoute() {
+        stopTripShare(quiet = true)
         // (only a trip under way: cancelling a route choice leaves the other screen's trip alone)
         if (route != null && !previewing) try { RouteSync.ended(this) } catch (e: Exception) { }
         itineraryOpen = false
@@ -2289,6 +2290,89 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         }
         if (v > 0.0) checkLimitChange(v, r.estimated)
         limitOkAt = System.currentTimeMillis(); limitOkPos = at
+    }
+
+    // ---- "Ankunftszeit teilen": a live link with your position, arrival time and distance left ----
+
+    /** The link while sharing (the options show "Teilen beenden" then), else null. */
+    var tripShareUrl by mutableStateOf<String?>(null); private set
+    private var tripLink: TripShare.Link? = null
+    private var tripSentAt = 0L
+    private var tripBusy = false
+
+    private fun etaMs(): Long = System.currentTimeMillis() + ((eta?.secs ?: 0.0) * 1000).toLong()
+
+    /**
+     * Makes the link (or reuses the running one) and hands it to the share menu. [fromCar]: Android Auto has no share menu, so a
+     * notification on the phone opens it.
+     */
+    fun shareTrip(fromCar: Boolean = false) {
+        tripShareUrl?.let { openShare(it, fromCar); return }
+        if (route == null || previewing) { toast(Lang.t("Erst eine Route starten", "Start a route first"), 2500); return }
+        val f = fix ?: run { toast(Lang.t("Warte auf GPS", "Waiting for GPS"), 2500); return }
+        if (!SharedReports.configured(prefs)) { toast(Lang.t("Kein Server für Meldungen eingestellt", "No reports server set"), 3000); return }
+        if (tripBusy) return
+        tripBusy = true
+        val name = prefs.s(PreferenceKeys.TRIP_NAME, "").trim()
+        val rem = eta?.dist ?: 0.0
+        scope.launch {
+            try {
+                val l = withContext(Dispatchers.IO) { try { TripShare.create(prefs, name, f.pos, f.heading, etaMs(), rem) } catch (e: Exception) { lastTripError = e.message; null } }
+                if (l == null) { toast(Lang.t("Link konnte nicht erstellt werden", "Couldn't make the link") + (lastTripError?.let { " ($it)" } ?: ""), 3500); return@launch }
+                if (route == null) { withContext(Dispatchers.IO) { try { TripShare.end(prefs, l) } catch (e: Exception) { } }; return@launch }
+                tripLink = l; tripShareUrl = l.url; tripSentAt = System.currentTimeMillis()
+                openShare(l.url, fromCar)
+            } finally { tripBusy = false }
+        }
+    }
+    private var lastTripError: String? = null
+
+    private fun openShare(url: String, fromCar: Boolean) {
+        val text = TripShare.message(eta?.arrive, url)
+        val send = android.content.Intent(android.content.Intent.ACTION_SEND).setType("text/plain")
+            .putExtra(android.content.Intent.EXTRA_TEXT, text)
+        val chooser = android.content.Intent.createChooser(send, Lang.t("Ankunftszeit teilen", "Share arrival time")).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+        if (!fromCar) {
+            try { ctx.startActivity(chooser); return } catch (e: Exception) { }
+        }
+        // in the car (or when the share menu couldn't open): a notification on the phone that opens it
+        try {
+            val nm = ctx.getSystemService(android.app.NotificationManager::class.java)
+            if (nm.getNotificationChannel("tripshare") == null)
+                nm.createNotificationChannel(android.app.NotificationChannel("tripshare", Lang.t("Ankunftszeit teilen", "Share arrival time"), android.app.NotificationManager.IMPORTANCE_HIGH))
+            val pi = android.app.PendingIntent.getActivity(ctx, 7301, chooser, android.app.PendingIntent.FLAG_IMMUTABLE or android.app.PendingIntent.FLAG_UPDATE_CURRENT)
+            val n = android.app.Notification.Builder(ctx, "tripshare").setSmallIcon(R.drawable.ic_stat_nav)
+                .setContentTitle(Lang.t("Link für deine Ankunftszeit ist bereit", "Your arrival time link is ready"))
+                .setContentText(Lang.t("Tippen, um ihn zu teilen", "Tap to share it"))
+                .setContentIntent(pi).setAutoCancel(true).build()
+            nm.notify(7301, n)
+            toast(Lang.t("Link erstellt: auf dem Handy teilen", "Link made: share it on your phone"), 3500)
+        } catch (e: Exception) { toast(Lang.t("Link erstellt, Teilen-Menü nicht verfügbar", "Link made, no share menu"), 3500) }
+    }
+
+    /** Ends sharing: the page shows the trip as over straight away. */
+    fun stopTripShare(quiet: Boolean = false) {
+        val l = tripLink ?: return
+        tripLink = null; tripShareUrl = null
+        try { ctx.getSystemService(android.app.NotificationManager::class.java).cancel(7301) } catch (e: Exception) { }
+        scope.launch(Dispatchers.IO) { try { TripShare.end(prefs, l) } catch (e: Exception) { } }
+        if (!quiet) toast(Lang.t("Teilen beendet", "Stopped sharing"), 2500)
+    }
+
+    /** Every 30 s while sharing: your exact position, arrival time and the distance left. */
+    private fun tripShareTick() {
+        val l = tripLink ?: return
+        val now = System.currentTimeMillis()
+        if (now - tripSentAt < 30_000L || tripBusy || simMode != 0) return
+        val f = fix ?: return
+        tripSentAt = now
+        val rem = eta?.dist ?: 0.0
+        val at = etaMs()
+        scope.launch(Dispatchers.IO) {
+            try { TripShare.update(prefs, l, f.pos, f.heading, at, rem) }
+            catch (e: TripShare.Gone) { withContext(Dispatchers.Main) { if (tripLink === l) { tripLink = null; tripShareUrl = null } } }
+            catch (e: Exception) { }
+        }
     }
 
     // ---- notices: official weather warnings (DWD) and the rescue lane ----
@@ -4431,6 +4515,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
             saveResumeBeat()
             checkFaster(r, secs)
             try { checkTraffic(r) } catch (e: Exception) { }
+            try { tripShareTick() } catch (e: Exception) { }
         }
 
         if (!light && !shadow()) try { routeExtrasTick(r, progress) } catch (e: Exception) { android.util.Log.w("NavEngine", "route extras failed", e) }
@@ -4786,6 +4871,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
 
     /** The arrival moment: the camera swoops down to the destination, and the nearest car park is looked up. */
     private fun arrivalMoment(a: ArrivalInfo) {
+        stopTripShare(quiet = true)
         arrivalParking = null
         val d = a.place?.pos ?: return
         if (prefs.b(PreferenceKeys.ARRIVALFX, true)) {

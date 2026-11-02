@@ -43,6 +43,7 @@ internal object PreferenceKeys {
     const val PACK_REGION = "packregion"
     const val ETA_NUMBER = "etanum"
     const val ETA_NAME = "etaname"
+    const val TRIP_NAME = "tripname"
     const val LANE_STYLE = "lanestyle"
     const val LANE_STRIP = "lanestrip"
     const val THEN_MODE = "thenmode"

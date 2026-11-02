@@ -763,12 +763,9 @@ private fun PhoneLinkGroup(prefs: Prefs) {
 private fun SharingGroups(prefs: Prefs) {
     val ctx = LocalContext.current
     val pkg = android.net.Uri.parse("package:" + ctx.packageName)
-    SGroup("Ankunftszeit teilen", footer = "Teilt deine Ankunftszeit und einen Kartenlink.") {
-        val pickEta = rememberEtaContactPicker(prefs)
-        SItem("Senden an", prefs.s(PreferenceKeys.ETA_NAME, "").ifBlank { "Noch niemand ausgewählt" }) {
-            SButton(if (prefs.s(PreferenceKeys.ETA_NUMBER, "").isBlank()) "Wählen" else "Ändern") { pickEta() }
-            if (prefs.s(PreferenceKeys.ETA_NUMBER, "").isNotBlank()) SButton("Löschen", danger = true) { prefs.put(PreferenceKeys.ETA_NUMBER, ""); prefs.put(PreferenceKeys.ETA_NAME, "") }
-        }
+    SGroup("Ankunftszeit teilen", footer = "Während der Fahrt unter Optionen > „Ankunftszeit teilen“: ein Link über das Teilen-Menü zu einer Webseite mit deiner Position, Ankunftszeit und Restweg, alle 30 Sekunden aktualisiert. Er endet bei Ankunft, mit „Teilen beenden“ oder nach 30 Minuten ohne Aktualisierung.") {
+        SFieldItem("Dein Name", prefs.s(PreferenceKeys.TRIP_NAME, ""), "Steht auf der Webseite, z. B. „Max ist unterwegs“. Leer: „Unterwegs“",
+            placeholder = "Name (optional)") { prefs.put(PreferenceKeys.TRIP_NAME, it.trim().take(40)) }
     }
     SGroup("Orte aus anderen Apps", footer = "Teile einen Ort aus Google Maps, WhatsApp oder Kontakte an Horizon Nav.") {
         SItem("Google Maps Links") {

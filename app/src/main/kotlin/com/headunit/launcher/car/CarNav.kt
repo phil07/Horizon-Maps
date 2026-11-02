@@ -879,13 +879,27 @@ class ReportScreen(carContext: CarContext, private val holder: CarHolder) : Scre
         val list = ItemList.Builder()
         // a car that shows only 6 tiles: the speed limit takes the place of "Panne" (the least used), so it isn't cut off
         val max = try { carContext.getCarService(ConstraintManager::class.java).getContentLimit(ConstraintManager.CONTENT_LIMIT_TYPE_GRID) } catch (x: Exception) { 6 }
-        for ((kind, label, ic) in kinds.filter { max > kinds.size || it.first != "breakdown" }) list.addItem(
+        val e0 = holder.engine
+        val canShare = e0 != null && e0.route != null && !e0.previewing
+        val room = max - 1 - (if (canShare) 1 else 0)
+        for ((kind, label, ic) in kinds.filter { room >= kinds.size || it.first != "breakdown" }) list.addItem(
             GridItem.Builder().setTitle(label).setImage(rowIcon(carContext, ic.first, ic.second), GridItem.IMAGE_TYPE_LARGE)
                 .setOnClickListener { send(kind) }.build()
         )
         // the speed limit here: the right value, or that the sign shown is right
         list.addItem(GridItem.Builder().setTitle(Lang.t("Tempolimit", "Speed limit")).setImage(rowIcon(carContext, R.drawable.ic_car_speed, 0xFFF28B82.toInt()), GridItem.IMAGE_TYPE_LARGE)
             .setOnClickListener { screenManager.push(LimitReportScreen(carContext, holder)) }.build())
+        // on a route: share your arrival time (the link is made here, the share menu opens on the phone), or stop sharing it
+        if (canShare && max >= kinds.size + 1) {
+            val sharing = e0?.tripShareUrl != null
+            list.addItem(GridItem.Builder().setTitle(if (sharing) Lang.t("Teilen beenden", "Stop sharing") else Lang.t("Ankunft teilen", "Share ETA"))
+                .setImage(rowIcon(carContext, R.drawable.ic_car_pin, if (sharing) 0xFFF28B82.toInt() else 0xFF81C995.toInt()), GridItem.IMAGE_TYPE_LARGE)
+                .setOnClickListener {
+                    val e = holder.engine
+                    if (e != null) { if (e.tripShareUrl != null) e.stopTripShare() else e.shareTrip(fromCar = true) }
+                    screenManager.pop()
+                }.build())
+        }
         return GridTemplate.Builder().setTitle(Lang.t("Hier melden", "Report here")).setHeaderAction(Action.BACK).setSingleList(list.build()).build()
     }
 

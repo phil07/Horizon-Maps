@@ -584,7 +584,7 @@ private fun OptionsSheet(engine: NavEngine, shareEta: () -> Unit, wide: Boolean 
                     TileSpec(Icons.Rounded.Add, if (engine.via.isEmpty()) Lang.t("Stopp hinzufügen", "Add stop") else Lang.t("Stopps", "Stops"), c.accent, { engine.stopsEditor = true; close() }),
                     TileSpec(Icons.Rounded.DoNotDisturbOn, Lang.t("Straße meiden", "Avoid road"), Warn, { engine.avoidRoadAhead(); close() }),
                     TileSpec(Icons.Rounded.Route, Lang.t("Übersicht", "Overview"), c.accent, { engine.overview(); close() }),
-                    TileSpec(Icons.Rounded.Share, Lang.t("Ankunftszeit teilen", "Share ETA"), Good, { shareEta(); close() }),
+                    TileSpec(Icons.Rounded.Share, if (engine.tripShareUrl != null) Lang.t("Teilen beenden", "Stop sharing") else Lang.t("Ankunftszeit teilen", "Share ETA"), if (engine.tripShareUrl != null) Warn else Good, { shareEta(); close() }),
                 ))
             }
         }
