@@ -453,6 +453,21 @@ object TomTomRest {
         return (0 until arr.length()).mapNotNull { poiResult(arr.getJSONObject(it), kind, c) }
     }
 
+    /**
+     * Shops and places near [near] for the search box: [kind] (TomTom's category word) finds the places of that kind, otherwise
+     * [q] is matched against names and brands. Within [radius] metres, nearest first.
+     */
+    fun poiNear(key: String, q: String, kind: String?, near: LL, radius: Int): List<Place> {
+        val k = URLEncoder.encode(key, "UTF-8")
+        val enc = URLEncoder.encode(kind ?: q.trim(), "UTF-8").replace("+", "%20")
+        val api = if (kind != null) "categorySearch" else "poiSearch"
+        val url = "https://api.tomtom.com/search/2/$api/$enc.json?key=$k&lat=${near.lat}&lon=${near.lon}&radius=$radius&limit=25" +
+            "&language=${if (Lang.de) "de-DE" else "en-GB"}" + (if (kind == null) "&typeahead=true" else "")
+        val out = ArrayList<Place>()
+        parsePlaces(JSONObject(get(url, 8000, 9000)).optJSONArray("results") ?: JSONArray(), q, out)
+        return out.filter { Geo.dist(near, it.pos) <= radius * 1.2 }.sortedBy { Geo.dist(near, it.pos) }
+    }
+
     /** Places of a kind along a route line, with how many seconds each detour adds (TomTom's along-route search). */
     fun poiAlong(key: String, kind: String, line: List<LL>, maxDetourSec: Int = 900): List<Pair<Nearby, Int>> {
         if (line.size < 2) return emptyList()

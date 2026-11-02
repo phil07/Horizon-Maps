@@ -624,6 +624,19 @@ object MapboxRest {
         return out
     }
 
+    /** Shops and places matching [q] (a name, a brand or a kind of place) within about [radius] metres of [near], nearest first. */
+    fun poiNear(token: String, q: String, near: LL, radius: Int): List<Place> {
+        val lang = java.util.Locale.getDefault().language.ifBlank { "en" }
+        val dLat = radius / 111320.0; val dLon = radius / (111320.0 * Math.cos(Math.toRadians(near.lat)).coerceAtLeast(0.2))
+        val loc = String.format(java.util.Locale.US, "&proximity=%.5f,%.5f&bbox=%.5f,%.5f,%.5f,%.5f", near.lon, near.lat,
+            near.lon - dLon, near.lat - dLat, near.lon + dLon, near.lat + dLat)
+        val arr = JSONObject(get("$API/search/searchbox/v1/forward?q=${enc(q.trim())}&types=poi&limit=10&language=$lang$loc&access_token=${enc(token)}", 8000, 9000))
+            .optJSONArray("features") ?: JSONArray()
+        val out = ArrayList<Place>()
+        for (i in 0 until arr.length()) out += feature(arr.optJSONObject(i) ?: continue, q) ?: continue
+        return out.filter { Geo.dist(near, it.pos) <= radius * 1.5 }.sortedBy { Geo.dist(near, it.pos) }
+    }
+
     private fun poiQuery(kind: String) = when (kind) {
         "fuel" -> "petrol station"; "charging" -> "ev charging station"; "parking" -> "car park"
         "food" -> "restaurant"; "coffee" -> "cafe"; "toilets" -> "public toilet"; "services" -> "motorway services"; else -> kind

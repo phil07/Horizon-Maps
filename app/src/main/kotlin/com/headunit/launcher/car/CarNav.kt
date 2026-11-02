@@ -1022,7 +1022,7 @@ class SearchScreen(carContext: CarContext, private val holder: CarHolder, initia
         }
     }
 
-    private val typed = Runnable { if (query.length >= 3) holder.engine?.search(query) }
+    private val typed = Runnable { if (query.trim().length >= 2) holder.engine?.search(query) }
 
     init {
         if (initial.length >= 2) holder.engine?.search(initial)
@@ -1035,8 +1035,8 @@ class SearchScreen(carContext: CarContext, private val holder: CarHolder, initia
     override fun onGetTemplate(): Template {
         val e = holder.engine
         val limit = try { carContext.getCarService(ConstraintManager::class.java).getContentLimit(ConstraintManager.CONTENT_LIMIT_TYPE_LIST) } catch (x: Exception) { 6 }
-        val list = ItemList.Builder().setNoItemsMessage(if (query.length < 3) Lang.t("Ort, Adresse oder Postleitzahl eingeben, oder sag „Hey Google, navigiere mit Horizon Nav zu …“", "Type a place, address or postcode, or say \"Hey Google, navigate to … with Horizon Nav\"") else Lang.t("Suche läuft…", "Searching…"))
-        if (query.length >= 3) for (p in shown.take(limit.coerceIn(1, 12))) {
+        val list = ItemList.Builder().setNoItemsMessage(if (query.trim().length < 2) Lang.t("Ort, Adresse oder Postleitzahl eingeben, oder sag „Hey Google, navigiere mit Horizon Nav zu …“", "Type a place, address or postcode, or say \"Hey Google, navigate to … with Horizon Nav\"") else Lang.t("Suche läuft…", "Searching…"))
+        if (query.trim().length >= 2) for (p in shown.take(limit.coerceIn(1, 12))) {
             // a red pin, the name, and how far it is with the address under it (as in the app's results)
             val r = Row.Builder().setTitle(p.name).setImage(rowIcon(carContext, R.drawable.ic_car_pin, 0xFFEA4335.toInt()))
             val line = listOf(distFrom(e, p), p.sub).filter { it.isNotBlank() }.joinToString(" · ")
@@ -1049,7 +1049,7 @@ class SearchScreen(carContext: CarContext, private val holder: CarHolder, initia
             override fun onSearchTextChanged(searchText: String) {
                 query = searchText
                 handler.removeCallbacks(typed)
-                if (searchText.length >= 3) handler.postDelayed(typed, 500)
+                if (searchText.trim().length >= 2) handler.postDelayed(typed, 500)
             }
             override fun onSearchSubmitted(searchText: String) { query = searchText; handler.removeCallbacks(typed); e?.search(searchText) }
         }).setHeaderAction(Action.BACK).setSearchHint(Lang.t("Ort suchen", "Search for a place")).setInitialSearchText(query)

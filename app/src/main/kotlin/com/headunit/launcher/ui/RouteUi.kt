@@ -858,7 +858,7 @@ fun AddPlaceDialog(engine: NavEngine, preset: Place?, slot: String? = null, onCl
     // its own results: the main search's results opened the main search panel behind it, which closed this dialog
     var found by remember { mutableStateOf<List<Place>>(emptyList()) }
     LaunchedEffect(q) {
-        if (preset == null && q.length >= 3) { delay(450); found = try { engine.findPlaces(q) } catch (e: kotlinx.coroutines.CancellationException) { throw e } catch (e: Exception) { emptyList() } }
+        if (preset == null && q.trim().length >= 2) { delay(450); found = try { engine.findPlaces(q) } catch (e: kotlinx.coroutines.CancellationException) { throw e } catch (e: Exception) { emptyList() } }
         else if (q.isEmpty()) found = emptyList()
     }
     fun close() { onClose() }

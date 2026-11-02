@@ -571,6 +571,26 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         return OsmSearch.geocode(country, q, near)
     }
 
+    /**
+     * Shops and places near you that match the search: a chain's branches ("dm", "Edeka") or, for a kind of place ("Supermarkt",
+     * "Apotheke"), the nearest ones of that kind. The search service's own result list ranks by name over the whole country and
+     * often left these out. TomTom or Mapbox when set up, and OpenStreetMap (free) alongside or instead.
+     */
+    private fun nearbyMatches(q: String, near: LL?): List<Place> {
+        if (near == null || q.trim().length < 2 || SearchRank.streety(q)) return emptyList()
+        val kind = PoiSearch.kindOf(q)
+        val radius = if (kind != null) 10_000 else 25_000
+        val tomtomOk = hasKey && refusedKey != apiKey && System.currentTimeMillis() >= ttDownUntil
+        val out = ArrayList<Place>()
+        // OpenStreetMap by name runs alongside: its shops are well mapped and it knows every branch of a chain
+        val osm = if (kind == null) java.util.concurrent.CompletableFuture.supplyAsync { try { PoiSearch.osmByName(q, near, radius) } catch (e: Exception) { emptyList() } } else null
+        if (tomtomOk) try { out += TomTomRest.poiNear(apiKey, q, kind?.tomtom, near, radius) } catch (e: Exception) { }
+        if (out.size < 3 && hasMapbox) try { out += MapboxRest.poiNear(mbToken, kind?.label ?: q, near, radius) } catch (e: Exception) { }
+        if (kind != null && out.size < 3) try { out += PoiSearch.osmByKind(kind, near, radius) } catch (e: Exception) { }
+        if (osm != null) out += try { osm.get(9, java.util.concurrent.TimeUnit.SECONDS) } catch (e: Exception) { emptyList() }
+        return PoiSearch.distinct(out.sortedBy { Geo.dist(near, it.pos) }).take(12)
+    }
+
     /** Places of a kind nearby from whichever service is set up. */
     private fun netPoiNearby(kind: String, c: LL, radius: Int): List<Nearby> =
         withBackup { p -> if (p == "mapbox") MapboxRest.poiNearby(mbToken, kind, c, radius) else TomTomRest.poiNearby(apiKey, kind, c, radius) }
@@ -1741,6 +1761,17 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
     private var searchJob: kotlinx.coroutines.Job? = null
 
     /**
+     * The search service's results with the shops near you added: for a kind of place ("Supermarkt") the nearby ones come first,
+     * for a name they join the list and are ranked by the name and nearness like the rest. Null when both found nothing because
+     * there was no signal.
+     */
+    private fun withNearby(q: String, net: List<Place>?, shops: List<Place>): List<Place>? {
+        if (shops.isEmpty()) return net
+        val rest = (net ?: emptyList()).filter { p -> shops.none { Geo.dist(it.pos, p.pos) < 40 || (it.name.equals(p.name, true) && Geo.dist(it.pos, p.pos) < 150) } }
+        return if (PoiSearch.kindOf(q) != null) shops + rest else rest + shops
+    }
+
+    /**
      * Exact name matches first, then names starting with what you typed (towns and cities before streets, see [SearchRank]),
      * then the rest with online results ahead of offline ones.
      */
@@ -1754,6 +1785,8 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
             val dup = all.firstOrNull { it.first.name.equals(p.name, true) && Geo.dist(it.first.pos, p.pos) < (if (p.town) 3000 else 300) || Geo.dist(it.first.pos, p.pos) < 40 }
             if (dup == null) all += p to (1000 + i) else if (p.town && dup.first.name.equals(p.name, true)) dup.first.town = true
         }
+        // a kind of place ("Supermarkt"): the nearby ones of that kind first, not places that happen to be called that
+        if (PoiSearch.kindOf(q) != null) return all.sortedBy { it.second }.map { it.first }.take(15)
         return SearchRank.rank(q, all, { it.name }, { it.town }, { if (near != null) Geo.dist(near, it.pos) else 0.0 }).take(15)
     }
 
@@ -1772,7 +1805,10 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
             }
             // the online search and the saved / downloaded places run at the same time, and their results are merged
             val localJob = async { offlineMatches(q, near) }
-            val net = try { withContext(Dispatchers.IO) { netGeocode(countryCode(), q, near) } } catch (e: kotlinx.coroutines.CancellationException) { throw e } catch (e: Exception) { null }
+            val nearJob = async(Dispatchers.IO) { try { nearbyMatches(q, near) } catch (e: Exception) { emptyList() } }
+            val net0 = try { withContext(Dispatchers.IO) { netGeocode(countryCode(), q, near) } } catch (e: kotlinx.coroutines.CancellationException) { throw e } catch (e: Exception) { null }
+            val shops = kotlinx.coroutines.withTimeoutOrNull(10_000L) { nearJob.await() } ?: emptyList()
+            val net = withNearby(q, net0, shops)
             // the online results are shown straight away if the downloaded lists are still being searched; those are merged in after
             var local = kotlinx.coroutines.withTimeoutOrNull(500L) { localJob.await() }
             if (local == null) {
@@ -1794,8 +1830,10 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         // both at once, as in the main search
         return kotlinx.coroutines.coroutineScope {
             val localJob = async { offlineMatches(q, near) }
-            val net = try { withContext(Dispatchers.IO) { netGeocode(countryCode(), q, near) } } catch (e: kotlinx.coroutines.CancellationException) { throw e } catch (e: Exception) { null }
-            rankResults(q, near, net ?: emptyList(), localJob.await())
+            val nearJob = async(Dispatchers.IO) { try { nearbyMatches(q, near) } catch (e: Exception) { emptyList() } }
+            val net0 = try { withContext(Dispatchers.IO) { netGeocode(countryCode(), q, near) } } catch (e: kotlinx.coroutines.CancellationException) { throw e } catch (e: Exception) { null }
+            val shops = kotlinx.coroutines.withTimeoutOrNull(10_000L) { nearJob.await() } ?: emptyList()
+            rankResults(q, near, withNearby(q, net0, shops) ?: emptyList(), localJob.await())
         }
     }
 
