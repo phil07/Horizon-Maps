@@ -27,7 +27,6 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -362,7 +361,7 @@ fun rememberVoiceInput(prompt: String, onResult: (String) -> Unit): () -> Unit {
 fun Modifier.floating(radius: Dp = 24.dp): Modifier {
     val c = LocalVw.current
     val shape = RoundedCornerShape(radius)
-    return (if (c.surface.alpha >= 0.99f) this.shadow(6.dp, shape, ambientColor = Color.Black.copy(alpha = 0.25f), spotColor = Color.Black.copy(alpha = 0.25f)) else this).clip(shape).background(c.surface).border(1.dp, if (c.surface.alpha < 0.9f) c.line else c.line.copy(alpha = 0.07f), shape)
+    return (if (c.surface.alpha >= 0.99f) this.shadow(6.dp, shape, ambientColor = Color.Black.copy(alpha = 0.25f), spotColor = Color.Black.copy(alpha = 0.25f)) else this).clip(shape).background(c.surface).border(1.dp, if (c.surface.alpha < 0.9f || Neon.on) c.line else c.line.copy(alpha = 0.07f), shape)
 }
 
 /**

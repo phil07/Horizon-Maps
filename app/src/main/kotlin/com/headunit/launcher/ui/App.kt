@@ -19,7 +19,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -92,7 +91,9 @@ fun App(prefs: Prefs, engine: NavEngine, map: MapBinding) {
     // the head unit has switched to its night mode at least once (so it links night mode to the headlights): noted for "Headlights"
     val sysDark = rememberSystemNight()
     LaunchedEffect(sysDark) { if (sysDark && !prefs.b(PreferenceKeys.SYSDARKSEEN, false)) prefs.put(PreferenceKeys.SYSDARKSEEN, true) }
-    val dark = resolveDark(prefs.s(PreferenceKeys.THEME, "auto"), prefs.s(PreferenceKeys.LASTLAT, "").toDoubleOrNull(), prefs.s(PreferenceKeys.LASTLON, "").toDoubleOrNull(), nowMs, prefs.b(PreferenceKeys.SYSDARKSEEN, false), sysDark,
+    // the neon look (Settings > Map > Design) is always a night look
+    Neon.sync(prefs)
+    val dark = Neon.on || resolveDark(prefs.s(PreferenceKeys.THEME, "auto"), prefs.s(PreferenceKeys.LASTLAT, "").toDoubleOrNull(), prefs.s(PreferenceKeys.LASTLON, "").toDoubleOrNull(), nowMs, prefs.b(PreferenceKeys.SYSDARKSEEN, false), sysDark,
         prefs.s(PreferenceKeys.NIGHT_FROM, "19:00"), prefs.s(PreferenceKeys.DAY_FROM, "07:00"))
     val hostCtx = androidx.compose.ui.platform.LocalContext.current
 
@@ -128,7 +129,7 @@ fun App(prefs: Prefs, engine: NavEngine, map: MapBinding) {
     // Settings > Map: how much detail, which colours, and where Mapbox's logo goes
     val mapDetail = prefs.mapDetail()
     LaunchedEffect(mapDetail) { map.setMapDetail(mapDetail) }
-    val mapColours = prefs.s(PreferenceKeys.MAP_COLOURS, "mapbox")
+    val mapColours = Neon.accentId?.let { "neon-$it" } ?: prefs.s(PreferenceKeys.MAP_COLOURS, "mapbox")
     LaunchedEffect(mapColours) { map.setColours(mapColours) }
     val logoCorner = prefs.s(PreferenceKeys.MAPBOX_LOGO, "tr")
     LaunchedEffect(logoCorner) { map.setLogoCorner(logoCorner) }
@@ -308,6 +309,12 @@ fun App(prefs: Prefs, engine: NavEngine, map: MapBinding) {
                             ) { lastAlert.value?.let { AlertBanner(it) } }
                         }
                     }
+                }
+                // neon look: faint scan lines over everything (they don't take touches)
+                if (Neon.on) androidx.compose.foundation.Canvas(Modifier.fillMaxSize()) {
+                    val step = 3.dp.toPx(); val th = 1.dp.toPx(); val col = Color.Black.copy(alpha = 0.12f)
+                    var y = 0f
+                    while (y < size.height) { drawRect(col, androidx.compose.ui.geometry.Offset(0f, y), androidx.compose.ui.geometry.Size(size.width, th)); y += step }
                 }
             }
         }

@@ -89,7 +89,9 @@ fun readSystemNight(ctx: android.content.Context): Boolean = try {
 
 @Composable
 fun VwTheme(dark: Boolean, content: @Composable () -> Unit) {
-    var v = if (dark) DarkVw else LightVw
+    val neon = Neon.accent
+    val dark = dark || neon != null
+    var v = if (neon != null) Neon.vw(DarkVw, neon) else if (dark) DarkVw else LightVw
     // text that sits directly on the background always takes whichever of white or near-black reads best
     run {
         fun cr(a: Color, b: Color): Float {
@@ -102,9 +104,11 @@ fun VwTheme(dark: Boolean, content: @Composable () -> Unit) {
         if (cr(sub, v.bg) < 4.5f) sub = on
         v = v.copy(onBg = on, onBgSub = sub)
     }
-    val scheme = if (dark) darkColorScheme(primary = v.accent, background = v.bg, surface = v.surface, onSurface = v.text, onBackground = v.text)
+    val scheme = if (dark) darkColorScheme(primary = v.accent, onPrimary = if (neon != null) Neon.onAccent else Color(0xFF003258), background = v.bg, surface = v.surface, onSurface = v.text, onBackground = v.text)
     else lightColorScheme(primary = v.accent, background = v.bg, surface = v.surface, onSurface = v.text, onBackground = v.text)
-    CompositionLocalProvider(LocalVw provides v) { MaterialTheme(colorScheme = scheme, content = content) }
+    CompositionLocalProvider(LocalVw provides v) {
+        if (neon != null) MaterialTheme(colorScheme = scheme, typography = Neon.typography(), content = content) else MaterialTheme(colorScheme = scheme, content = content)
+    }
 }
 
 val NavBlue = Color(0xFF4DA3FF)

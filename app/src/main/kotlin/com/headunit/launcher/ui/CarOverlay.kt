@@ -58,7 +58,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.layout.boundsInRoot
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -89,6 +88,7 @@ import com.headunit.launcher.PreferenceKeys
 @Composable
 fun CarOverlay(engine: NavEngine, area: State<android.graphics.Rect?>, dark: State<Boolean>, scale: State<Float>, actions: CarActions, onCover: (Int) -> Unit = {}) {
     val base = LocalDensity.current
+    Neon.sync(engine.prefs)
     // [scale] is worked out from the car screen's size (see CarSurface); the Android Auto size setting adjusts it either way
     val user = engine.prefs.i(PreferenceKeys.CARSCALE, 100).coerceIn(40, 300) / 100f
     val textScale = engine.prefs.i(PreferenceKeys.CAR_TEXT_SIZE, 100).coerceIn(75, 150) / 100f

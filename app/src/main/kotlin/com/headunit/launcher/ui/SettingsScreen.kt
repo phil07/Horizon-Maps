@@ -24,7 +24,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Switch
 import androidx.compose.material.icons.Icons
@@ -249,6 +248,13 @@ private fun SettingsBody(prefs: Prefs, engine: NavEngine, onClose: () -> Unit) {
 
 @Composable
 private fun MapLookSection(prefs: Prefs, engine: NavEngine) {
+    SGroup("Design", footer = if (prefs.s(PreferenceKeys.LOOK, "standard") == "neon") "Neon ist immer ein Nachtdesign: dunkle Stadt, leuchtende Straßen, Karten mit abgeschrägten Ecken. Es ändert nur das Aussehen, nicht die Funktionen. Schrift: Rajdhani (SIL Open Font License)." else null) {
+        SChoice("Aussehen", listOf("standard" to "Standard", "neon" to "Neon"), prefs.s(PreferenceKeys.LOOK, "standard"),
+            "Neon: dunkle Stadt mit leuchtenden Linien, abgeschrägten Ecken und technischer Schrift. Gilt auf der Karte, in der Navigation, in den Einstellungen und in Android Auto.") { prefs.put(PreferenceKeys.LOOK, it) }
+        if (prefs.s(PreferenceKeys.LOOK, "standard") == "neon")
+            SChoice("Neonfarbe", listOf("yellow" to "Gelb", "cyan" to "Cyan", "magenta" to "Magenta"), prefs.s(PreferenceKeys.NEON_ACCENT, "yellow"),
+                "Farbe der Straßen, der Route, der Linien und Hervorhebungen.") { prefs.put(PreferenceKeys.NEON_ACCENT, it) }
+    }
     SGroup("Tag und Nacht") {
         SChoice("Tag und Nacht", listOf("auto" to "Auto", "lights" to "Scheinwerfer", "sun" to "Sonnenstand", "times" to "Feste Zeiten", "day" to "Tag", "night" to "Nacht"), prefs.s(PreferenceKeys.THEME, "auto"),
             "Auto folgt dem Nachtmodus des Geräts. Scheinwerfer schaltet mit dem Licht. Sonnenstand schaltet bei Sonnenauf- und -untergang. Feste Zeiten schaltet zu den festgelegten Uhrzeiten.") { prefs.put(PreferenceKeys.THEME, it) }

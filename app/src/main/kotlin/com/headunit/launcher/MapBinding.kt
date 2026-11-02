@@ -377,7 +377,7 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
     }
 
     fun setColours(c: String) {
-        val v = if (c in setOf("mapbox", "horizon", "faded", "grey")) c else "mapbox"
+        val v = if (c in setOf("mapbox", "horizon", "faded", "grey", "neon-yellow", "neon-cyan", "neon-magenta")) c else "mapbox"
         if (v == colours) return
         colours = v
         // the colours are part of how the map loads (and Horizon is a different base map), so it's loaded again
@@ -425,6 +425,8 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
             "grey" -> c.put("theme", "monochrome")
             // Mapbox's own colours with a gentle purple-blue hint (mostly at night), from a colour look-up table
             "horizon" -> if (!sat) { c.put("theme", "custom"); c.put("theme-data", HorizonLut.BASE64) }
+            // the neon look: a dark city with glowing roads in the accent colour
+            "neon-yellow", "neon-cyan", "neon-magenta" -> { c.put("theme", "custom"); c.put("theme-data", NeonLut.of(colours.removePrefix("neon-"))) }
         }
         return c
     }
@@ -2298,10 +2300,13 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
     private var mainOff = 0
 
     /** Route colour: blue (a deeper blue by day, like the progress bar), amber where traffic is slow, red where it's heavy. */
+    /** The neon look's accent as the route's colour (the route line is drawn in it where traffic flows), else null. */
+    private fun neonRoute(): String? = when (colours) { "neon-yellow" -> "#FCEE0A"; "neon-cyan" -> "#19F0FF"; "neon-magenta" -> "#FF3CCB"; else -> null }
+
     private fun sevColor(im: Boolean = false, day: Boolean = false): Expression = Expression.switchCase(
         Expression.eq(Expression.get("sev"), lit(2)), col(if (im) "#D93025" else "#FF4D4D"),
         Expression.eq(Expression.get("sev"), lit(1)), col(if (im) "#F9AB00" else "#FFB020"),
-        col(if (day) "#2A7BE4" else if (im) "#2FC4F5" else "#4CC9FF"),
+        col(neonRoute() ?: if (day) "#2A7BE4" else if (im) "#2FC4F5" else "#4CC9FF"),
     )
 
     private fun pushAll() {

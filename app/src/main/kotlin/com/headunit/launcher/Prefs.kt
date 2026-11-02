@@ -276,6 +276,10 @@ internal object PreferenceKeys {
     const val EV_FREE_KMH = "evfreekmh"
     /** Of the energy going downhill, the share that comes back (learned). */
     const val EV_REGEN = "evregen"
+    /** The look of the app: "standard", or "neon" (dark city, glowing lines, cut corners). */
+    const val LOOK = "look"
+    /** The neon look's colour: "yellow", "cyan" or "magenta". */
+    const val NEON_ACCENT = "neonaccent"
     /** Your driving time against the route's own, on stretches without traffic (learned, 1.0 = the same). */
     const val ETA_PACE = "etapace"
     /** The car's battery level now (from the widget or Android Auto). Separate from the charge you want to arrive with. */

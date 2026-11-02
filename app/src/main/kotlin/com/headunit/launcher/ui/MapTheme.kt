@@ -5,6 +5,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.unit.Dp
@@ -27,7 +29,7 @@ fun immSurface(): Color = if (LocalVw.current.dark) Color(0xFF1C2030) else Color
  * with a Google-like blue accent.
  */
 fun navVw(c: Vw): Vw =
-    if (c.dark) c.copy(
+    Neon.accent?.let { Neon.vw(c, it) } ?: if (c.dark) c.copy(
         bg = Color(0xFF10131C), panel = Color(0xFF181C29),
         surface = Color(0xFF1C2030), surface2 = Color(0xFF262B3F), tile = Color(0xFF272C42),
         text = Color(0xFFF1F3FA), sub = Color(0xFF9CA4BF), accent = Color(0xFF8AB4F8), line = Color(0x1FFFFFFF),
@@ -44,12 +46,17 @@ fun navVw(c: Vw): Vw =
  * Real blur is too slow for a head unit, so this is a tinted see-through look; text keeps full contrast.
  */
 fun glassVw(c: Vw): Vw =
-    if (c.dark) c.copy(surface = Color(0xB8161B2B), tile = Color(0x99262C44), line = Color(0x33FFFFFF))
+    if (Neon.on) c.copy(surface = Color(0xD0080A11), tile = Color(0xA6141926))
+    else if (c.dark) c.copy(surface = Color(0xB8161B2B), tile = Color(0x99262C44), line = Color(0x33FFFFFF))
     else c.copy(surface = Color(0xC7FFFFFF), tile = Color(0xB3EEF1F8), line = Color(0x26000000))
 
 /**
  * A floating card: clipped to its shape and filled. Solid cards get a soft drop shadow; see-through (glass) cards don't,
  * because the shadow would show through the fill as a faint ring and corner lines.
  */
-fun Modifier.panel(elev: Dp, shape: Shape, fill: Color): Modifier =
-    (if (fill.alpha >= 0.99f) this.shadow(elev, shape) else this).clip(shape).background(fill)
+fun Modifier.panel(elev: Dp, shape: Shape, fill: Color): Modifier {
+    // neon: no soft shadow but a thin glowing edge in the accent colour
+    val a = Neon.accent
+    if (a != null) return this.clip(shape).background(fill).border(1.dp, a.copy(alpha = 0.5f), shape)
+    return (if (fill.alpha >= 0.99f) this.shadow(elev, shape) else this).clip(shape).background(fill)
+}

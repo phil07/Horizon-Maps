@@ -4,6 +4,8 @@ package com.headunit.launcher.ui
 internal class SettingRef(val title: String, val sub: String, val group: String, val section: Int)
 
 internal val settingsIndex = listOf(
+    SettingRef("Aussehen", "Standard oder Neon (dunkle Stadt, leuchtende Linien)", "Design", 0),
+    SettingRef("Neonfarbe", "Gelb, Cyan oder Magenta", "Design", 0),
     SettingRef("Tag und Nacht", "", "Tag und Nacht", 0),
     SettingRef("Nacht beginnt um", "", "Tag und Nacht", 0),
     SettingRef("Tag beginnt um", "", "Tag und Nacht", 0),
