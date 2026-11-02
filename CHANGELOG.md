@@ -5,7 +5,7 @@ Add user-facing Horizon Nav changes under **Unreleased** before publishing each 
 ## Unreleased
 
 ### Neu
-- Blitzer beim Start: Die App lädt die Blitzer um deinen Standort schon beim Start, auch wenn Android Auto verbunden ist und die Karte noch nicht offen ist. Der Hinweis „Keine Blitzerdaten“ verschwindet nach 5 Sekunden.
+- Blitzer beim Start: Die App lädt die Blitzer um deinen Standort schon beim Start, auch wenn Android Auto verbunden ist und die Karte noch nicht offen ist. Der Hinweis „Keine Blitzerdaten“ erscheint nur einmal für 5 Sekunden, nicht bei jeder fehlgeschlagenen Suche.
 - Baustellen auf Autobahnen: Baustellen, Sperrungen und Warnungen der Autobahn GmbH erscheinen auf der Karte, als Warnung auf deiner Route mit Entfernung und als Ansage. Sie werden beim Routenstart und danach alle 5 Minuten geholt, ohne Schlüssel. Daten: Autobahn GmbH.
 - Ansagestimme wählen: Unter Einstellungen > Ton & Stimme wählst du eine installierte deutsche Stimme. Online-Stimmen klingen meist natürlicher, brauchen aber Internet. „Probe anhören“ spielt eine Beispielansage.
 - Hinweis ohne Blitzerdaten: Wenn weder das Offline-Paket noch OpenStreetMap Blitzer für die Gegend liefern, zeigt die Karte einen kleinen Hinweis, dass die Offline-Karte dieser Gegend geladen werden kann.
