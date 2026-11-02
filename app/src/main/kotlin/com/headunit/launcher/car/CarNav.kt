@@ -424,7 +424,11 @@ class CarSurface(private val carContext: CarContext, private val onReady: (MapBi
     override fun onClick(x: Float, y: Float) {
         try {
             // the app's cards and buttons first, then the map itself (alternative route cards and lines, skipping the fly-through)
-            if (!com.headunit.launcher.ui.CarTaps.hit(x, y)) map?.tapAt(android.graphics.PointF(x, y))
+            // (a tap on an empty spot of the map picks it, with a card to go there: Android Auto passes no long press)
+            if (!com.headunit.launcher.ui.CarTaps.hit(x, y)) {
+                val pt = android.graphics.PointF(x, y)
+                if (map?.tapAt(pt) != true) engine?.carMapTap(pt)
+            }
         } catch (e: Exception) { }
     }
 

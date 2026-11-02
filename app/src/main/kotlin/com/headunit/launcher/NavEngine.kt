@@ -157,6 +157,40 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
     var routeWx by mutableStateOf<List<RouteWx>>(emptyList())
     var arriveFlash by mutableStateOf(false)
     var arrival by mutableStateOf<ArrivalInfo?>(null)
+
+    /**
+     * A spot picked by tapping the map in the car (Android Auto passes no long press): a pin and a card with "Hierhin fahren"
+     * (while driving a route: "Als Stopp"). [sub] is the address once it's known. Goes away by itself after 15 s.
+     */
+    var mapPick by mutableStateOf<Place?>(null)
+        private set
+    private var pickJob: kotlinx.coroutines.Job? = null
+
+    fun carMapTap(sp: android.graphics.PointF) {
+        map.pickAt(sp) { p, name ->
+            val first = Place(name ?: Lang.t("Markierter Ort", "Marked spot"), "", p)
+            mapPick = first
+            map.setPick(p)
+            pickJob?.cancel()
+            pickJob = scope.launch {
+                launch {
+                    val addr = withContext(Dispatchers.IO) { try { PoiSearch.addressAt(p) } catch (e: Exception) { null } } ?: return@launch
+                    if (mapPick === first) mapPick = if (name != null) Place(name, addr, p) else Place(addr.substringBefore(", "), addr.substringAfter(", ", ""), p)
+                }
+                delay(15_000)
+                clearPick()
+            }
+        }
+    }
+
+    fun clearPick() { pickJob?.cancel(); pickJob = null; mapPick = null; map.setPick(null) }
+
+    /** Goes to the picked spot, or adds it as a stop while a route is being driven. */
+    fun goPick() {
+        val p = mapPick ?: return
+        clearPick()
+        if (route != null && !previewing && dest != null) addStop(p) else startRoute(p)
+    }
     /** A quicker route than the one being followed, found while driving. */
     class FasterRoute(val route: Route, val savedMin: Int)
     var faster by mutableStateOf<FasterRoute?>(null)

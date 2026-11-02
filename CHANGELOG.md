@@ -4,6 +4,9 @@ Add user-facing Horizon Nav changes under **Unreleased** before publishing each 
 
 ## Unreleased
 
+### Neu
+- Ziel auf der Karte wählen in Android Auto: Android Auto meldet kein langes Drücken, deshalb setzt jetzt ein Tipp auf eine freie Stelle der Autokarte einen Pin. Eine Karte zeigt den Namen (bei einem Laden oder anderem Ort auf der Karte) oder die Adresse mit Entfernung und „Hierhin fahren“, während einer Route „Als Stopp“. Ohne Auswahl verschwindet sie nach 15 Sekunden.
+
 ### Verbessert
 - Einbahnstraßen-Warnung aus: „Achtung, Sie fahren möglicherweise in eine Einbahnstraße“ kam zu oft fälschlich. Sie ist jetzt standardmäßig aus (auch bei bestehenden Installationen einmalig ausgeschaltet) und heißt in den Einstellungen „Einbahnstraßen-Warnung“ statt „Geisterfahrer-Warnung“; unter Unterwegs lässt sie sich wieder einschalten. Die Falschfahrer-Meldungen auf der Autobahn bleiben an.
 - Batterie-Widget aktualisieren: Mit Android Auto wird das Widget während der Navigation standardmäßig jede Minute aktualisiert, ohne Navigation alle 10 Minuten. Beide Abstände sind unter „Dein Elektroauto“ beim Widget einstellbar.

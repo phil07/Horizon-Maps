@@ -50,6 +50,7 @@ import androidx.compose.material.icons.rounded.VolumeOff
 import androidx.compose.material.icons.rounded.NotificationsActive
 import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material.icons.rounded.Route
+import androidx.compose.material.icons.rounded.Place
 import androidx.compose.foundation.layout.size
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.onSizeChanged
@@ -355,12 +356,41 @@ private fun CarScreen(engine: NavEngine, a: android.graphics.Rect?, actions: Car
             }
         }
 
+        // a spot picked by tapping the map: go there (or add it as a stop)
+        if (engine.mapPick != null && engine.arrival == null) Box(Modifier.align(Alignment.BottomCenter).padding(start = left, end = rightBottom, bottom = bottom)) {
+            CompositionLocalProvider(LocalDensity provides Density(dens.density * cardScale * 1.2f, dens.fontScale)) { PickCard(engine) }
+        }
+
         // the arrival summary
         val arr = engine.arrival
         // (drawn larger than in the app: its text and its buttons were too small to read and hit on the car screen)
         if (arr != null) Box(Modifier.align(Alignment.BottomCenter).padding(start = left, end = rightBottom, bottom = bottom)) {
             CompositionLocalProvider(LocalDensity provides Density(dens.density * cardScale * 1.35f, dens.fontScale)) { ArrivalCard(engine, arr, car = true) }
         }
+    }
+}
+
+/** The spot tapped on the map: its name (or address), how far it is, and buttons to go there or drop it. */
+@Composable
+private fun PickCard(engine: NavEngine) {
+    val p = engine.mapPick ?: return
+    val c = LocalVw.current
+    val guiding = engine.route != null && !engine.previewing && engine.dest != null
+    val dist = engine.fix?.pos?.let { Geo.fmtDist(Geo.dist(it, p.pos), engine.imperial) }
+    Row(
+        Modifier.widthIn(max = 620.dp).panel(10.dp, RoundedCornerShape(24.dp), c.surface).padding(horizontal = 18.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Box(Modifier.size(44.dp).clip(androidx.compose.foundation.shape.CircleShape).background(Color(0xFFEA4335).copy(alpha = 0.18f)), contentAlignment = Alignment.Center) {
+            androidx.compose.material3.Icon(androidx.compose.material.icons.Icons.Rounded.Place, null, tint = Color(0xFFEA4335), modifier = Modifier.size(26.dp))
+        }
+        Column(Modifier.weight(1f, fill = false)) {
+            Text(p.name, color = c.text, fontSize = 19.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            val sub = listOfNotNull(dist, p.sub.ifBlank { null }).joinToString(" · ")
+            if (sub.isNotBlank()) Text(sub, color = c.sub, fontSize = 15.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        }
+        Box(Modifier.carTap("pick-go") { engine.goPick() }) { ImmPill(if (guiding) Lang.t("Als Stopp", "Add stop") else Lang.t("Hierhin fahren", "Go here"), {}, filled = true) }
+        Box(Modifier.carTap("pick-no") { engine.clearPick() }) { ImmPill(Lang.t("Abbrechen", "Cancel"), {}) }
     }
 }
 

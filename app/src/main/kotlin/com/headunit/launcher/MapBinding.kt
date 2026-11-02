@@ -3794,8 +3794,33 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
 
     private fun pushDest() {
         val s = src("dl-dest") ?: return
-        val d = dest
-        if (d != null) s.feature(Feature.fromGeometry(Point.fromLngLat(d.lon, d.lat))) else s.featureCollection(empty())
+        val pts = listOfNotNull(dest, pick)
+        s.featureCollection(FeatureCollection.fromFeatures(pts.map { Feature.fromGeometry(Point.fromLngLat(it.lon, it.lat)) }))
+    }
+
+    /** A spot picked by tapping the map in the car (shown with the destination pin until it's chosen or dropped). */
+    private var pick: LL? = null
+    fun setPick(p: LL?) { main0.post { pick = p; pushDest() } }
+
+    /**
+     * The map point under a tap at [sp] (screen pixels), with the name of the place drawn there (a shop, a station) when the tap
+     * landed on one. [done] runs on the main thread; the place's own position is given when there is one.
+     */
+    fun pickAt(sp: android.graphics.PointF, done: (LL, String?) -> Unit) {
+        val at = try { mbMap.coordinateForPixel(ScreenCoordinate(sp.x.toDouble(), sp.y.toDouble())) } catch (e: Throwable) { return }
+        val ll = LL(at.latitude(), at.longitude())
+        var answered = false
+        fun answer(p: LL, n: String?) { if (answered) return; answered = true; done(p, n) }
+        try {
+            val r = 22.0 * mapView.resources.displayMetrics.density
+            val box = RenderedQueryGeometry(ScreenBox(ScreenCoordinate(sp.x - r, sp.y - r), ScreenCoordinate(sp.x + r, sp.y + r)))
+            mbMap.queryRenderedFeatures(com.mapbox.maps.interactions.standard.generated.StandardPoi(), box) { list ->
+                val f = list.firstOrNull { !it.name.isNullOrBlank() }
+                main0.post { if (f != null) answer(LL(f.geometry.latitude(), f.geometry.longitude()), f.name) else answer(ll, null) }
+            }
+            // a style without Standard's places (the offline map) never answers: the plain spot then
+            main0.postDelayed({ answer(ll, null) }, 700L)
+        } catch (e: Throwable) { answer(ll, null) }
     }
 
     private fun pushVia() {

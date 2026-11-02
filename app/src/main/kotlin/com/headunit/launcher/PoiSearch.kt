@@ -132,4 +132,13 @@ object PoiSearch {
         for (p in list) if (out.none { Geo.dist(it.pos, p.pos) < 25 || (it.name.equals(p.name, true) && Geo.dist(it.pos, p.pos) < 120) }) out += p
         return out
     }
+
+    /** The address at [p] ("Hauptstraße 5, Ulm"), from OpenStreetMap (Photon, free), or null. */
+    fun addressAt(p: LL): String? {
+        val url = String.format(java.util.Locale.US, "https://photon.komoot.io/reverse?lat=%.6f&lon=%.6f&limit=1", p.lat, p.lon)
+        val pr = (JSONObject(get(url, 6000, 7000)).optJSONArray("features") ?: return null).optJSONObject(0)?.optJSONObject("properties") ?: return null
+        val street = listOf(pr.optString("street"), pr.optString("housenumber")).filter { it.isNotBlank() }.joinToString(" ")
+        val town = pr.optString("city").ifBlank { pr.optString("district") }.ifBlank { pr.optString("county") }
+        return listOf(street.ifBlank { pr.optString("name") }, town).filter { it.isNotBlank() }.distinct().joinToString(", ").ifBlank { null }
+    }
 }
