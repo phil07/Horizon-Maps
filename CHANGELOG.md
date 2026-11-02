@@ -5,6 +5,7 @@ Add user-facing Horizon Nav changes under **Unreleased** before publishing each 
 ## Unreleased
 
 ### Verbessert
+- Sprachsuche in Android Auto: „Hey Google, navigiere mit Horizon Nav zu …“ versteht jetzt auch „Zuhause“, „nach Hause“, „Arbeit“ und die Namen deiner Favoriten, und ein vorangestelltes „nach“ oder „zu“ stört nicht mehr. Bei einem eindeutigen Treffer startet die Route sofort, sonst öffnet sich die Trefferliste. Ein Hinweis steht in der Auto-Suche und unter Einstellungen > Android Auto.
 - Gespeichert & Zuletzt zugeklappt: Die Liste unter der Suchleiste ist beim Start der App und bei jeder Verbindung mit dem Auto zugeklappt und hält die Karte frei. Ein Tipp klappt sie auf.
 
 ### Behoben

@@ -17,7 +17,7 @@ Move items to **Done** as they ship, and add new requests at the bottom of the r
 9. **Swap the search bar for a search icon**, for people who want even more of the map on show.
 10. **Choose where your arrow sits on screen.** Requested on Android Auto, for one car where the centre felt too far left. The automatic centring added since may cover this. Check before building.
 11. **Radarbot integration** for speed cameras on the route. Radarbot doesn't offer a public way in, so this may not be possible. The app's own camera data is used instead.
-13. **Android Auto voice search.** Pressing Android Auto's own mic and asking for a place says "Sorry, I didn't understand". "Navigate to …" with the app named may already work. Needs testing.
+13. **Android Auto voice search.** Pressing Android Auto's own mic and asking for a place says "Sorry, I didn't understand". "Hey Google, navigate to … with Horizon Nav" is handled (German home/work words and favourites too, and a single clear match starts straight away). Without the app named, Horizon Nav must be the default navigation app in the Android Auto settings. Needs testing in the car.
 
 ## Can't be fixed in the app
 

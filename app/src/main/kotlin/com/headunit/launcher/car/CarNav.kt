@@ -125,18 +125,34 @@ class CarNavSession : Session() {
                 if (holder.engine !== e) return@post
                 try { ms.screenManager.popToRoot() } catch (x: Exception) { }
                 val p = t?.pos
-                val q = t?.query?.trim().orEmpty()
+                val q = spoken(t?.query.orEmpty())
+                val slot = when (q.lowercase()) {
+                    "home", "zuhause", "zu hause", "hause", "daheim", "heim", "nach hause" -> "home"
+                    "work", "arbeit", "die arbeit", "büro", "das büro", "firma", "die firma" -> "work"
+                    else -> null
+                }
+                val fav = if (q.isNotEmpty()) e.places.favourites().firstOrNull { it.name.trim().equals(q, true) } else null
                 when {
                     p != null -> e.startRoute(Place(t?.name ?: Lang.t("Ziel", "Destination"), Lang.t("Ziel aus Google Assistant", "From Google Assistant"), p))
-                    q.equals("home", true) && e.places.slot("home") != null -> e.startRoute(e.places.slot("home")!!)
-                    q.equals("work", true) && e.places.slot("work") != null -> e.startRoute(e.places.slot("work")!!)
-                    q.isNotEmpty() -> ms.screenManager.push(SearchScreen(carContext, holder, q))
+                    slot != null && e.places.slot(slot) != null -> e.startRoute(e.places.slot(slot)!!)
+                    slot != null -> try { androidx.car.app.CarToast.makeText(carContext, if (slot == "home") Lang.t("Noch kein Zuhause gespeichert", "No home saved yet") else Lang.t("Noch keine Arbeit gespeichert", "No work place saved yet"), androidx.car.app.CarToast.LENGTH_LONG).show() } catch (x: Exception) { }
+                    fav != null -> e.startRoute(fav)
+                    // a name or address: searched, and a single clear match is started straight away
+                    q.isNotEmpty() -> ms.screenManager.push(SearchScreen(carContext, holder, q, voice = true))
                     else -> try { androidx.car.app.CarToast.makeText(carContext, Lang.t("Konnte keinen Ort erkennen", "Couldn't read a place from that"), androidx.car.app.CarToast.LENGTH_LONG).show() } catch (x: Exception) { }
                 }
             }
         }.apply { isDaemon = true; name = "car-nav-intent" }
         pendingNavWait = worker
         worker.start()
+    }
+
+    /** What Google Assistant passed on, without a leading "nach" / "zu" ("navigiere nach Berlin" can arrive as "nach Berlin"). */
+    private fun spoken(raw: String): String {
+        var q = raw.trim().trim('"', '\'', '„', '“', '.', '?', '!')
+        for (w in listOf("navigiere ", "navigate ", "fahre ", "to ", "nach ", "zum ", "zur ", "zu ", "in die ", "in den "))
+            if (q.length > w.length + 1 && q.lowercase().startsWith(w) && !(w == "nach " && q.lowercase() == "nach hause")) q = q.substring(w.length).trim()
+        return q
     }
 
     /** Night colours on the car screen: follow the car, or always day / always night (quick settings on the car). */
@@ -981,14 +997,27 @@ class LimitReportScreen(carContext: CarContext, private val holder: CarHolder) :
 }
 
 /** Search with the car's keyboard or voice: results from the same search as the app (TomTom, or offline when there's no signal). */
-class SearchScreen(carContext: CarContext, private val holder: CarHolder, initial: String = "") : Screen(carContext) {
+class SearchScreen(carContext: CarContext, private val holder: CarHolder, initial: String = "", private val voice: Boolean = false) : Screen(carContext) {
     private var query = initial
     private var shown: List<Place> = emptyList()
     private val handler = Handler(Looper.getMainLooper())
+    /** The results from before a spoken search, so its own answer is known when it comes. */
+    private val before: List<Place>? = holder.engine?.results
+    private var decided = !voice
     private val poll = object : Runnable {
         override fun run() {
             val r = holder.engine?.results ?: emptyList()
-            if (r !== shown) { shown = r; invalidate() }
+            if (r !== shown) {
+                shown = r
+                // a spoken destination: one result, or one whose name is exactly what was said, starts the route straight away
+                if (!decided && r !== before && r.isNotEmpty()) {
+                    decided = true
+                    val exact = r.filter { it.name.trim().equals(query.trim(), true) }
+                    val pick = if (r.size == 1) r[0] else if (exact.size == 1 && r[0] === exact[0]) r[0] else null
+                    if (pick != null) { holder.engine?.startRoute(pick); screenManager.popToRoot(); return }
+                }
+                invalidate()
+            }
             handler.postDelayed(this, 500)
         }
     }
@@ -1006,7 +1035,7 @@ class SearchScreen(carContext: CarContext, private val holder: CarHolder, initia
     override fun onGetTemplate(): Template {
         val e = holder.engine
         val limit = try { carContext.getCarService(ConstraintManager::class.java).getContentLimit(ConstraintManager.CONTENT_LIMIT_TYPE_LIST) } catch (x: Exception) { 6 }
-        val list = ItemList.Builder().setNoItemsMessage(if (query.length < 3) Lang.t("Ort, Adresse oder Postleitzahl eingeben", "Type a place, address or postcode") else Lang.t("Suche läuft…", "Searching…"))
+        val list = ItemList.Builder().setNoItemsMessage(if (query.length < 3) Lang.t("Ort, Adresse oder Postleitzahl eingeben, oder sag „Hey Google, navigiere mit Horizon Nav zu …“", "Type a place, address or postcode, or say \"Hey Google, navigate to … with Horizon Nav\"") else Lang.t("Suche läuft…", "Searching…"))
         if (query.length >= 3) for (p in shown.take(limit.coerceIn(1, 12))) {
             // a red pin, the name, and how far it is with the address under it (as in the app's results)
             val r = Row.Builder().setTitle(p.name).setImage(rowIcon(carContext, R.drawable.ic_car_pin, 0xFFEA4335.toInt()))

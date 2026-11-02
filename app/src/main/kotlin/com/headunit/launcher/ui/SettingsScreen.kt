@@ -956,6 +956,7 @@ private fun AndroidAutoSection(prefs: Prefs) {
             SSlider("Straßennamen-Größe", prefs.i(PreferenceKeys.CAR_ROAD_NAME_SIZE, 100).toFloat(), 70f..200f, "%", steps = 12, reset = 100f) { prefs.put(PreferenceKeys.CAR_ROAD_NAME_SIZE, it) }
         }
         SItem("Installiert durch", source)
+        SItem("Sprachsuche im Auto", "Sag „Hey Google, navigiere mit Horizon Nav zu …“ (ein Ort, eine Adresse, „Zuhause“, „Arbeit“ oder ein Favorit). Ohne „mit Horizon Nav“ geht es nur, wenn Horizon Nav in den Android-Auto-Einstellungen als Standard-Navigations-App gewählt ist. Bei einem eindeutigen Treffer startet die Route sofort, sonst öffnet sich die Trefferliste.")
         SItem("Android Auto Einstellungen", if (hasAa) null else "Android Auto ist auf diesem Telefon nicht installiert") {
             if (hasAa) SButton("Öffnen") {
                 val i = ctx.packageManager.getLaunchIntentForPackage(gh)
