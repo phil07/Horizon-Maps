@@ -92,7 +92,7 @@ internal val settingsIndex = listOf(
     SettingRef("Aus, wo verboten", "Deaktiviert sich in Frankreich, Deutschland und der Schweiz", "Geschwindigkeit", 5),
     SettingRef("Sektionskontrollen", "Durchschnittstempo im Vergleich zum Limit", "Geschwindigkeit", 5),
     SettingRef("Baustellen und Ereignisse", "", "Unterwegs", 5),
-    SettingRef("Geisterfahrer-Warnung", "Bei falschem Abbiegen in Einbahnstraßen", "Unterwegs", 5),
+    SettingRef("Einbahnstraßen-Warnung", "Bei falschem Abbiegen in Einbahnstraßen", "Unterwegs", 5),
     SettingRef("Bremsschwellen", "", "Unterwegs", 5),
     SettingRef("Schulen zu Schulzeiten", "", "Unterwegs", 5),
     SettingRef("Umweltzonen", "", "Unterwegs", 5),

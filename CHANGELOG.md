@@ -5,6 +5,7 @@ Add user-facing Horizon Nav changes under **Unreleased** before publishing each 
 ## Unreleased
 
 ### Verbessert
+- Einbahnstraßen-Warnung aus: „Achtung, Sie fahren möglicherweise in eine Einbahnstraße“ kam zu oft fälschlich. Sie ist jetzt standardmäßig aus (auch bei bestehenden Installationen einmalig ausgeschaltet) und heißt in den Einstellungen „Einbahnstraßen-Warnung“ statt „Geisterfahrer-Warnung“; unter Unterwegs lässt sie sich wieder einschalten. Die Falschfahrer-Meldungen auf der Autobahn bleiben an.
 - Batterie-Widget aktualisieren: Mit Android Auto wird das Widget während der Navigation standardmäßig jede Minute aktualisiert, ohne Navigation alle 10 Minuten. Beide Abstände sind unter „Dein Elektroauto“ beim Widget einstellbar.
 - Sprachsuche in Android Auto: „Hey Google, navigiere mit Horizon Nav zu …“ versteht jetzt auch „Zuhause“, „nach Hause“, „Arbeit“ und die Namen deiner Favoriten, und ein vorangestelltes „nach“ oder „zu“ stört nicht mehr. Bei einem eindeutigen Treffer startet die Route sofort, sonst öffnet sich die Trefferliste. Ein Hinweis steht in der Auto-Suche und unter Einstellungen > Android Auto.
 - Gespeichert & Zuletzt zugeklappt: Die Liste unter der Suchleiste ist beim Start der App und bei jeder Verbindung mit dem Auto zugeklappt und hält die Karte frei. Ein Tipp klappt sie auf.

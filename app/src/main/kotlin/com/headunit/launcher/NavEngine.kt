@@ -635,6 +635,8 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
     init {
         // an older pack on the unit goes into its own area folder (it's the area that was chosen then)
         try { migratePack() } catch (e: Exception) { }
+        // the one-way street warning went off too often on OpenStreetMap's data: off for everyone once (it can be switched back on)
+        if (!prefs.b(PreferenceKeys.WRONGWAY_RESET, false)) { prefs.put(PreferenceKeys.WRONGWAY, false); prefs.put(PreferenceKeys.WRONGWAY_RESET, true) }
         // speed limits and the wrong-way warning read the roads from a downloaded area when one covers you (no network needed)
         Overpass.localWays = { p -> OfflineLimits.waysNear(ctx, p) }
         // the phone and car screens share the trip (joined a moment after start, once this engine is fully set up)
@@ -5408,7 +5410,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
 
     // ---- wrong way ----
     private fun checkWrongWay(p: Fix) {
-        if (simMode != 0 || !prefs.b(PreferenceKeys.WRONGWAY, true) || p.speed < 4.0 || (p.acc > 0 && p.acc > 20.0)) { wrongCount = 0; return }
+        if (simMode != 0 || !prefs.b(PreferenceKeys.WRONGWAY, false) || p.speed < 4.0 || (p.acc > 0 && p.acc > 20.0)) { wrongCount = 0; return }
         // the check runs through every nearby road, so it's done in the background (it used to stall the screen once a second)
         if (wrongBusy) return
         wrongBusy = true

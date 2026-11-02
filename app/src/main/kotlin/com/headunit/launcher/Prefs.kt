@@ -240,6 +240,7 @@ internal object PreferenceKeys {
     const val UPDCHECK = "updcheck"
     const val UPDSNOOZE = "updsnooze"
     const val WRONGWAY = "wrongway"
+    const val WRONGWAY_RESET = "wrongwayreset"
     const val WXADVICE = "wxadvice"
     /** Official DWD weather warnings (markant and worse) on the route ahead or where you are. */
     const val DWD_WARN = "dwdwarn"
