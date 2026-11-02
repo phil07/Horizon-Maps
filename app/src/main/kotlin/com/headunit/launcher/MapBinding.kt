@@ -4137,8 +4137,12 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
         }
         val xs = points.map { mx(it.lon) }; val ys = points.map { my(it.lat) }
         val x0 = xs.min(); val x1 = xs.max(); val y0 = ys.min(); val y1 = ys.max()
-        // visible area (dp): the bottom half is covered by the preview panel
-        val pl = w * 0.07; val pr = w * 0.07; val pt = h * 0.10; val pb = h * 0.60
+        // visible area (dp): the bottom half is covered by the preview panel. On Android Auto only the part of the screen it leaves
+        // the map counts (another app beside it, its own buttons), so the routes aren't drawn behind them
+        val vi = viewInset
+        val il = (vi?.left ?: 0) / d; val ir = (vi?.right ?: 0) / d; val it0 = (vi?.top ?: 0) / d; val ib = (vi?.bottom ?: 0) / d
+        val vw = max(50.0, w - il - ir); val vh = max(50.0, h - it0 - ib)
+        val pl = il + vw * 0.07; val pr = ir + vw * 0.07; val pt = it0 + vh * 0.10; val pb = ib + vh * 0.60
         val aw = w - pl - pr; val ah = h - pt - pb
         val fx = max(x1 - x0, 1e-7); val fy = max(y1 - y0, 1e-7)
         // (zoom in this formula is for a map drawn at the screen's own density; a lower render scale shows more map, so it's corrected)

@@ -346,7 +346,10 @@ private fun CarScreen(engine: NavEngine, a: android.graphics.Rect?, actions: Car
         }
 
         // before setting off: the destination, the route choices and the Start bar that starts by itself after 10 s
-        if (previewing) Box(Modifier.align(Alignment.BottomCenter).padding(start = left, end = if (portrait) rightBottom else rightTop, bottom = bottom)) { CarRoutePreview(engine) }
+        if (previewing) Box(Modifier.align(Alignment.BottomCenter).padding(start = left, end = if (portrait) rightBottom else rightTop, bottom = bottom)) {
+            // drawn half as large again as the app's (its text was too small to read in the car), and with the car card size setting
+            CompositionLocalProvider(LocalDensity provides Density(dens.density * cardScale * 1.5f, dens.fontScale)) { CarRoutePreview(engine) }
+        }
 
         // working out a route: a small spinner at the top, as in the app
         AnimatedVisibility(engine.busy, modifier = Modifier.align(Alignment.TopCenter).padding(top = top + (if (portrait) below else 0.dp)),
@@ -594,7 +597,8 @@ private fun CarRoutePreview(engine: NavEngine) {
     BoxWithConstraints(Modifier.fillMaxWidth()) {
         // The horizontal arrangement needs room for the destination, three route cards, Start and Close.
         // A 760dp breakpoint left the route cards squeezed on medium displays, so stack until there is real room.
-        if (maxWidth >= 1120.dp) Row(
+        // (one row when the destination, every route card, Start and Close fit side by side; else stacked)
+        if (maxWidth >= (170 + 220 + 46 + 40 + rs.size * 200).dp) Row(
             Modifier.fillMaxWidth().floating(28.dp).padding(12.dp),
             verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp),
         ) {
