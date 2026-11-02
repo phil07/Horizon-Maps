@@ -46,6 +46,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -250,14 +251,51 @@ fun HazardBadge(kind: String, label: String, dist: String) {
  */
 @Composable
 fun SpeedLimitSign(engine: NavEngine, size: Dp, modifier: Modifier = Modifier, onClick: (() -> Unit)? = null) {
-    val details: () -> Unit = { engine.toast(engine.limitDetails.ifBlank { Lang.t("Keine Angaben der Quellen", "No details from the sources") }, 6000) }
-    val tap: (() -> Unit)? = onClick ?: if (!engine.isCar) details else null
+    var panel by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
+    val tap: (() -> Unit)? = onClick ?: if (!engine.isCar) ({ panel = !panel }) else null
     Box(modifier) {
         SpeedLimitFace(engine, size, Modifier, tap)
+        if (panel) androidx.compose.ui.window.Popup(alignment = Alignment.TopCenter, offset = androidx.compose.ui.unit.IntOffset(0, -20),
+            onDismissRequest = { panel = false }, properties = androidx.compose.ui.window.PopupProperties(focusable = true)) {
+            LimitPanel(engine) { panel = false }
+        }
         if (engine.limitDisputed && (engine.speedLimit != null || engine.noLimit)) Box(
             Modifier.align(Alignment.TopEnd).size(size * 0.24f).shadow(3.dp, CircleShape).clip(CircleShape)
                 .background(Color(0xFFFFB300)).border(1.5.dp, Color.White, CircleShape)
         )
+    }
+}
+
+/** What each source said about the limit, and buttons to report the right one (shared with other drivers). */
+@Composable
+private fun LimitPanel(engine: NavEngine, close: () -> Unit) {
+    val c = LocalVw.current
+    val shape = RoundedCornerShape(20.dp)
+    Column(Modifier.widthIn(max = 340.dp).padding(horizontal = 12.dp).shadow(14.dp, shape).clip(shape).background(c.surface).padding(14.dp)) {
+        Text(Lang.t("Quellen", "Sources"), color = c.sub, fontSize = 11.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+        Text(engine.limitDetails.ifBlank { Lang.t("Keine Angaben der Quellen", "No details from the sources") }, color = c.text, fontSize = 15.sp,
+            modifier = Modifier.padding(top = 4.dp))
+        if (engine.limitDisputed) Text(Lang.t("Die Quellen sind sich nicht einig.", "The sources don't agree."), color = Color(0xFFFFB300), fontSize = 13.sp,
+            modifier = Modifier.padding(top = 4.dp))
+        Text(Lang.t("Welches Tempolimit gilt hier?", "Which limit applies here?"), color = c.sub, fontSize = 11.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp,
+            modifier = Modifier.padding(top = 12.dp))
+        val shown = engine.speedLimit?.let { Math.round(it * 3.6).toInt() } ?: if (engine.noLimit) 0 else null
+        if (shown != null) LimitChip(engine, close, Lang.t("Stimmt (${if (shown == 0) "frei" else shown})", "Right (${if (shown == 0) "none" else shown})"), null, true, Modifier.fillMaxWidth().padding(top = 6.dp))
+        val vals = listOf(30, 50, 60, 70, 80, 100, 120, 0)
+        for (row in vals.chunked(4)) Row(Modifier.fillMaxWidth().padding(top = 2.dp)) {
+            for (v in row) LimitChip(engine, close, if (v == 0) Lang.t("frei", "none") else "$v", v, mod = Modifier.weight(1f))
+        }
+        Text(Lang.t("Meldungen werden anonym geteilt. Je mehr Fahrer dasselbe melden, desto stärker zählt es.", "Reports are shared anonymously. The more drivers report the same, the more it counts."),
+            color = c.sub, fontSize = 11.sp, modifier = Modifier.padding(top = 8.dp))
+    }
+}
+
+@Composable
+private fun LimitChip(engine: NavEngine, close: () -> Unit, label: String, v: Int?, accent: Boolean = false, mod: Modifier = Modifier) {
+    val c = LocalVw.current
+    Box(mod.padding(3.dp).height(42.dp).clip(RoundedCornerShape(21.dp)).background(if (accent) Color(0xFF2E7D32) else c.line)
+        .clickable { engine.reportLimit(v); close() }.padding(horizontal = 12.dp), contentAlignment = Alignment.Center) {
+        Text(label, color = if (accent) Color.White else c.text, fontSize = 15.sp, fontWeight = FontWeight.Bold, maxLines = 1)
     }
 }
 

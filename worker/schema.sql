@@ -31,3 +31,17 @@ CREATE TABLE IF NOT EXISTS rate (
   hour INTEGER NOT NULL
 );
 CREATE INDEX IF NOT EXISTS rate_hour ON rate (hour);
+
+-- speed limit reports from drivers: one row per device and spot (a device's newer report nearby replaces its older one).
+-- kmh 0 = no general limit; h = heading in degrees (-1 unknown); t = epoch milliseconds. Kept for a year.
+CREATE TABLE IF NOT EXISTS speed_reports (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  lat REAL NOT NULL,
+  lon REAL NOT NULL,
+  h INTEGER NOT NULL,
+  kmh INTEGER NOT NULL,
+  t INTEGER NOT NULL,
+  device TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS speed_reports_lat_lon ON speed_reports (lat, lon);
+CREATE INDEX IF NOT EXISTS speed_reports_t ON speed_reports (t);

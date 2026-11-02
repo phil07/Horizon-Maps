@@ -2158,7 +2158,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         val mk = prefs.s(PreferenceKeys.MAPILLARY_KEY, "").trim()
         val mph = cc == "GB" || cc == "US"
         // every source at once
-        val (hv, tt, mb, signs) = kotlinx.coroutines.coroutineScope {
+        val got = kotlinx.coroutines.coroutineScope {
             val hereJ = async(Dispatchers.IO) {
                 if (hk.isEmpty()) return@async null
                 val now = System.currentTimeMillis()
@@ -2192,8 +2192,16 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
                 if (osm == null || mbWay == way) mbLim else null
             }
             val mlyJ = async(Dispatchers.IO) { if (mk.isEmpty()) null else try { Mapillary.signsAround(mk, p, mph) } catch (e: Exception) { null } }
-            Quad(hereJ.await(), ttJ.await(), mbJ.await(), mlyJ.await())
+            // limits other drivers reported (Horizon's reports server)
+            val usJ = async(Dispatchers.IO) { try { SpeedReports.around(prefs, p) } catch (e: Exception) { emptyList() } }
+            // roadworks on a German motorway with a posted limit (Autobahn GmbH)
+            val abJ = async(Dispatchers.IO) {
+                val ab = if (cc == "DE" && osm != null) (listOf(osm.road) + osm.names).firstNotNullOfOrNull { AutobahnRest.roadOf(it) } else null
+                if (ab == null) null else try { AutobahnRest.limitAt(AutobahnRest.roadworkLimits(ab), p, hd, System.currentTimeMillis()) } catch (e: Exception) { null }
+            }
+            Quad(hereJ.await(), ttJ.await(), mbJ.await(), mlyJ.await(), usJ.await(), abJ.await())
         }
+        val (hv, tt, mb, signs, users, roadworks) = got
         val votes = ArrayList<SpeedVote.Vote>()
         val osmNone = osm != null && osm.noLimit && !osm.estimated
         if (osm != null) {
@@ -2213,6 +2221,8 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
             val w = SpeedVote.signWeight(if (s.seenAt > 0) System.currentTimeMillis() - s.seenAt else 0L)
             if (w > 0.0) votes += SpeedVote.Vote(Lang.t("Schild", "Sign"), s.ms, w)
         }
+        if (roadworks != null) votes += SpeedVote.Vote(Lang.t("Baustelle", "Roadworks"), roadworks, SpeedVote.W_ROADWORKS)
+        votes += SpeedReports.votes(users, p, hd, System.currentTimeMillis())
         val res = SpeedVote.decide(votes, imperial) ?: return osm to null
         android.util.Log.w("SpeedVote", "${res.details} -> ${SpeedVote.label(res.ms, imperial)}${if (res.disputed) " (uneinig)" else ""}")
         // only OpenStreetMap for it: its own sureness (how closely the road was matched); any other source is sure
@@ -2222,7 +2232,30 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         return lim to res
     }
 
-    private data class Quad(val here: Double?, val tt: TomTomRest.RoadLimit?, val mb: Double?, val signs: List<MlySign>?)
+    private data class Quad(val here: Double?, val tt: TomTomRest.RoadLimit?, val mb: Double?, val signs: List<MlySign>?,
+                            val users: List<SpeedReport>, val roadworks: Double?)
+
+    /**
+     * Your report of the limit where you are now (tap on the sign, or Melden in the car): [kmh] the limit, 0 for no limit, or
+     * null for "the sign is right" (the value shown). Shared with other drivers and counted in the vote at once.
+     */
+    fun reportLimit(kmh: Int?) {
+        val f = fix ?: run { toast(Lang.t("Warte auf GPS", "Waiting for GPS"), 2500); return }
+        val v = kmh ?: when {
+            speedLimit != null -> Math.round(speedLimit!! * 3.6).toInt()
+            noLimit -> 0
+            else -> { toast(Lang.t("Kein Tempolimit angezeigt", "No limit shown"), 2500); return }
+        }
+        val hd = if (f.speed > 2.0) f.heading else -1.0
+        val pos = (if (glideOnRoute) gPos else mPos)?.takeIf { Geo.dist(it, f.pos) < 40.0 } ?: f.pos
+        scope.launch {
+            val ok = withContext(Dispatchers.IO) { SpeedReports.send(prefs, pos, hd, v) }
+            val what = if (v == 0) Lang.t("kein Limit", "no limit") else "$v km/h"
+            toast(if (ok) Lang.t("Danke! $what gemeldet", "Thanks! $what reported") else Lang.t("$what gespeichert, wird mitgezählt (Server nicht erreicht)", "$what saved and counted (server not reached)"), 3000)
+            // look again at once, so your report shows
+            limitAt = 0L; limitPos = null
+        }
+    }
 
     /**
      * Shows a looked-up limit. A guess from the road type is only shown when "Show estimated limits" is on (a blank sign is better

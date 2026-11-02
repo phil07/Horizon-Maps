@@ -18,6 +18,7 @@ internal object SpeedVote {
     // how much each source counts: a sign seen on the road most, the big map makers next, OpenStreetMap a little less, a guess least
     const val W_SIGN = 3.0
     const val W_ROUTE = 2.0
+    const val W_ROADWORKS = 2.5
     const val W_HERE = 2.0
     const val W_TOMTOM = 2.0
     const val W_MAPBOX = 1.5

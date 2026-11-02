@@ -1,6 +1,7 @@
 // Horizon Nav shared reports: a small Cloudflare Worker with a D1 database.
 // Drivers share police/accident/hazard/... reports; others confirm ("still there") or dismiss them.
 // API (JSON): POST /v1/reports, GET /v1/reports?s=&w=&n=&e=, POST /v1/reports/<id>/vote, GET /v1/health.
+// Speed limits reported by drivers: POST /v1/limits, GET /v1/limits?s=&w=&n=&e=.
 
 const MIN = 60 * 1000;
 const HOUR = 60 * MIN;
@@ -23,6 +24,13 @@ const MAX_BODY_BYTES = 1024;
 const LIMIT_REPORTS_PER_DEVICE = 10; // per hour
 const LIMIT_REPORTS_PER_IP = 30; // per hour
 const LIMIT_VOTES_PER_DEVICE = 60; // per hour
+
+const YEAR = 365 * 24 * HOUR;
+const LIMIT_SPEED_PER_DEVICE = 30; // per hour
+const LIMIT_SPEED_PER_IP = 60; // per hour
+const SPEED_REPLACE_M = 80; // a device's newer report this close (same direction) replaces its older one
+const SPEED_MAX_BBOX_DEG = 0.2;
+const SPEED_MAX_RESULTS = 2000;
 
 const DEVICE_RE = /^[A-Za-z0-9-]{8,64}$/;
 
@@ -216,6 +224,70 @@ async function postVote(request, env, id) {
   return json(200, { ok: true, exp });
 }
 
+const angleDiff = (a, b) => Math.abs((((a - b) % 360) + 540) % 360 - 180);
+
+function parseBbox(url, maxDeg) {
+  const p = url.searchParams;
+  const [s, w, n, e] = ["s", "w", "n", "e"].map((k) => {
+    const v = p.get(k);
+    const x = v === null || v.trim() === "" ? NaN : Number(v);
+    if (!Number.isFinite(x)) throw new HttpError(400, `invalid ${k}`);
+    return x;
+  });
+  if (s < -90 || n > 90 || w < -180 || e > 180 || s > n || w > e) throw new HttpError(400, "invalid bbox");
+  if (n - s > maxDeg || e - w > maxDeg) throw new HttpError(400, "bbox too large");
+  return [s, w, n, e];
+}
+
+async function postLimit(request, env) {
+  const device = deviceOf(request);
+  const body = await readJson(request);
+  const { lat, lon, heading, kmh } = body;
+  if (typeof lat !== "number" || !Number.isFinite(lat) || lat < -90 || lat > 90) throw new HttpError(400, "invalid lat");
+  if (typeof lon !== "number" || !Number.isFinite(lon) || lon < -180 || lon > 180) throw new HttpError(400, "invalid lon");
+  if (!Number.isInteger(kmh) || !(kmh === 0 || (kmh >= 5 && kmh <= 160))) throw new HttpError(400, "invalid kmh");
+  const h = Number.isFinite(heading) && heading >= 0 ? Math.round(heading) % 360 : -1;
+  const now = Date.now();
+  if (!(await underLimit(env, `sd:${device}`, LIMIT_SPEED_PER_DEVICE, now)))
+    throw new HttpError(429, "too many speed reports from this device");
+  const ip = request.headers.get("CF-Connecting-IP") || "unknown";
+  if (!(await underLimit(env, `sip:${ip}`, LIMIT_SPEED_PER_IP, now)))
+    throw new HttpError(429, "too many speed reports from this address");
+  const la = round5(lat);
+  const lo = round5(lon);
+  // this device's own earlier reports at the same spot (same direction) are replaced, so one device always counts once
+  const dLat = SPEED_REPLACE_M / 111320;
+  const dLon = dLat / Math.max(0.01, Math.cos((la * Math.PI) / 180));
+  const { results } = await env.DB.prepare(
+    "SELECT id, lat, lon, h FROM speed_reports WHERE device = ?1 AND lat BETWEEN ?2 AND ?3 AND lon BETWEEN ?4 AND ?5"
+  )
+    .bind(device, la - dLat, la + dLat, lo - dLon, lo + dLon)
+    .all();
+  const old = (results || []).filter(
+    (r) => haversineMeters(la, lo, r.lat, r.lon) <= SPEED_REPLACE_M && (r.h < 0 || h < 0 || angleDiff(r.h, h) < 60)
+  );
+  const stmts = old.map((r) => env.DB.prepare("DELETE FROM speed_reports WHERE id = ?1").bind(r.id));
+  stmts.push(
+    env.DB.prepare("INSERT INTO speed_reports (lat, lon, h, kmh, t, device) VALUES (?1, ?2, ?3, ?4, ?5, ?6)").bind(la, lo, h, kmh, now, device)
+  );
+  await env.DB.batch(stmts);
+  return json(200, { ok: true, replaced: old.length });
+}
+
+async function getLimits(request, env, url) {
+  const device = deviceOf(request);
+  const [s, w, n, e] = parseBbox(url, SPEED_MAX_BBOX_DEG);
+  const now = Date.now();
+  const { results } = await env.DB.prepare(
+    "SELECT lat, lon, h, kmh, t, device FROM speed_reports " +
+      "WHERE t > ?1 AND lat BETWEEN ?2 AND ?3 AND lon BETWEEN ?4 AND ?5 ORDER BY t DESC LIMIT ?6"
+  )
+    .bind(now - YEAR, s, n, w, e, SPEED_MAX_RESULTS)
+    .all();
+  const limits = (results || []).map((r) => ({ lat: r.lat, lon: r.lon, h: r.h, kmh: r.kmh, t: r.t, mine: r.device === device }));
+  return json(200, { now, limits });
+}
+
 async function handle(request, env) {
   const url = new URL(request.url);
   const path = url.pathname.replace(/\/+$/, "") || "/";
@@ -228,6 +300,11 @@ async function handle(request, env) {
   if (path === "/v1/reports") {
     if (method === "POST") return postReport(request, env);
     if (method === "GET") return getReports(request, env, url);
+    throw new HttpError(405, "method not allowed");
+  }
+  if (path === "/v1/limits") {
+    if (method === "POST") return postLimit(request, env);
+    if (method === "GET") return getLimits(request, env, url);
     throw new HttpError(405, "method not allowed");
   }
   const m = path.match(/^\/v1\/reports\/(\d{1,15})\/vote$/);
@@ -244,6 +321,7 @@ async function cleanup(env, now) {
     env.DB.prepare("DELETE FROM reports WHERE exp < ?1").bind(now - HOUR),
     env.DB.prepare("DELETE FROM votes WHERE report_id NOT IN (SELECT id FROM reports)"),
     env.DB.prepare("DELETE FROM rate WHERE hour < ?1").bind(Math.floor(now / HOUR) - 1),
+    env.DB.prepare("DELETE FROM speed_reports WHERE t < ?1").bind(now - YEAR),
   ]);
 }
 

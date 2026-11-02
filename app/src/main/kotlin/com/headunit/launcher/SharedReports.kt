@@ -139,7 +139,7 @@ object SharedReports {
         lastError = (e.message ?: e.javaClass.simpleName).take(80)
     }
 
-    private fun request(method: String, url: String, device: String, body: String?): String {
+    internal fun request(method: String, url: String, device: String, body: String?): String {
         val c = URL(url).openConnection() as HttpURLConnection
         try {
             c.connectTimeout = TIMEOUT_MS

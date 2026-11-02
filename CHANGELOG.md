@@ -14,6 +14,8 @@ Add user-facing Horizon Nav changes under **Unreleased** before publishing each 
 - Satellitenbilder sichtbar: Die Luftbilder lagen unter der beigen Grundfläche der Karte und waren deshalb nicht zu sehen. Jetzt liegen sie darüber.
 
 ### Neu
+- Tempolimits melden: Ein Tipp auf das Tempo-Schild zeigt, was jede Quelle sagt, und darunter „Stimmt“ oder den richtigen Wert zum Melden. Im Auto geht das über Melden > Tempolimit. Meldungen werden anonym geteilt und fließen in die Abstimmung ein: Je mehr Fahrer dasselbe melden, desto stärker zählt es. Meldungen gelten ein Jahr und zählen mit dem Alter weniger.
+- Tempolimits an Autobahn-Baustellen: Baustellen der Autobahn GmbH mit Tempolimit („Max. 80 km/h“) zählen in der Abstimmung mit, nur in ihrer Fahrtrichtung und zu den angegebenen Zeiten.
 - Tempolimit aus allen Quellen: Die App fragt TomTom, HERE, Mapbox, OpenStreetMap und während der Navigation die Route gleichzeitig ab und nimmt den Wert, für den die meisten zuverlässigen Quellen sprechen. Sind sich die Quellen nicht einig, zeigt ein gelber Punkt am Tempo-Schild das an. Ein Tipp auf das Schild zeigt, was jede Quelle gesagt hat.
 - Tempo-Schilder von Mapillary: Mit einem kostenlosen Mapillary-Token (Einstellungen > Kartenkonten) zählen auch Tempo-Schilder, die auf Straßenfotos erkannt wurden. Ein Schild, an dem du gerade vorbeigefahren bist, zählt am meisten. Schilder älter als 3 Jahre zählen nicht.
 - Fahrtenbuch exportieren: Unter Einstellungen > Fahrtenbuch lassen sich die Fahrten als Tabelle (CSV) oder als druckbare Monatsübersicht (PDF) teilen. Ein Tipp auf eine Fahrt markiert sie als dienstlich oder privat; die PDF zeigt pro Monat die dienstlichen und privaten Kilometer.

@@ -877,10 +877,15 @@ class ReportScreen(carContext: CarContext, private val holder: CarHolder) : Scre
             Triple("jam", Lang.t("Stau", "Traffic jam"), R.drawable.ic_car_jam to 0xFFFF8A65.toInt()),
         )
         val list = ItemList.Builder()
-        for ((kind, label, ic) in kinds) list.addItem(
+        // a car that shows only 6 tiles: the speed limit takes the place of "Panne" (the least used), so it isn't cut off
+        val max = try { carContext.getCarService(ConstraintManager::class.java).getContentLimit(ConstraintManager.CONTENT_LIMIT_TYPE_GRID) } catch (x: Exception) { 6 }
+        for ((kind, label, ic) in kinds.filter { max > kinds.size || it.first != "breakdown" }) list.addItem(
             GridItem.Builder().setTitle(label).setImage(rowIcon(carContext, ic.first, ic.second), GridItem.IMAGE_TYPE_LARGE)
                 .setOnClickListener { send(kind) }.build()
         )
+        // the speed limit here: the right value, or that the sign shown is right
+        list.addItem(GridItem.Builder().setTitle(Lang.t("Tempolimit", "Speed limit")).setImage(rowIcon(carContext, R.drawable.ic_car_speed, 0xFFF28B82.toInt()), GridItem.IMAGE_TYPE_LARGE)
+            .setOnClickListener { screenManager.push(LimitReportScreen(carContext, holder)) }.build())
         return GridTemplate.Builder().setTitle(Lang.t("Hier melden", "Report here")).setHeaderAction(Action.BACK).setSingleList(list.build()).build()
     }
 
@@ -898,6 +903,34 @@ class ReportScreen(carContext: CarContext, private val holder: CarHolder) : Scre
         try { e.report(kind) } catch (x: Exception) { }
         try { androidx.car.app.CarToast.makeText(carContext, Lang.t("${e.reportName(kind)}-Meldung hier gespeichert", "${e.reportName(kind)} report saved here"), androidx.car.app.CarToast.LENGTH_SHORT).show() } catch (x: Exception) { }
         screenManager.pop()
+    }
+}
+
+/** "Tempolimit melden": the limit where you are (or that the one shown is right), shared with other drivers. */
+class LimitReportScreen(carContext: CarContext, private val holder: CarHolder) : Screen(carContext) {
+    override fun onGetTemplate(): Template {
+        val e = holder.engine
+        val shown = e?.speedLimit?.let { Math.round(it * 3.6).toInt() } ?: if (e?.noLimit == true) 0 else null
+        val items = ArrayList<Pair<String, Int?>>()
+        if (shown != null) items += Lang.t("Stimmt (${if (shown == 0) "frei" else shown})", "Right (${if (shown == 0) "none" else shown})") to null
+        for (v in listOf(30, 50, 70, 100, 120, 60, 80)) if (v != shown) items += "$v" to v
+        if (shown != 0) items += Lang.t("Kein Limit", "No limit") to 0
+        val max = try { carContext.getCarService(ConstraintManager::class.java).getContentLimit(ConstraintManager.CONTENT_LIMIT_TYPE_GRID) } catch (x: Exception) { 6 }
+        val list = ItemList.Builder()
+        for ((label, v) in items.take(max.coerceAtLeast(1))) list.addItem(
+            GridItem.Builder().setTitle(label).setImage(rowIcon(carContext, R.drawable.ic_car_speed, if (v == null) 0xFF81C995.toInt() else 0xFFF28B82.toInt()), GridItem.IMAGE_TYPE_LARGE)
+                .setOnClickListener {
+                    val en = holder.engine
+                    if (en == null || en.fix == null) {
+                        try { androidx.car.app.CarToast.makeText(carContext, Lang.t("Warte auf GPS", "Waiting for GPS"), androidx.car.app.CarToast.LENGTH_SHORT).show() } catch (x: Exception) { }
+                    } else {
+                        try { en.reportLimit(v) } catch (x: Exception) { }
+                        try { androidx.car.app.CarToast.makeText(carContext, Lang.t("Tempolimit gemeldet", "Speed limit reported"), androidx.car.app.CarToast.LENGTH_SHORT).show() } catch (x: Exception) { }
+                        screenManager.popToRoot()
+                    }
+                }.build()
+        )
+        return GridTemplate.Builder().setTitle(Lang.t("Welches Tempolimit gilt hier?", "Which limit applies here?")).setHeaderAction(Action.BACK).setSingleList(list.build()).build()
     }
 }
 

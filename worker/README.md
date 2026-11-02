@@ -39,6 +39,11 @@ Jede Anfrage der App schickt den Header `X-Device: <zufällige ID>`.
 - `GET /v1/reports?s=&w=&n=&e=` (höchstens 6° je Seite) → `{"now":…,"reports":[…]}`
 - `POST /v1/reports/<id>/vote` mit `{"still":true}` oder `{"still":false}` → `{"ok":true,"exp":…}`
 - `GET /v1/health` → `{"ok":true}`
+- `POST /v1/limits` mit `{"lat":48.1,"lon":11.5,"heading":90,"kmh":50}` (`kmh` 0 = kein Limit) → `{"ok":true,"replaced":0}`
+- `GET /v1/limits?s=&w=&n=&e=` (höchstens 0,2° je Seite) → `{"now":…,"limits":[{"lat","lon","h","kmh","t","mine"}]}`
+
+Tempo-Meldungen: Ein Gerät zählt pro Stelle einmal (eine neue Meldung desselben Geräts im Umkreis von 80 m in gleicher
+Richtung ersetzt die alte). Sie werden ein Jahr lang gehalten; höchstens 30 pro Gerät und 60 pro IP-Adresse je Stunde.
 
 Schutz vor Spam: höchstens 10 neue Meldungen pro Gerät und 30 pro IP-Adresse je Stunde, 60 Stimmen pro
 Gerät je Stunde; eine gleiche Meldung im Umkreis von 300 m zählt als „Noch da“ für die vorhandene.
