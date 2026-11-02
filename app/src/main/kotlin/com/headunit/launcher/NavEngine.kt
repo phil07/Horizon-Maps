@@ -94,6 +94,10 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
     var incidentAhead by mutableStateOf<IncidentAhead?>(null)
     private var incAt = 0L
     private var incMatches: List<Triple<Incident, Double, String>> = emptyList()
+    /** Autobahn GmbH's roadworks and closures on the motorways of the route (AutobahnRest): fetched at the route's start and every 5 minutes. */
+    private var abAt = 0L
+    private var abRoads = ""
+    private var abItems: List<Incident> = emptyList()
     private var routeCams: List<Pair<LL, Double>> = emptyList()
     private var camsRoute: Route? = null
     private var camsAt = 0L
@@ -1969,7 +1973,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         cancelWaiting()
         map.stopFly()
         faster = null; resume = null; prefs.put(PreferenceKeys.RESUME, "{}")
-        incMatches = emptyList(); incidentAhead = null; incAt = 0L; incAlerted.clear()
+        incMatches = emptyList(); incidentAhead = null; incAt = 0L; incAlerted.clear(); abAt = 0L; abRoads = ""
         routeCams = emptyList(); camsRoute = null; camsAt = 0L; camsCount = -1; hazardSig = 0; policeSig = 0; map.setHazards(emptyList())
         via = emptyList(); evPlanned = emptyList(); evAutoDest = null; evStops = emptyList(); evWarning = null; stopMode = false; destRain = null; routeWx = emptyList()
         routes = emptyList(); active = 0; dest = null; turn = null; eta = null; lastIdx = 0; previewing = false; routeFrac = 0f; onRoad = ""
@@ -3702,11 +3706,26 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         speak(text, alert = true)
     }
 
+    /** Autobahn GmbH's roadworks, warnings and closures on the motorways of [r]. Asked for when the route starts and every 5 minutes. */
+    private fun autobahnIncidents(r: Route): List<Incident> {
+        if (!prefs.b(PreferenceKeys.INCIDENTS, true)) return emptyList()
+        val roads = r.steps.mapNotNull { AutobahnRest.roadOf(it.street) }.distinct()
+        if (roads.isEmpty()) return emptyList()
+        val key = roads.joinToString(",")
+        val now = System.currentTimeMillis()
+        if (key != abRoads || now - abAt > 300_000L) {
+            abAt = now; abRoads = key
+            scope.launch { abItems = withContext(Dispatchers.IO) { try { AutobahnRest.incidents(roads) } catch (e: Exception) { emptyList() } } }
+        }
+        return abItems
+    }
+
     private fun checkIncidents(r: Route, progress: Double) {
         try { if (camerasOnMap()) updateRouteCams(r, progress); pushHazards(progress) } catch (e: Exception) { }
         // TomTom's incident data when there's a key; otherwise the incidents that came with a Mapbox route
         val fromRoute = (!hasKey || ttDown()) && r.incidents.isNotEmpty()
-        if ((!hasKey && !fromRoute) || simMode != 0 || !prefs.b(PreferenceKeys.INCIDENTS, true)) { incidentAhead = null; return }
+        val ab = autobahnIncidents(r)
+        if ((!hasKey && !fromRoute && ab.isEmpty()) || simMode != 0 || !prefs.b(PreferenceKeys.INCIDENTS, true)) { incidentAhead = null; return }
         val now = System.currentTimeMillis()
         if (now - incAt > 180_000) {
             incAt = now
@@ -3721,7 +3740,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
                             minLat = min(minLat, q.lat); maxLat = max(maxLat, q.lat); minLon = min(minLon, q.lon); maxLon = max(maxLon, q.lon)
                         }
                         if (!any) emptyList() else {
-                            val list = if (fromRoute) r.incidents else TomTomRest.incidents(apiKey, minLon - 0.01, minLat - 0.01, maxLon + 0.01, maxLat + 0.01)
+                            val list = (if (fromRoute) r.incidents else if (hasKey) TomTomRest.incidents(apiKey, minLon - 0.01, minLat - 0.01, maxLon + 0.01, maxLat + 0.01) else emptyList<Incident>()) + ab
                             val out = ArrayList<Triple<Incident, Double, String>>()
                             for (inc in list) {
                                 var bestOff = -1.0; var bestD = 70.0

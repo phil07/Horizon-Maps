@@ -513,7 +513,7 @@ private fun AlertsSection(prefs: Prefs, engine: NavEngine) {
         SToggle(prefs, "Sektionskontrollen (Abschnittskontrolle)", "avgzones", true, "Zeigt dein Durchschnittstempo im Vergleich zum Limit")
     }
     SGroup("Unterwegs", footer = "Informationen stammen aus OpenStreetMap.") {
-        SToggle(prefs, "Baustellen und Ereignisse", "incidents", true)
+        SToggle(prefs, "Baustellen und Ereignisse", "incidents", true, "Auf Autobahnen mit Baustellen, Sperrungen und Warnungen von Autobahn GmbH (Daten: Autobahn GmbH, ohne Schlüssel). Auf Karte, Route und als Ansage.")
         SToggle(prefs, "Geisterfahrer-Warnung", "wrongway", true, "Warnung beim falschen Einbiegen in Einbahnstraßen")
         SToggle(prefs, "Bremsschwellen", "bumps", false)
         SToggle(prefs, "Schulen zu Schulzeiten", "schools", false)
