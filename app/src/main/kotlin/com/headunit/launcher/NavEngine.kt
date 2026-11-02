@@ -3348,6 +3348,9 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
     }
     private var lastCamSet: DoubleArray? = null
 
+    /** The visible part of the map changed (Android Auto showing another app beside it): the camera is set again even when parked. */
+    fun viewAreaChanged() { lastCamSet = null }
+
     private var movingNow = false
     /** In portrait: the share of the screen height covered by the trip card at the bottom (the locator is kept above it). */
     var bottomCover = 0.0

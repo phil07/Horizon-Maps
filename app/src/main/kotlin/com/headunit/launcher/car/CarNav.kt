@@ -389,11 +389,14 @@ class CarSurface(private val carContext: CarContext, private val onReady: (MapBi
     override fun onVisibleAreaChanged(visibleArea: Rect) {
         // some head units (e.g. Uconnect 8.4) report a visible area that can't be right (a sliver of the screen, or one off the
         // edge): going by it put the arrow under the cards on the left. Then the whole screen is used, as when nothing is reported
-        val plausible = width <= 1 || height <= 1 || (visibleArea.width() >= width * 0.4 && visibleArea.height() >= height * 0.3 &&
+        // (a narrow strip is real, though: with another app open beside the map, e.g. music, Android Auto leaves the map only a
+        // column of about a third of the screen. Treating that as wrong put your arrow behind the other app, so from a fifth on it counts)
+        val plausible = width <= 1 || height <= 1 || (visibleArea.width() >= width * 0.2 && visibleArea.height() >= height * 0.3 &&
             visibleArea.left >= 0 && visibleArea.top >= 0 && visibleArea.right <= width + 2 && visibleArea.bottom <= height + 2)
         if (!plausible) {
             area.value = null
             map?.let { it.viewInset = null; it.maxTopFrac = 1.0; try { it.placeBranding(null) } catch (e: Exception) { } }
+            engine?.viewAreaChanged()
             return
         }
         area.value = Rect(visibleArea)
@@ -408,6 +411,7 @@ class CarSurface(private val carContext: CarContext, private val onReady: (MapBi
             // (the cards along the bottom of a tall screen are kept clear by the engine, which the overlay tells where they are)
             m.maxTopFrac = 1.0
         }
+        engine?.viewAreaChanged()
     }
 
     override fun onStableAreaChanged(stableArea: Rect) {}
