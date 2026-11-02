@@ -2121,6 +2121,11 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
                 return if (hv <= 0.0) Overpass.Limit(-1.0, false, osm?.road ?: "", osm?.wayId ?: 0L, osm?.names ?: emptyList(), true, noLimit = true)
                 else Overpass.Limit(hv, false, osm?.road ?: "", osm?.wayId ?: 0L, osm?.names ?: emptyList(), true)
             }
+            // HERE answered for this very road without a number, and OpenStreetMap has no posted limit here: on an Autobahn or
+            // Schnellstraße that means no general limit, not the last sign seen (a failed request doesn't count)
+            if (hv == null && hereWay == way && HereRest.lastError == null && osm != null && osm.major && !osm.timed && !(osm.ms > 0.0 && !osm.estimated)) {
+                return Overpass.Limit(-1.0, false, osm.road, osm.wayId, osm.names, true, noLimit = true, major = true)
+            }
         }
         // on a route, the route's own limits are used when HERE has none (see applyRouteLimit)
         if (routeHere) return osm
