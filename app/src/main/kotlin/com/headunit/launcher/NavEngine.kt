@@ -583,11 +583,13 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         val tomtomOk = hasKey && refusedKey != apiKey && System.currentTimeMillis() >= ttDownUntil
         val out = ArrayList<Place>()
         // OpenStreetMap by name runs alongside: its shops are well mapped and it knows every branch of a chain
-        val osm = if (kind == null) java.util.concurrent.CompletableFuture.supplyAsync { try { PoiSearch.osmByName(q, near, radius) } catch (e: Exception) { emptyList() } } else null
+        val osm: java.util.concurrent.CompletableFuture<List<Place>>? = if (kind == null) java.util.concurrent.CompletableFuture.supplyAsync<List<Place>> {
+            try { PoiSearch.osmByName(q, near, radius) } catch (e: Exception) { emptyList<Place>() }
+        } else null
         if (tomtomOk) try { out += TomTomRest.poiNear(apiKey, q, kind?.tomtom, near, radius) } catch (e: Exception) { }
         if (out.size < 3 && hasMapbox) try { out += MapboxRest.poiNear(mbToken, kind?.label ?: q, near, radius) } catch (e: Exception) { }
         if (kind != null && out.size < 3) try { out += PoiSearch.osmByKind(kind, near, radius) } catch (e: Exception) { }
-        if (osm != null) out += try { osm.get(9, java.util.concurrent.TimeUnit.SECONDS) } catch (e: Exception) { emptyList() }
+        if (osm != null) out += try { osm.get(9, java.util.concurrent.TimeUnit.SECONDS) ?: emptyList<Place>() } catch (e: Exception) { emptyList<Place>() }
         return PoiSearch.distinct(out.sortedBy { Geo.dist(near, it.pos) }).take(12)
     }
 
