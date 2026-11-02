@@ -107,11 +107,14 @@ internal fun OfflineMapsContent(prefs: Prefs, engine: NavEngine) {
             val r = PackRegions.byId(id)
             val d = OfflineRouter.packDir(ctx, id)
             val tiles = File(d, "tiles.tar")
-            val built = if (tiles.exists()) java.text.SimpleDateFormat("d MMM yyyy", java.util.Locale.UK).format(java.util.Date(tiles.lastModified())) else ""
+            val built = if (tiles.exists()) java.text.SimpleDateFormat(if (Lang.de) "d. MMM yyyy" else "d MMM yyyy", if (Lang.de) java.util.Locale.GERMANY else java.util.Locale.UK).format(java.util.Date(tiles.lastModified())) else ""
             val inUse = id == activeId
             val hasLimits = File(d, "limits.bin").exists()
             SItem(r.name + if (inUse) Lang.t(" · in Gebrauch", " · in use") else "", (sizes[id]?.let { fmtSize(it) } ?: "…") + (if (built.isNotEmpty()) Lang.t(" · erstellt $built", " · built $built") else "") +
-                (if (hasLimits) Lang.t(" · Tempolimits und Blitzer offline", " · speed limits and cameras offline") else "")) {
+                (if (hasLimits) Lang.t(" · Tempolimits und Blitzer offline", " · speed limits and cameras offline") else ""))
+            // the buttons on their own line under the name: beside it they squeezed the name into a narrow column
+            androidx.compose.foundation.layout.Row(Modifier.fillMaxWidth().padding(bottom = 10.dp),
+                horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp)) {
                 if (confirmDelete == id) {
                     SButton(Lang.t("Ja, löschen", "Yes, delete"), danger = true) { confirmDelete = null; engine.deletePack(id) }
                     SButton(Lang.t("Behalten", "Keep")) { confirmDelete = null }
