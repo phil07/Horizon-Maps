@@ -660,14 +660,14 @@ private fun CarChips(engine: NavEngine, actions: CarActions, rows: Int) {
             tile("work", androidx.compose.material.icons.Icons.Rounded.Work, Color(0xFFF29900), stringResource(R.string.ui_101), work, engine.slotMins["work"], Modifier.weight(1.2f))
         }
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            find("fuel", androidx.compose.material.icons.Icons.Rounded.LocalGasStation, Color(0xFFEA4335))
+            if (!(engine.prefs.s(PreferenceKeys.FUEL_TYPE, "E10") == "EV")) find("fuel", androidx.compose.material.icons.Icons.Rounded.LocalGasStation, Color(0xFFEA4335))
             if (engine.camperProfile) {
                 // a motorhome or caravan: pitches, water & waste and LPG instead of charging, food and coffee
                 find("camp", androidx.compose.material.icons.Icons.Rounded.RvHookup, Color(0xFF2E7D32))
                 find("dump", androidx.compose.material.icons.Icons.Rounded.WaterDrop, Color(0xFF0288D1))
                 find("lpg", androidx.compose.material.icons.Icons.Rounded.PropaneTank, Color(0xFFEF6C00))
             } else {
-            find("charging", androidx.compose.material.icons.Icons.Rounded.EvStation, Color(0xFF34A853))
+            if (engine.prefs.s(PreferenceKeys.FUEL_TYPE, "E10") == "EV") find("charging", androidx.compose.material.icons.Icons.Rounded.EvStation, Color(0xFF34A853))
             find("food", androidx.compose.material.icons.Icons.Rounded.Restaurant, Color(0xFFF29900))
             find("coffee", androidx.compose.material.icons.Icons.Rounded.LocalCafe, Color(0xFFA56BFF))
             }

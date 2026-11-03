@@ -65,7 +65,7 @@ object BruChargers {
     /** The DC points inside [box] (minLat, minLon, maxLat, maxLon) for the map. */
     fun inBox(ctx: Context, box: DoubleArray): List<ChargerSite> =
         stored(ctx).filter { it.lat >= box[0] && it.lat <= box[2] && it.lon >= box[1] && it.lon <= box[3] }
-            .map { ChargerSite(LL(it.lat, it.lon), null, null, null) }
+            .map { ChargerSite(LL(it.lat, it.lon), null, null, null, it.op.takeIf { o -> o.isNotBlank() }) }
 
     private fun along(ctx: Context, line: List<LL>): List<Nearby> {
         val cps = stored(ctx)

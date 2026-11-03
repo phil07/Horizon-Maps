@@ -607,8 +607,8 @@ private fun OptionsSheet(engine: NavEngine, shareEta: () -> Unit, wide: Boolean 
                 // with no route the map page already has fuel, charging, food, coffee and parking, so only the rest are here
                 fun find(kind: String): () -> Unit = { engine.loadNearby(kind, false); close() }
                 val finds = listOfNotNull(
-                    if (engine.route != null) TileSpec(Icons.Rounded.LocalGasStation, Lang.t("Tanken", "Fuel"), Color(0xFFEA4335), find("fuel")) else null,
-                    if (engine.route != null) TileSpec(Icons.Rounded.EvStation, Lang.t("Laden", "Charging"), Color(0xFF34A853), find("charging")) else null,
+                    if (engine.route != null && !(engine.prefs.s(PreferenceKeys.FUEL_TYPE, "E10") == "EV")) TileSpec(Icons.Rounded.LocalGasStation, Lang.t("Tanken", "Fuel"), Color(0xFFEA4335), find("fuel")) else null,
+                    if (engine.route != null && engine.prefs.s(PreferenceKeys.FUEL_TYPE, "E10") == "EV") TileSpec(Icons.Rounded.EvStation, Lang.t("Laden", "Charging"), Color(0xFF34A853), find("charging")) else null,
                     if (engine.route != null) TileSpec(Icons.Rounded.Restaurant, Lang.t("Essen", "Food"), Color(0xFFF29900), find("food")) else null,
                     if (engine.route != null) TileSpec(Icons.Rounded.LocalCafe, Lang.t("Kaffee", "Coffee"), Color(0xFFA56BFF), find("coffee")) else null,
                     TileSpec(Icons.Rounded.Wc, Lang.t("Toiletten", "Toilets"), Color(0xFF4C8DFF), find("toilets")),
@@ -1187,8 +1187,8 @@ private fun ImmChips(engine: NavEngine, focusSearch: () -> Unit) {
             FindButton(Icons.Rounded.PropaneTank, Color(0xFFEF6C00), Lang.t("Autogas in der Nähe", "LPG nearby")) { engine.loadNearby("lpg", false) }
             FindButton(Icons.Rounded.LocalParking, Color(0xFF4C8DFF), Lang.t("Parkplätze in der Nähe", "Parking nearby")) { engine.loadNearby("parking", false) }
         } else Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            FindButton(Icons.Rounded.LocalGasStation, Color(0xFFEA4335), Lang.t("Tankstellen in der Nähe", "Fuel nearby")) { engine.loadNearby("fuel", false) }
-            FindButton(Icons.Rounded.EvStation, Color(0xFF34A853), Lang.t("Ladesäulen in der Nähe", "Charging nearby")) { engine.loadNearby("charging", false) }
+            if (engine.prefs.s(PreferenceKeys.FUEL_TYPE, "E10") == "EV") FindButton(Icons.Rounded.EvStation, Color(0xFF34A853), Lang.t("Ladesäulen in der Nähe", "Charging nearby")) { engine.loadNearby("charging", false) }
+            else FindButton(Icons.Rounded.LocalGasStation, Color(0xFFEA4335), Lang.t("Tankstellen in der Nähe", "Fuel nearby")) { engine.loadNearby("fuel", false) }
             FindButton(Icons.Rounded.Restaurant, Color(0xFFF29900), Lang.t("Essen in der Nähe", "Food nearby")) { engine.loadNearby("food", false) }
             FindButton(Icons.Rounded.LocalCafe, Color(0xFFA56BFF), Lang.t("Kaffee in der Nähe", "Coffee nearby")) { engine.loadNearby("coffee", false) }
             FindButton(Icons.Rounded.LocalParking, Color(0xFF4C8DFF), Lang.t("Parkplätze in der Nähe", "Parking nearby")) { engine.loadNearby("parking", false) }

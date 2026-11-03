@@ -79,7 +79,7 @@ object NdwChargers {
         val out = ArrayList<ChargerSite>()
         for (c in stored(ctx)) {
             if (c.lat < box[0] || c.lat > box[2] || c.lon < box[1] || c.lon > box[3]) continue
-            out += ChargerSite(LL(c.lat, c.lon), c.kw.takeIf { it > 0 }, c.total.takeIf { it >= 0 }, c.free.takeIf { it >= 0 })
+            out += ChargerSite(LL(c.lat, c.lon), c.kw.takeIf { it > 0 }, c.total.takeIf { it >= 0 }, c.free.takeIf { it >= 0 }, c.op.takeIf { it.isNotBlank() })
         }
         return out
     }

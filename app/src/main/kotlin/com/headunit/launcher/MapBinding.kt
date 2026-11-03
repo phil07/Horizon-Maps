@@ -130,6 +130,8 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
     fun hasStyle(): Boolean = style != null
     /** Tapped one of the grey alternative routes (or its time bubble) while driving. */
     var onAltTap: ((Int) -> Unit)? = null
+    /** A charge point on the map was tapped. */
+    var onChargerTap: ((ChargerSite) -> Unit)? = null
     var onError: ((String) -> Unit)? = null
     /** Mapbox's own map couldn't get a piece of map (with no signal: an area it hasn't stored). */
     var onTileMissing: (() -> Unit)? = null
@@ -2127,7 +2129,7 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
         addL(st, SymbolLayer("dl-chargers-l", "dl-chargers")
             .iconImage(Expression.get("img")).iconEmissiveStrength(1.0)
             .iconAllowOverlap(true).iconIgnorePlacement(true).iconAnchor(IconAnchor.BOTTOM)
-            .iconSize(zoomed(1.0, 10 to 0.45, 13 to 0.6, 16 to 0.8, 18 to 0.9)))
+            .iconSize(zoomed(1.0, 10 to 0.55, 13 to 0.8, 16 to 1.05, 18 to 1.2)))
         addImg(st, "dl-via-ev", viaEvBitmap())
         addImg(st, "dl-via-stop", viaStopBitmap())
         addL(st, SymbolLayer("dl-via-l", "dl-via")
@@ -3973,7 +3975,7 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
         val s = src("dl-chargers") ?: return
         val st = style ?: return
         s.featureCollection(FeatureCollection.fromFeatures(chargers.map { c ->
-            val kwLabel = c.kw?.let { "$it kW" } ?: "?"
+            val kwLabel = c.kwLabel ?: c.kw?.let { "$it kW" } ?: "?"
             val countLabel = when {
                 c.total == null -> ""
                 c.free != null -> "${c.free}/${c.total}"
@@ -3987,25 +3989,25 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
 
     /** A green pin with the free and total count inside, and the power in a dark box above it. */
     private fun chargerBitmap(kwLabel: String, countLabel: String): Bitmap {
-        val w = 150; val h = 130
+        val w = 200; val h = 168
         val bmp = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
         val c = Canvas(bmp)
-        val cx = w / 2f; val r = 34f; val cy = 50f + r
+        val cx = w / 2f; val r = 46f; val cy = 58f + r
         val tail = Path().apply {
-            moveTo(cx - r * 0.55f, cy + r * 0.6f); lineTo(cx, h - 3f); lineTo(cx + r * 0.55f, cy + r * 0.6f); close()
+            moveTo(cx - r * 0.55f, cy + r * 0.6f); lineTo(cx, cy + r + 12f); lineTo(cx + r * 0.55f, cy + r * 0.6f); close()
         }
         val green = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xFF34A853.toInt() }
         c.drawPath(tail, green)
         c.drawCircle(cx, cy, r, green)
-        c.drawCircle(cx, cy, r, Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xFFFFFFFF.toInt(); style = Paint.Style.STROKE; strokeWidth = 4f })
+        c.drawCircle(cx, cy, r, Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xFFFFFFFF.toInt(); style = Paint.Style.STROKE; strokeWidth = 5f })
         if (countLabel.isNotEmpty()) {
-            val tp = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xFFFFFFFF.toInt(); textSize = if (countLabel.length > 4) 19f else 24f; typeface = android.graphics.Typeface.DEFAULT_BOLD; textAlign = Paint.Align.CENTER }
-            c.drawText(countLabel, cx, cy + 8f, tp)
+            val tp = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xFFFFFFFF.toInt(); textSize = if (countLabel.length > 4) 24f else 32f; typeface = android.graphics.Typeface.DEFAULT_BOLD; textAlign = Paint.Align.CENTER }
+            c.drawText(countLabel, cx, cy + 11f, tp)
         }
-        val tp = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xFFFFFFFF.toInt(); textSize = 22f; typeface = android.graphics.Typeface.DEFAULT_BOLD; textAlign = Paint.Align.CENTER }
-        val half = tp.measureText(kwLabel) / 2f + 10f
-        c.drawRoundRect(android.graphics.RectF(cx - half, 2f, cx + half, 40f), 10f, 10f, Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xE6202124.toInt() })
-        c.drawText(kwLabel, cx, 30f, tp)
+        val tp = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xFFFFFFFF.toInt(); textSize = 28f; typeface = android.graphics.Typeface.DEFAULT_BOLD; textAlign = Paint.Align.CENTER }
+        val half = tp.measureText(kwLabel) / 2f + 12f
+        c.drawRoundRect(android.graphics.RectF(cx - half, 4f, cx + half, 52f), 12f, 12f, Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xE6202124.toInt() })
+        c.drawText(kwLabel, cx, 40f, tp)
         return bmp
     }
 
@@ -4247,6 +4249,8 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
     fun tapAt(sp: android.graphics.PointF): Boolean {
         // a tap during the route fly-through skips straight to the overview
         flyDone?.let { d -> flyDone = null; flyToken++; try { mapView.camera.cancelAllAnimators() } catch (e: Throwable) { }; d(); return true }
+        // a charge point on the map (drawn above the route, so it comes first)
+        nearestCharger(sp)?.let { onChargerTap?.invoke(it); return true }
         if (liveLines.isEmpty()) { val g = garageAt(sp) ?: return false; onGarageTap?.invoke(g); return true }
         return try {
             val dp = mapView.resources.displayMetrics.density
@@ -4281,6 +4285,24 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
             if (best >= 0) { onAltTap?.invoke(best); true } else garageAt(sp)?.let { g -> onGarageTap?.invoke(g); true } ?: false
         } catch (e: Exception) { false }
     }
+
+    /** The charge point whose picture is under the tap [sp]: the picture stands above its point, so the tap may be above the point. */
+    private fun nearestCharger(sp: android.graphics.PointF): ChargerSite? = try {
+        if (chargers.isEmpty()) null else {
+            val dp = mapView.resources.displayMetrics.density
+            val px = pixels(chargers.map { it.pos })
+            var best: ChargerSite? = null; var bd = Double.MAX_VALUE
+            for (i in chargers.indices) {
+                if (i >= px.size) break
+                val dx = px[i].x - sp.x; val dy = px[i].y - sp.y
+                // the picture reaches about 80 dp above its point and 12 dp below, and about 36 dp to each side
+                if (abs(dx) > 36 * dp || dy > 12 * dp || dy < -80 * dp) continue
+                val d = Math.hypot(dx, dy + 40 * dp)
+                if (d < bd) { bd = d; best = chargers[i] }
+            }
+            best
+        }
+    } catch (e: Exception) { null }
 
     /** Current camera, as (lat, lon, bearing, tilt, zoom, topPadFraction, leftPadFraction). */
     fun cameraNow(): DoubleArray? {

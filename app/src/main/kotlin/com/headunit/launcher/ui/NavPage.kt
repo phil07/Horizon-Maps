@@ -231,8 +231,8 @@ internal fun BoxScope.RoutePreview(engine: NavEngine) {
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         Text(stringResource(R.string.ui_054), color = c.sub, fontSize = 13.sp, modifier = Modifier.padding(horizontal = 10.dp))
-        Pill(Lang.t("+ Tanken", "+ Fuel"), engine.stopMode && engine.nearbyKind == "fuel", { engine.stopMode = true; engine.loadNearby("fuel", false) })
-        Pill(Lang.t("+ Ladesäule", "+ Charger"), engine.stopMode && engine.nearbyKind == "charging", { engine.stopMode = true; engine.loadNearby("charging", false) })
+        if (engine.prefs.s(PreferenceKeys.FUEL_TYPE, "E10") == "EV") Pill(Lang.t("+ Ladesäule", "+ Charger"), engine.stopMode && engine.nearbyKind == "charging", { engine.stopMode = true; engine.loadNearby("charging", false) })
+        else Pill(Lang.t("+ Tanken", "+ Fuel"), engine.stopMode && engine.nearbyKind == "fuel", { engine.stopMode = true; engine.loadNearby("fuel", false) })
         Pill(if (engine.via.isEmpty()) Lang.t("+ Stopp", "+ Stop") else Lang.t("Stopps bearbeiten", "Edit stops"), false, { engine.stopsEditor = true })
         if (engine.via.isNotEmpty()) Text(engine.via.joinToString(" › ") { it.name }, color = c.text, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.widthIn(max = 220.dp))
         if (costText != null) Text(costText, color = c.sub, fontSize = 13.sp, modifier = Modifier.padding(horizontal = 8.dp))

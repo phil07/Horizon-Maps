@@ -5,6 +5,7 @@ Add user-facing Horizon Nav changes under **Unreleased** before publishing each 
 ## Unreleased
 
 ### Neu
+- Ladesäule antippen: Die Karte berechnet die Route zur Ladesäule. Läuft schon eine Route, wird die Ladesäule als Zwischenstopp eingefügt.
 - Ladesäulen auf der Karte: Im sichtbaren Kartenausschnitt zeigt die Karte die Ladepunkte als grüne Marker. Oben steht die Leistung (z. B. „300 kW“, sonst „?“), im Marker die freien und die Gesamtzahl der Ladepunkte, wenn die Quelle sie kennt (z. B. „1/5“).
 - Schnellladepunkte in Brüssel: Die App nutzt die offenen Daten von Brussels Mobility für die Gleichstrom-Ladepunkte in der Region. Die Leistung ist dort nicht angegeben, sie zählen daher als schnell, wenn die Leistung unbekannt ist.
 - Ladesäulen in den Niederlanden: Die App nutzt das nationale Ladepunkt-Register von NDW (rund 80.000 Ladepunkte mit Betreiber und Leistung). Die Datei lädt sie einmal pro Woche auf das Gerät, danach sucht sie ohne Netz. Gilt nur für Routen durch die Niederlande.
@@ -16,6 +17,8 @@ Add user-facing Horizon Nav changes under **Unreleased** before publishing each 
 - Ziel auf der Karte wählen in Android Auto: Android Auto meldet kein langes Drücken, deshalb setzt jetzt ein Tipp auf eine freie Stelle der Autokarte einen Pin. Eine Karte zeigt den Namen (bei einem Laden oder anderem Ort auf der Karte) oder die Adresse mit Entfernung und „Hierhin fahren“, während einer Route „Als Stopp“. Ohne Auswahl verschwindet sie nach 15 Sekunden.
 
 ### Verbessert
+- Ladesäulen auf der Karte sind größer. Die Leistung steht pro Anschluss (z. B. „2 × 22 kW“), statt die Summe eines Standorts zu zeigen.
+- Ladesäulen erscheinen nur, wenn als Kraftstoff Elektro gewählt ist. Bei Benzin und Diesel zeigen die Schaltflächen nur Tankstellen, bei Elektro nur Ladesäulen.
 - Ladeleistung auf der Karte: Geplante Ladestopps zeigen ihre Leistung auf der Karte (z. B. „150 kW“). Ist die Leistung unbekannt, steht „?“ darunter.
 - Smartcar auf API v3: Die Anbindung für „Akkustand aus der Cloud“ nutzt jetzt die neue Smartcar-Schnittstelle, weil die alte am 1. Dezember 2026 abgeschaltet wird. Bestehende Anmeldungen werden übernommen, ohne dass du dich neu anmelden musst. Abmelden löscht die Verbindung bei Smartcar.
 - Tempolimits in den Niederlanden: Die App nutzt die offiziellen Höchstgeschwindigkeiten von Rijkswaterstaat (PDOK, frei nutzbar). Sie zählen bei der Abstimmung wie HERE und TomTom und helfen besonders dort, wo OpenStreetMap keinen Wert hat.
@@ -34,6 +37,7 @@ Add user-facing Horizon Nav changes under **Unreleased** before publishing each 
 - Anmeldedaten der Autohersteller geschützt: Die Schlüssel und Anmeldetoken für „Akkustand aus der Cloud“ werden verschlüsselt auf dem Handy gespeichert (mit dem Android-Schlüsselspeicher). Die Fahrzeugnummer (VIN) wird nicht mehr in die Sicherung geschrieben. Bereits gespeicherte Werte werden beim nächsten Start verschlüsselt. Das gilt auch für deine API-Schlüssel. Abmelden beendet die Anmeldung bei Volvo und schaltet den BMW-Datenzugang ab, und die App sagt dir, wo du den Rest selbst entfernst.
 
 ### Behoben
+- Ladeleistung am Standort: Ein Standort mit zwei Ladepunkten zu je 22 kW zeigte „44 kW“. Jetzt steht dort „2 × 22 kW“, bei gemeinsamer Leistung die Leistung des Standorts.
 - Tempolimit melden in Android Auto: Die Auswahl steht jetzt aufsteigend (30, 50, 60, 70, 80, 100, 120) statt in zufälliger Reihenfolge.
 - Spracheingabe in der Auto-Suche: Der Mikrofon-Knopf neben „Wohin?“ startet jetzt direkt die Spracheingabe. Bisher öffnete sich zuerst die Tastatur, und das Mikrofon war erst dort zu finden. Tippen geht weiterhin über das Tastatur-Symbol in der Suchleiste.
 - Tempolimit während der Navigation: Das Limit der Route und TomToms Straßenabfrage kommen aus denselben TomTom-Daten, zählten bei der Abstimmung der Quellen aber doppelt. Ein falscher Wert bei TomTom (z. B. 30 statt 50 auf der Darmstädter Straße in Biblis) setzte sich so gegen OpenStreetMap und Mapbox durch. Jetzt zählt jeder Anbieter nur einmal.

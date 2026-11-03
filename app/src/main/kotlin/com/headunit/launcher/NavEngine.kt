@@ -798,6 +798,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         map.onUserGesture = { if (following) { following = false }; scheduleRecentre(12_000) }
         map.onMapIdle = { box -> refreshChargerLayer(box) }
         map.onAltTap = { i -> switchToAlt(i) }
+        map.onChargerTap = { s -> chargerTapped(s) }
         // the parked-car spot is no longer used (the app lives in the car): drop any old one
         if (prefs.s(PreferenceKeys.PLACE_PARKED, "").isNotBlank()) places.clearParked()
         map.onError = { msg -> onMapError(msg) }
@@ -5650,6 +5651,8 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
      * register is asked online, the Dutch and Brussels copies come from the phone. Not shown from zoom 9 out.
      */
     private fun refreshChargerLayer(box: DoubleArray) {
+        // charge points are only for electric cars: with a fuel car they stay off the map
+        if (prefs.s(PreferenceKeys.FUEL_TYPE, "E10") != "EV") { chgLastBox = null; map.setChargers(emptyList()); return }
         val last = chgLastBox
         if (last != null && abs(last[4] - box[4]) < 0.01 && abs(last[0] - box[0]) < 0.003 && abs(last[1] - box[1]) < 0.003 &&
             abs(last[2] - box[2]) < 0.003 && abs(last[3] - box[3]) < 0.003) return
@@ -5668,6 +5671,13 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
             }
             map.setChargers(sites)
         }
+    }
+
+    /** A charge point on the map was tapped: the route there, or a stop on the way when a route is already running. */
+    private fun chargerTapped(s: ChargerSite) {
+        val name = s.op?.takeIf { it.isNotBlank() } ?: Lang.t("Ladesäule", "Charging point")
+        val p = Place(name, s.kwLabel ?: s.kw?.let { "$it kW" } ?: "", s.pos)
+        if (route != null && !previewing && dest != null) addStop(p) else startRoute(p)
     }
 
     /** Draws the stops on the way on the map; a stop is a charger when it's one of the planned charging stops. */
