@@ -4242,6 +4242,13 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
     fun dismissVote() { votePrompt = null }
 
     /**
+     * How many kinds of source can report traffic here at all: the drivers' reports (when sharing is on), Mapbox and TomTom traffic
+     * (with their keys), and the Autobahn GmbH (in Germany). With fewer than three, an older report isn't doubted for having no second source.
+     */
+    private fun sourcesPossible(): Int =
+        (if (SharedReports.sharing(prefs)) 1 else 0) + (if (hasMapbox) 1 else 0) + (if (hasKey) 1 else 0) + (if (detectedCountry == "DE") 1 else 0)
+
+    /**
      * How many sources say what [r] says: the report itself, a "still there" vote from another driver, a second report of the same
      * kind within 300 m, and an incident of the traffic feeds (Autobahn GmbH, Mapbox, TomTom) of the same kind within 600 m.
      */
@@ -4281,9 +4288,10 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         for (r in list) {
             val d = Geo.dist(p.pos, r.pos)
             if (d < 40 || d > 600) continue
-            // weighed by its sources: a fresh report counts alone, one that has run most of its life (70 %) is only announced when
-            // another source says the same, because the others (a driver's vote, a second report, a traffic feed) would have it too
-            if (System.currentTimeMillis() - r.t > reportLife(r.kind) * 7 / 10 && reportSources(r, list) < 2) continue
+            // weighed by its sources: a fresh report counts alone. One that has run most of its life (70 %) is only announced when another
+            // source says the same, because the others (a driver's vote, a second report, a traffic feed) would have it too, but only where
+            // there are other sources at all: the fewer there are here, the more the one that exists is trusted
+            if (System.currentTimeMillis() - r.t > reportLife(r.kind) * 7 / 10 && sourcesPossible() >= 3 && reportSources(r, list) < 2) continue
             val diff = abs(((Geo.bearing(p.pos, r.pos) - p.heading + 540.0) % 360.0) - 180.0)
             // (a shared report is remembered by its server id: two drivers' reports can carry the same time)
             if (diff < 50 && policeAlerted.add(if (r.shared) -r.sid else r.t)) {

@@ -5,6 +5,7 @@ Add user-facing Horizon Nav changes under **Unreleased** before publishing each 
 ## Unreleased
 
 ### Neu
+- Ladesäulen filtern auf Android Auto: In den Einstellungen im Auto steht bei Elektro „Ladesäulen filtern“ (alle, ab 50, 150 oder 300 kW). Ein Tipp wechselt zur nächsten Stufe, die Karte zeigt dann nur diese Ladesäulen.
 - Baustelle melden: Unter „Hier melden“ gibt es jetzt „Baustelle“, in der App und auf Android Auto, mit dem Verkehrszeichen 123 als Symbol (auch für Baustellen von der Autobahn GmbH auf der Karte). Die Meldung bleibt zwölf Stunden, andere Fahrer sehen sie auch.
 - Ladesäulen in Frankreich: Die Karte zeigt die Ladesäulen der französischen Gesamtdatei (transport.data.gouv.fr, Beta). In den Einstellungen einschalten: Die Datei wird dann einmal im Monat geladen (rund 127 MB), die freien Ladepunkte kommen live, sobald Frankreich auf der Karte liegt (rund 9 MB). Ohne Einschalten lädt die App nichts.
 - Freie Ladepunkte in Baden-Württemberg: Die Karte zeigt bei Ladesäulen in Baden-Württemberg die aktuell freien Ladepunkte (z. B. „2/5“). Die Daten kommen live von MobiData BW (offen, ohne Anmeldung). Außerhalb Baden-Württembergs bleibt es bei der Gesamtzahl.
@@ -22,7 +23,7 @@ Add user-facing Horizon Nav changes under **Unreleased** before publishing each 
 
 ### Verbessert
 - Baustellen-Tempo auf deutschen Autobahnen: Ist bei einer Baustelle der Autobahn GmbH kein Limit angegeben, nimmt die App 100 km/h auf den letzten 1,5 km davor und 80 km/h in der Baustelle an. Ein Schild oder ein angegebenes Limit hat immer Vorrang.
-- Meldungen nach Quellen gewichtet: Eine frische Meldung zählt allein. Eine, die den Großteil ihrer Lebensdauer hinter sich hat, wird nur noch angesagt, wenn eine zweite Quelle dasselbe sagt (Stimme eines anderen Fahrers, zweite Meldung in der Nähe oder ein Eintrag der Verkehrsdienste).
+- Meldungen nach Quellen gewichtet: Eine frische Meldung zählt allein. Eine, die den Großteil ihrer Lebensdauer hinter sich hat, wird nur noch angesagt, wenn eine zweite Quelle dasselbe sagt (Stimme eines anderen Fahrers, zweite Meldung in der Nähe oder ein Eintrag der Verkehrsdienste). Wo es nur wenige Quellen gibt (weniger als drei), wird der einen Quelle immer vertraut.
 - Spuren auf der Karte gleiten: Die Spuranzeige vor dem Pfeil springt nicht mehr, sondern gleitet mit dem Pfeil mit.
 - Wegweiser-Farben: Die Orte auf dem Schild der Abbiegekarte haben die Farbe der Straße: blau für Autobahn, gelb für Bundes-, Landes- und Kreisstraße, weiß sonst.
 - Akku bei Ankunft mit Beschleunigung: Die App lernt aus deinen Fahrten, wie zügig du beschleunigst, und rechnet den Verbrauch beim Beschleunigen entsprechend (zügig kostet mehr, sanft weniger).

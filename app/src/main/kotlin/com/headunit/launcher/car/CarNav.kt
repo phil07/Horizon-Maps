@@ -1157,6 +1157,17 @@ class CarSettingsScreen(carContext: CarContext, private val holder: CarHolder, p
             .addText(listOf(Lang.t("Alle Ansagen und Warnungen", "All directions and alerts"), Lang.t("Nur Warnungen (Blitzer, Limits, Gefahren)", "Alerts only (cameras, limits, hazards)"), Lang.t("Aus", "Off"))[sm.coerceIn(0, 2)])
             .setImage(CarIcon.Builder(IconCompat.createWithResource(carContext, when (sm) { 0 -> R.drawable.ic_car_sound_on; 1 -> R.drawable.ic_car_sound_alerts; else -> R.drawable.ic_car_sound_off })).build())
             .setOnClickListener { if (e != null) e.cycleSound() else prefs.put(PreferenceKeys.SOUND_MODE, (sm + 1) % 3); invalidate() }.build()
+        // electric: the map's charger filter (all, 50, 150, 300 kW and faster), as in the app; one tap steps on
+        if (prefs.s(PreferenceKeys.FUEL_TYPE, "E10") == "EV") {
+            val kw = e?.chargerMinKw ?: prefs.i(PreferenceKeys.CHARGER_FILTER_KW, 0)
+            rows += Row.Builder().setTitle(Lang.t("Ladesäulen filtern", "Filter charging points"))
+                .addText(if (kw <= 0) Lang.t("Alle · tippen zum Wechseln", "All · tap to change") else Lang.t("Ab $kw kW · tippen zum Wechseln", "$kw kW and faster · tap to change"))
+                .setOnClickListener {
+                    val next = when { kw < 50 -> 50; kw < 150 -> 150; kw < 300 -> 300; else -> 0 }
+                    if (e != null) e.pickChargerMinKw(next) else prefs.put(PreferenceKeys.CHARGER_FILTER_KW, next)
+                    invalidate()
+                }.build()
+        }
         val th = prefs.s(PreferenceKeys.CARTHEME, "car")
         rows += Row.Builder().setTitle(Lang.t("Tag und Nacht", "Day and night"))
             .addText(when (th) { "day" -> Lang.t("Immer Tag", "Always day"); "night" -> Lang.t("Immer Nacht", "Always night"); else -> Lang.t("Folgt dem Auto", "Follows the car") })
