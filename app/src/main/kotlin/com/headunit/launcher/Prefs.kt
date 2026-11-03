@@ -361,9 +361,15 @@ class Prefs(ctx: Context) {
         val LOCK = Any()
         var RAW: HashMap<String, String>? = null
         val STATES = HashMap<String, MutableState<String?>>()
-        /** Stored encrypted on the phone (Android Keystore): the cloud account's client secret, key and tokens. */
-        val SECRET_KEYS = setOf(PreferenceKeys.CLOUD_SECRET, PreferenceKeys.CLOUD_VCC, PreferenceKeys.CLOUD_ACCESS,
-            PreferenceKeys.CLOUD_REFRESH, PreferenceKeys.CLOUD_VERIFIER)
+        /**
+         * Stored encrypted on the phone (Android Keystore): the API keys the driver entered, the cloud account's client secret, key and tokens.
+         * (The values are read as plain text in the app; only the stored copy is encrypted.)
+         */
+        val SECRET_KEYS = setOf(
+            PreferenceKeys.API_KEY, PreferenceKeys.HERE_KEY, PreferenceKeys.GOOGLE_API_KEY, PreferenceKeys.MAPBOX_TOKEN, PreferenceKeys.ESRI_KEY,
+            PreferenceKeys.MAPTILER_KEY, PreferenceKeys.MAPILLARY_KEY, PreferenceKeys.TANKERKOENIG_KEY, PreferenceKeys.OCM_KEY,
+            PreferenceKeys.CLOUD_SECRET, PreferenceKeys.CLOUD_VCC, PreferenceKeys.CLOUD_ACCESS, PreferenceKeys.CLOUD_REFRESH, PreferenceKeys.CLOUD_VERIFIER,
+        )
     }
 
     private fun state(k: String): MutableState<String?> = synchronized(LOCK) { states.getOrPut(k) { mutableStateOf(raw[k]) } }

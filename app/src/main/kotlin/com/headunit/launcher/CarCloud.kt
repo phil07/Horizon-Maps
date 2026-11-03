@@ -101,10 +101,47 @@ object CarCloud {
         return true
     }
 
+    /**
+     * Signs out: asks the provider to end the sign-in where its API allows it, then removes the tokens from the phone.
+     * The status says when the driver still has to remove the app at the provider.
+     */
     fun signOut(p: Prefs) {
+        if (provider(p) == "none" || !signedIn(p)) { clearLocal(p); status = Lang.t("Abgemeldet", "Signed out"); return }
+        leaving = true
+        status = Lang.t("Abmelden…", "Signing out…")
+        val where = when (provider(p)) { "bmw" -> "My BMW"; "volvo" -> "Volvo ID"; else -> "mySmartcar (my.smartcar.com)" }
+        scope.launch {
+            val ended = try { revoke(p) } catch (e: Exception) { false }
+            clearLocal(p)
+            leaving = false
+            status = if (ended) Lang.t("Abgemeldet", "Signed out")
+                else Lang.t("Abgemeldet. Die Freigabe bitte noch unter $where entfernen", "Signed out. Please also remove the access under $where")
+        }
+    }
+
+    private fun clearLocal(p: Prefs) {
         for (k in listOf(PreferenceKeys.CLOUD_ACCESS, PreferenceKeys.CLOUD_REFRESH, PreferenceKeys.CLOUD_EXPIRES, PreferenceKeys.CLOUD_VEHICLE, PreferenceKeys.CLOUD_CONTAINER, PreferenceKeys.CLOUD_CHARGING,
             PreferenceKeys.CLOUD_CHARGE_MIN, PreferenceKeys.CLOUD_AT)) p.put(k, "")
-        status = Lang.t("Abgemeldet", "Signed out")
+    }
+
+    /**
+     * Ends the sign-in at the provider. Volvo: the refresh token is revoked (standard OAuth revocation). BMW: the CarData container is
+     * switched off (the access itself stays in the My BMW portal). Smartcar: no way from the app. True only when the sign-in is ended.
+     */
+    private fun revoke(p: Prefs): Boolean = when (provider(p)) {
+        "volvo" -> {
+            val rt = p.s(PreferenceKeys.CLOUD_REFRESH, "")
+            rt.isBlank() || http("POST", "https://auth.volvocars.com/realms/volvocars/protocol/openid-connect/revoke",
+                mapOf("Authorization" to basic(p), "Accept" to "application/json"),
+                mapOf("token" to rt, "token_type_hint" to "refresh_token")).first in 200..299
+        }
+        "bmw" -> {
+            val cid = p.s(PreferenceKeys.CLOUD_CONTAINER, "")
+            val tok = if (cid.isBlank()) null else token(p)
+            if (cid.isNotBlank() && tok != null) http("DELETE", "$BMW_HOST/customers/containers/$cid", mapOf("Authorization" to "Bearer $tok", "x-version" to "v1", "Accept" to "application/json"))
+            false // the grant itself stays until removed in the My BMW portal
+        }
+        else -> false
     }
 
     // ---- web ----
@@ -348,7 +385,7 @@ object CarCloud {
      */
     fun refresh(ctx: Context, p: Prefs, force: Boolean = false) {
         lastTry = System.currentTimeMillis()
-        if (provider(p) == "none") return
+        if (provider(p) == "none" || leaving) return
         if (!keysOk(p)) return
         if (!force && EvWidget.source(p) == "car" && System.currentTimeMillis() - EvWidget.readAt(p) < 10 * 60_000L) return
         try {
@@ -373,6 +410,8 @@ object CarCloud {
     /** Whether a route is running (the app may be in the background then). Set by the activity. */
     @Volatile var navigating: () -> Boolean = { false }
     private var lastTry = 0L
+    /** While signing out: no readings and no refreshes. */
+    @Volatile private var leaving = false
 
     private fun inUse() = appVisible || carActive || try { navigating() } catch (e: Exception) { false }
 
@@ -403,7 +442,7 @@ object CarCloud {
         loop = scope.launch {
             while (true) {
                 delay(30_000L)
-                if (!signedIn(p) || !inUse()) continue
+                if (!signedIn(p) || leaving || !inUse()) continue
                 if (System.currentTimeMillis() - lastTry < rateMin(p) * 60_000L) continue
                 lastTry = System.currentTimeMillis()
                 refresh(app, p)
