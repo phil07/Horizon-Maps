@@ -5746,14 +5746,15 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         chgLastBox = box
         if (box[4] < 9.0) { map.setChargers(emptyList()); return }
         scope.launch {
-            // France only when switched on in Settings: its monthly file and live availability are downloaded only then
-            val fr = prefs.b(PreferenceKeys.FR_CHARGERS, false) && FrChargers.inFrance(box)
+            // the foreign charger files (France, Netherlands, Brussels) are downloaded only when switched on in Settings, with one switch
+            val dl = prefs.b(PreferenceKeys.FR_CHARGERS, false)
+            val fr = dl && FrChargers.inFrance(box)
             val sites = withContext(Dispatchers.IO) {
                 val out = ArrayList<ChargerSite>()
                 if (fr) try { FrChargers.refresh(ctx) } catch (e: Exception) { }
                 // a region's copy is fetched (once a week) when the view is there
-                if (box[0] < 53.6 && box[2] > 50.7 && box[1] < 7.3 && box[3] > 3.3) try { NdwChargers.refresh(ctx) } catch (e: Exception) { }
-                if (box[0] < 50.91 && box[2] > 50.76 && box[1] < 4.47 && box[3] > 4.23) try { BruChargers.refresh(ctx) } catch (e: Exception) { }
+                if (dl && box[0] < 53.6 && box[2] > 50.7 && box[1] < 7.3 && box[3] > 3.3) try { NdwChargers.refresh(ctx) } catch (e: Exception) { }
+                if (dl && box[0] < 50.91 && box[2] > 50.76 && box[1] < 4.47 && box[3] > 4.23) try { BruChargers.refresh(ctx) } catch (e: Exception) { }
                 try { out += NdwChargers.inBox(ctx, box) } catch (e: Exception) { }
                 try { out += BruChargers.inBox(ctx, box) } catch (e: Exception) { }
                 if (fr) try { out += FrChargers.inBox(ctx, box) } catch (e: Exception) { }
