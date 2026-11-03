@@ -344,6 +344,10 @@ jobs:
           HI = {h: i for i, h in enumerate(HW)}
           import re, datetime
           def days_of(v):
+              # (osmium may write the timestamp as seconds since 1970 instead of text)
+              if isinstance(v, (int, float)) or (isinstance(v, str) and v.strip().isdigit() and len(v.strip()) >= 9):
+                  try: v = datetime.datetime.fromtimestamp(int(float(v)), datetime.timezone.utc).strftime("%Y-%m-%d")
+                  except Exception: return 0
               m = re.match(r"^(\d{4})(?:-(\d{1,2}))?(?:-(\d{1,2}))?", str(v or "").strip())
               if not m: return 0
               try:
@@ -366,7 +370,7 @@ jobs:
           def st(s, out):
               b = str(s or "").replace("\t", " ").encode("utf-8")[:255]
               uv(len(b), out); out.extend(b)
-          n = 0
+          n = 0; nd = 0
           with open("data/roads.geojsonseq", encoding="utf-8") as f, open("data/limits.unsorted", "w") as o:
               for line in f:
                   line = line.lstrip("\x1e").strip()
@@ -382,6 +386,7 @@ jobs:
                   if hw == "service" and pr.get("service") and not pr.get("maxspeed"): continue
                   c = g.get("coordinates") or []
                   if len(c) < 2: continue
+                  if n < 2: print("sample properties:", sorted(k for k in pr if k.startswith("@")), pr.get("@timestamp"))
                   fid = str(ft.get("id", "w0"))
                   wid = int(fid[1:]) if fid[1:].isdigit() else 0
                   ow = str(pr.get("oneway", "")).lower(); jn = str(pr.get("junction", "")).lower()
@@ -398,6 +403,7 @@ jobs:
                       dv = days_of(pr.get(kk))
                       if dv: days = dv; chk = True; break
                   if not days: days = days_of(pr.get("@timestamp"))
+                  if days: nd += 1
                   if chk: flags |= 8
                   rec = bytearray([HI[hw], flags]); uv(wid, rec); uv(days, rec)
                   for s in (pr.get("name"), pr.get("ref"), pr.get("maxspeed"), mt, pr.get("maxspeed:forward"), pr.get("maxspeed:backward")): st(s, rec)
@@ -415,7 +421,7 @@ jobs:
                   enc = base64.b64encode(bytes(rec)).decode()
                   for k in keys: o.write("%09d\t%s\n" % (k, enc))
                   n += 1
-          print("roads", n)
+          print("roads", n, "with a date", nd)
           PY
           rm -f data/roads.geojsonseq
           LC_ALL=C sort -S 3G -T data data/limits.unsorted > data/limits.sorted
@@ -748,6 +754,10 @@ jobs:
           HI = {h: i for i, h in enumerate(HW)}
           import re, datetime
           def days_of(v):
+              # (osmium may write the timestamp as seconds since 1970 instead of text)
+              if isinstance(v, (int, float)) or (isinstance(v, str) and v.strip().isdigit() and len(v.strip()) >= 9):
+                  try: v = datetime.datetime.fromtimestamp(int(float(v)), datetime.timezone.utc).strftime("%Y-%m-%d")
+                  except Exception: return 0
               m = re.match(r"^(\d{4})(?:-(\d{1,2}))?(?:-(\d{1,2}))?", str(v or "").strip())
               if not m: return 0
               try:
@@ -770,7 +780,7 @@ jobs:
           def st(s, out):
               b = str(s or "").replace("\t", " ").encode("utf-8")[:255]
               uv(len(b), out); out.extend(b)
-          n = 0
+          n = 0; nd = 0
           with open("data/roads.geojsonseq", encoding="utf-8") as f, open("data/limits.unsorted", "w") as o:
               for line in f:
                   line = line.lstrip("\x1e").strip()
@@ -786,6 +796,7 @@ jobs:
                   if hw == "service" and pr.get("service") and not pr.get("maxspeed"): continue
                   c = g.get("coordinates") or []
                   if len(c) < 2: continue
+                  if n < 2: print("sample properties:", sorted(k for k in pr if k.startswith("@")), pr.get("@timestamp"))
                   fid = str(ft.get("id", "w0"))
                   wid = int(fid[1:]) if fid[1:].isdigit() else 0
                   ow = str(pr.get("oneway", "")).lower(); jn = str(pr.get("junction", "")).lower()
@@ -802,6 +813,7 @@ jobs:
                       dv = days_of(pr.get(kk))
                       if dv: days = dv; chk = True; break
                   if not days: days = days_of(pr.get("@timestamp"))
+                  if days: nd += 1
                   if chk: flags |= 8
                   rec = bytearray([HI[hw], flags]); uv(wid, rec); uv(days, rec)
                   for s in (pr.get("name"), pr.get("ref"), pr.get("maxspeed"), mt, pr.get("maxspeed:forward"), pr.get("maxspeed:backward")): st(s, rec)
@@ -819,7 +831,7 @@ jobs:
                   enc = base64.b64encode(bytes(rec)).decode()
                   for k in keys: o.write("%09d\t%s\n" % (k, enc))
                   n += 1
-          print("roads", n)
+          print("roads", n, "with a date", nd)
           PY
           rm -f data/roads.geojsonseq
           LC_ALL=C sort -S 3G -T data data/limits.unsorted > data/limits.sorted
@@ -1152,6 +1164,10 @@ jobs:
           HI = {h: i for i, h in enumerate(HW)}
           import re, datetime
           def days_of(v):
+              # (osmium may write the timestamp as seconds since 1970 instead of text)
+              if isinstance(v, (int, float)) or (isinstance(v, str) and v.strip().isdigit() and len(v.strip()) >= 9):
+                  try: v = datetime.datetime.fromtimestamp(int(float(v)), datetime.timezone.utc).strftime("%Y-%m-%d")
+                  except Exception: return 0
               m = re.match(r"^(\d{4})(?:-(\d{1,2}))?(?:-(\d{1,2}))?", str(v or "").strip())
               if not m: return 0
               try:
@@ -1174,7 +1190,7 @@ jobs:
           def st(s, out):
               b = str(s or "").replace("\t", " ").encode("utf-8")[:255]
               uv(len(b), out); out.extend(b)
-          n = 0
+          n = 0; nd = 0
           with open("data/roads.geojsonseq", encoding="utf-8") as f, open("data/limits.unsorted", "w") as o:
               for line in f:
                   line = line.lstrip("\x1e").strip()
@@ -1190,6 +1206,7 @@ jobs:
                   if hw == "service" and pr.get("service") and not pr.get("maxspeed"): continue
                   c = g.get("coordinates") or []
                   if len(c) < 2: continue
+                  if n < 2: print("sample properties:", sorted(k for k in pr if k.startswith("@")), pr.get("@timestamp"))
                   fid = str(ft.get("id", "w0"))
                   wid = int(fid[1:]) if fid[1:].isdigit() else 0
                   ow = str(pr.get("oneway", "")).lower(); jn = str(pr.get("junction", "")).lower()
@@ -1206,6 +1223,7 @@ jobs:
                       dv = days_of(pr.get(kk))
                       if dv: days = dv; chk = True; break
                   if not days: days = days_of(pr.get("@timestamp"))
+                  if days: nd += 1
                   if chk: flags |= 8
                   rec = bytearray([HI[hw], flags]); uv(wid, rec); uv(days, rec)
                   for s in (pr.get("name"), pr.get("ref"), pr.get("maxspeed"), mt, pr.get("maxspeed:forward"), pr.get("maxspeed:backward")): st(s, rec)
@@ -1223,7 +1241,7 @@ jobs:
                   enc = base64.b64encode(bytes(rec)).decode()
                   for k in keys: o.write("%09d\t%s\n" % (k, enc))
                   n += 1
-          print("roads", n)
+          print("roads", n, "with a date", nd)
           PY
           rm -f data/roads.geojsonseq
           LC_ALL=C sort -S 3G -T data data/limits.unsorted > data/limits.sorted
@@ -1556,6 +1574,10 @@ jobs:
           HI = {h: i for i, h in enumerate(HW)}
           import re, datetime
           def days_of(v):
+              # (osmium may write the timestamp as seconds since 1970 instead of text)
+              if isinstance(v, (int, float)) or (isinstance(v, str) and v.strip().isdigit() and len(v.strip()) >= 9):
+                  try: v = datetime.datetime.fromtimestamp(int(float(v)), datetime.timezone.utc).strftime("%Y-%m-%d")
+                  except Exception: return 0
               m = re.match(r"^(\d{4})(?:-(\d{1,2}))?(?:-(\d{1,2}))?", str(v or "").strip())
               if not m: return 0
               try:
@@ -1578,7 +1600,7 @@ jobs:
           def st(s, out):
               b = str(s or "").replace("\t", " ").encode("utf-8")[:255]
               uv(len(b), out); out.extend(b)
-          n = 0
+          n = 0; nd = 0
           with open("data/roads.geojsonseq", encoding="utf-8") as f, open("data/limits.unsorted", "w") as o:
               for line in f:
                   line = line.lstrip("\x1e").strip()
@@ -1594,6 +1616,7 @@ jobs:
                   if hw == "service" and pr.get("service") and not pr.get("maxspeed"): continue
                   c = g.get("coordinates") or []
                   if len(c) < 2: continue
+                  if n < 2: print("sample properties:", sorted(k for k in pr if k.startswith("@")), pr.get("@timestamp"))
                   fid = str(ft.get("id", "w0"))
                   wid = int(fid[1:]) if fid[1:].isdigit() else 0
                   ow = str(pr.get("oneway", "")).lower(); jn = str(pr.get("junction", "")).lower()
@@ -1610,6 +1633,7 @@ jobs:
                       dv = days_of(pr.get(kk))
                       if dv: days = dv; chk = True; break
                   if not days: days = days_of(pr.get("@timestamp"))
+                  if days: nd += 1
                   if chk: flags |= 8
                   rec = bytearray([HI[hw], flags]); uv(wid, rec); uv(days, rec)
                   for s in (pr.get("name"), pr.get("ref"), pr.get("maxspeed"), mt, pr.get("maxspeed:forward"), pr.get("maxspeed:backward")): st(s, rec)
@@ -1627,7 +1651,7 @@ jobs:
                   enc = base64.b64encode(bytes(rec)).decode()
                   for k in keys: o.write("%09d\t%s\n" % (k, enc))
                   n += 1
-          print("roads", n)
+          print("roads", n, "with a date", nd)
           PY
           rm -f data/roads.geojsonseq
           LC_ALL=C sort -S 3G -T data data/limits.unsorted > data/limits.sorted
