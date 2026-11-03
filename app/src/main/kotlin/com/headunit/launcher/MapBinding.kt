@@ -843,6 +843,8 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
     private var locatorCache: Pair<String, Bitmap>? = null
     /** The neon look's arrow colour ("#RRGGBB") while it replaces the flat arrow, else null. */
     private var neonArrowHex: String? = null
+    /** The neon arrow is drawn larger than the Modern flat one so it appears as big as the normal 3D arrow. */
+    private fun flatIconK(): Double = if (neonArrowHex != null) 1.55 else 1.0
 
     /**
      * The neon look's position arrow: a thick chevron with cut ends and a small triangle inside, a white-hot core fading into the accent
@@ -2234,7 +2236,7 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
             .iconImage("dl-arrow").iconRotate(Expression.get("h"))
             .iconRotationAlignment(IconRotationAlignment.MAP).iconPitchAlignment(IconPitchAlignment.MAP)
             .iconAllowOverlap(true).iconIgnorePlacement(true).iconEmissiveStrength(1.0)
-            .iconSize((if (im) 0.25 else 0.625) * arrowScale)
+            .iconSize((if (im) 0.25 else 0.625) * arrowScale * flatIconK())
             .visibility(vis(locatorStyle == "flat")))
         // the real 3D model (Full 3D only); otherwise the 3D locator is drawn by locatorView over the map, see pushModel
         modelOn = false; modelAt = null
@@ -3748,7 +3750,7 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
             // the picture has empty space round the arrow / car: measure where its drawing really ends at the bottom
             val below = if (modelOn) (modelPxPerUnit() * (if (modelShape == "car") 2.3 else 0.85) * Math.cos(Math.toRadians(tilt))).toFloat()
                         else if (locatorStyle != "flat" && bmp != null) drawnBelowCentre(bmp) * spriteSize()
-                        else flatArrow?.let { drawnBelowCentre(it) * (if (theme == "immersive") 0.25f else 0.625f) * arrowScale * Math.cos(Math.toRadians(tilt)).toFloat() } ?: 0f
+                        else flatArrow?.let { drawnBelowCentre(it) * (if (theme == "immersive") 0.25f else 0.625f) * arrowScale * flatIconK().toFloat() * Math.cos(Math.toRadians(tilt)).toFloat() } ?: 0f
             roadView.translationY = pt.y + maxOf(discHalf, below) + 3f * dens
             if (roadView.visibility != android.view.View.VISIBLE) roadView.visibility = android.view.View.VISIBLE
         }
