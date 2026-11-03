@@ -165,6 +165,8 @@ internal object PreferenceKeys {
     const val CLOUD_EXPIRES = "cloudexp"
     const val CLOUD_VEHICLE = "cloudveh"
     const val CLOUD_VERIFIER = "cloudverifier"
+    const val CLOUD_CONTAINER = "cloudcontainer"
+    const val CLOUD_CALLS = "cloudcalls"
     const val CLOUD_STATE = "cloudstate"
     const val CLOUD_CHARGING = "cloudcharging"
     const val CLOUD_CHARGE_MIN = "cloudchargemin"

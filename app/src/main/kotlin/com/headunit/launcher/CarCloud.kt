@@ -25,7 +25,7 @@ import java.security.SecureRandom
  * the drive, while parked, while charging. The driver signs in with their own account and their own (free) developer keys, which stay
  * on the phone: there is no server of ours in between.
  *
- * Providers: "volvo" (Volvo's own Energy API, Volvo ID login) and "smartcar" (one login for many brands: BMW, Mercedes, Tesla, Ford,
+ * Providers: "volvo" (Volvo's own Energy API, Volvo ID login), "bmw" (BMW and Mini's CarData, a sign-in with a code) and "smartcar" (one login for many brands: BMW, Mercedes, Tesla, Ford,
  * Hyundai, Kia and more; the free plan covers one car). Both use the browser for the login and come back through [REDIRECT].
  */
 object CarCloud {
@@ -38,9 +38,10 @@ object CarCloud {
 
     class Reading(val pct: Int, val km: Int?, val charging: Boolean, val minLeft: Int?)
 
-    fun provider(p: Prefs): String = p.s(PreferenceKeys.CLOUD, "none").let { if (it == "volvo" || it == "smartcar") it else "none" }
+    fun provider(p: Prefs): String = p.s(PreferenceKeys.CLOUD, "none").let { if (it == "volvo" || it == "smartcar" || it == "bmw") it else "none" }
     fun signedIn(p: Prefs): Boolean = provider(p) != "none" && p.s(PreferenceKeys.CLOUD_REFRESH, "").isNotBlank()
-    private fun keysOk(p: Prefs): Boolean = p.s(PreferenceKeys.CLOUD_ID, "").isNotBlank() && p.s(PreferenceKeys.CLOUD_SECRET, "").isNotBlank() &&
+    // (BMW's sign-in is a public one: only the client ID, no secret)
+    private fun keysOk(p: Prefs): Boolean = p.s(PreferenceKeys.CLOUD_ID, "").isNotBlank() && (provider(p) == "bmw" || p.s(PreferenceKeys.CLOUD_SECRET, "").isNotBlank()) &&
         (provider(p) != "volvo" || p.s(PreferenceKeys.CLOUD_VCC, "").isNotBlank())
 
     // ---- the login (in the browser) ----
@@ -68,6 +69,10 @@ object CarCloud {
 
     /** Opens the sign-in page in the browser. Returns false (with a note in [status]) when something is missing. */
     fun signIn(ctx: Context, p: Prefs): Boolean {
+        if (provider(p) == "bmw") {
+            if (!keysOk(p)) { status = Lang.t("Erst die Client-ID eintragen", "Enter the client ID first"); return false }
+            bmwSignIn(ctx, p); return true
+        }
         val url = loginUrl(p)
         if (url == null) { status = Lang.t("Erst Anbieter, Client-ID und Secret eintragen", "Enter the provider, client ID and secret first"); return false }
         return try {
@@ -97,14 +102,14 @@ object CarCloud {
     }
 
     fun signOut(p: Prefs) {
-        for (k in listOf(PreferenceKeys.CLOUD_ACCESS, PreferenceKeys.CLOUD_REFRESH, PreferenceKeys.CLOUD_EXPIRES, PreferenceKeys.CLOUD_VEHICLE, PreferenceKeys.CLOUD_CHARGING,
+        for (k in listOf(PreferenceKeys.CLOUD_ACCESS, PreferenceKeys.CLOUD_REFRESH, PreferenceKeys.CLOUD_EXPIRES, PreferenceKeys.CLOUD_VEHICLE, PreferenceKeys.CLOUD_CONTAINER, PreferenceKeys.CLOUD_CHARGING,
             PreferenceKeys.CLOUD_CHARGE_MIN, PreferenceKeys.CLOUD_AT)) p.put(k, "")
         status = Lang.t("Abgemeldet", "Signed out")
     }
 
     // ---- web ----
 
-    private fun http(method: String, url: String, headers: Map<String, String>, form: Map<String, String>? = null): Pair<Int, String> {
+    private fun http(method: String, url: String, headers: Map<String, String>, form: Map<String, String>? = null, json: String? = null): Pair<Int, String> {
         val c = URL(url).openConnection() as HttpURLConnection
         c.requestMethod = method; c.connectTimeout = 10_000; c.readTimeout = 15_000
         c.setRequestProperty("User-Agent", "HorizonNav/1.0 (Android navigation app)")
@@ -114,6 +119,11 @@ object CarCloud {
             c.setRequestProperty("Content-Type", "application/x-www-form-urlencoded")
             c.outputStream.use { it.write(form.entries.joinToString("&") { (k, v) -> enc(k) + "=" + enc(v) }.toByteArray()) }
         }
+        if (json != null) {
+            c.doOutput = true
+            c.setRequestProperty("Content-Type", "application/json")
+            c.outputStream.use { it.write(json.toByteArray()) }
+        }
         val code = c.responseCode
         val body = (if (code in 200..299) c.inputStream else c.errorStream)?.bufferedReader()?.readText() ?: ""
         return code to body
@@ -121,15 +131,72 @@ object CarCloud {
 
     private fun basic(p: Prefs) = "Basic " + Base64.encodeToString("${p.s(PreferenceKeys.CLOUD_ID, "").trim()}:${p.s(PreferenceKeys.CLOUD_SECRET, "").trim()}".toByteArray(), Base64.NO_WRAP)
 
-    /** Asks the token service (login code or refresh token) and keeps the answer. Throws with a short reason when refused. */
-    private fun tokens(p: Prefs, form: Map<String, String>) {
-        val url = if (provider(p) == "volvo") "https://auth.volvocars.com/realms/volvocars/protocol/openid-connect/token" else "https://auth.smartcar.com/oauth/token"
-        val (code, body) = http("POST", url, mapOf("Authorization" to basic(p), "Accept" to "application/json"), form)
-        if (code !in 200..299) throw java.io.IOException("HTTP $code" + (try { JSONObject(body).optString("error_description").ifBlank { JSONObject(body).optString("error") } } catch (e: Exception) { "" }).let { if (it.isBlank()) "" else ": $it" })
+    private fun tokenUrl(p: Prefs) = when (provider(p)) {
+        "volvo" -> "https://auth.volvocars.com/realms/volvocars/protocol/openid-connect/token"
+        "bmw" -> "https://customer.bmwgroup.com/gcdm/oauth/token"
+        else -> "https://auth.smartcar.com/oauth/token"
+    }
+
+    private fun reason(code: Int, body: String): String =
+        "HTTP $code" + (try { JSONObject(body).let { it.optString("error_description").ifBlank { it.optString("error") } } } catch (e: Exception) { "" }).let { if (it.isBlank()) "" else ": $it" }
+
+    /** Keeps the tokens of a token service's answer. */
+    private fun storeTokens(p: Prefs, body: String) {
         val o = JSONObject(body)
         p.put(PreferenceKeys.CLOUD_ACCESS, o.getString("access_token"))
         o.optString("refresh_token").takeIf { it.isNotBlank() }?.let { p.put(PreferenceKeys.CLOUD_REFRESH, it) }
         p.put(PreferenceKeys.CLOUD_EXPIRES, (System.currentTimeMillis() + o.optLong("expires_in", 3600L) * 1000L).toString())
+    }
+
+    /** Asks the token service (login code or refresh token) and keeps the answer. Throws with a short reason when refused. */
+    private fun tokens(p: Prefs, form: Map<String, String>) {
+        val bmw = provider(p) == "bmw"
+        val (code, body) = http("POST", tokenUrl(p),
+            if (bmw) mapOf("Accept" to "application/json") else mapOf("Authorization" to basic(p), "Accept" to "application/json"),
+            if (bmw) form + ("client_id" to p.s(PreferenceKeys.CLOUD_ID, "").trim()) else form)
+        if (code !in 200..299) throw java.io.IOException(reason(code, body))
+        storeTokens(p, body)
+    }
+
+    /**
+     * BMW's sign-in: the app asks for a short code, opens BMW's page, where the driver enters it and agrees, and meanwhile waits for the
+     * tokens (the "device code" flow, with a code challenge). Needs only the client ID made in the CarData portal.
+     */
+    private fun bmwSignIn(ctx: Context, p: Prefs) {
+        status = Lang.t("Verbinde mit BMW…", "Connecting to BMW…")
+        scope.launch {
+            try {
+                val id = p.s(PreferenceKeys.CLOUD_ID, "").trim()
+                val verifier = b64url(ByteArray(48).also { SecureRandom().nextBytes(it) })
+                val challenge = b64url(MessageDigest.getInstance("SHA-256").digest(verifier.toByteArray()))
+                val (c, b) = http("POST", "https://customer.bmwgroup.com/gcdm/oauth/device/code", mapOf("Accept" to "application/json"),
+                    mapOf("client_id" to id, "response_type" to "device_code", "scope" to "authenticate_user openid cardata:api:read", "code_challenge" to challenge, "code_challenge_method" to "S256"))
+                if (c !in 200..299) throw java.io.IOException(reason(c, b))
+                val o = JSONObject(b)
+                val user = o.getString("user_code"); val dev = o.getString("device_code")
+                val uri = o.optString("verification_uri_complete").ifBlank { o.optString("verification_uri") }
+                var interval = o.optLong("interval", 5L).coerceAtLeast(3L)
+                val until = System.currentTimeMillis() + o.optLong("expires_in", 300L) * 1000L
+                status = Lang.t("Gib im Browser diesen Code ein: ", "Enter this code in the browser: ") + user
+                try { ctx.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(uri)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) } catch (e: Exception) { }
+                while (System.currentTimeMillis() < until) {
+                    delay(interval * 1000L)
+                    val (c2, b2) = http("POST", tokenUrl(p), mapOf("Accept" to "application/json"),
+                        mapOf("grant_type" to "urn:ietf:params:oauth:grant-type:device_code", "device_code" to dev, "client_id" to id, "code_verifier" to verifier))
+                    if (c2 in 200..299) {
+                        storeTokens(p, b2)
+                        p.put(PreferenceKeys.CLOUD_VEHICLE, ""); p.put(PreferenceKeys.CLOUD_CONTAINER, "")
+                        refresh(ctx, p, force = true); start(ctx, p)
+                        return@launch
+                    }
+                    val err = try { JSONObject(b2).optString("error") } catch (e: Exception) { "" }
+                    if (err == "slow_down") { interval += 5; continue }
+                    if (err == "authorization_pending" || err.isBlank() && c2 == 400) continue
+                    throw java.io.IOException(reason(c2, b2))
+                }
+                status = Lang.t("Der Code ist abgelaufen, bitte noch einmal anmelden", "The code expired, please sign in again")
+            } catch (e: Exception) { status = Lang.t("Anmeldung fehlgeschlagen: ", "Sign-in failed: ") + (e.message ?: "") }
+        }
     }
 
     /** A valid access token, refreshed when it is about to run out; null when signing in again is needed. */
@@ -172,6 +239,85 @@ object CarCloud {
         return Reading(pct, km, charging, mins)
     }
 
+    // BMW's CarData: a "container" names the data points that are kept for the driver's account; the app makes one (or finds its own) and reads it.
+    // The portal allows 50 calls a day, so BMW is read rarely and counted.
+    private val BMW_KEYS = listOf("vehicle.drivetrain.batteryManagement.header", "vehicle.powertrain.electric.battery.stateOfCharge.displayed",
+        "vehicle.drivetrain.electricEngine.kombiRemainingElectricRange", "vehicle.drivetrain.lastRemainingRange",
+        "vehicle.drivetrain.electricEngine.charging.status", "vehicle.drivetrain.electricEngine.charging.timeRemaining")
+    private const val BMW_HOST = "https://api-cardata.bmwgroup.com"
+    private const val BMW_DAILY_MAX = 44
+
+    /** Counts a BMW call against today's allowance (UTC day); throws once it is used up. */
+    private fun bmwCall(p: Prefs) {
+        val day = (System.currentTimeMillis() / 86_400_000L).toString()
+        val (d, n) = p.s(PreferenceKeys.CLOUD_CALLS, "").split(":").let { (it.getOrNull(0) ?: "") to (it.getOrNull(1)?.toIntOrNull() ?: 0) }
+        val used = if (d == day) n else 0
+        if (used >= BMW_DAILY_MAX) throw java.io.IOException(Lang.t("BMW erlaubt nur 50 Abrufe am Tag, morgen wieder", "BMW allows only 50 calls a day, again tomorrow"))
+        p.put(PreferenceKeys.CLOUD_CALLS, "$day:${used + 1}")
+    }
+
+    /** The first string under [key] anywhere in [j] (objects and lists), or null. */
+    private fun findString(j: Any?, key: String): String? = when (j) {
+        is JSONObject -> j.optString(key).takeIf { j.has(key) && it.isNotBlank() } ?: j.keys().asSequence().firstNotNullOfOrNull { findString(j.opt(it), key) }
+        is org.json.JSONArray -> (0 until j.length()).firstNotNullOfOrNull { findString(j.opt(it), key) }
+        else -> null
+    }
+
+    /** The first object anywhere in [j] with the string [key] equal to [value]. */
+    private fun findObj(j: Any?, key: String, value: String): JSONObject? = when (j) {
+        is JSONObject -> if (j.optString(key) == value) j else j.keys().asSequence().firstNotNullOfOrNull { findObj(j.opt(it), key, value) }
+        is org.json.JSONArray -> (0 until j.length()).firstNotNullOfOrNull { findObj(j.opt(it), key, value) }
+        else -> null
+    }
+
+    private fun bmw(p: Prefs, tok: String): Reading? {
+        val h = mapOf("Authorization" to "Bearer $tok", "x-version" to "v1", "Accept" to "application/json")
+        var vin = p.s(PreferenceKeys.CLOUD_VEHICLE, "")
+        if (vin.isBlank()) {
+            bmwCall(p)
+            val (c, b) = http("GET", "$BMW_HOST/customers/vehicles/mappings", h)
+            if (c !in 200..299) throw java.io.IOException(Lang.t("Fahrzeugliste ", "Vehicle list ") + reason(c, b))
+            vin = findString(try { JSONObject(b) } catch (e: Exception) { org.json.JSONArray(b) }, "vin").orEmpty()
+            if (vin.isBlank()) throw java.io.IOException(Lang.t("Kein Fahrzeug im Konto (CarData im BMW-Portal aktivieren)", "No vehicle in the account (activate CarData in the BMW portal)"))
+            p.put(PreferenceKeys.CLOUD_VEHICLE, vin)
+        }
+        var cid = p.s(PreferenceKeys.CLOUD_CONTAINER, "")
+        if (cid.isBlank()) {
+            bmwCall(p)
+            val (c, b) = http("GET", "$BMW_HOST/customers/containers", h)
+            if (c in 200..299) {
+                val mine = findObj(try { JSONObject(b) } catch (e: Exception) { org.json.JSONArray(b) }, "name", "Horizon Nav")
+                cid = mine?.let { it.optString("containerId").ifBlank { it.optString("id") } }.orEmpty()
+            }
+            if (cid.isBlank()) {
+                bmwCall(p)
+                val body = JSONObject().put("name", "Horizon Nav").put("purpose", "Akkustand und Reichweite fuer die Navigation")
+                    .put("technicalDescriptors", org.json.JSONArray(BMW_KEYS)).toString()
+                val (c2, b2) = http("POST", "$BMW_HOST/customers/containers", h, json = body)
+                if (c2 !in 200..299) throw java.io.IOException(Lang.t("Container ", "Container ") + reason(c2, b2))
+                val o = JSONObject(b2)
+                cid = findString(o, "containerId") ?: findString(o, "id").orEmpty()
+            }
+            if (cid.isBlank()) throw java.io.IOException(Lang.t("Kein Container", "No container"))
+            p.put(PreferenceKeys.CLOUD_CONTAINER, cid)
+        }
+        bmwCall(p)
+        val (c, b) = http("GET", "$BMW_HOST/customers/vehicles/$vin/telematicData?containerId=${enc(cid)}", h)
+        if (c == 404 || c == 403) { p.put(PreferenceKeys.CLOUD_CONTAINER, ""); throw java.io.IOException(reason(c, b)) }
+        if (c !in 200..299) throw java.io.IOException(reason(c, b))
+        val data = JSONObject(b).optJSONObject("telematicData") ?: return null
+        fun v(k: String): String? = data.optJSONObject(k)?.optString("value")?.takeIf { it.isNotBlank() && !it.equals("null", true) && !it.equals("INVALID", true) }
+        val pct = (v("vehicle.drivetrain.batteryManagement.header") ?: v("vehicle.powertrain.electric.battery.stateOfCharge.displayed"))?.replace(',', '.')?.toDoubleOrNull()
+            ?.let { Math.round(it).toInt().coerceIn(0, 100) } ?: return null
+        val rangeKey = if (v("vehicle.drivetrain.electricEngine.kombiRemainingElectricRange") != null) "vehicle.drivetrain.electricEngine.kombiRemainingElectricRange" else "vehicle.drivetrain.lastRemainingRange"
+        val km = v(rangeKey)?.replace(',', '.')?.toDoubleOrNull()?.let { r -> if (data.optJSONObject(rangeKey)?.optString("unit")?.lowercase()?.startsWith("mi") == true) r * 1.609 else r }
+            ?.let { Math.round(it).toInt() }?.takeIf { it >= 1 }
+        val st = v("vehicle.drivetrain.electricEngine.charging.status")?.uppercase().orEmpty()
+        val charging = st.contains("CHARGINGACTIVE") || st == "CHARGING"
+        val mins = if (charging) v("vehicle.drivetrain.electricEngine.charging.timeRemaining")?.toDoubleOrNull()?.toInt()?.takeIf { it > 0 } else null
+        return Reading(pct, km, charging, mins)
+    }
+
     private fun smartcar(p: Prefs, tok: String): Reading? {
         val h = mapOf("Authorization" to "Bearer $tok", "sc-unit-system" to "metric", "Accept" to "application/json")
         var id = p.s(PreferenceKeys.CLOUD_VEHICLE, "")
@@ -208,7 +354,7 @@ object CarCloud {
         try {
             val tok = token(p)
             if (tok == null) { status = Lang.t("Bitte neu anmelden", "Please sign in again"); return }
-            val r = if (provider(p) == "volvo") volvo(p, tok) else smartcar(p, tok)
+            val r = when (provider(p)) { "volvo" -> volvo(p, tok); "bmw" -> bmw(p, tok); else -> smartcar(p, tok) }
             if (r == null) { status = Lang.t("Das Auto meldet keinen Akkustand", "The car sends no battery level"); return }
             EvWidget.cloudReading(p, r.pct, r.km)
             p.put(PreferenceKeys.CLOUD_CHARGING, if (r.charging) "1" else "")
@@ -225,7 +371,8 @@ object CarCloud {
         loop = scope.launch {
             while (true) {
                 if (signedIn(p)) refresh(app, p)
-                delay(10 * 60_000L)
+                // BMW allows only 50 calls a day: it is read every 45 minutes, the others every 10
+                delay((if (provider(p) == "bmw") 45 else 10) * 60_000L)
             }
         }
     }

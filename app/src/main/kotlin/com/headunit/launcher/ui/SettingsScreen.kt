@@ -1529,15 +1529,16 @@ private fun CloudAccountGroup(prefs: Prefs) {
     val prov = com.headunit.launcher.CarCloud.provider(prefs)
     val footer = when (prov) {
         "volvo" -> "Kostenloses Entwicklerkonto auf developer.volvocars.com: Anwendung anlegen, als Redirect-URI ${com.headunit.launcher.CarCloud.REDIRECT} eintragen, Energy API und Connected Vehicle API wählen. Client-ID, Secret und VCC-API-Key hier einfügen, dann anmelden."
+        "bmw" -> "Im Kundenportal von BMW (bmw-cardata.bmwgroup.com, Zugang über „Mein BMW") CarData aktivieren und „CarData Client erstellen“ wählen, dort die Client-ID kopieren und hier einfügen. Beim Anmelden gibt die App einen Code aus, den du auf der BMW-Seite eingibst. BMW erlaubt nur 50 Abrufe am Tag, deshalb wird der Akkustand nur alle 45 Minuten geholt."
         "smartcar" -> "Kostenloses Konto auf dashboard.smartcar.com (ein Fahrzeug ist gratis): Anwendung anlegen, als Redirect-URI ${com.headunit.launcher.CarCloud.REDIRECT} eintragen. Client-ID und Secret hier einfügen, dann anmelden und dein Auto (BMW, Mercedes, Tesla, Ford, Hyundai, Kia u. a.) freigeben."
         else -> "Holt den Akkustand vor der Fahrt und beim Laden vom Server des Herstellers, wenn Android Auto ihn nicht liefert. Du meldest dich mit deinem eigenen Konto an, die Schlüssel bleiben auf dem Handy."
     }
     SGroup("Akkustand aus der Cloud", footer = footer) {
-        SChoice("Anbieter", listOf("none" to "Aus", "volvo" to "Volvo", "smartcar" to "Smartcar (viele Marken)"), prov,
-            "Volvo: direkt bei Volvo. Smartcar: ein Zugang für BMW, Mercedes, Tesla, Ford, Hyundai, Kia und weitere; kostenlos für ein Auto.") { prefs.put(PreferenceKeys.CLOUD, it) }
+        SChoice("Anbieter", listOf("none" to "Aus", "bmw" to "BMW / Mini", "volvo" to "Volvo", "smartcar" to "Smartcar (viele Marken)"), prov,
+            "BMW und Mini: direkt über CarData. Volvo: direkt bei Volvo. Smartcar: ein Zugang für BMW, Mercedes, Tesla, Ford, Hyundai, Kia und weitere; kostenlos für ein Auto.") { prefs.put(PreferenceKeys.CLOUD, it) }
         if (prov != "none") {
             SFieldItem("Client-ID", prefs.s(PreferenceKeys.CLOUD_ID, ""), placeholder = "aus dem Entwicklerportal") { prefs.put(PreferenceKeys.CLOUD_ID, it.trim()) }
-            SFieldItem("Client-Secret", prefs.s(PreferenceKeys.CLOUD_SECRET, ""), password = true) { prefs.put(PreferenceKeys.CLOUD_SECRET, it.trim()) }
+            if (prov != "bmw") SFieldItem("Client-Secret", prefs.s(PreferenceKeys.CLOUD_SECRET, ""), password = true) { prefs.put(PreferenceKeys.CLOUD_SECRET, it.trim()) }
             if (prov == "volvo") SFieldItem("VCC-API-Key", prefs.s(PreferenceKeys.CLOUD_VCC, ""), password = true) { prefs.put(PreferenceKeys.CLOUD_VCC, it.trim()) }
             val st = com.headunit.launcher.CarCloud.status
             val signed = com.headunit.launcher.CarCloud.signedIn(prefs)
