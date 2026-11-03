@@ -20,6 +20,7 @@ Add user-facing Horizon Nav changes under **Unreleased** before publishing each 
 - Ziel auf der Karte wählen in Android Auto: Android Auto meldet kein langes Drücken, deshalb setzt jetzt ein Tipp auf eine freie Stelle der Autokarte einen Pin. Eine Karte zeigt den Namen (bei einem Laden oder anderem Ort auf der Karte) oder die Adresse mit Entfernung und „Hierhin fahren“, während einer Route „Als Stopp“. Ohne Auswahl verschwindet sie nach 15 Sekunden.
 
 ### Verbessert
+- Routenleiste auf Android Auto größer: Der Fortschrittsbalken und sein Pfeil sind dicker und größer, die Symbole darüber (Ereignisse, Ziel) auch, damit man sie im Auto gut erkennt.
 - Tempolimit und Tacho auf Android Auto größer: Standardgröße 140 % statt 100 %, der Regler geht bis 220 %. Eigene Einstellungen bleiben.
 - Ladesäulen auf der Karte sind größer. Die Leistung steht pro Anschluss (z. B. „2 × 22 kW“), statt die Summe eines Standorts zu zeigen.
 - Ladesäulen erscheinen nur, wenn als Kraftstoff Elektro gewählt ist. Bei Benzin und Diesel zeigen die Schaltflächen nur Tankstellen, bei Elektro nur Ladesäulen.
