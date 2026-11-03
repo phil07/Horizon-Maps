@@ -57,6 +57,7 @@ Add user-facing Horizon Nav changes under **Unreleased** before publishing each 
 - Anmeldedaten der Autohersteller geschützt: Die Schlüssel und Anmeldetoken für „Akkustand aus der Cloud“ werden verschlüsselt auf dem Handy gespeichert (mit dem Android-Schlüsselspeicher). Die Fahrzeugnummer (VIN) wird nicht mehr in die Sicherung geschrieben. Bereits gespeicherte Werte werden beim nächsten Start verschlüsselt. Das gilt auch für deine API-Schlüssel. Abmelden beendet die Anmeldung bei Volvo und schaltet den BMW-Datenzugang ab, und die App sagt dir, wo du den Rest selbst entfernst.
 
 ### Behoben
+- Pfeil bei Gegenrichtung: Fährst du auf der Route in die entgegengesetzte Richtung (z. B. auf der anderen Fahrbahn), zeigt der Pfeil jetzt in deine Fahrtrichtung und springt nicht mehr rückwärts entlang der Route.
 - Automatische UI-Skalierung: Der Schalter hat jetzt die Farbe wie alle anderen Schalter.
 - Ladeleistung am Standort: Ein Standort mit zwei Ladepunkten zu je 22 kW zeigte „44 kW“. Jetzt steht dort „2 × 22 kW“. Auch die Routenplanung rechnet so: Sie nimmt die stärkste Säule, nicht die Summe. Für den Filter zählt die stärkste Säule, weil ein Auto nur an einer Säule lädt: 2 × 22 kW sind also 22 kW.
 - Tempolimit melden in Android Auto: Die Auswahl steht jetzt aufsteigend (30, 50, 60, 70, 80, 100, 120) statt in zufälliger Reihenfolge.

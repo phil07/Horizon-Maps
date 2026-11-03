@@ -3480,7 +3480,12 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
             abs(angDiff(Geo.bearing(r.pts[s.segmentIndex], r.pts[min(s.segmentIndex + 1, r.pts.size - 1)]), p.heading)) < 35.0
         if (newFix) { if (sideJump) { if (sideSince == 0L) sideSince = nowT } else sideSince = 0L }
         val holdSide = sideJump && sideSince > 0L && nowT - sideSince < SIDE_HOLD_MS
-        val onR = r != null && s != null && !jump && (holdSide || s.dist < (if (glideOnRoute) offLim + 12.0 else joinLim))
+        // driving along the route the other way (on the other carriageway, or turned round): the arrow must not be pulled along the route,
+        // which would point it the route's way, backwards, and slide it back along the line. It follows the GPS heading instead (the
+        // reroute below still notices it by the direction)
+        val againstRoute = r != null && s != null && !isStill && p.speed > 4.0 && gpsReliableForReroute &&
+            abs(angDiff(Geo.bearing(r.pts[s.segmentIndex], r.pts[min(s.segmentIndex + 1, r.pts.size - 1)]), p.heading)) > 130.0
+        val onR = r != null && s != null && !jump && !againstRoute && (holdSide || s.dist < (if (glideOnRoute) offLim + 12.0 else joinLim))
         if (onR && s != null && newFix && s.dist <= offLim) { trustProg = s.progress; trustAt = nowT }
         if (newFix) {
             mAt = tNow; mSpeed = sp
