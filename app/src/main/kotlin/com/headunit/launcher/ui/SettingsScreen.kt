@@ -1529,7 +1529,7 @@ private fun CloudAccountGroup(prefs: Prefs) {
     val prov = com.headunit.launcher.CarCloud.provider(prefs)
     val footer = when (prov) {
         "volvo" -> "Kostenloses Entwicklerkonto auf developer.volvocars.com: Anwendung anlegen, als Redirect-URI ${com.headunit.launcher.CarCloud.REDIRECT} eintragen, Energy API und Connected Vehicle API wählen. Client-ID, Secret und VCC-API-Key hier einfügen, dann anmelden."
-        "bmw" -> "Im Kundenportal von BMW (bmw-cardata.bmwgroup.com, Zugang über „Mein BMW") CarData aktivieren und „CarData Client erstellen“ wählen, dort die Client-ID kopieren und hier einfügen. Beim Anmelden gibt die App einen Code aus, den du auf der BMW-Seite eingibst. BMW erlaubt nur 50 Abrufe am Tag, deshalb wird der Akkustand nur alle 45 Minuten geholt."
+        "bmw" -> "Im Kundenportal von BMW (bmw-cardata.bmwgroup.com, Zugang über „Mein BMW“) CarData aktivieren und „CarData Client erstellen“ wählen, dort die Client-ID kopieren und hier einfügen. Beim Anmelden gibt die App einen Code aus, den du auf der BMW-Seite eingibst. BMW erlaubt nur 50 Abrufe am Tag, deshalb wird der Akkustand nur alle 45 Minuten geholt."
         "smartcar" -> "Kostenloses Konto auf dashboard.smartcar.com (ein Fahrzeug ist gratis): Anwendung anlegen, als Redirect-URI ${com.headunit.launcher.CarCloud.REDIRECT} eintragen. Client-ID und Secret hier einfügen, dann anmelden und dein Auto (BMW, Mercedes, Tesla, Ford, Hyundai, Kia u. a.) freigeben."
         else -> "Holt den Akkustand vor der Fahrt und beim Laden vom Server des Herstellers, wenn Android Auto ihn nicht liefert. Du meldest dich mit deinem eigenen Konto an, die Schlüssel bleiben auf dem Handy."
     }
