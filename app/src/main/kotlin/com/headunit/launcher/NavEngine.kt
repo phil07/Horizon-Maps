@@ -1102,6 +1102,8 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
     }
 
     private var netWatching = false
+    /** When the connection last came or went (elapsed ms): for a short while after it, a position jump or a small drift doesn't count as leaving the route. */
+    @Volatile private var netChangeAt = -100_000L
     /** Switches between the online and downloaded map by itself when the connection comes or goes. */
     fun watchNetwork() {
         if (netWatching) return
@@ -1109,8 +1111,8 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         try {
             val cm = ctx.getSystemService(Context.CONNECTIVITY_SERVICE) as android.net.ConnectivityManager
             cm.registerDefaultNetworkCallback(object : android.net.ConnectivityManager.NetworkCallback() {
-                override fun onAvailable(network: android.net.Network) { mapboxGaps = false; scope.launch { delay(2000); applyStyle(lastDark); checkForUpdate(); checkDataUpdates() } }
-                override fun onLost(network: android.net.Network) { scope.launch { delay(800); applyStyle(lastDark) } }
+                override fun onAvailable(network: android.net.Network) { netChangeAt = android.os.SystemClock.elapsedRealtime(); mapboxGaps = false; scope.launch { delay(2000); applyStyle(lastDark); checkForUpdate(); checkDataUpdates() } }
+                override fun onLost(network: android.net.Network) { netChangeAt = android.os.SystemClock.elapsedRealtime(); scope.launch { delay(800); applyStyle(lastDark) } }
             })
         } catch (e: Exception) { }
     }
@@ -3457,6 +3459,9 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         // having gone a different way, the closest bit of the route can be much further along it (a road that runs near the end of
         // the route, say). That isn't progress: it must not jump you there (it once said "you have arrived" with 5 minutes to go)
         val nowT = android.os.SystemClock.elapsedRealtime()
+        // just after the connection came or went the position can wobble (the phone changes how it finds you): the route stays, and only
+        // a clearly wrong position (80 m off or more) counts as leaving it, so the switch to the offline map and back is not a reroute
+        val netGrace = nowT - netChangeAt < 20_000L
         val jump = s != null && trustProg >= 0.0 && NavigationPolicy.isProgressJump(
             candidateProgressMeters = s.progress,
             trustedProgressMeters = trustProg,
@@ -3514,13 +3519,13 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         if (r == null || r.pts.size < 2 || s == null) return
         if (holdSide) {
             // (the road next to the route, not believed yet: no strike towards a reroute)
-        } else if (gpsReliableForReroute && (s.dist > offLim || jump)) {
+        } else if (gpsReliableForReroute && (s.dist > (if (netGrace) maxOf(offLim, 80.0) else offLim) || (jump && !netGrace))) {
             if (newFix) {
                 // well off the route counts double, so a wrong turn is noticed in about two seconds instead of four or more
                 offCount += NavigationPolicy.offRouteStrikeCount(jump, s.dist, offLim)
                 if (offCount >= REROUTE_STRIKES) reroute()
             }
-        } else if (gpsReliableForReroute && newFix) {
+        } else if (gpsReliableForReroute && newFix && !netGrace) {
             // Still close to the route, but a vehicle moving away from its direction can indicate a wrong turn.
             val seg = Geo.bearing(r.pts[s.segmentIndex], r.pts[min(s.segmentIndex + 1, r.pts.size - 1)])
             // driving along the route the other way (turned round, or on the other carriageway right next to it): the distance never
