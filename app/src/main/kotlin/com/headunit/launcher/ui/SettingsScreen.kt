@@ -1019,8 +1019,25 @@ private fun PerformanceSection(prefs: Prefs) {
 
 // ------------------------------------------------------------------ Keys & accounts
 
+/** One button that tests every key entered above with a small request each, and lists what worked. */
+@Composable
+private fun KeyTestGroup(prefs: Prefs) {
+    val sc = rememberCoroutineScope()
+    var busy by remember { mutableStateOf(false) }
+    var results by remember { mutableStateOf<List<com.headunit.launcher.KeyTest.Result>>(emptyList()) }
+    SGroup("Schlüssel testen", footer = "Schickt je Schlüssel eine kleine Abfrage an seinen eigenen Dienst. Nicht eingetragene Schlüssel werden übersprungen.") {
+        SItem("Alle Schlüssel testen", if (results.isEmpty()) "Prüft, ob die eingetragenen Schlüssel funktionieren" else null) {
+            SButton(if (busy) "Prüft…" else "Testen", primary = true) {
+                if (!busy) { busy = true; sc.launch { results = withContext(Dispatchers.IO) { com.headunit.launcher.KeyTest.all(prefs) }; busy = false } }
+            }
+        }
+        for (r in results) SItem((when (r.state) { com.headunit.launcher.KeyTest.State.OK -> "✓ "; com.headunit.launcher.KeyTest.State.BAD -> "✗ "; com.headunit.launcher.KeyTest.State.NONE -> "– "; else -> "? " }) + r.name, r.note)
+    }
+}
+
 @Composable
 private fun KeysSection(prefs: Prefs, engine: NavEngine) {
+    KeyTestGroup(prefs)
     SGroup("Suche") {
         SChoice("Suchergebnisse", searchCountryOptions(engine), searchCountryValue(prefs)) { prefs.put(PreferenceKeys.COUNTRY, it) }
         if (engine.hasKey && engine.hasMapbox) SChoice("Suchen mit", listOf("auto" to "TomTom", "mapbox" to "Mapbox"), if (prefs.s(PreferenceKeys.SEARCHWITH, "auto") == "mapbox") "mapbox" else "auto",

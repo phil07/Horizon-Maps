@@ -5,6 +5,7 @@ Add user-facing Horizon Nav changes under **Unreleased** before publishing each 
 ## Unreleased
 
 ### Neu
+- Alle Schlüssel testen: In Einstellungen > Schlüssel & Konten prüft ein Knopf auf einmal alle eingetragenen Schlüssel (TomTom, HERE, Mapbox, Mapillary, Esri, MapTiler, Open Charge Map, Tankerkönig). Pro Schlüssel steht ✓ funktioniert, ✗ abgelehnt mit Grund oder – nicht eingetragen.
 - Gespeichert & zuletzt im Auto: Die Liste unter Zuhause, Arbeit und den Knöpfen für Ladesäule, Essen, Café und Parken klappt sich jetzt selbst auf und zu (Pfeil in ihrer Kopfzeile). Sie startet zugeklappt. Der Pfeil in der Suchleiste ist weg.
 - Neon-Positionspfeil: Im Neon-Look wird dein Standort als leuchtender Winkel mit kleinem Dreieck in der gewählten Neonfarbe (Gelb, Cyan oder Magenta) gezeigt, auf dem Handy, in Android Auto und in der Routenleiste. Er ist so groß wie der normale Pfeil. Die Farbe wechselt auch im Auto sofort, wenn du die Neonfarbe änderst.
 - Ladesäulen filtern auf Android Auto: Bei Elektro gibt es in der Leiste links unter „Einstellungen“ einen Knopf mit Filter und Blitz (wie auf dem Handy). Ein Tipp fährt links eine Liste aus: alle, ab 50, ab 150 oder ab 300 kW. Du tippst eine an, die Liste schließt sich und die Karte zeigt nur diese Ladesäulen. Dieselbe Auswahl steht auch in den Einstellungen im Auto.
