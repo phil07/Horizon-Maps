@@ -2154,6 +2154,8 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         cancelWaiting()
         map.stopFly()
         faster = null; resume = null; prefs.put(PreferenceKeys.RESUME, "{}")
+        // the map strip that was saved by itself for this trip is only needed during it: gone with the trip
+        try { MapboxOffline.removeAutoRoutes(ctx) } catch (e: Throwable) { }
         incMatches = emptyList(); incidentAhead = null; incAt = 0L; incAlerted.clear(); abAt = 0L; abRoads = ""; wwItems = emptyList(); wwSaid.clear(); wwAt = 0L
         routeCams = emptyList(); camsRoute = null; camsAt = 0L; camsCount = -1; hazardSig = 0; policeSig = 0; map.setHazards(emptyList())
         via = emptyList(); evPlanned = emptyList(); evAutoDest = null; evStops = emptyList(); evWarning = null; stopMode = false; destRain = null; routeWx = emptyList()

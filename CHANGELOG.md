@@ -24,6 +24,7 @@ Add user-facing Horizon Nav changes under **Unreleased** before publishing each 
 - Ziel auf der Karte wählen in Android Auto: Android Auto meldet kein langes Drücken, deshalb setzt jetzt ein Tipp auf eine freie Stelle der Autokarte einen Pin. Eine Karte zeigt den Namen (bei einem Laden oder anderem Ort auf der Karte) oder die Adresse mit Entfernung und „Hierhin fahren“, während einer Route „Als Stopp“. Ohne Auswahl verschwindet sie nach 15 Sekunden.
 
 ### Verbessert
+- Karte jeder Route speichern: Der Kartenstreifen, den die App beim Routenstart von selbst speichert, wird am Ende der Fahrt (Ankunft oder Beenden) wieder gelöscht. Das spart Speicher. Streifen, die du selbst gespeichert hast, und der Umkreis um Zuhause bleiben.
 - Baustellen-Tempo auf deutschen Autobahnen: Ist bei einer Baustelle der Autobahn GmbH kein Limit angegeben, nimmt die App 100 km/h auf den letzten 1,5 km davor und 80 km/h in der Baustelle an. Ein Schild oder ein angegebenes Limit hat immer Vorrang.
 - Meldungen nach Quellen gewichtet: Eine frische Meldung zählt allein. Eine, die den Großteil ihrer Lebensdauer hinter sich hat, wird nur noch angesagt, wenn eine zweite Quelle dasselbe sagt (Stimme eines anderen Fahrers, zweite Meldung in der Nähe oder ein Eintrag der Verkehrsdienste). Wo es nur wenige Quellen gibt (weniger als drei), wird der einen Quelle immer vertraut.
 - Spuren auf der Karte gleiten: Die Spuranzeige vor dem Pfeil springt nicht mehr, sondern gleitet mit dem Pfeil mit.
@@ -55,6 +56,7 @@ Add user-facing Horizon Nav changes under **Unreleased** before publishing each 
 - Anmeldedaten der Autohersteller geschützt: Die Schlüssel und Anmeldetoken für „Akkustand aus der Cloud“ werden verschlüsselt auf dem Handy gespeichert (mit dem Android-Schlüsselspeicher). Die Fahrzeugnummer (VIN) wird nicht mehr in die Sicherung geschrieben. Bereits gespeicherte Werte werden beim nächsten Start verschlüsselt. Das gilt auch für deine API-Schlüssel. Abmelden beendet die Anmeldung bei Volvo und schaltet den BMW-Datenzugang ab, und die App sagt dir, wo du den Rest selbst entfernst.
 
 ### Behoben
+- Automatische UI-Skalierung: Der Schalter hat jetzt die Farbe wie alle anderen Schalter.
 - Ladeleistung am Standort: Ein Standort mit zwei Ladepunkten zu je 22 kW zeigte „44 kW“. Jetzt steht dort „2 × 22 kW“. Auch die Routenplanung rechnet so: Sie nimmt die stärkste Säule, nicht die Summe. Für den Filter zählt die stärkste Säule, weil ein Auto nur an einer Säule lädt: 2 × 22 kW sind also 22 kW.
 - Tempolimit melden in Android Auto: Die Auswahl steht jetzt aufsteigend (30, 50, 60, 70, 80, 100, 120) statt in zufälliger Reihenfolge.
 - Spracheingabe in der Auto-Suche: Der Mikrofon-Knopf neben „Wohin?“ startet jetzt direkt die Spracheingabe. Bisher öffnete sich zuerst die Tastatur, und das Mikrofon war erst dort zu finden. Tippen geht weiterhin über das Tastatur-Symbol in der Suchleiste.

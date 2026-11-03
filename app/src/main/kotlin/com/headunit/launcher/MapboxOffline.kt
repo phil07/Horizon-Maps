@@ -89,7 +89,7 @@ object MapboxOffline {
     }
 
     /** A strip along [pts] (the route), named after where it goes. */
-    fun saveRoute(ctx: Context, name: String, pts: List<LL>, satellite: Boolean = false) {
+    fun saveRoute(ctx: Context, name: String, pts: List<LL>, satellite: Boolean = false, auto: Boolean = false) {
         if (pts.size < 2) return
         // every route has its own area; a route to the same place again replaces the old one
         val id = "route-" + name.lowercase().replace(Regex("[^a-z0-9]+"), "-").trim('-').take(40)
@@ -99,7 +99,7 @@ object MapboxOffline {
         val box = doubleArrayOf(pts.minOf { it.lat } - 0.018, pts.minOf { it.lon } - 0.03, pts.maxOf { it.lat } + 0.018, pts.maxOf { it.lon } + 0.03)
         val step2 = maxOf(1, pts.size / 200)
         val thin = pts.filterIndexed { i, _ -> i % step2 == 0 || i == pts.size - 1 }
-        save(ctx, id, name, LineString.fromLngLats(line), box, thin, satellite)
+        save(ctx, id, name, LineString.fromLngLats(line), box, thin, satellite, auto)
     }
 
     /**
@@ -111,14 +111,27 @@ object MapboxOffline {
         if (!prefs.b(PreferenceKeys.MBAUTOROUTE, true)) return
         if (prefs.s(PreferenceKeys.MAPBOX_AUTO_NETWORK, "always") == "wifi" && !onWifi) return
         if (busy != null) return
-        saveRoute(ctx, name, pts, satellite)
+        // only for this trip: any strip an earlier trip left behind goes first, and this one goes when the trip ends (see removeAutoRoutes)
+        removeAutoRoutes(ctx)
+        saveRoute(ctx, name, pts, satellite, auto = true)
     }
 
-    private fun save(ctx: Context, id: String, name: String, geometry: Geometry, box: DoubleArray, line: List<LL>? = null, satellite: Boolean = false) {
+    /** Deletes the strips that were saved by themselves for a trip (not the ones you saved yourself, nor Home's circle). Called when a trip ends. */
+    fun removeAutoRoutes(ctx: Context) {
+        val app = ctx.applicationContext
+        val j = names(app)
+        val ids = j.keys().asSequence().filter { j.optJSONObject(it)?.optBoolean("auto", false) == true }.toList()
+        if (ids.isEmpty()) return
+        // a strip still being saved is stopped first
+        if (busy != null && ids.any { busy == j.optJSONObject(it)?.optString("name") }) stop()
+        for (id in ids) delete(app, id)
+    }
+
+    private fun save(ctx: Context, id: String, name: String, geometry: Geometry, box: DoubleArray, line: List<LL>? = null, satellite: Boolean = false, auto: Boolean = false) {
         val app = ctx.applicationContext
         if (busy != null) { status = Lang.t("Es wird schon ${busy} gespeichert: warte, bis es fertig ist, oder stoppe es", "Already saving ${busy}: wait for it to finish, or stop it"); return }
         busy = name; progress = 0f; status = Lang.t("Startet…", "Starting…")
-        val rec = JSONObject().put("name", name).put("t", System.currentTimeMillis())
+        val rec = JSONObject().put("name", name).put("t", System.currentTimeMillis()).put("auto", auto)
             .put("box", org.json.JSONArray().put(box[0]).put(box[1]).put(box[2]).put(box[3]))
         if (line != null) rec.put("line", org.json.JSONArray().apply { line.forEach { put(it.lat); put(it.lon) } })
         val j = names(app); j.put(id, rec); saveNames(app, j)

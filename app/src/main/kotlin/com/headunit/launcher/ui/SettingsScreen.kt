@@ -902,10 +902,11 @@ private fun ScreenSection(prefs: Prefs, engine: NavEngine) {
             "Automatische UI-Skalierung",
             if (autoScale) "Nutzt Bildschirmgröße und -form (aktuell $autoPercent%)" else "Manuelle Text- und Buttongröße ist aktiviert"
         ) {
-            Switch(checked = autoScale, onCheckedChange = { enabled ->
+            // (the app's own switch, in the accent colour like all the others)
+            com.headunit.launcher.ui.Switch(autoScale) { enabled ->
                 if (!enabled) prefs.put(PreferenceKeys.UI_SCALE, autoPercent)
                 prefs.put(PreferenceKeys.UI_AUTO_SCALE, enabled)
-            })
+            }
         }
         SSlider(
             "Text- und Buttongröße",
