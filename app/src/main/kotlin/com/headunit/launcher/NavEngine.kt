@@ -5682,7 +5682,9 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
                 try { out += NdwChargers.inBox(ctx, box) } catch (e: Exception) { }
                 try { out += BruChargers.inBox(ctx, box) } catch (e: Exception) { }
                 if (online()) try { out += ChargerInfo.inBox(box) } catch (e: Exception) { }
-                out.take(300)
+                // free points in Baden-Württemberg from the open live feed (no key); the rest keep their register counts
+                val live = if (BwLive.inBw(box)) BwLive.apply(out, BwLive.statuses()) else out
+                live.take(300)
             }
             chgAll = mergeSites(sites)
             map.setChargers(shownChargers(sites))

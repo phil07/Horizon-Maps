@@ -98,7 +98,7 @@ object ChargerInfo {
         val form = linkedMapOf(
             "f" to "json", "geometry" to "${box[1]},${box[0]},${box[3]},${box[2]}", "geometryType" to "esriGeometryEnvelope",
             "inSR" to "4326", "outSR" to "4326", "spatialRel" to "esriSpatialRelIntersects", "where" to "Status='In Betrieb'",
-            "outFields" to "Betreiber,operator_companyName,max_electric_power_station,Anzahl_Ladepunkte,F_response_body",
+            "outFields" to "ID,Betreiber,operator_companyName,max_electric_power_station,Anzahl_Ladepunkte,F_response_body",
             "returnGeometry" to "true", "resultRecordCount" to "300",
         )
         val j = JSONObject(postForm(BNETZA, form))
@@ -115,7 +115,7 @@ object ChargerInfo {
             val count = str(a, "Anzahl_Ladepunkte")?.toIntOrNull()?.takeIf { it > 0 }
             val body = str(a, "F_response_body")
             // a car charges at one connector at a time: its power is the strongest connector, at most the station's total
-            out += ChargerSite(LL(lat, lon), carKw(kw, body), count, null, str(a, "Betreiber") ?: str(a, "operator_companyName"), powerLabel(kw, body))
+            out += ChargerSite(LL(lat, lon), carKw(kw, body), count, null, str(a, "Betreiber") ?: str(a, "operator_companyName"), powerLabel(kw, body), str(a, "ID"))
         }
         return out
     }
