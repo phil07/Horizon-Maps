@@ -271,6 +271,11 @@ private fun CarScreen(engine: NavEngine, a: android.graphics.Rect?, actions: Car
             if (portrait) EvPill(engine)
         }
 
+        // the charger power filter: slides out from the left (opened by the button under Einstellungen), pick one and it closes
+        AnimatedVisibility(engine.chargerFilterOpen && engine.route == null && !arriving, modifier = Modifier.align(Alignment.CenterStart).padding(start = left),
+            enter = androidx.compose.animation.slideInHorizontally(tween(220)) { -it } + fadeIn(tween(200)),
+            exit = androidx.compose.animation.slideOutHorizontally(tween(200)) { -it } + fadeOut(tween(180))) { CarChargerFilter(engine) }
+
         // alerts (cameras, limits, hazards...): beside the turn card on wide screens, under it on tall ones
         val below = if (showTurn && turnH > 0) with(dens) { turnH.toDp() } + 10.dp else if (engine.route == null && topBlockH > 0) with(dens) { topBlockH.toDp() } + 10.dp else 0.dp
         val alertMod = if (portrait) Modifier.align(Alignment.TopStart).padding(start = left, end = rightTop + 64.dp, top = top + below)
@@ -708,6 +713,27 @@ private fun CarChips(engine: NavEngine, actions: CarActions, rows: Int) {
                     if (here != null) Text(Geo.fmtDist(Geo.dist(here, p.pos), engine.imperial), color = c.sub, fontSize = 21.sp, modifier = Modifier.padding(start = 10.dp))
                 }
             }
+            }
+        }
+    }
+}
+
+/** The charger power filter on the car map: one tap on a class (all, 50, 150, 300 kW and faster) sets it and closes the list. */
+@Composable
+private fun CarChargerFilter(engine: NavEngine) {
+    val c = LocalVw.current
+    val options = listOf(0 to Lang.t("Alle Ladesäulen", "All chargers"), 50 to Lang.t("Ab 50 kW", "50 kW and up"),
+        150 to Lang.t("Ab 150 kW", "150 kW and up"), 300 to Lang.t("Ab 300 kW", "300 kW and up"))
+    Column(Modifier.width(340.dp).panel(10.dp, RoundedCornerShape(24.dp), c.surface).padding(vertical = 2.dp)) {
+        Row(Modifier.fillMaxWidth().carTap("cf-close") { engine.chargerFilterOpen = false }.padding(start = 16.dp, end = 14.dp, top = 10.dp, bottom = 10.dp), verticalAlignment = Alignment.CenterVertically) {
+            Text(Lang.t("Ladesäulen filtern", "Filter chargers").uppercase(), color = c.sub, fontSize = 18.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.2.sp, modifier = Modifier.weight(1f))
+            androidx.compose.material3.Icon(androidx.compose.material.icons.Icons.Rounded.Close, null, tint = c.sub, modifier = Modifier.size(32.dp))
+        }
+        for ((kw, label) in options) {
+            val on = engine.chargerMinKw == kw
+            Row(Modifier.fillMaxWidth().carTap("cf-$kw") { engine.pickChargerMinKw(kw); engine.chargerFilterOpen = false }.padding(horizontal = 16.dp, vertical = 14.dp), verticalAlignment = Alignment.CenterVertically) {
+                Text(label, color = if (on) c.accent else c.text, fontSize = 26.sp, fontWeight = if (on) FontWeight.Bold else FontWeight.SemiBold, modifier = Modifier.weight(1f))
+                if (on) androidx.compose.material3.Icon(androidx.compose.material.icons.Icons.Rounded.Check, null, tint = c.accent, modifier = Modifier.size(30.dp))
             }
         }
     }
