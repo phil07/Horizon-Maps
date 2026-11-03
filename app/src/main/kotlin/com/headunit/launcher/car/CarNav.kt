@@ -1061,7 +1061,8 @@ class SearchScreen(carContext: CarContext, private val holder: CarHolder, initia
             }
             override fun onSearchSubmitted(searchText: String) { query = searchText; handler.removeCallbacks(typed); e?.search(searchText) }
         }).setHeaderAction(Action.BACK).setSearchHint(Lang.t("Ort suchen", "Search for a place")).setInitialSearchText(query)
-            .setShowKeyboardByDefault(query.isEmpty()).setItemList(list.build()).build()
+            // no keyboard on open: the microphone next to "Wohin?" then starts voice input (with the keyboard, Android Auto moves the mic into it)
+            .setShowKeyboardByDefault(false).setItemList(list.build()).build()
     }
 }
 
