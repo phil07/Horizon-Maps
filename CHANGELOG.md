@@ -5,6 +5,7 @@ Add user-facing Horizon Nav changes under **Unreleased** before publishing each 
 ## Unreleased
 
 ### Neu
+- Baustelle melden: Unter „Hier melden“ gibt es jetzt „Baustelle“, in der App und auf Android Auto. Die Meldung zeigt sich auf der Karte und bleibt zwölf Stunden. Andere Fahrer sehen sie, sobald der Server sie annimmt.
 - Ladesäulen in Frankreich: Die Karte zeigt die Ladesäulen der französischen Gesamtdatei (transport.data.gouv.fr, Beta). In den Einstellungen einschalten: Die Datei wird dann einmal im Monat geladen (rund 127 MB), die freien Ladepunkte kommen live, sobald Frankreich auf der Karte liegt (rund 9 MB). Ohne Einschalten lädt die App nichts.
 - Freie Ladepunkte in Baden-Württemberg: Die Karte zeigt bei Ladesäulen in Baden-Württemberg die aktuell freien Ladepunkte (z. B. „2/5“). Die Daten kommen live von MobiData BW (offen, ohne Anmeldung). Außerhalb Baden-Württembergs bleibt es bei der Gesamtzahl.
 - Ladesäulen-Filter: Unter dem Minus-Knopf der Karte lässt sich nach Leistung filtern (alle, ab 50 kW, ab 150 kW, ab 300 kW). Die Karte zeigt dann nur die Standorte dieser Leistung. Der Knopf (Trichter mit Blitz) erscheint nur bei Elektro.
@@ -20,6 +21,7 @@ Add user-facing Horizon Nav changes under **Unreleased** before publishing each 
 - Ziel auf der Karte wählen in Android Auto: Android Auto meldet kein langes Drücken, deshalb setzt jetzt ein Tipp auf eine freie Stelle der Autokarte einen Pin. Eine Karte zeigt den Namen (bei einem Laden oder anderem Ort auf der Karte) oder die Adresse mit Entfernung und „Hierhin fahren“, während einer Route „Als Stopp“. Ohne Auswahl verschwindet sie nach 15 Sekunden.
 
 ### Verbessert
+- Android Auto, Kartentipp: Ein einfaches Antippen einer freien Stelle der Karte startet keine Route mehr und schlägt auch keine vor. Ladesäulen tippen startet dort ebenfalls keine Route mehr. Die Routen-Auswahl per Tipp auf die Routenkarten bleibt.
 - Routenleiste auf Android Auto größer: Der Fortschrittsbalken und sein Pfeil sind dicker und größer, die Symbole darüber (Ereignisse, Ziel) auch, damit man sie im Auto gut erkennt.
 - Tempolimit und Tacho auf Android Auto größer: Standardgröße 140 % statt 100 %, der Regler geht bis 220 %. Eigene Einstellungen bleiben.
 - Ladesäulen auf der Karte sind größer. Die Leistung steht pro Anschluss (z. B. „2 × 22 kW“), statt die Summe eines Standorts zu zeigen.

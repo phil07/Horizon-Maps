@@ -4246,11 +4246,12 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
      * alternative route by its card or line. True when it did something. Worked out from where the cards and lines are on screen,
      * so it never has to wait for the map.
      */
-    fun tapAt(sp: android.graphics.PointF): Boolean {
+    fun tapAt(sp: android.graphics.PointF, car: Boolean = false): Boolean {
         // a tap during the route fly-through skips straight to the overview
         flyDone?.let { d -> flyDone = null; flyToken++; try { mapView.camera.cancelAllAnimators() } catch (e: Throwable) { }; d(); return true }
         // a charge point on the map (drawn above the route, so it comes first)
-        nearestCharger(sp)?.let { onChargerTap?.invoke(it); return true }
+        // (on the car screen a tap here doesn't start a route to the charge point)
+        if (!car) nearestCharger(sp)?.let { onChargerTap?.invoke(it); return true }
         if (liveLines.isEmpty()) { val g = garageAt(sp) ?: return false; onGarageTap?.invoke(g); return true }
         return try {
             val dp = mapView.resources.displayMetrics.density

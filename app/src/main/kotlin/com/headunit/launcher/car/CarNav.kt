@@ -430,8 +430,9 @@ class CarSurface(private val carContext: CarContext, private val onReady: (MapBi
             // the app's cards and buttons first, then the map itself (alternative route cards and lines, skipping the fly-through)
             // (a tap on an empty spot of the map picks it, with a card to go there: Android Auto passes no long press)
             if (!com.headunit.launcher.ui.CarTaps.hit(x, y)) {
+                // a plain tap on the map only picks an alternative route or a garage; it no longer suggests a route to the spot
                 val pt = android.graphics.PointF(x, y)
-                if (map?.tapAt(pt) != true) engine?.carMapTap(pt)
+                map?.tapAt(pt, car = true)
             }
         } catch (e: Exception) { }
     }
@@ -903,6 +904,7 @@ class ReportScreen(carContext: CarContext, private val holder: CarHolder) : Scre
             Triple("breakdown", Lang.t("Panne", "Broken down"), R.drawable.ic_car_breakdown to 0xFFFCAD70.toInt()),
             Triple("mobilecam", Lang.t("Mobiler Blitzer", "Mobile camera"), R.drawable.ic_car_mobilecam to 0xFF8AB4F8.toInt()),
             Triple("jam", Lang.t("Stau", "Traffic jam"), R.drawable.ic_car_jam to 0xFFFF8A65.toInt()),
+            Triple("roadworks", Lang.t("Baustelle", "Roadworks"), R.drawable.ic_car_roadworks to 0xFFFBC02D.toInt()),
         )
         val list = ItemList.Builder()
         // a car that shows only 6 tiles: the speed limit takes the place of "Panne" (the least used), so it isn't cut off
@@ -910,7 +912,9 @@ class ReportScreen(carContext: CarContext, private val holder: CarHolder) : Scre
         val e0 = holder.engine
         val canShare = e0 != null && e0.route != null && !e0.previewing
         val room = max - 1 - (if (canShare) 1 else 0)
-        for ((kind, label, ic) in kinds.filter { room >= kinds.size || it.first != "breakdown" }) list.addItem(
+        // the least used kinds make room when the car shows few tiles (breakdown first)
+        val shownKinds = (if (room >= kinds.size) kinds else kinds.filter { it.first != "breakdown" }).take(room.coerceAtLeast(1))
+        for ((kind, label, ic) in shownKinds) list.addItem(
             GridItem.Builder().setTitle(label).setImage(rowIcon(carContext, ic.first, ic.second), GridItem.IMAGE_TYPE_LARGE)
                 .setOnClickListener { send(kind) }.build()
         )
