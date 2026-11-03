@@ -5667,7 +5667,12 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
             }
             // the German register / Open Charge Map: the power and operator of chargers TomTom lists without them (filled in before
             // the power filter, so one of unknown power can turn out fast or slow), and the fast chargers TomTom left out
-            val reg = if (online()) ChargerInfo.along(prefs, RouteExtras.line(r, 0.0, r.len, 1000.0, 150)) else emptyList()
+            val regLine = RouteExtras.line(r, 0.0, r.len, 1000.0, 150)
+            val reg0: List<Nearby> = if (online()) ChargerInfo.along(prefs, regLine) else emptyList()
+            // the Netherlands: NDW's national register too, each site counted once with the others
+            val reg: List<Nearby> = if (online() && regLine.any { it.lat in 50.7..53.6 && it.lon in 3.3..7.3 })
+                reg0 + NdwChargers.nearby(ctx, regLine).filter { n -> reg0.none { Geo.dist(it.place.pos, n.place.pos) < 150.0 } }
+                else reg0
             val known = ChargerInfo.enrich(tt, reg)
             out += known.filter { fast(it) }
             val added = ArrayList<Nearby>()
