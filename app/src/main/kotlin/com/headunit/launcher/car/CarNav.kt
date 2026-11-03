@@ -983,7 +983,8 @@ class LimitReportScreen(carContext: CarContext, private val holder: CarHolder) :
         val shown = e?.speedLimit?.let { Math.round(it * 3.6).toInt() } ?: if (e?.noLimit == true) 0 else null
         val items = ArrayList<Pair<String, Int?>>()
         if (shown != null) items += Lang.t("Stimmt (${if (shown == 0) "frei" else shown})", "Right (${if (shown == 0) "none" else shown})") to null
-        for (v in listOf(30, 50, 70, 100, 120, 60, 80)) if (v != shown) items += "$v" to v
+        // ascending, so the speeds read in order on the car screen
+        for (v in listOf(30, 50, 60, 70, 80, 100, 120)) if (v != shown) items += "$v" to v
         if (shown != 0) items += Lang.t("Kein Limit", "No limit") to 0
         val max = try { carContext.getCarService(ConstraintManager::class.java).getContentLimit(ConstraintManager.CONTENT_LIMIT_TYPE_GRID) } catch (x: Exception) { 6 }
         val list = ItemList.Builder()
