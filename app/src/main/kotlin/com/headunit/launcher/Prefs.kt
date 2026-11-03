@@ -342,7 +342,18 @@ class Prefs(ctx: Context) {
     private val sp = ctx.applicationContext.getSharedPreferences("drive_launcher", Context.MODE_PRIVATE)
     // one set of values for the whole app: the phone's screen, the Android Auto screen and the services all see a change at once
     private val raw: HashMap<String, String> = synchronized(LOCK) {
-        RAW ?: HashMap<String, String>().apply { sp.all.forEach { (k, v) -> put(k, v.toString()) } }.also { RAW = it }
+        RAW ?: HashMap<String, String>().apply {
+            val rewrite = sp.edit()
+            var migrate = false
+            sp.all.forEach { (k, v) ->
+                val s = v.toString()
+                if (k !in SECRET_KEYS) { put(k, s); return@forEach }
+                put(k, SecretBox.open(s))
+                // a secret saved before encryption: stored encrypted from now on
+                if (s.isNotEmpty() && !s.startsWith(SecretBox.PREFIX)) { rewrite.putString(k, SecretBox.seal(s)); migrate = true }
+            }
+            if (migrate) rewrite.apply()
+        }.also { RAW = it }
     }
     private val states get() = STATES
 
@@ -350,6 +361,9 @@ class Prefs(ctx: Context) {
         val LOCK = Any()
         var RAW: HashMap<String, String>? = null
         val STATES = HashMap<String, MutableState<String?>>()
+        /** Stored encrypted on the phone (Android Keystore): the cloud account's client secret, key and tokens. */
+        val SECRET_KEYS = setOf(PreferenceKeys.CLOUD_SECRET, PreferenceKeys.CLOUD_VCC, PreferenceKeys.CLOUD_ACCESS,
+            PreferenceKeys.CLOUD_REFRESH, PreferenceKeys.CLOUD_VERIFIER)
     }
 
     private fun state(k: String): MutableState<String?> = synchronized(LOCK) { states.getOrPut(k) { mutableStateOf(raw[k]) } }
@@ -359,9 +373,9 @@ class Prefs(ctx: Context) {
     fun i(k: String, d: Int) = state(k).value?.toIntOrNull() ?: d
     fun f(k: String, d: Float) = state(k).value?.toFloatOrNull() ?: d
 
-    /** Keys that never go into a backup or come out of one: API keys, the reports device id and the cloud account's keys and tokens. */
+    /** Keys that never go into a backup or come out of one: API keys, the reports device id, the cloud account's keys, tokens and vehicle number (VIN). */
     private val NEVER_BACKED_UP = setOf(PreferenceKeys.API_KEY, PreferenceKeys.REPORTS_DEVICE, PreferenceKeys.CLOUD_SECRET, PreferenceKeys.CLOUD_VCC,
-        PreferenceKeys.CLOUD_ACCESS, PreferenceKeys.CLOUD_REFRESH, PreferenceKeys.CLOUD_VERIFIER, PreferenceKeys.CLOUD_STATE)
+        PreferenceKeys.CLOUD_ACCESS, PreferenceKeys.CLOUD_REFRESH, PreferenceKeys.CLOUD_VERIFIER, PreferenceKeys.CLOUD_STATE, PreferenceKeys.CLOUD_VEHICLE)
 
     /** Everything except the API key, as JSON text (settings, saved places, logs...). */
     fun exportJson(): String = synchronized(LOCK) {
@@ -395,7 +409,7 @@ class Prefs(ctx: Context) {
         // nothing changed: no disk write and nothing on screen is redrawn
         synchronized(LOCK) { if (raw[k] == s) return; raw[k] = s }
         state(k).value = s
-        sp.edit().putString(k, s).apply()
+        sp.edit().putString(k, if (k in SECRET_KEYS) SecretBox.seal(s) else s).apply()
     }
 }
 

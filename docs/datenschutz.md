@@ -1,6 +1,6 @@
 # Datenschutzerklärung für Horizon Nav
 
-Stand: 1. November 2026
+Stand: 3. November 2026
 
 
 ## Verantwortlicher
@@ -16,7 +16,7 @@ Horizon Nav ist eine Navigations-App ohne eigenes Benutzerkonto, ohne Werbung un
 
 - **Standort (genau und ungefähr):** für Kartenposition, Routenführung, Warnungen und die Suche in der Nähe. Während einer Navigation nutzt die App den Standort auch, wenn sie im Hintergrund läuft; dafür zeigt Android eine dauerhafte Benachrichtigung.
 - **Benachrichtigungen:** für die Navigations-Benachrichtigung.
-- **Android Auto (Navigation, Kartenfläche, Ladestand):** um die App im Auto anzuzeigen. Den Ladestand deines Elektroautos liest die App nur, wenn du das in Android Auto erlaubst; er bleibt auf dem Gerät.
+- **Android Auto (Navigation, Kartenfläche, Ladestand):** um die App im Auto anzuzeigen. Den Ladestand deines Elektroautos liest die App nur, wenn du das in Android Auto erlaubst, oder über dein Konto beim Autohersteller (siehe unten). Er bleibt auf dem Gerät.
 - **Internet:** für Karten, Routen und die unten genannten Dienste.
 
 ## Dienste, mit denen die App Daten austauscht
@@ -34,8 +34,18 @@ Horizon Nav ist eine Navigations-App ohne eigenes Benutzerkonto, ohne Werbung un
 | ntfy.sh (nur wenn du Handy und Radio koppelst) | Ziele vom Handy ans Radio senden | Das Ziel, verschlüsselt mit deinem Kopplungscode |
 | GitHub (GitHub Inc., USA) | Offline-Pakete, Fahrzeugliste (Open EV Data), Versionshinweise | Nur der Abruf der Dateien |
 | GeoNames | Ortsnamen für die Offline-Suche | Nur der Abruf der Dateien |
+| BMW Group (Deutschland), Volvo Cars (Schweden), Smartcar Inc. (USA), nur wenn du das Konto einrichtest | Akkustand, Reichweite und Ladestatus deines Elektroautos | Deine Anmeldung bei dem Hersteller; die App fragt nur die Akkudaten ab. Siehe Abschnitt „Autohersteller-Konto“ |
 
 Die Anbieter verarbeiten die Daten nach ihren eigenen Datenschutzbestimmungen. Einige sitzen in den USA; dorthin werden Daten dann auf Grundlage der jeweiligen Garantien des Anbieters (z. B. Standardvertragsklauseln, EU-US Data Privacy Framework) übermittelt.
+
+## Autohersteller-Konto (Akkustand)
+
+Wenn du unter Einstellungen > Kraftstoff ein Konto bei BMW oder Mini, Volvo oder Smartcar einrichtest, holt die App Akkustand, Reichweite und Ladestatus deines Elektroautos vom Hersteller. Dafür meldest du dich mit deinem eigenen Konto an und nutzt deine eigenen, kostenlosen Entwicklerschlüssel (Client-ID, bei Volvo außerdem den VCC-Schlüssel, bei Volvo und Smartcar das Secret). Die Anmeldung läuft über die Seite des Herstellers im Browser; die App erhält nur Zugangs- und Erneuerungstoken.
+
+- **Gespeichert:** Schlüssel und Tokens liegen verschlüsselt auf deinem Gerät (im Android-Schlüsselspeicher). Die Fahrzeugnummer (VIN) bleibt ebenfalls auf dem Gerät. Beides wird nicht in Sicherungen aufgenommen.
+- **Wann abgerufen wird:** Nur wenn die App in Benutzung ist (geöffnet, eine Route läuft oder Android Auto ist verbunden) und einmal beim Öffnen. Die Abrufrate stellst du ein. Bei BMW gilt das Tageslimit von 50 Abrufen des Herstellers.
+- **Wer die Daten bekommt:** Die Anfragen gehen direkt vom Gerät an den Hersteller bzw. an Smartcar, der sie an den Hersteller weiterleitet. Es gibt keinen Server der App dazwischen, und der Betreiber der App erhält diese Daten nicht.
+- **Abmelden:** Unter „Abmelden“ löscht die App die Tokens auf deinem Gerät. Die Verbindung zu deinem Konto widerrufst du zusätzlich bei dem Hersteller bzw. bei Smartcar.
 
 ## Geteilte Meldungen
 
