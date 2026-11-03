@@ -465,6 +465,11 @@ fun Prefs.setApiKey(k: String) {
 /** The locator setting as the map takes it: its style and colour ("model" takes "<arrow|car>|<colour>"). */
 fun Prefs.locatorSpec(): Pair<String, String> {
     val loc = s(PreferenceKeys.LOCATOR, "arrow")
+    // the neon look: the flat arrow is replaced by the glowing neon chevron in the accent colour ("neon:<hex>"), on the phone and in the car
+    if (s(PreferenceKeys.LOOK, "standard") == "neon" && (loc == "arrow" || loc == "flat")) {
+        val hex = when (s(PreferenceKeys.NEON_ACCENT, "yellow")) { "cyan" -> "#19F0FF"; "magenta" -> "#FF3CCB"; else -> "#FCEE0A" }
+        return "flat" to "neon:$hex"
+    }
     return when (loc) {
         "custom" -> loc to (s(PreferenceKeys.LOCATOR_IMAGE, "0") + "|" + (if (b(PreferenceKeys.LOCATOR_IMAGE_TURNS, true)) "1" else "0") + "|" + (if (b(PreferenceKeys.LOCATOR_IMAGE_CIRCLE, false)) "1" else "0"))
         "model" -> {

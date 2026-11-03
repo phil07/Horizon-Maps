@@ -149,7 +149,7 @@ fun RouteBar(engine: NavEngine, modifier: Modifier = Modifier, thin: Boolean = f
     }
     val accent = c.accent
     val theme = engine.map.theme
-    val locator = remember(theme) { engine.map.locatorBitmap().asImageBitmap() }
+    val locator = remember(theme, Neon.accentId) { engine.map.locatorBitmap().asImageBitmap() }
     // [thin]: the slimmer bar on the car screen (smaller markers, a thinner track and a smaller arrow)
     val dot = if (thin) 30.dp else 20.dp
     BoxWithConstraints(modifier.height(if (thin) 58.dp else 48.dp)) {

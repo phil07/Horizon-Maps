@@ -1,6 +1,7 @@
 # Changelog
 
 Add user-facing Horizon Nav changes under **Unreleased** before publishing each build, in German (the app shows them as they are), under ### Neu, ### Verbessert or ### Behoben headings, each written as "Überschrift: was es tut" (the What's new card shows the headline in bold with the rest underneath). Keep entries focused on features, improvements, and fixes in the app—not GitHub Actions or release-publishing maintenance. There is no need to delete entries after publishing: notes that an earlier release already included are left out of the next one automatically.
+- Neon-Positionspfeil: Im Neon-Look wird dein Standort als leuchtender Winkel mit kleinem Dreieck in der gewählten Neonfarbe (Gelb, Cyan oder Magenta) gezeigt, auf dem Handy, in Android Auto und in der Routenleiste.
 
 ## Unreleased
 

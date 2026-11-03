@@ -841,12 +841,54 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
     }
 
     private var locatorCache: Pair<String, Bitmap>? = null
+    /** The neon look's arrow colour ("#RRGGBB") while it replaces the flat arrow, else null. */
+    private var neonArrowHex: String? = null
+
+    /**
+     * The neon look's position arrow: a thick chevron with cut ends and a small triangle inside, a white-hot core fading into the accent
+     * colour, a dark edge so it reads on any road, and a soft glow. Same canvas as the Modern arrow (384 px, drawn 4x larger than shown).
+     */
+    private fun neonArrowBitmap(hex: String): Bitmap {
+        val col = try { android.graphics.Color.parseColor(hex) } catch (e: Throwable) { 0xFFFCEE0A.toInt() }
+        val n = 384
+        val bmp = Bitmap.createBitmap(n, n, Bitmap.Config.ARGB_8888)
+        val c = Canvas(bmp)
+        val k = 3.2f
+        // design space 100x100 (tip up), its middle (50, 49) in the middle of the picture
+        fun pt(x: Float, y: Float) = floatArrayOf(192f + (x - 50f) * k, 192f + (y - 49f) * k)
+        fun poly(vararg v: Float) = Path().apply {
+            for (i in v.indices step 2) { val q = pt(v[i], v[i + 1]); if (i == 0) moveTo(q[0], q[1]) else lineTo(q[0], q[1]) }
+            close()
+        }
+        val chev = poly(50f, 8f, 84f, 84f, 66f, 90f, 50f, 44f, 34f, 90f, 16f, 84f)
+        val tri = poly(50f, 54f, 60f, 76f, 40f, 76f)
+        val glowP = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = col; maskFilter = android.graphics.BlurMaskFilter(26f, android.graphics.BlurMaskFilter.Blur.NORMAL) }
+        c.drawPath(chev, glowP); c.drawPath(tri, glowP)
+        c.drawPath(chev, glowP)
+        val dark = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xFF06060F.toInt(); style = Paint.Style.FILL_AND_STROKE; strokeWidth = 22f; strokeJoin = Paint.Join.ROUND }
+        c.drawPath(chev, dark); c.drawPath(tri, dark)
+        val top = pt(50f, 8f)[1]; val bot = pt(50f, 90f)[1]
+        val fill = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            shader = android.graphics.LinearGradient(0f, top, 0f, bot,
+                intArrayOf(0xFFFFFFFF.toInt(), col, (col and 0x00FFFFFF) or (0xC7 shl 24)), floatArrayOf(0f, 0.35f, 1f), android.graphics.Shader.TileMode.CLAMP)
+        }
+        c.drawPath(chev, fill)
+        val edge = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = col; style = Paint.Style.STROKE; strokeWidth = 5f; strokeJoin = Paint.Join.ROUND }
+        c.drawPath(chev, edge)
+        c.drawPath(tri, Paint(Paint.ANTI_ALIAS_FLAG).apply { color = col })
+        c.drawPath(tri, Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xFFFFFFFF.toInt(); style = Paint.Style.STROKE; strokeWidth = 3f; strokeJoin = Paint.Join.ROUND })
+        // the bright inner line along the core
+        val core = poly(50f, 20f, 70f, 76f, 63f, 78f, 50f, 42f, 37f, 78f, 30f, 76f)
+        c.drawPath(core, Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xB3FFFFFF.toInt(); style = Paint.Style.STROKE; strokeWidth = 4f; strokeJoin = Paint.Join.ROUND })
+        return bmp
+    }
 
     /** The same locator picture the map uses (for the current map colours), for drawing it small elsewhere. Points up. */
     fun locatorBitmap(): Bitmap {
-        locatorCache?.let { if (it.first == theme) return it.second }
-        val b = if (theme == "immersive") arrowBitmapImmersive() else arrowBitmap()
-        locatorCache = theme to b
+        val key = theme + (neonArrowHex ?: "")
+        locatorCache?.let { if (it.first == key) return it.second }
+        val b = neonArrowHex?.let { neonArrowBitmap(it) } ?: if (theme == "immersive") arrowBitmapImmersive() else arrowBitmap()
+        locatorCache = key to b
         return b
     }
 
@@ -2186,7 +2228,7 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
             .iconAllowOverlap(true).iconIgnorePlacement(true).iconEmissiveStrength(1.0)
             .iconPitchAlignment(IconPitchAlignment.VIEWPORT)
             .iconSize(zoomed(1.0, 9 to 0.6, 14 to 0.68, 18 to 0.76)))
-        flatArrow = if (im) arrowBitmapImmersive() else arrowBitmap()
+        flatArrow = neonArrowHex?.let { neonArrowBitmap(it) } ?: if (im) arrowBitmapImmersive() else arrowBitmap()
         addImg(st, "dl-arrow", flatArrow!!)
         addL(st, SymbolLayer("dl-me-arrow", "dl-me")
             .iconImage("dl-arrow").iconRotate(Expression.get("h"))
@@ -3161,6 +3203,8 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
         // same shape and colour is used
         val wantModel = styleName == "model"
         val oldModel = Triple(modelWanted, modelShape, modelColour + modelGlow)
+        val oldNeon = neonArrowHex
+        neonArrowHex = if (styleName == "flat" && color.startsWith("neon:")) color.removePrefix("neon:") else null
         if (wantModel) {
             val parts = color.split('|')
             modelGlow = parts.getOrNull(2) != "0"
@@ -3174,7 +3218,7 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
         locatorColor = when { wantModel -> modelColour; noPic -> "#F2F2F6"; else -> color }
         if (style == null) return
         // the model's layers are put in (or taken out, or recoloured) with the rest of the app's layers
-        if (oldModel != Triple(modelWanted, modelShape, modelColour + modelGlow)) reinstall() else applyLocatorVisibility()
+        if (oldModel != Triple(modelWanted, modelShape, modelColour + modelGlow) || oldNeon != neonArrowHex) reinstall() else applyLocatorVisibility()
         spriteName = null
         pushModel(true)
     }
