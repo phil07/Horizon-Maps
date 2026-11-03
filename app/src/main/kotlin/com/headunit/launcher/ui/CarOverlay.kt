@@ -78,6 +78,7 @@ import androidx.compose.ui.unit.sp
 import com.headunit.launcher.Geo
 import com.headunit.launcher.NavEngine
 import com.headunit.launcher.PreferenceKeys
+import com.headunit.launcher.locatorSpec
 
 /**
  * The app's own screens on the Android Auto display, drawn over the car's map with the app's designs: alerts across the top, the
@@ -93,6 +94,9 @@ fun CarOverlay(engine: NavEngine, area: State<android.graphics.Rect?>, dark: Sta
     // phone's settings while the car is connected changes the car map at once
     val carMapColours = (if (Neon.on) "neon" else null) ?: engine.prefs.s(PreferenceKeys.MAP_COLOURS, "mapbox")
     LaunchedEffect(carMapColours) { engine.map.setColours(carMapColours) }
+    // the locator follows the look and its accent colour live too (the neon arrow in the chosen colour)
+    val (carLoc, carLocCol) = engine.prefs.locatorSpec().let { if (it.first == "custom") "arrow" to engine.prefs.s(PreferenceKeys.ARROW_COLOUR, "#F2F2F6") else it }
+    LaunchedEffect(carLoc, carLocCol, Neon.accentId) { engine.map.setLocator(carLoc, carLocCol) }
     // [scale] is worked out from the car screen's size (see CarSurface); the Android Auto size setting adjusts it either way
     val user = engine.prefs.i(PreferenceKeys.CARSCALE, 100).coerceIn(40, 300) / 100f
     val textScale = engine.prefs.i(PreferenceKeys.CAR_TEXT_SIZE, 100).coerceIn(75, 150) / 100f
