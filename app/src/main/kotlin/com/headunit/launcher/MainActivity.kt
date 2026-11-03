@@ -207,10 +207,14 @@ class MainActivity : ComponentActivity() {
     override fun onStart() {
         super.onStart()
         if (::engine.isInitialized) { engine.appVisible = true; SessionWatch.resumed(applicationContext) }
+        // the cloud reading (BMW, Volvo, Smartcar) runs only while the app is in use
+        CarCloud.navigating = { ::engine.isInitialized && engine.route != null }
+        CarCloud.wake(applicationContext, Prefs(applicationContext))
     }
 
     override fun onStop() {
         super.onStop()
+        CarCloud.appVisible = false
         // closed or put away normally: not a failed start
         try { SessionWatch.stopped(applicationContext) } catch (e: Throwable) { }
         try { getSharedPreferences(CrashGuardPrefs.FILE, android.content.Context.MODE_PRIVATE).edit().putBoolean(CrashGuardPrefs.STARTING, false).apply() } catch (e: Throwable) { }

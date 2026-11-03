@@ -167,6 +167,8 @@ internal object PreferenceKeys {
     const val CLOUD_VERIFIER = "cloudverifier"
     const val CLOUD_CONTAINER = "cloudcontainer"
     const val CLOUD_CALLS = "cloudcalls"
+    /** How often the cloud is read (minutes); the provider's name is added ("cloudratebmw"). */
+    const val CLOUD_RATE = "cloudrate"
     const val CLOUD_STATE = "cloudstate"
     const val CLOUD_CHARGING = "cloudcharging"
     const val CLOUD_CHARGE_MIN = "cloudchargemin"

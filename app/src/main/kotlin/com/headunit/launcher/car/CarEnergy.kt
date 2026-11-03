@@ -27,6 +27,7 @@ object CarEnergy {
     fun start(carContext: CarContext, prefs: Prefs) {
         if (listener != null || speedListener != null) return
         // (the car maker's cloud, when signed in, fills in while Android Auto gives no reading)
+        com.headunit.launcher.CarCloud.carActive = true
         com.headunit.launcher.CarCloud.start(carContext.applicationContext, prefs)
         fun has(p: String) = try { carContext.checkSelfPermission(p) == android.content.pm.PackageManager.PERMISSION_GRANTED } catch (e: Exception) { false }
         val fuel = has(PERMISSION); val speed = has(SPEED_PERMISSION)
@@ -92,6 +93,7 @@ object CarEnergy {
     }
 
     fun stop() {
+        com.headunit.launcher.CarCloud.carActive = false
         try { listener?.let { carInfo?.removeEnergyLevelListener(it) } } catch (e: Exception) { }
         try { speedListener?.let { carInfo?.removeSpeedListener(it) } } catch (e: Exception) { }
         listener = null; speedListener = null; carInfo = null

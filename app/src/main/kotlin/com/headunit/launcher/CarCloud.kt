@@ -250,8 +250,7 @@ object CarCloud {
     /** Counts a BMW call against today's allowance (UTC day); throws once it is used up. */
     private fun bmwCall(p: Prefs) {
         val day = (System.currentTimeMillis() / 86_400_000L).toString()
-        val (d, n) = p.s(PreferenceKeys.CLOUD_CALLS, "").split(":").let { (it.getOrNull(0) ?: "") to (it.getOrNull(1)?.toIntOrNull() ?: 0) }
-        val used = if (d == day) n else 0
+        val used = callsToday(p)
         if (used >= BMW_DAILY_MAX) throw java.io.IOException(Lang.t("BMW erlaubt nur 50 Abrufe am Tag, morgen wieder", "BMW allows only 50 calls a day, again tomorrow"))
         p.put(PreferenceKeys.CLOUD_CALLS, "$day:${used + 1}")
     }
@@ -348,6 +347,7 @@ object CarCloud {
      * cloud is slower and may count calls), unless [force].
      */
     fun refresh(ctx: Context, p: Prefs, force: Boolean = false) {
+        lastTry = System.currentTimeMillis()
         if (provider(p) == "none") return
         if (!keysOk(p)) return
         if (!force && EvWidget.source(p) == "car" && System.currentTimeMillis() - EvWidget.readAt(p) < 10 * 60_000L) return
@@ -364,15 +364,49 @@ object CarCloud {
         } catch (e: Exception) { status = Lang.t("Abruf fehlgeschlagen: ", "Request failed: ") + (e.message ?: "") }
     }
 
-    /** Starts the regular reading (every 10 minutes while the app lives); harmless to call again. */
+    // ---- when to read: only while the app is really in use ----
+
+    /** The app is open on the phone. Set by the activity. */
+    @Volatile var appVisible = false
+    /** Android Auto is showing the app. Set by [com.headunit.launcher.car.CarEnergy]. */
+    @Volatile var carActive = false
+    /** Whether a route is running (the app may be in the background then). Set by the activity. */
+    @Volatile var navigating: () -> Boolean = { false }
+    private var lastTry = 0L
+
+    private fun inUse() = appVisible || carActive || try { navigating() } catch (e: Exception) { false }
+
+    /** How often to read, in minutes (Settings): BMW starts slower because of its 50 calls a day, the others at 10. */
+    fun rateMin(p: Prefs): Int = p.s(PreferenceKeys.CLOUD_RATE + provider(p), "").toIntOrNull()?.coerceIn(2, 240) ?: if (provider(p) == "bmw") 30 else 10
+
+    /** BMW calls used today (of 50). */
+    fun callsToday(p: Prefs): Int {
+        val day = (System.currentTimeMillis() / 86_400_000L).toString()
+        val parts = p.s(PreferenceKeys.CLOUD_CALLS, "").split(":")
+        return if (parts.getOrNull(0) == day) parts.getOrNull(1)?.toIntOrNull() ?: 0 else 0
+    }
+
+    /** The app came to the front: one reading straight away (unless one was just made), and the regular ones start. */
+    fun wake(ctx: Context, p: Prefs) {
+        appVisible = true
+        start(ctx, p)
+        if (!signedIn(p) || System.currentTimeMillis() - lastTry < 60_000L) return
+        lastTry = System.currentTimeMillis()
+        val app = ctx.applicationContext
+        scope.launch { refresh(app, p) }
+    }
+
+    /** Starts the checks (every half minute, free of cost); a reading is only made while the app is in use and the chosen rate has passed. */
     fun start(ctx: Context, p: Prefs) {
         if (loop?.isActive == true) return
         val app = ctx.applicationContext
         loop = scope.launch {
             while (true) {
-                if (signedIn(p)) refresh(app, p)
-                // BMW allows only 50 calls a day: it is read every 45 minutes, the others every 10
-                delay((if (provider(p) == "bmw") 45 else 10) * 60_000L)
+                delay(30_000L)
+                if (!signedIn(p) || !inUse()) continue
+                if (System.currentTimeMillis() - lastTry < rateMin(p) * 60_000L) continue
+                lastTry = System.currentTimeMillis()
+                refresh(app, p)
             }
         }
     }

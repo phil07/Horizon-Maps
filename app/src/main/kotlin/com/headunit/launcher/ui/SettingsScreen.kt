@@ -1529,7 +1529,7 @@ private fun CloudAccountGroup(prefs: Prefs) {
     val prov = com.headunit.launcher.CarCloud.provider(prefs)
     val footer = when (prov) {
         "volvo" -> "Kostenloses Entwicklerkonto auf developer.volvocars.com: Anwendung anlegen, als Redirect-URI ${com.headunit.launcher.CarCloud.REDIRECT} eintragen, Energy API und Connected Vehicle API wählen. Client-ID, Secret und VCC-API-Key hier einfügen, dann anmelden."
-        "bmw" -> "Im Kundenportal von BMW (bmw-cardata.bmwgroup.com, Zugang über „Mein BMW“) CarData aktivieren und „CarData Client erstellen“ wählen, dort die Client-ID kopieren und hier einfügen. Beim Anmelden gibt die App einen Code aus, den du auf der BMW-Seite eingibst. BMW erlaubt nur 50 Abrufe am Tag, deshalb wird der Akkustand nur alle 45 Minuten geholt."
+        "bmw" -> "Im Kundenportal von BMW (bmw-cardata.bmwgroup.com, Zugang über „Mein BMW“) CarData aktivieren und „CarData Client erstellen“ wählen, dort die Client-ID kopieren und hier einfügen. Beim Anmelden gibt die App einen Code aus, den du auf der BMW-Seite eingibst. BMW erlaubt nur 50 Abrufe am Tag, deshalb ist die Abrufrate dort anfangs 30 Minuten."
         "smartcar" -> "Kostenloses Konto auf dashboard.smartcar.com (ein Fahrzeug ist gratis): Anwendung anlegen, als Redirect-URI ${com.headunit.launcher.CarCloud.REDIRECT} eintragen. Client-ID und Secret hier einfügen, dann anmelden und dein Auto (BMW, Mercedes, Tesla, Ford, Hyundai, Kia u. a.) freigeben."
         else -> "Holt den Akkustand vor der Fahrt und beim Laden vom Server des Herstellers, wenn Android Auto ihn nicht liefert. Du meldest dich mit deinem eigenen Konto an, die Schlüssel bleiben auf dem Handy."
     }
@@ -1540,6 +1540,11 @@ private fun CloudAccountGroup(prefs: Prefs) {
             SFieldItem("Client-ID", prefs.s(PreferenceKeys.CLOUD_ID, ""), placeholder = "aus dem Entwicklerportal") { prefs.put(PreferenceKeys.CLOUD_ID, it.trim()) }
             if (prov != "bmw") SFieldItem("Client-Secret", prefs.s(PreferenceKeys.CLOUD_SECRET, ""), password = true) { prefs.put(PreferenceKeys.CLOUD_SECRET, it.trim()) }
             if (prov == "volvo") SFieldItem("VCC-API-Key", prefs.s(PreferenceKeys.CLOUD_VCC, ""), password = true) { prefs.put(PreferenceKeys.CLOUD_VCC, it.trim()) }
+            SChoice("Abrufrate", listOf("5" to "5 Min.", "10" to "10 Min.", "20" to "20 Min.", "30" to "30 Min.", "60" to "60 Min."), com.headunit.launcher.CarCloud.rateMin(prefs).toString(),
+                "Abgerufen wird nur, solange die App offen ist, eine Route läuft oder Android Auto verbunden ist, außerdem einmal beim Öffnen." +
+                    (if (prov == "bmw") " BMW erlaubt nur 50 Abrufe am Tag (heute ${com.headunit.launcher.CarCloud.callsToday(prefs)}); ist das Limit erreicht, pausiert die App bis morgen." else "")) {
+                prefs.put(PreferenceKeys.CLOUD_RATE + prov, it)
+            }
             val st = com.headunit.launcher.CarCloud.status
             val signed = com.headunit.launcher.CarCloud.signedIn(prefs)
             SItem("Konto", st.ifBlank { if (signed) "Angemeldet" else "Nicht angemeldet" }) {
