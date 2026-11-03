@@ -167,7 +167,7 @@ object ChargerInfo {
                 "f" to "json", "geometry" to geom, "geometryType" to "esriGeometryPolyline", "inSR" to "4326", "outSR" to "4326",
                 "spatialRel" to "esriSpatialRelIntersects", "distance" to "2500", "units" to "esriSRUnit_Meter",
                 "where" to if (fastOnly) "Typ='Schnellladeeinrichtung' AND Status='In Betrieb'" else "Status='In Betrieb'",
-                "outFields" to "Betreiber,operator_companyName,max_electric_power_station,Straße,Ort,Anzahl_Ladepunkte",
+                "outFields" to "Betreiber,operator_companyName,max_electric_power_station,Straße,Ort,Anzahl_Ladepunkte,F_response_body",
                 "returnGeometry" to "true", "resultOffset" to offset.toString(), "resultRecordCount" to "2000",
             )
             val j = JSONObject(postForm(BNETZA, form))
@@ -181,7 +181,9 @@ object ChargerInfo {
                 val lon = g.optDouble("x"); val lat = g.optDouble("y")
                 if (lat.isNaN() || lon.isNaN()) continue
                 val pos = LL(lat, lon)
-                val kw = str(a, "max_electric_power_station")?.replace(',', '.')?.toDoubleOrNull()?.takeIf { it > 0 && it <= 1500 }?.let { Math.round(it).toInt() }
+                val stationKw = str(a, "max_electric_power_station")?.replace(',', '.')?.toDoubleOrNull()?.takeIf { it > 0 && it <= 1500 }?.let { Math.round(it).toInt() }
+                // the car's power: the strongest connector, at most the station's total (see carKw)
+                val kw = carKw(stationKw, str(a, "F_response_body"))
                 val op = str(a, "Betreiber") ?: str(a, "operator_companyName")
                 val street = listOfNotNull(str(a, "Straße"), str(a, "Ort")).joinToString(", ")
                 val k = Math.round(lat * 1e5) to Math.round(lon * 1e5)
