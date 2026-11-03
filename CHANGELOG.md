@@ -5,6 +5,7 @@ Add user-facing Horizon Nav changes under **Unreleased** before publishing each 
 ## Unreleased
 
 ### Neu
+- Ladesäulen-Filter: Unter dem Minus-Knopf der Karte lässt sich nach Leistung filtern (alle, ab 50 kW, ab 150 kW, ab 300 kW). Die Karte zeigt dann nur die Standorte dieser Leistung. Der Knopf erscheint nur bei Elektro.
 - Ladesäule antippen: Die Karte berechnet die Route zur Ladesäule. Läuft schon eine Route, wird die Ladesäule als Zwischenstopp eingefügt.
 - Ladesäulen auf der Karte: Im sichtbaren Kartenausschnitt zeigt die Karte die Ladepunkte als grüne Marker. Oben steht die Leistung (z. B. „300 kW“, sonst „?“), im Marker die freien und die Gesamtzahl der Ladepunkte, wenn die Quelle sie kennt (z. B. „1/5“).
 - Schnellladepunkte in Brüssel: Die App nutzt die offenen Daten von Brussels Mobility für die Gleichstrom-Ladepunkte in der Region. Die Leistung ist dort nicht angegeben, sie zählen daher als schnell, wenn die Leistung unbekannt ist.

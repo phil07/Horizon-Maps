@@ -62,6 +62,10 @@ import androidx.compose.material.icons.rounded.Apartment
 import androidx.compose.material.icons.rounded.CameraAlt
 import androidx.compose.material.icons.rounded.CarCrash
 import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material.icons.rounded.Check
+import androidx.compose.material.icons.rounded.FilterList
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.compose.material.icons.rounded.KeyboardArrowDown
 import androidx.compose.material.icons.rounded.KeyboardArrowUp
 import androidx.compose.material.icons.rounded.DirectionsCar
@@ -363,6 +367,11 @@ private fun MapScreen(engine: NavEngine, onSettings: () -> Unit) {
                             Box(Modifier.size(52.dp).pressClick { engine.zoom(1.0) }, contentAlignment = Alignment.Center) { Icon(Icons.Rounded.Add, Lang.t("Hineinzoomen", "Zoom in"), tint = c.text, modifier = Modifier.size(26.dp)) }
                             Box(Modifier.width(26.dp).height(1.dp).background(c.line))
                             Box(Modifier.size(52.dp).pressClick { engine.zoom(-1.0) }, contentAlignment = Alignment.Center) { Icon(Icons.Rounded.Remove, Lang.t("Herauszoomen", "Zoom out"), tint = c.text, modifier = Modifier.size(26.dp)) }
+                            // charge points: the power filter, under the minus (only with an electric car)
+                            if (engine.prefs.s(PreferenceKeys.FUEL_TYPE, "E10") == "EV") {
+                                Box(Modifier.width(26.dp).height(1.dp).background(c.line))
+                                Box(Modifier.size(52.dp).pressClick { engine.chargerFilterOpen = true }, contentAlignment = Alignment.Center) { Icon(Icons.Rounded.FilterList, Lang.t("Ladesäulen filtern", "Filter chargers"), tint = if (engine.chargerMinKw > 0) c.accent else c.text, modifier = Modifier.size(26.dp)) }
+                            }
                         }
                     }
                 }
@@ -518,6 +527,7 @@ private fun MapScreen(engine: NavEngine, onSettings: () -> Unit) {
             exit = slideOutHorizontally(targetOffsetX = { if (mir) -it else it }) + fadeOut(),
         ) { OptionsSheet(engine, shareEta, wide = !narrow && maxWidth >= 860.dp && maxHeight < maxWidth, onSettings = { sheet = false; onSettings() }) { sheet = false } }
         if (engine.stopsEditor) StopsDialog(engine, onClose = { engine.stopsEditor = false })
+        if (engine.chargerFilterOpen) ChargerFilterDialog(engine) { engine.chargerFilterOpen = false }
     }
 }
 
@@ -1451,6 +1461,32 @@ private fun ItineraryCard(engine: NavEngine) {
                     }
                 }
             }
+        }
+    }
+}
+
+/** The charger filter: one power class; the map then shows only the charge points that fall in it. */
+@Composable
+private fun ChargerFilterDialog(engine: NavEngine, onClose: () -> Unit) {
+    val c = LocalVw.current
+    val options = listOf(0 to Lang.t("Alle Ladesäulen", "All chargers"), 50 to Lang.t("50 kW und höher", "50 kW and up"),
+        150 to Lang.t("150 kW und höher", "150 kW and up"), 300 to Lang.t("300 kW und höher", "300 kW and up"))
+    Dialog(onDismissRequest = onClose, properties = DialogProperties(usePlatformDefaultWidth = false)) {
+        Column(Modifier.padding(horizontal = 16.dp).widthIn(max = 480.dp).fillMaxWidth().clip(RoundedCornerShape(26.dp)).background(c.surface).padding(20.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(Lang.t("Ladesäulen filtern", "Filter chargers"), color = c.text, fontSize = 20.sp, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
+                Icon(Icons.Rounded.Close, Lang.t("Schließen", "Close"), tint = c.sub, modifier = Modifier.size(28.dp).clickable { onClose() })
+            }
+            for ((kw, label) in options) {
+                val on = engine.chargerMinKw == kw
+                Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(if (on) c.accent.copy(alpha = 0.18f) else c.surface)
+                    .clickable { engine.setChargerMinKw(kw); onClose() }.padding(horizontal = 16.dp, vertical = 14.dp),
+                    verticalAlignment = Alignment.CenterVertically) {
+                    Text(label, color = c.text, fontSize = 17.sp, fontWeight = if (on) FontWeight.Bold else FontWeight.Normal, modifier = Modifier.weight(1f))
+                    if (on) Icon(Icons.Rounded.Check, null, tint = c.accent, modifier = Modifier.size(22.dp))
+                }
+            }
+            Text(Lang.t("Standorte mit unbekannter Leistung werden bei einem Filter ausgeblendet.", "Sites with unknown power are hidden while a filter is on."), color = c.sub, fontSize = 12.sp)
         }
     }
 }

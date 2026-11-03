@@ -5645,6 +5645,21 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
     }
 
     private var chgLastBox: DoubleArray? = null
+    /** The charge points last found for the view (before the filter). */
+    private var chgAll: List<ChargerSite> = emptyList()
+    /** The map's charger filter in kW (0 = all); stays after a restart. */
+    var chargerMinKw by mutableStateOf(prefs.i(PreferenceKeys.CHARGER_FILTER_KW, 0))
+    var chargerFilterOpen by mutableStateOf(false)
+
+    /** Only the charge points in the chosen power class; one whose power is unknown is hidden while a filter is on. */
+    private fun shownChargers(all: List<ChargerSite>): List<ChargerSite> =
+        if (chargerMinKw <= 0) all else all.filter { (it.kw ?: 0) >= chargerMinKw }
+
+    fun setChargerMinKw(kw: Int) {
+        chargerMinKw = kw
+        prefs.put(PreferenceKeys.CHARGER_FILTER_KW, kw)
+        map.setChargers(shownChargers(chgAll))
+    }
 
     /**
      * The charge points in the map view, with their power and free count. Asked again only when the view has moved on; the German
@@ -5669,7 +5684,8 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
                 if (online()) try { out += ChargerInfo.inBox(box) } catch (e: Exception) { }
                 out.take(300)
             }
-            map.setChargers(sites)
+            chgAll = sites
+            map.setChargers(shownChargers(sites))
         }
     }
 
