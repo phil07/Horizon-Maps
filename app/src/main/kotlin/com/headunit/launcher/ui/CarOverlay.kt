@@ -3,6 +3,7 @@ package com.headunit.launcher.ui
 import com.headunit.launcher.R
 import com.headunit.launcher.Lang
 import androidx.compose.material.icons.rounded.RvHookup
+import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.WaterDrop
 import androidx.compose.material.icons.rounded.PropaneTank
 import androidx.compose.ui.res.stringResource
