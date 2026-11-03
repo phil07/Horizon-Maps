@@ -5,6 +5,7 @@ Add user-facing Horizon Nav changes under **Unreleased** before publishing each 
 ## Unreleased
 
 ### Neu
+- Ladesäulen von Open Charge Map auf der Karte: Mit eingetragenem Open-Charge-Map-Schlüssel erscheinen auch Standorte, die im Ladesäulenregister fehlen (z. B. viele Supermärkte), mit ihrer Anzahl Ladepunkte und höchster Leistung. Doppelte Standorte werden übersprungen.
 - Alle Schlüssel testen: In Einstellungen > Schlüssel & Konten prüft ein Knopf auf einmal alle eingetragenen Schlüssel (TomTom, HERE, Mapbox, Mapillary, Esri, MapTiler, Open Charge Map, Tankerkönig). Pro Schlüssel steht ✓ funktioniert, ✗ abgelehnt mit Grund oder – nicht eingetragen.
 - Gespeichert & zuletzt im Auto: Die Liste unter Zuhause, Arbeit und den Knöpfen für Ladesäule, Essen, Café und Parken klappt sich jetzt selbst auf und zu (Pfeil in ihrer Kopfzeile). Sie startet zugeklappt. Der Pfeil in der Suchleiste ist weg.
 - Neon-Positionspfeil: Im Neon-Look wird dein Standort als leuchtender Winkel mit kleinem Dreieck in der gewählten Neonfarbe (Gelb, Cyan oder Magenta) gezeigt, auf dem Handy, in Android Auto und in der Routenleiste. Er ist so groß wie der normale Pfeil. Die Farbe wechselt auch im Auto sofort, wenn du die Neonfarbe änderst.

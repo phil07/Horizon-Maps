@@ -93,8 +93,44 @@ object ChargerInfo {
      * Germany's register inside the map view [box] (minLat, minLon, maxLat, maxLon): one request per view. The register gives each
      * site's number of chargers but not how many are free. Empty outside Germany. Throws when the register can't be reached.
      */
-    fun inBox(box: DoubleArray): List<ChargerSite> {
-        if (box[0] > 55.1 || box[2] < 47.2 || box[1] > 15.1 || box[3] < 5.8) return emptyList()
+    fun inBox(box: DoubleArray, ocmKey: String = ""): List<ChargerSite> {
+        val reg = if (box[0] > 55.1 || box[2] < 47.2 || box[1] > 15.1 || box[3] < 5.8) emptyList() else registerInBox(box)
+        val key = ocmKey.trim()
+        if (key.isEmpty()) return reg
+        // Open Charge Map adds only the places the register doesn't have (its own copies are the same spots)
+        val out = ArrayList(reg)
+        try { out += ocmInBox(key, box).filter { s -> reg.none { Geo.dist(it.pos, s.pos) < SAME_M } } } catch (e: Exception) { }
+        return out
+    }
+
+    /** Open Charge Map's stations in [box], with their charge points (NumberOfPoints, else the connectors) and strongest power. */
+    private fun ocmInBox(key: String, box: DoubleArray): List<ChargerSite> {
+        val lat = (box[0] + box[2]) / 2; val lon = (box[1] + box[3]) / 2
+        val radiusKm = Math.min(100.0, Geo.dist(LL(lat, lon), LL(box[0], box[1])) / 1000.0 + 0.5)
+        val url = "$OCM/poi?output=json&key=${URLEncoder.encode(key, "UTF-8")}&latitude=$lat&longitude=$lon&distance=${"%.2f".format(java.util.Locale.US, radiusKm)}" +
+            "&distanceunit=KM&maxresults=500&compact=true&verbose=false"
+        val arr = JSONArray(get(url))
+        val out = ArrayList<ChargerSite>()
+        for (i in 0 until arr.length()) {
+            val x = arr.optJSONObject(i) ?: continue
+            if (x.optInt("StatusTypeID", 0) >= 100) continue
+            val ad = x.optJSONObject("AddressInfo") ?: continue
+            val pl = ad.optDouble("Latitude"); val po = ad.optDouble("Longitude")
+            if (pl.isNaN() || po.isNaN() || pl < box[0] || pl > box[2] || po < box[1] || po > box[3]) continue
+            val cons = x.optJSONArray("Connections")
+            var kw = 0.0
+            if (cons != null) for (c in 0 until cons.length()) {
+                val p = cons.optJSONObject(c)?.optDouble("PowerKW", 0.0) ?: 0.0
+                if (!p.isNaN() && p <= 1500 && p > kw) kw = p
+            }
+            val kwI = if (kw > 0) Math.round(kw).toInt() else null
+            val count = x.optInt("NumberOfPoints", 0).takeIf { it > 0 } ?: cons?.length()?.takeIf { it > 0 }
+            out += ChargerSite(LL(pl, po), kwI, count, null, null, kwI?.let { "$it kW" }, "ocm-" + x.optInt("ID", 0))
+        }
+        return out
+    }
+
+    private fun registerInBox(box: DoubleArray): List<ChargerSite> {
         val form = linkedMapOf(
             "f" to "json", "geometry" to "${box[1]},${box[0]},${box[3]},${box[2]}", "geometryType" to "esriGeometryEnvelope",
             "inSR" to "4326", "outSR" to "4326", "spatialRel" to "esriSpatialRelIntersects", "where" to "Status='In Betrieb'",

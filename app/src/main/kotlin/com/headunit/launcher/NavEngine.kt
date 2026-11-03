@@ -5771,7 +5771,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
                 try { out += NdwChargers.inBox(ctx, box) } catch (e: Exception) { }
                 try { out += BruChargers.inBox(ctx, box) } catch (e: Exception) { }
                 if (fr) try { out += FrChargers.inBox(ctx, box) } catch (e: Exception) { }
-                if (online()) try { out += ChargerInfo.inBox(box) } catch (e: Exception) { }
+                if (online()) try { out += ChargerInfo.inBox(box, prefs.s(PreferenceKeys.OCM_KEY, "")) } catch (e: Exception) { }
                 // free points in Baden-Württemberg from the open live feed (no key); the rest keep their register counts
                 val live0 = if (BwLive.inBw(box)) BwLive.apply(out, BwLive.statuses()) else out
                 // free points in France from the national live file, matched by the stored copy's ids
