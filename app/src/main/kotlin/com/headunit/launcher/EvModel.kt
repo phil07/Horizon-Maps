@@ -114,7 +114,7 @@ object EvModel {
      * [env]: hills and weather (none: a flat road in calm weather).
      */
     fun kwh(from: Double, to: Double, limits: List<LimitSec>, fallbackKmh: Double, style: Double, unlimitedKmh: Double,
-            baseKwhPerKm: Double, tempC: Double?, learned: DoubleArray, env: Env = Env.NONE): Double {
+            baseKwhPerKm: Double, tempC: Double?, learned: DoubleArray, env: Env = Env.NONE, accelF: Double = 1.0): Double {
         if (to <= from) return 0.0
         val secs = limits.sortedBy { it.off }
         // the stretch is walked in pieces of at most 500 m, cut where a limit starts or ends
@@ -123,6 +123,10 @@ object EvModel {
         var flat = 0.0; var grade = 0.0
         var at = from
         var prevH = env.heightAt(from)
+        // the energy that goes into speeding up where the speed rises along the route; it's scaled by how briskly you accelerate
+        // (accelF: 1 = a usual driver, more for a brisk one, less for a gentle one), so quick acceleration costs more than gentle
+        var prevKmh: Double? = null
+        var speedUp = 0.0
         while (at < to - 1e-6) {
             while (ci < cuts.size && cuts[ci] <= at + 1e-6) ci++
             val b = minOf(at + STEP, to, cuts.getOrNull(ci) ?: to)
@@ -134,13 +138,16 @@ object EvModel {
                 s.ms <= 0.0 || s.ms * 3.6 > 250.0 -> unlimitedKmh
                 else -> s.ms * 3.6 * style
             }
+            val pk = prevKmh
+            if (pk != null && kmh > pk + 5.0) { val v1 = pk / 3.6; val v2 = kmh / 3.6; speedUp += 0.5 * env.massKg * (v2 * v2 - v1 * v1) / DRIVE_EFF / 3.6e6 }
+            prevKmh = kmh
             flat += part(b - at, kmh, baseKwhPerKm, learned) * (if (env.wx.isEmpty()) 1.0 else wxFactor(env.wxAt(mid), kmh, env.bearing(mid)))
             val h = env.heightAt(b)
             if (h != null && prevH != null) grade += env.gradeKwh(h - prevH)
             prevH = h
             at = b
         }
-        return maxOf(0.0, flat * tempFactor(tempC) + grade) * BUFFER
+        return maxOf(0.0, flat * tempFactor(tempC) + grade + speedUp * (accelF - 1.0)) * BUFFER
     }
 
     private const val STEP = 500.0

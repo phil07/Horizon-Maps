@@ -5327,6 +5327,9 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
     /** How fast you drive against the limit on this trip (distance weighted), and where there's no limit. */
     private var evStyleSum = 0.0; private var evStyleM = 0.0
     private var evFreeSum = 0.0; private var evFreeM = 0.0
+    /** How briskly you accelerate on this trip: the sum of acceleration x time while speeding up, and that time (s). */
+    private var evAccSum = 0.0; private var evAccT = 0.0
+    private var evLastSpeedMs = -1.0
     private var evTempC: Double? = null
     private var evTempAt = 0L
 
@@ -5339,6 +5342,15 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
     }
 
     private fun evLearned(): DoubleArray = EvModel.parseLearned(prefs.s(PreferenceKeys.EV_LEARN, ""))
+
+    /**
+     * How much the way you accelerate costs against a usual driver: 1.0 for about 1.2 m/s² on average, more for a brisker one (up to
+     * 1.35), less for a gentle one (down to 0.85). Not learned yet: 1.0.
+     */
+    private fun evAccelF(): Double {
+        val a = if (evAccT > 30.0) evAccSum / evAccT else prefs.s(PreferenceKeys.EV_ACCEL, "").toDoubleOrNull() ?: return 1.0
+        return (1.0 + 0.25 * (a - 1.2)).coerceIn(0.85, 1.35)
+    }
 
     private fun evStyle(): Double = if (evStyleM > 3000) (evStyleSum / evStyleM).coerceIn(0.8, 1.3)
         else (prefs.s(PreferenceKeys.EV_STYLE, "").toDoubleOrNull() ?: 1.0).coerceIn(0.8, 1.3)
@@ -5356,6 +5368,14 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
     /** Every few metres driven (electric): the modelled use, how you drive against the limit, and learning from the battery level. */
     private fun evTrack(speedMs: Double, d: Double) {
         val kmh = speedMs * 3.6
+        // how briskly you speed up: the acceleration over the last few metres, while the speed rises (not at a standstill or past 120 km/h)
+        val last = evLastSpeedMs
+        evLastSpeedMs = speedMs
+        if (last >= 0.0 && speedMs > 1.0 && speedMs < 33.0 && d > 0.5) {
+            val dt = d / maxOf(1.0, (speedMs + last) / 2.0)
+            val acc = (speedMs - last) / dt
+            if (dt in 0.2..5.0 && acc in 0.4..4.0) { evAccSum += acc * dt; evAccT += dt }
+        }
         // how you drive against the limit: for every car (it also goes into the arrival time and a fuel car's range)
         val lim = speedLimit
         if (lim != null && lim > 5.0 && speedMs > lim * 0.6 && speedMs > 8.0) { evStyleSum += speedMs / lim * d; evStyleM += d }
@@ -5449,9 +5469,9 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
 
     /** Clears what's been learned about your driving and your car's use. */
     fun resetLearned() {
-        listOf(PreferenceKeys.EV_LEARN, PreferenceKeys.EV_STYLE, PreferenceKeys.EV_FREE_KMH, PreferenceKeys.EV_REGEN, PreferenceKeys.ETA_PACE).forEach { prefs.put(it, "") }
+        listOf(PreferenceKeys.EV_LEARN, PreferenceKeys.EV_STYLE, PreferenceKeys.EV_ACCEL, PreferenceKeys.EV_FREE_KMH, PreferenceKeys.EV_REGEN, PreferenceKeys.ETA_PACE).forEach { prefs.put(it, "") }
         paceReal = 0.0; pacePred = 0.0
-        evStyleSum = 0.0; evStyleM = 0.0; evFreeSum = 0.0; evFreeM = 0.0
+        evStyleSum = 0.0; evStyleM = 0.0; evFreeSum = 0.0; evFreeM = 0.0; evAccSum = 0.0; evAccT = 0.0
     }
 
     /** What's been learned, for Settings: (style ×, open-motorway km/h, regen share, use per town/country/motorway). */
@@ -5502,6 +5522,10 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
             val old = (prefs.s(PreferenceKeys.EV_STYLE, "").toDoubleOrNull() ?: 1.0)
             prefs.put(PreferenceKeys.EV_STYLE, String.format(java.util.Locale.US, "%.3f", (old * 0.6 + evStyleSum / evStyleM * 0.4).coerceIn(0.8, 1.3)))
         }
+        if (evAccT > 120.0) {
+            val old = prefs.s(PreferenceKeys.EV_ACCEL, "").toDoubleOrNull() ?: 1.2
+            prefs.put(PreferenceKeys.EV_ACCEL, String.format(java.util.Locale.US, "%.3f", (old * 0.6 + evAccSum / evAccT * 0.4).coerceIn(0.4, 3.0)))
+        }
         if (evFreeM > 5000) {
             val old = (prefs.s(PreferenceKeys.EV_FREE_KMH, "").toDoubleOrNull() ?: 140.0)
             prefs.put(PreferenceKeys.EV_FREE_KMH, String.format(java.util.Locale.US, "%.1f", (old * 0.6 + evFreeSum / evFreeM * 0.4).coerceIn(100.0, 250.0)))
@@ -5511,12 +5535,12 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
             prefs.put(PreferenceKeys.ETA_PACE, String.format(java.util.Locale.US, "%.3f", (old * 0.6 + paceReal / pacePred * 0.4).coerceIn(0.85, 1.15)))
         }
         paceReal = 0.0; pacePred = 0.0; paceRoute = null
-        evStyleSum = 0.0; evStyleM = 0.0; evFreeSum = 0.0; evFreeM = 0.0; evSinceNav = 0.0
+        evStyleSum = 0.0; evStyleM = 0.0; evFreeSum = 0.0; evFreeM = 0.0; evSinceNav = 0.0; evAccSum = 0.0; evAccT = 0.0
     }
 
     /** kWh the rest of route [r] takes from [from] metres, with your speed, the limits, the weather and what's been learned. */
     private fun evRouteKwh(r: Route, from: Double, avgKmh: Double): Double =
-        EvModel.kwh(from, r.len, r.limits, avgKmh.coerceIn(20.0, 140.0), evStyle(), evFreeKmh(), evBaseKwhPerKm(), evTemp(), evLearned(), evEnv(r))
+        EvModel.kwh(from, r.len, r.limits, avgKmh.coerceIn(20.0, 140.0), evStyle(), evFreeKmh(), evBaseKwhPerKm(), evTemp(), evLearned(), evEnv(r), evAccelF())
 
     fun evArrivalPct(): Int? {
         if (!isEv) return null

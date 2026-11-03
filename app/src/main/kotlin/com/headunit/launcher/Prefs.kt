@@ -292,6 +292,8 @@ internal object PreferenceKeys {
     const val EV_CHARGE_PCT = "evcharge"
     /** What the battery level showed against the estimate, per kind of road (town, country, motorway): "1.0,1.1,1.2". */
     const val EV_LEARN = "evlearn"
+    /** How briskly you accelerate (average of the accelerations while speeding up, m/s²), learned from your trips; "" = not learned yet. */
+    const val EV_ACCEL = "evaccel"
     /** How fast you usually drive against the posted limit (1.0 = at the limit), and on roads with no limit (km/h). */
     const val EV_STYLE = "evstyle"
     const val EV_FREE_KMH = "evfreekmh"
