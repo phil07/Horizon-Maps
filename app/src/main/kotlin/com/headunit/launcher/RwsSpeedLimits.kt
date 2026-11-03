@@ -12,10 +12,10 @@ import kotlin.math.abs
  */
 object RwsSpeedLimits {
     private const val ITEMS = "https://api.pdok.nl/rws/weggegevens/ogc/v1/collections/wegvak_max_snelheden/items"
-    /** How close (m) a segment must be to the position to count as the road you are on. */
-    private const val NEAR_M = 20.0
-    /** How far (degrees) the query box reaches around the position: about 60 m. */
-    private const val BOX = 0.0008
+    /** How close (m) a segment must be to the position to count. Both carriageways of a motorway lie about 55 m apart, so this must reach the other one. */
+    private const val NEAR_M = 70.0
+    /** How far (degrees) the query box reaches around the position: about 90 m north-south, 70 m east-west. */
+    private const val BOX = 0.0011
     /** Answers stay valid for this long (ms) and this far (m) from where they were asked. */
     private const val TTL_MS = 10 * 60_000L
     private const val REUSE_M = 120.0
@@ -47,9 +47,9 @@ object RwsSpeedLimits {
                 if (d < dmin) { dmin = d; brg = Geo.bearing(s.pts[i - 1], s.pts[i]) }
             }
             if (dmin > NEAR_M) continue
-            // a road that runs the other way than we drive is a different carriageway: it counts only when nothing else is near
+            // a segment that runs against our direction is the other carriageway: it only counts when nothing that fits is near
             val off = if (heading < 0) 0.0 else angle(brg, heading)
-            val score = dmin + if (off > 60.0) 50.0 else 0.0
+            val score = dmin + if (off > 60.0) 200.0 else 0.0
             if (score < bestScore) { bestScore = score; bestKmh = s.kmh }
         }
         return bestKmh?.takeIf { it > 0 }?.toDouble()
