@@ -5684,7 +5684,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
                 if (online()) try { out += ChargerInfo.inBox(box) } catch (e: Exception) { }
                 out.take(300)
             }
-            chgAll = sites
+            chgAll = mergeSites(sites)
             map.setChargers(shownChargers(sites))
         }
     }
