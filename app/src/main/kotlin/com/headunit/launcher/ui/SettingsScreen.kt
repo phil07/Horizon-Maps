@@ -837,7 +837,7 @@ private fun FuelSection(prefs: Prefs, engine: NavEngine) {
         EvOperatorsItem(prefs)
         SChoice("Umweg für bevorzugte Anbieter", listOf("5" to "5 Min.", "10" to "10 Min.", "15" to "15 Min.", "20" to "20 Min."), prefs.i(PreferenceKeys.EV_PREF_MIN, 10).toString(),
             "Ladesäulen deiner bevorzugten Anbieter werden nur gewählt, wenn die Fahrt dadurch höchstens so viele Minuten länger dauert und keinen zusätzlichen Ladestopp braucht (Standard: 10 Min.)") { prefs.put(PreferenceKeys.EV_PREF_MIN, it.toInt()) }
-        SFieldItem("Open Charge Map API-Schlüssel", prefs.s(PreferenceKeys.OCM_KEY, ""), "Optional, kostenlos auf openchargemap.org: findet Leistung und Betreiber von Ladesäulen außerhalb Deutschlands. In Deutschland nutzt die App das Ladesäulenregister der Bundesnetzagentur. Ladedaten: Bundesnetzagentur.de (CC BY 4.0), Open Charge Map (CC BY-SA 4.0).", placeholder = "Schlüssel einfügen", password = true) { prefs.put(PreferenceKeys.OCM_KEY, it.trim()) }
+        SFieldItem("Open Charge Map API-Schlüssel", prefs.s(PreferenceKeys.OCM_KEY, ""), "Optional, kostenlos auf openchargemap.org: findet Leistung und Betreiber von Ladesäulen außerhalb Deutschlands. Weitere Quellen: NDW (Niederlande, CC0), Brussels Mobility (Brüssel, CC BY 4.0). In Deutschland nutzt die App das Ladesäulenregister der Bundesnetzagentur. Ladedaten: Bundesnetzagentur.de (CC BY 4.0), Open Charge Map (CC BY-SA 4.0).", placeholder = "Schlüssel einfügen", password = true) { prefs.put(PreferenceKeys.OCM_KEY, it.trim()) }
         OcmTestItem(prefs)
         EvWidgetItem(prefs)
     } else SGroup("Kraftstoffkosten auf der Route") {

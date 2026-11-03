@@ -5670,9 +5670,13 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
             val regLine = RouteExtras.line(r, 0.0, r.len, 1000.0, 150)
             val reg0: List<Nearby> = if (online()) ChargerInfo.along(prefs, regLine) else emptyList()
             // the Netherlands: NDW's national register too, each site counted once with the others
-            val reg: List<Nearby> = if (online() && regLine.any { it.lat in 50.7..53.6 && it.lon in 3.3..7.3 })
+            val regNl: List<Nearby> = if (online() && regLine.any { it.lat in 50.7..53.6 && it.lon in 3.3..7.3 })
                 reg0 + NdwChargers.nearby(ctx, regLine).filter { n -> reg0.none { Geo.dist(it.place.pos, n.place.pos) < 150.0 } }
                 else reg0
+            // Brussels: its open charge points (DC only, no power given)
+            val reg: List<Nearby> = if (online() && regLine.any { it.lat in 50.76..50.91 && it.lon in 4.23..4.47 })
+                regNl + BruChargers.nearby(ctx, regLine).filter { n -> regNl.none { Geo.dist(it.place.pos, n.place.pos) < 150.0 } }
+                else regNl
             val known = ChargerInfo.enrich(tt, reg)
             out += known.filter { fast(it) }
             val added = ArrayList<Nearby>()

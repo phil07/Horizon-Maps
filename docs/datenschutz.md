@@ -30,6 +30,7 @@ Horizon Nav ist eine Navigations-App ohne eigenes Benutzerkonto, ohne Werbung un
 | Open Charge Map (nur mit eigenem Schlüssel) | Ladesäulen weltweit | Route bzw. Bereich entlang der Route |
 | Rijkswaterstaat über PDOK (nur in den Niederlanden) | Tempolimits auf niederländischen Straßen | Ungefähre Position (ein kleines Kartenfeld um dich) |
 | NDW (Niederlande, opendata.ndw.nu) | Ladepunkte in den Niederlanden | Nur der wöchentliche Abruf der Datei, ohne deine Position und ohne Suchbegriff. Nur bei Routen durch die Niederlande |
+| Brussels Mobility (Brüssel, opendata) | Ladepunkte in Brüssel | Nur der wöchentliche Abruf der Datei, ohne deine Position. Nur bei Routen durch Brüssel |
 | Open-Meteo, RainViewer | Wetter und Regenradar | Position bzw. Kartenausschnitt |
 | Tankerkönig (nur mit eigenem Schlüssel), E-Control (Österreich), economie.gouv.fr (Frankreich), UK Fuel Finder und postcodes.io (Großbritannien) | Kraftstoffpreise | Position bzw. Umkreis |
 | Meldungs-Server von Horizon Nav (Cloudflare Workers, Cloudflare Inc.) | Geteilte Meldungen anderer Fahrer (Stau, Polizei, Unfall usw.) | Siehe Abschnitt „Geteilte Meldungen“ |
