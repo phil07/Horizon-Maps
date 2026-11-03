@@ -1,11 +1,11 @@
 # Changelog
 
 Add user-facing Horizon Nav changes under **Unreleased** before publishing each build, in German (the app shows them as they are), under ### Neu, ### Verbessert or ### Behoben headings, each written as "Überschrift: was es tut" (the What's new card shows the headline in bold with the rest underneath). Keep entries focused on features, improvements, and fixes in the app—not GitHub Actions or release-publishing maintenance. There is no need to delete entries after publishing: notes that an earlier release already included are left out of the next one automatically.
-- Neon-Positionspfeil: Im Neon-Look wird dein Standort als leuchtender Winkel mit kleinem Dreieck in der gewählten Neonfarbe (Gelb, Cyan oder Magenta) gezeigt, auf dem Handy, in Android Auto und in der Routenleiste.
 
 ## Unreleased
 
 ### Neu
+- Neon-Positionspfeil: Im Neon-Look wird dein Standort als leuchtender Winkel mit kleinem Dreieck in der gewählten Neonfarbe (Gelb, Cyan oder Magenta) gezeigt, auf dem Handy, in Android Auto und in der Routenleiste.
 - Ladesäulen filtern auf Android Auto: In den Einstellungen im Auto steht bei Elektro „Ladesäulen filtern“ (alle, ab 50, 150 oder 300 kW). Ein Tipp wechselt zur nächsten Stufe, die Karte zeigt dann nur diese Ladesäulen.
 - Baustelle melden: Unter „Hier melden“ gibt es jetzt „Baustelle“, in der App und auf Android Auto, mit dem Verkehrszeichen 123 als Symbol (auch für Baustellen von der Autobahn GmbH auf der Karte). Die Meldung bleibt zwölf Stunden, andere Fahrer sehen sie auch.
 - Ladesäulen in Frankreich: Die Karte zeigt die Ladesäulen der französischen Gesamtdatei (transport.data.gouv.fr, Beta). In den Einstellungen einschalten: Die Datei wird dann einmal im Monat geladen (rund 127 MB), die freien Ladepunkte kommen live, sobald Frankreich auf der Karte liegt (rund 9 MB). Ohne Einschalten lädt die App nichts.
