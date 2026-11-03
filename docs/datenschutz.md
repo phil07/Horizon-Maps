@@ -28,6 +28,7 @@ Horizon Nav ist eine Navigations-App ohne eigenes Benutzerkonto, ohne Werbung un
 | OpenStreetMap-Dienste: Overpass-Server (overpass-api.de, overpass.kumi.systems, overpass.private.coffee), Nominatim, Photon (komoot) | Tempolimits, Orte in der Nähe, Adresssuche | Position oder Kartenausschnitt, Suchbegriffe |
 | Bundesnetzagentur (Ladesäulenregister, über ArcGIS von Esri) | Leistung und Betreiber von Ladesäulen | Route bzw. Bereich entlang der Route |
 | Open Charge Map (nur mit eigenem Schlüssel) | Ladesäulen weltweit | Route bzw. Bereich entlang der Route |
+| Rijkswaterstaat über PDOK (nur in den Niederlanden) | Tempolimits auf niederländischen Straßen | Ungefähre Position (ein kleines Kartenfeld um dich) |
 | Open-Meteo, RainViewer | Wetter und Regenradar | Position bzw. Kartenausschnitt |
 | Tankerkönig (nur mit eigenem Schlüssel), E-Control (Österreich), economie.gouv.fr (Frankreich), UK Fuel Finder und postcodes.io (Großbritannien) | Kraftstoffpreise | Position bzw. Umkreis |
 | Meldungs-Server von Horizon Nav (Cloudflare Workers, Cloudflare Inc.) | Geteilte Meldungen anderer Fahrer (Stau, Polizei, Unfall usw.) | Siehe Abschnitt „Geteilte Meldungen“ |

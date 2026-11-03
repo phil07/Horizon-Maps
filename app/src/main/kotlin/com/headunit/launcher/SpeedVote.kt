@@ -22,6 +22,8 @@ internal object SpeedVote {
     const val W_HERE = 2.0
     const val W_TOMTOM = 2.0
     const val W_MAPBOX = 1.5
+    /** Rijkswaterstaat's posted limits (Dutch road authority, CC0): as sure as HERE and TomTom. */
+    const val W_RWS = 2.0
     const val W_OSM = 1.5
     const val W_GUESS = 0.5
 

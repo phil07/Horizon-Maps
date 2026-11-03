@@ -2355,9 +2355,11 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
                 val ab = if (cc == "DE" && osm != null) (listOf(osm.road) + osm.names).firstNotNullOfOrNull { AutobahnRest.roadOf(it) } else null
                 if (ab == null) null else try { AutobahnRest.limitAt(AutobahnRest.roadworkLimits(ab), p, hd, System.currentTimeMillis()) } catch (e: Exception) { null }
             }
-            Quad(hereJ.await(), ttJ.await(), mbJ.await(), mlyJ.await(), usJ.await(), abJ.await())
+            // Dutch roads: Rijkswaterstaat's own posted limits (WEGGEG, CC0)
+            val rwsJ = async(Dispatchers.IO) { if (cc == "NL") RwsSpeedLimits.limitAt(p, hd) else null }
+            Quad(hereJ.await(), ttJ.await(), mbJ.await(), mlyJ.await(), usJ.await(), abJ.await(), rwsJ.await())
         }
-        val (hv, tt, mb, signs, users, roadworks) = got
+        val (hv, tt, mb, signs, users, roadworks, rws) = got
         val votes = ArrayList<SpeedVote.Vote>()
         val osmNone = osm != null && osm.noLimit && !osm.estimated
         if (osm != null) {
@@ -2375,6 +2377,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         // TomTom has no way to say "no limit": where OpenStreetMap says so outright, an answer of its from the stretch before doesn't count
         if (tt != null && !osmNone) votes += SpeedVote.Vote("TomTom", tt.ms, cw(tt.ms, SpeedVote.W_TOMTOM))
         if (mb != null) votes += SpeedVote.Vote("Mapbox", if (mb <= 0.0) SpeedVote.NONE else mb, if (mb <= 0.0) SpeedVote.W_MAPBOX else cw(mb, SpeedVote.W_MAPBOX))
+        if (rws != null) votes += SpeedVote.Vote("RWS", rws, cw(rws, SpeedVote.W_RWS))
         // the route's limit is its service's own data: where that service already answered for this road it isn't counted twice
         // (TomTom's route and TomTom's road lookup both voting 30 outweighed OpenStreetMap and Mapbox saying 50)
         val rsrc = route?.source.orEmpty()
@@ -2396,7 +2399,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
     }
 
     private data class Quad(val here: Double?, val tt: TomTomRest.RoadLimit?, val mb: Double?, val signs: List<MlySign>?,
-                            val users: List<SpeedReport>, val roadworks: Double?)
+                            val users: List<SpeedReport>, val roadworks: Double?, val rws: Double?)
 
     /**
      * Your report of the limit where you are now (tap on the sign, or Melden in the car): [kmh] the limit, 0 for no limit, or
