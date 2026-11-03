@@ -261,6 +261,9 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
     }
 
     /** Puts Mapbox's logo and the (i) credits button top right, inside the visible part of the screen ([inset], null = whole view). */
+    /** True on the car screen: the Mapbox logo and credits go right into the corner. */
+    var flushBranding = false
+
     fun placeBranding(inset: android.graphics.Rect?) {
         brandInset = inset
         val d = ctx.resources.displayMetrics.density
@@ -269,8 +272,9 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
         val v = if (top) android.view.Gravity.TOP else android.view.Gravity.BOTTOM
         val h = if (left) android.view.Gravity.START else android.view.Gravity.END
         // a little in from the edge (further down at the top, clear of the app's top bar), inside the visible part of the screen
-        val vEdge = (if (top) (inset?.top ?: 0) else (inset?.bottom ?: 0)) + (if (top) 64f else 12f) * d
-        val hEdge = (if (left) (inset?.left ?: 0) else (inset?.right ?: 0)) + 10f * d
+        // (on the car screen the logo sits right in the corner of the visible map: there's no app top bar there)
+        val vEdge = (if (top) (inset?.top ?: 0) else (inset?.bottom ?: 0)) + (if (flushBranding) 2f else if (top) 64f else 12f) * d
+        val hEdge = (if (left) (inset?.left ?: 0) else (inset?.right ?: 0)) + (if (flushBranding) 2f else 10f) * d
         try {
             mapView.logo.position = v or h
             mapView.logo.marginTop = if (top) vEdge else 0f; mapView.logo.marginBottom = if (top) 0f else vEdge

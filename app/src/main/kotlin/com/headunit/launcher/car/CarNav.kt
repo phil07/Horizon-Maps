@@ -223,6 +223,7 @@ class CarNavSession : Session() {
         map.setCarModel(prefs.s(PreferenceKeys.CAR_MODEL, "saloon"))
         map.setRoadNameScale(prefs.i(PreferenceKeys.CAR_ROAD_NAME_SIZE, 100).coerceIn(70, 200) / 100f)
         map.setColours(if (prefs.s(PreferenceKeys.LOOK, "standard") == "neon") "neon" else prefs.s(PreferenceKeys.MAP_COLOURS, "mapbox"))
+        map.flushBranding = true
         map.setLogoCorner(prefs.s(PreferenceKeys.MAPBOX_LOGO, "tr"))
         map.setExtras(prefs.b(PreferenceKeys.FACADES, true), prefs.b(PreferenceKeys.LANDMARKS3D, true), prefs.b(PreferenceKeys.PATHS, true), prefs.b(PreferenceKeys.TERRAIN, false),
             false, prefs.b(PreferenceKeys.FURNITURE3D, true), prefs.b(PreferenceKeys.CLEARVIEW, true))
@@ -1067,8 +1068,9 @@ class SearchScreen(carContext: CarContext, private val holder: CarHolder, initia
             }
             override fun onSearchSubmitted(searchText: String) { query = searchText; handler.removeCallbacks(typed); e?.search(searchText) }
         }).setHeaderAction(Action.BACK).setSearchHint(Lang.t("Ort suchen", "Search for a place")).setInitialSearchText(query)
-            // no keyboard on open: the microphone next to "Wohin?" then starts voice input (with the keyboard, Android Auto moves the mic into it)
-            .setShowKeyboardByDefault(false).setItemList(list.build()).build()
+            // the keyboard opens at once: Android Auto puts the microphone in it, one tap starts voice input
+            // (the mic next to "Wohin?" only opens this page, Android Auto gives an app no way to start speech itself)
+            .setShowKeyboardByDefault(true).setItemList(list.build()).build()
     }
 }
 

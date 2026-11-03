@@ -89,6 +89,10 @@ import com.headunit.launcher.PreferenceKeys
 fun CarOverlay(engine: NavEngine, area: State<android.graphics.Rect?>, dark: State<Boolean>, scale: State<Float>, actions: CarActions, onCover: (Int) -> Unit = {}) {
     val base = LocalDensity.current
     Neon.sync(engine.prefs)
+    // the map's colours follow the look live (they used to be set once, when the car connected): switching Neon on or off in the
+    // phone's settings while the car is connected changes the car map at once
+    val carMapColours = (if (Neon.on) "neon" else null) ?: engine.prefs.s(PreferenceKeys.MAP_COLOURS, "mapbox")
+    LaunchedEffect(carMapColours) { engine.map.setColours(carMapColours) }
     // [scale] is worked out from the car screen's size (see CarSurface); the Android Auto size setting adjusts it either way
     val user = engine.prefs.i(PreferenceKeys.CARSCALE, 100).coerceIn(40, 300) / 100f
     val textScale = engine.prefs.i(PreferenceKeys.CAR_TEXT_SIZE, 100).coerceIn(75, 150) / 100f
