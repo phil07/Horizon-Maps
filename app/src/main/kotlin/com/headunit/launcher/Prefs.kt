@@ -324,6 +324,8 @@ internal object PreferenceKeys {
     const val EV_MIN_KW = "evminkw"
     /** The map's charger filter: only charge points of at least this many kW are shown (0 = all). */
     const val CHARGER_FILTER_KW = "chgfilterkw"
+    /** Charge points in France (national base, monthly file + live availability): only when switched on in Settings (default off). */
+    const val FR_CHARGERS = "frchargers"
     /** Preferred charging operators: comma-separated ids from ChargeOperators (empty = none). */
     const val EV_PREF_OPS = "evprefops"
     /** Extra minutes a preferred operator's charging stops may cost over the quickest plan (default 10). */

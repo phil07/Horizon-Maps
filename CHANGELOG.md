@@ -5,6 +5,7 @@ Add user-facing Horizon Nav changes under **Unreleased** before publishing each 
 ## Unreleased
 
 ### Neu
+- Ladesäulen in Frankreich: Die Karte zeigt die Ladesäulen der französischen Gesamtdatei (transport.data.gouv.fr, Beta). In den Einstellungen einschalten: Die Datei wird dann einmal im Monat geladen (rund 127 MB), die freien Ladepunkte kommen live, sobald Frankreich auf der Karte liegt (rund 9 MB). Ohne Einschalten lädt die App nichts.
 - Freie Ladepunkte in Baden-Württemberg: Die Karte zeigt bei Ladesäulen in Baden-Württemberg die aktuell freien Ladepunkte (z. B. „2/5“). Die Daten kommen live von MobiData BW (offen, ohne Anmeldung). Außerhalb Baden-Württembergs bleibt es bei der Gesamtzahl.
 - Ladesäulen-Filter: Unter dem Minus-Knopf der Karte lässt sich nach Leistung filtern (alle, ab 50 kW, ab 150 kW, ab 300 kW). Die Karte zeigt dann nur die Standorte dieser Leistung. Der Knopf (Trichter mit Blitz) erscheint nur bei Elektro.
 - Ladesäule antippen: Die Karte berechnet die Route zur Ladesäule. Läuft schon eine Route, wird die Ladesäule als Zwischenstopp eingefügt.

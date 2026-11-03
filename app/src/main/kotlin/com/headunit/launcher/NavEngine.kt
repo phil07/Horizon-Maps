@@ -5674,16 +5674,22 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         chgLastBox = box
         if (box[4] < 9.0) { map.setChargers(emptyList()); return }
         scope.launch {
+            // France only when switched on in Settings: its monthly file and live availability are downloaded only then
+            val fr = prefs.b(PreferenceKeys.FR_CHARGERS, false) && FrChargers.inFrance(box)
             val sites = withContext(Dispatchers.IO) {
                 val out = ArrayList<ChargerSite>()
+                if (fr) try { FrChargers.refresh(ctx) } catch (e: Exception) { }
                 // a region's copy is fetched (once a week) when the view is there
                 if (box[0] < 53.6 && box[2] > 50.7 && box[1] < 7.3 && box[3] > 3.3) try { NdwChargers.refresh(ctx) } catch (e: Exception) { }
                 if (box[0] < 50.91 && box[2] > 50.76 && box[1] < 4.47 && box[3] > 4.23) try { BruChargers.refresh(ctx) } catch (e: Exception) { }
                 try { out += NdwChargers.inBox(ctx, box) } catch (e: Exception) { }
                 try { out += BruChargers.inBox(ctx, box) } catch (e: Exception) { }
+                if (fr) try { out += FrChargers.inBox(ctx, box) } catch (e: Exception) { }
                 if (online()) try { out += ChargerInfo.inBox(box) } catch (e: Exception) { }
                 // free points in Baden-Württemberg from the open live feed (no key); the rest keep their register counts
-                val live = if (BwLive.inBw(box)) BwLive.apply(out, BwLive.statuses()) else out
+                val live0 = if (BwLive.inBw(box)) BwLive.apply(out, BwLive.statuses()) else out
+                // free points in France from the national live file, matched by the stored copy's ids
+                val live = if (fr) try { FrLive.apply(live0, FrLive.statuses()) } catch (e: Exception) { live0 } else live0
                 live.take(300)
             }
             chgAll = mergeSites(sites)
