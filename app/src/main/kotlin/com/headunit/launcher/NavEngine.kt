@@ -5655,7 +5655,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
     private fun shownChargers(all: List<ChargerSite>): List<ChargerSite> =
         if (chargerMinKw <= 0) all else all.filter { (it.kw ?: 0) >= chargerMinKw }
 
-    fun setChargerMinKw(kw: Int) {
+    fun pickChargerMinKw(kw: Int) {
         chargerMinKw = kw
         prefs.put(PreferenceKeys.CHARGER_FILTER_KW, kw)
         map.setChargers(shownChargers(chgAll))

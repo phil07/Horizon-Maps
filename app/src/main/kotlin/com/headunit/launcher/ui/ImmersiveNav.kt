@@ -1480,7 +1480,7 @@ private fun ChargerFilterDialog(engine: NavEngine, onClose: () -> Unit) {
             for ((kw, label) in options) {
                 val on = engine.chargerMinKw == kw
                 Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(if (on) c.accent.copy(alpha = 0.18f) else c.surface)
-                    .clickable { engine.setChargerMinKw(kw); onClose() }.padding(horizontal = 16.dp, vertical = 14.dp),
+                    .clickable { engine.pickChargerMinKw(kw); onClose() }.padding(horizontal = 16.dp, vertical = 14.dp),
                     verticalAlignment = Alignment.CenterVertically) {
                     Text(label, color = c.text, fontSize = 17.sp, fontWeight = if (on) FontWeight.Bold else FontWeight.Normal, modifier = Modifier.weight(1f))
                     if (on) Icon(Icons.Rounded.Check, null, tint = c.accent, modifier = Modifier.size(22.dp))
