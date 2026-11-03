@@ -14,7 +14,7 @@ fun mergeSites(sites: List<ChargerSite>): List<ChargerSite> {
     val groups = LinkedHashMap<Pair<Long, Long>, MutableList<ChargerSite>>()
     for (s in sites) groups.getOrPut(Math.round(s.pos.lat * 1e5) to Math.round(s.pos.lon * 1e5)) { ArrayList() } += s
     return groups.values.map { g ->
-        val best = g.maxWith(compareBy<ChargerSite> { it.kw ?: -1 })
+        val best = g.sortedByDescending { it.kw ?: -1 }.first()
         val totals = g.mapNotNull { it.total }
         val frees = g.mapNotNull { it.free }
         ChargerSite(best.pos, best.kw, totals.takeIf { it.isNotEmpty() }?.sum(), frees.takeIf { it.isNotEmpty() }?.sum(), best.op, best.kwLabel)
