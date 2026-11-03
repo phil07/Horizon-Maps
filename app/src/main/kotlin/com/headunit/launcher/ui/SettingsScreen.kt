@@ -821,6 +821,7 @@ private fun FuelSection(prefs: Prefs, engine: NavEngine) {
     SGroup("Kraftstoffpreise außerhalb Großbritanniens", footer = "Deutschland benötigt einen kostenlosen Schlüssel von Tankerkönig (creativecommons.tankerkoenig.de).") {
         SFieldItem("Tankerkönig-Schlüssel (Deutschland)", prefs.s(PreferenceKeys.TANKERKOENIG_KEY, ""), placeholder = "Schlüssel einfügen", password = true) { prefs.put(PreferenceKeys.TANKERKOENIG_KEY, it.trim()) }
     }
+    if (prefs.s(PreferenceKeys.FUEL_TYPE, "E10") == "EV") CloudAccountGroup(prefs)
     if (prefs.s(PreferenceKeys.FUEL_TYPE, "E10") == "EV") SGroup("Dein Elektroauto") {
         EvCarItem(prefs)
         SFieldItem("Effizienz (km pro kWh)", prefs.s(PreferenceKeys.EVMPK, ""), placeholder = "z. B. 5.5", number = true) { s -> prefs.put(PreferenceKeys.EVMPK, s.filter { it.isDigit() || it == '.' }.take(5)) }
@@ -1228,7 +1229,7 @@ private fun EvWidgetItem(prefs: Prefs) {
     val name = remember(id) { com.headunit.launcher.EvWidget.providerLabel(ctx, prefs) }
     val sub = when {
         id < 0 -> "Übernimmt den Ladestand aus dem Widget deiner Auto-App, statt ihn von Hand einzustellen. Im Auto kommt der Wert direkt vom Fahrzeug, wenn Android Auto ihn teilt."
-        at > 0 -> (if (com.headunit.launcher.EvWidget.source(prefs) == "car") "Direkt vom Auto" else name) + " · ${prefs.s(PreferenceKeys.EV_NOW_PCT, "–")} % · ${prefs.s(PreferenceKeys.EV_NOW_KM, "–")} km, gelesen um " + java.text.SimpleDateFormat("HH:mm", java.util.Locale.GERMANY).format(java.util.Date(at))
+        at > 0 -> (when (com.headunit.launcher.EvWidget.source(prefs)) { "car" -> "Direkt vom Auto"; "cloud" -> "Aus der Cloud des Herstellers"; else -> name }) + " · ${prefs.s(PreferenceKeys.EV_NOW_PCT, "–")} % · ${prefs.s(PreferenceKeys.EV_NOW_KM, "–")} km, gelesen um " + java.text.SimpleDateFormat("HH:mm", java.util.Locale.GERMANY).format(java.util.Date(at))
         else -> "$name · Noch kein Prozentwert gefunden. Das Widget meldet sich, sobald es sich aktualisiert."
     }
     // the buttons sit on their own line: beside the title they squeeze the text into a narrow column
@@ -1516,5 +1517,39 @@ private fun VehicleGroup(prefs: Prefs) {
 private fun VehicleField(prefs: Prefs, kind: String, what: String, title: String, def: String, unit: String) {
     SFieldItem(title, prefs.s(com.headunit.launcher.Vehicle.key(kind, what), ""), "Leer lassen für $def $unit", placeholder = def, number = true) {
         prefs.put(com.headunit.launcher.Vehicle.key(kind, what), it.trim().replace(',', '.'))
+    }
+}
+
+
+/** The battery level from the car maker's cloud: the user's own account and own (free) developer keys, nothing in between. */
+@Composable
+private fun CloudAccountGroup(prefs: Prefs) {
+    val ctx = LocalContext.current
+    val sc = rememberCoroutineScope()
+    val prov = com.headunit.launcher.CarCloud.provider(prefs)
+    val footer = when (prov) {
+        "volvo" -> "Kostenloses Entwicklerkonto auf developer.volvocars.com: Anwendung anlegen, als Redirect-URI ${com.headunit.launcher.CarCloud.REDIRECT} eintragen, Energy API und Connected Vehicle API wählen. Client-ID, Secret und VCC-API-Key hier einfügen, dann anmelden."
+        "smartcar" -> "Kostenloses Konto auf dashboard.smartcar.com (ein Fahrzeug ist gratis): Anwendung anlegen, als Redirect-URI ${com.headunit.launcher.CarCloud.REDIRECT} eintragen. Client-ID und Secret hier einfügen, dann anmelden und dein Auto (BMW, Mercedes, Tesla, Ford, Hyundai, Kia u. a.) freigeben."
+        else -> "Holt den Akkustand vor der Fahrt und beim Laden vom Server des Herstellers, wenn Android Auto ihn nicht liefert. Du meldest dich mit deinem eigenen Konto an, die Schlüssel bleiben auf dem Handy."
+    }
+    SGroup("Akkustand aus der Cloud", footer = footer) {
+        SChoice("Anbieter", listOf("none" to "Aus", "volvo" to "Volvo", "smartcar" to "Smartcar (viele Marken)"), prov,
+            "Volvo: direkt bei Volvo. Smartcar: ein Zugang für BMW, Mercedes, Tesla, Ford, Hyundai, Kia und weitere; kostenlos für ein Auto.") { prefs.put(PreferenceKeys.CLOUD, it) }
+        if (prov != "none") {
+            SFieldItem("Client-ID", prefs.s(PreferenceKeys.CLOUD_ID, ""), placeholder = "aus dem Entwicklerportal") { prefs.put(PreferenceKeys.CLOUD_ID, it.trim()) }
+            SFieldItem("Client-Secret", prefs.s(PreferenceKeys.CLOUD_SECRET, ""), password = true) { prefs.put(PreferenceKeys.CLOUD_SECRET, it.trim()) }
+            if (prov == "volvo") SFieldItem("VCC-API-Key", prefs.s(PreferenceKeys.CLOUD_VCC, ""), password = true) { prefs.put(PreferenceKeys.CLOUD_VCC, it.trim()) }
+            val st = com.headunit.launcher.CarCloud.status
+            val signed = com.headunit.launcher.CarCloud.signedIn(prefs)
+            SItem("Konto", st.ifBlank { if (signed) "Angemeldet" else "Nicht angemeldet" }) {
+                SButton(if (signed) "Neu anmelden" else "Anmelden", primary = !signed) { com.headunit.launcher.CarCloud.signIn(ctx, prefs) }
+            }
+            if (signed) {
+                SItem("Akkustand jetzt abrufen") {
+                    SButton("Abrufen", primary = true) { sc.launch(Dispatchers.IO) { com.headunit.launcher.CarCloud.refresh(ctx, prefs, force = true) } }
+                }
+                SButton("Abmelden", danger = true) { com.headunit.launcher.CarCloud.signOut(prefs) }
+            }
+        }
     }
 }

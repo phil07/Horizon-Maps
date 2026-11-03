@@ -239,7 +239,10 @@ object EvWidget {
 
     private var liveAt = 0L
 
-    private fun onPct(p: Prefs, pct: Int?, km: Int?) {
+    /** A battery level from the car maker's cloud (see [CarCloud]): like the widget's, the car's own live value wins while it is fresh. */
+    fun cloudReading(p: Prefs, pct: Int, km: Int?) = onPct(p, pct, km, "cloud")
+
+    private fun onPct(p: Prefs, pct: Int?, km: Int?, src: String = "widget") {
         // the car's own live value wins for 10 minutes after it last arrived
         if (System.currentTimeMillis() - liveAt < 10 * 60_000L) return
         if (pct == null) return
@@ -247,7 +250,7 @@ object EvWidget {
         lastPct = pct; lastAt = now
         p.put(PreferenceKeys.EV_NOW_PCT, pct.toString())
         p.put(PreferenceKeys.EV_NOW_KM, km?.toString() ?: "")  // no range in this reading: don't keep an older one
-        p.put(TAG_AT, now.toString()); p.put(TAG_SRC, "widget")
+        p.put(TAG_AT, now.toString()); p.put(TAG_SRC, src)
     }
 
     /** The range in km the widget shows, e.g. "212 km" (its figures can be split into separate pieces of text, so they're joined first). */

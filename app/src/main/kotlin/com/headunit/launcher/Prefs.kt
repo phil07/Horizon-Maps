@@ -155,6 +155,20 @@ internal object PreferenceKeys {
     const val FUEL_NOW_PCT = "fuelnowpct"
     const val FUEL_NOW_KM = "fuelnowkm"
     const val FUEL_NOW_AT = "fuelnowat"
+    // the battery level from the car maker's cloud (Settings > Fuel > Your electric car): own account and own keys of the user
+    const val CLOUD = "cloudprov"
+    const val CLOUD_ID = "cloudid"
+    const val CLOUD_SECRET = "cloudsecret"
+    const val CLOUD_VCC = "cloudvcc"
+    const val CLOUD_ACCESS = "cloudaccess"
+    const val CLOUD_REFRESH = "cloudrefresh"
+    const val CLOUD_EXPIRES = "cloudexp"
+    const val CLOUD_VEHICLE = "cloudveh"
+    const val CLOUD_VERIFIER = "cloudverifier"
+    const val CLOUD_STATE = "cloudstate"
+    const val CLOUD_CHARGING = "cloudcharging"
+    const val CLOUD_CHARGE_MIN = "cloudchargemin"
+    const val CLOUD_AT = "cloudat"
     const val FUELPPL = "fuelppl"
     const val FURNITURE3D = "furniture3d"
     const val GLASS = "glass"
@@ -341,11 +355,15 @@ class Prefs(ctx: Context) {
     fun i(k: String, d: Int) = state(k).value?.toIntOrNull() ?: d
     fun f(k: String, d: Float) = state(k).value?.toFloatOrNull() ?: d
 
+    /** Keys that never go into a backup or come out of one: API keys, the reports device id and the cloud account's keys and tokens. */
+    private val NEVER_BACKED_UP = setOf(PreferenceKeys.API_KEY, PreferenceKeys.REPORTS_DEVICE, PreferenceKeys.CLOUD_SECRET, PreferenceKeys.CLOUD_VCC,
+        PreferenceKeys.CLOUD_ACCESS, PreferenceKeys.CLOUD_REFRESH, PreferenceKeys.CLOUD_VERIFIER, PreferenceKeys.CLOUD_STATE)
+
     /** Everything except the API key, as JSON text (settings, saved places, logs...). */
     fun exportJson(): String = synchronized(LOCK) {
         val o = JSONObject()
         // (nor the shared-reports device id: a backup restored on another phone must not make it the same "device")
-        raw.forEach { (k, v) -> if (k != PreferenceKeys.API_KEY && k != PreferenceKeys.REPORTS_DEVICE) o.put(k, v) }
+        raw.forEach { (k, v) -> if (k !in NEVER_BACKED_UP) o.put(k, v) }
         o.toString(2)
     }
 
@@ -359,7 +377,7 @@ class Prefs(ctx: Context) {
         while (keys.hasNext()) {
             val k = keys.next()
             require(k.isNotBlank() && k.length <= 200) { "Invalid setting name" }
-            if (k == PreferenceKeys.API_KEY || k == PreferenceKeys.REPORTS_DEVICE) continue // API keys (and the reports device id) are intentionally never imported from backups.
+            if (k in NEVER_BACKED_UP) continue // API keys (and the reports device id) are intentionally never imported from backups.
             val value = o.get(k)
             require(value !is JSONObject && value !is org.json.JSONArray) { "Invalid setting value" }
             pending[k] = if (value == JSONObject.NULL) "" else value.toString()

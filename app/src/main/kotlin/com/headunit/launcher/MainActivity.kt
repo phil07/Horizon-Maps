@@ -88,6 +88,8 @@ class MainActivity : ComponentActivity() {
         }
 
         val prefs = Prefs(applicationContext)
+        // the battery level from the car maker's cloud, when signed in
+        CarCloud.start(applicationContext, prefs)
         // the Mapbox map needs OpenGL ES 3.0: on an older unit, say so plainly instead of showing a black map (or closing)
         val gl = try { (getSystemService(ACTIVITY_SERVICE) as android.app.ActivityManager).deviceConfigurationInfo.reqGlEsVersion } catch (e: Throwable) { 0x30000 }
         if (gl in 1 until 0x30000) {
@@ -180,6 +182,8 @@ class MainActivity : ComponentActivity() {
 
     /** A destination shared from another app (a Google Maps link, a geo: link or an address). */
     private fun handleShared(i: android.content.Intent?) {
+        // the way back from the car maker's sign-in page
+        if (CarCloud.handle(applicationContext, Prefs(applicationContext), i)) return
         val text = ExternalLinks.textOf(i) ?: return
         lifecycleScope.launch {
             val t = try { kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { ExternalLinks.parse(text) } } catch (e: Exception) { null }
