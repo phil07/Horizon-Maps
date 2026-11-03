@@ -164,6 +164,9 @@ internal object PreferenceKeys {
     const val CLOUD_REFRESH = "cloudrefresh"
     const val CLOUD_EXPIRES = "cloudexp"
     const val CLOUD_VEHICLE = "cloudveh"
+    /** Smartcar v3: the user ID from the Connect redirect, and the connection ID (to remove it on sign-out). */
+    const val CLOUD_SC_USER = "cloudscuser"
+    const val CLOUD_SC_CONN = "cloudscconn"
     const val CLOUD_VERIFIER = "cloudverifier"
     const val CLOUD_CONTAINER = "cloudcontainer"
     const val CLOUD_CALLS = "cloudcalls"
@@ -368,7 +371,7 @@ class Prefs(ctx: Context) {
         val SECRET_KEYS = setOf(
             PreferenceKeys.API_KEY, PreferenceKeys.HERE_KEY, PreferenceKeys.GOOGLE_API_KEY, PreferenceKeys.MAPBOX_TOKEN, PreferenceKeys.ESRI_KEY,
             PreferenceKeys.MAPTILER_KEY, PreferenceKeys.MAPILLARY_KEY, PreferenceKeys.TANKERKOENIG_KEY, PreferenceKeys.OCM_KEY,
-            PreferenceKeys.CLOUD_SECRET, PreferenceKeys.CLOUD_VCC, PreferenceKeys.CLOUD_ACCESS, PreferenceKeys.CLOUD_REFRESH, PreferenceKeys.CLOUD_VERIFIER,
+            PreferenceKeys.CLOUD_SECRET, PreferenceKeys.CLOUD_VCC, PreferenceKeys.CLOUD_ACCESS, PreferenceKeys.CLOUD_REFRESH, PreferenceKeys.CLOUD_VERIFIER, PreferenceKeys.CLOUD_SC_USER, PreferenceKeys.CLOUD_SC_CONN,
         )
     }
 
@@ -381,7 +384,8 @@ class Prefs(ctx: Context) {
 
     /** Keys that never go into a backup or come out of one: API keys, the reports device id, the cloud account's keys, tokens and vehicle number (VIN). */
     private val NEVER_BACKED_UP = setOf(PreferenceKeys.API_KEY, PreferenceKeys.REPORTS_DEVICE, PreferenceKeys.CLOUD_SECRET, PreferenceKeys.CLOUD_VCC,
-        PreferenceKeys.CLOUD_ACCESS, PreferenceKeys.CLOUD_REFRESH, PreferenceKeys.CLOUD_VERIFIER, PreferenceKeys.CLOUD_STATE, PreferenceKeys.CLOUD_VEHICLE)
+        PreferenceKeys.CLOUD_ACCESS, PreferenceKeys.CLOUD_REFRESH, PreferenceKeys.CLOUD_VERIFIER, PreferenceKeys.CLOUD_STATE, PreferenceKeys.CLOUD_VEHICLE,
+        PreferenceKeys.CLOUD_SC_USER, PreferenceKeys.CLOUD_SC_CONN)
 
     /** Everything except the API key, as JSON text (settings, saved places, logs...). */
     fun exportJson(): String = synchronized(LOCK) {

@@ -43,10 +43,10 @@ Die Anbieter verarbeiten die Daten nach ihren eigenen Datenschutzbestimmungen. E
 
 Wenn du unter Einstellungen > Kraftstoff ein Konto bei BMW oder Mini, Volvo oder Smartcar einrichtest, holt die App Akkustand, Reichweite und Ladestatus deines Elektroautos vom Hersteller. Dafür meldest du dich mit deinem eigenen Konto an und nutzt deine eigenen, kostenlosen Entwicklerschlüssel (Client-ID, bei Volvo außerdem den VCC-Schlüssel, bei Volvo und Smartcar das Secret). Die Anmeldung läuft über die Seite des Herstellers im Browser; die App erhält nur Zugangs- und Erneuerungstoken.
 
-- **Gespeichert:** Deine Schlüssel und Tokens liegen verschlüsselt auf deinem Gerät (im Android-Schlüsselspeicher). Die Fahrzeugnummer (VIN) bleibt ebenfalls auf dem Gerät. Beides wird nicht in Sicherungen aufgenommen.
+- **Gespeichert:** Deine Schlüssel und Tokens liegen verschlüsselt auf deinem Gerät (im Android-Schlüsselspeicher). Die Fahrzeugnummer (VIN) bleibt ebenfalls auf dem Gerät. Bei Smartcar sind außerdem deine Nutzer-ID und die Verbindungs-ID dort verschlüsselt gespeichert. Alles wird nicht in Sicherungen aufgenommen.
 - **Wann abgerufen wird:** Nur wenn die App in Benutzung ist (geöffnet, eine Route läuft oder Android Auto ist verbunden) und einmal beim Öffnen. Die Abrufrate stellst du ein. Bei BMW gilt das Tageslimit von 50 Abrufen des Herstellers.
 - **Wer die Daten bekommt:** Die Anfragen gehen direkt vom Gerät an den Hersteller bzw. an Smartcar, der sie an den Hersteller weiterleitet. Es gibt keinen Server der App dazwischen, und der Betreiber der App erhält diese Daten nicht.
-- **Abmelden:** Beim Abmelden bittet die App Volvo, die Anmeldung zu beenden, und schaltet bei BMW den Datenzugang der App ab. Danach löscht sie die Tokens auf deinem Gerät. Bei BMW bleibt die Freigabe im My-BMW-Portal bestehen, bei Smartcar entfernst du die App unter mySmartcar (my.smartcar.com). Das zeigt die App dir an.
+- **Abmelden:** Beim Abmelden bittet die App Volvo, die Anmeldung zu beenden, und schaltet bei BMW den Datenzugang der App ab. Danach löscht sie die Tokens auf deinem Gerät. Bei BMW bleibt die Freigabe im My-BMW-Portal bestehen, bei Smartcar löscht die App die Verbindung über die Schnittstelle des Anbieters. Schlägt das fehl, entfernst du die App unter mySmartcar (my.smartcar.com). Das zeigt die App dir an.
 
 ## Geteilte Meldungen
 

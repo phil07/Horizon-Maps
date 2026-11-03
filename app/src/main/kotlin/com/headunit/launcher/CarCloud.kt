@@ -30,6 +30,8 @@ import java.security.SecureRandom
  */
 object CarCloud {
     const val REDIRECT = "horizonnav://cloud"
+    private const val SC_TOKEN = "https://iam.smartcar.com/oauth2/token"
+    private const val SC_V3 = "https://vehicle.api.smartcar.com/v3"
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private var loop: Job? = null
 
@@ -39,7 +41,8 @@ object CarCloud {
     class Reading(val pct: Int, val km: Int?, val charging: Boolean, val minLeft: Int?)
 
     fun provider(p: Prefs): String = p.s(PreferenceKeys.CLOUD, "none").let { if (it == "volvo" || it == "smartcar" || it == "bmw") it else "none" }
-    fun signedIn(p: Prefs): Boolean = provider(p) != "none" && p.s(PreferenceKeys.CLOUD_REFRESH, "").isNotBlank()
+    fun signedIn(p: Prefs): Boolean = provider(p) != "none" && (p.s(PreferenceKeys.CLOUD_REFRESH, "").isNotBlank() ||
+        (provider(p) == "smartcar" && p.s(PreferenceKeys.CLOUD_SC_USER, "").isNotBlank()))
     // (BMW's sign-in is a public one: only the client ID, no secret)
     private fun keysOk(p: Prefs): Boolean = p.s(PreferenceKeys.CLOUD_ID, "").isNotBlank() && (provider(p) == "bmw" || p.s(PreferenceKeys.CLOUD_SECRET, "").isNotBlank()) &&
         (provider(p) != "volvo" || p.s(PreferenceKeys.CLOUD_VCC, "").isNotBlank())
@@ -91,7 +94,13 @@ object CarCloud {
         status = Lang.t("Anmeldung läuft…", "Signing in…")
         scope.launch {
             try {
-                tokens(p, mapOf("grant_type" to "authorization_code", "code" to code, "redirect_uri" to REDIRECT) +
+                if (provider(p) == "smartcar") {
+                    // v3: the redirect names the user; the app's own token then reaches the car for that user, so no per-car token is kept
+                    val uid = u.getQueryParameter("userId")?.takeIf { it.isNotBlank() } ?: throw java.io.IOException(Lang.t("Keine Nutzer-ID von Smartcar", "No user ID from Smartcar"))
+                    p.put(PreferenceKeys.CLOUD_SC_USER, uid); p.put(PreferenceKeys.CLOUD_SC_CONN, ""); p.put(PreferenceKeys.CLOUD_VEHICLE, "")
+                    p.put(PreferenceKeys.CLOUD_REFRESH, ""); p.put(PreferenceKeys.CLOUD_ACCESS, ""); p.put(PreferenceKeys.CLOUD_EXPIRES, "")
+                    scLookup(p, uid)
+                } else tokens(p, mapOf("grant_type" to "authorization_code", "code" to code, "redirect_uri" to REDIRECT) +
                     (if (provider(p) == "volvo") mapOf("code_verifier" to p.s(PreferenceKeys.CLOUD_VERIFIER, "")) else emptyMap()))
                 p.put(PreferenceKeys.CLOUD_VERIFIER, ""); p.put(PreferenceKeys.CLOUD_STATE, "")
                 refresh(ctx, p, force = true)
@@ -121,12 +130,13 @@ object CarCloud {
 
     private fun clearLocal(p: Prefs) {
         for (k in listOf(PreferenceKeys.CLOUD_ACCESS, PreferenceKeys.CLOUD_REFRESH, PreferenceKeys.CLOUD_EXPIRES, PreferenceKeys.CLOUD_VEHICLE, PreferenceKeys.CLOUD_CONTAINER, PreferenceKeys.CLOUD_CHARGING,
-            PreferenceKeys.CLOUD_CHARGE_MIN, PreferenceKeys.CLOUD_AT)) p.put(k, "")
+            PreferenceKeys.CLOUD_CHARGE_MIN, PreferenceKeys.CLOUD_AT,
+            PreferenceKeys.CLOUD_SC_USER, PreferenceKeys.CLOUD_SC_CONN)) p.put(k, "")
     }
 
     /**
      * Ends the sign-in at the provider. Volvo: the refresh token is revoked (standard OAuth revocation). BMW: the CarData container is
-     * switched off (the access itself stays in the My BMW portal). Smartcar: no way from the app. True only when the sign-in is ended.
+     * switched off (the access itself stays in the My BMW portal). Smartcar: the connection is removed through its v3 API. True only when the sign-in is ended.
      */
     private fun revoke(p: Prefs): Boolean = when (provider(p)) {
         "volvo" -> {
@@ -140,6 +150,11 @@ object CarCloud {
             val tok = if (cid.isBlank()) null else token(p)
             if (cid.isNotBlank() && tok != null) http("DELETE", "$BMW_HOST/customers/containers/$cid", mapOf("Authorization" to "Bearer $tok", "x-version" to "v1", "Accept" to "application/json"))
             false // the grant itself stays until removed in the My BMW portal
+        }
+        "smartcar" -> {
+            val conn = p.s(PreferenceKeys.CLOUD_SC_CONN, "")
+            val tok = if (conn.isBlank()) null else token(p)
+            tok != null && http("DELETE", "$SC_V3/connections/$conn", mapOf("Authorization" to "Bearer $tok", "Accept" to "application/json")).first in 200..299
         }
         else -> false
     }
@@ -238,6 +253,7 @@ object CarCloud {
 
     /** A valid access token, refreshed when it is about to run out; null when signing in again is needed. */
     private fun token(p: Prefs): String? {
+        if (provider(p) == "smartcar") return scAppToken(p)
         val exp = p.s(PreferenceKeys.CLOUD_EXPIRES, "").toLongOrNull() ?: 0L
         val have = p.s(PreferenceKeys.CLOUD_ACCESS, "")
         if (have.isNotBlank() && exp - System.currentTimeMillis() > 60_000L) return have
@@ -250,6 +266,38 @@ object CarCloud {
             null
         }
     }
+
+    // ---- Smartcar v3: one application token, the user ID sent with each request ----
+
+    /** The application's own token (client credentials, one hour, no refresh token); asked again when it runs out. Throws when refused. */
+    private fun scAppToken(p: Prefs): String {
+        val exp = p.s(PreferenceKeys.CLOUD_EXPIRES, "").toLongOrNull() ?: 0L
+        val have = p.s(PreferenceKeys.CLOUD_ACCESS, "")
+        if (have.isNotBlank() && exp - System.currentTimeMillis() > 60_000L) return have
+        val (c, b) = http("POST", SC_TOKEN, mapOf("Accept" to "application/json"),
+            mapOf("grant_type" to "client_credentials", "client_id" to p.s(PreferenceKeys.CLOUD_ID, "").trim(), "client_secret" to p.s(PreferenceKeys.CLOUD_SECRET, "").trim()))
+        if (c !in 200..299) throw java.io.IOException(reason(c, b))
+        storeTokens(p, b)
+        return p.s(PreferenceKeys.CLOUD_ACCESS, "")
+    }
+
+    private fun scAuth(tok: String) = mapOf("Authorization" to "Bearer $tok", "Accept" to "application/json")
+
+    /** Finds the connection of [uid] and its car, and keeps both. */
+    private fun scLookup(p: Prefs, uid: String) {
+        val tok = scAppToken(p)
+        val (c, b) = http("GET", "$SC_V3/connections?filter[userId]=${enc(uid)}", scAuth(tok))
+        if (c !in 200..299) throw java.io.IOException(reason(c, b))
+        val d = JSONObject(b).optJSONArray("data")?.optJSONObject(0) ?: throw java.io.IOException(Lang.t("Kein Fahrzeug im Konto", "No vehicle in the account"))
+        p.put(PreferenceKeys.CLOUD_SC_CONN, d.optString("id"))
+        p.put(PreferenceKeys.CLOUD_VEHICLE, d.optJSONObject("relationships")?.optJSONObject("vehicle")?.optJSONObject("data")?.optString("id").orEmpty())
+    }
+
+    /** The value of a v3 signal answer, whether it sits at the top, under "body", or under "data"/"attributes". */
+    private fun sigValue(body: String): Any? = try {
+        val o = JSONObject(body)
+        o.opt("value") ?: o.optJSONObject("body")?.opt("value") ?: o.optJSONObject("data")?.optJSONObject("attributes")?.opt("value")
+    } catch (e: Exception) { null }
 
     // ---- the readings ----
 
@@ -355,27 +403,32 @@ object CarCloud {
     }
 
     private fun smartcar(p: Prefs, tok: String): Reading? {
-        val h = mapOf("Authorization" to "Bearer $tok", "sc-unit-system" to "metric", "Accept" to "application/json")
-        var id = p.s(PreferenceKeys.CLOUD_VEHICLE, "")
-        if (id.isBlank()) {
-            val (c, b) = http("GET", "https://api.smartcar.com/v2.0/vehicles", h)
-            if (c !in 200..299) throw java.io.IOException("Fahrzeugliste HTTP $c")
-            id = JSONObject(b).optJSONArray("vehicles")?.optString(0).orEmpty()
-            if (id.isBlank()) throw java.io.IOException(Lang.t("Kein Fahrzeug im Konto", "No vehicle in the account"))
-            p.put(PreferenceKeys.CLOUD_VEHICLE, id)
+        var uid = p.s(PreferenceKeys.CLOUD_SC_USER, "")
+        if (uid.isBlank()) {
+            // signed in before the switch to v3: the user ID is in the connection itself
+            val (c, b) = http("GET", "$SC_V3/connections", scAuth(tok))
+            if (c !in 200..299) throw java.io.IOException(reason(c, b))
+            val d = JSONObject(b).optJSONArray("data")?.optJSONObject(0) ?: throw java.io.IOException(Lang.t("Kein Fahrzeug im Konto", "No vehicle in the account"))
+            uid = d.optJSONObject("attributes")?.optJSONObject("user")?.optString("id").orEmpty()
+            if (uid.isBlank()) throw java.io.IOException(Lang.t("Bitte neu anmelden", "Please sign in again"))
+            p.put(PreferenceKeys.CLOUD_SC_USER, uid); p.put(PreferenceKeys.CLOUD_SC_CONN, d.optString("id"))
+            p.put(PreferenceKeys.CLOUD_VEHICLE, d.optJSONObject("relationships")?.optJSONObject("vehicle")?.optJSONObject("data")?.optString("id").orEmpty())
         }
-        val (c, b) = http("GET", "https://api.smartcar.com/v2.0/vehicles/$id/battery", h)
-        if (c !in 200..299) throw java.io.IOException("Akkustand HTTP $c")
-        val o = JSONObject(b)
-        if (!o.has("percentRemaining")) return null
-        val pct = Math.round(o.optDouble("percentRemaining", 0.0) * 100).toInt().coerceIn(0, 100)
-        val km = o.optDouble("range", Double.NaN).takeIf { !it.isNaN() }?.let { Math.round(it).toInt() }?.takeIf { it >= 1 }
-        // whether it charges (a second call that may fail without spoiling the reading)
-        var charging = false
-        try {
-            val (c2, b2) = http("GET", "https://api.smartcar.com/v2.0/vehicles/$id/charge", h)
-            if (c2 in 200..299) charging = JSONObject(b2).optString("state") == "CHARGING"
-        } catch (e: Exception) { }
+        if (p.s(PreferenceKeys.CLOUD_VEHICLE, "").isBlank()) scLookup(p, uid)
+        val vid = p.s(PreferenceKeys.CLOUD_VEHICLE, "")
+        val h = scAuth(tok) + ("sc-user-id" to uid)
+        val (c, b) = http("GET", "$SC_V3/vehicles/$vid/signals/tractionbattery-stateofcharge", h)
+        if (c !in 200..299) throw java.io.IOException(Lang.t("Akkustand HTTP $c", "Battery HTTP $c"))
+        val pct = sigValue(b)?.toString()?.toDoubleOrNull()?.let { Math.round(it).toInt() }?.coerceIn(0, 100) ?: return null
+        // range and charging are extras: a failed call doesn't spoil the level
+        val km = try {
+            val (c1, b1) = http("GET", "$SC_V3/vehicles/$vid/signals/tractionbattery-range", h)
+            if (c1 in 200..299) sigValue(b1)?.toString()?.toDoubleOrNull()?.let { Math.round(it).toInt() }?.takeIf { it >= 1 } else null
+        } catch (e: Exception) { null }
+        val charging = try {
+            val (c2, b2) = http("GET", "$SC_V3/vehicles/$vid/signals/charge-ischarging", h)
+            c2 in 200..299 && sigValue(b2)?.toString() == "true"
+        } catch (e: Exception) { false }
         return Reading(pct, km, charging, null)
     }
 

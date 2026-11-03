@@ -13,6 +13,7 @@ Add user-facing Horizon Nav changes under **Unreleased** before publishing each 
 - Ziel auf der Karte wählen in Android Auto: Android Auto meldet kein langes Drücken, deshalb setzt jetzt ein Tipp auf eine freie Stelle der Autokarte einen Pin. Eine Karte zeigt den Namen (bei einem Laden oder anderem Ort auf der Karte) oder die Adresse mit Entfernung und „Hierhin fahren“, während einer Route „Als Stopp“. Ohne Auswahl verschwindet sie nach 15 Sekunden.
 
 ### Verbessert
+- Smartcar auf API v3: Die Anbindung für „Akkustand aus der Cloud“ nutzt jetzt die neue Smartcar-Schnittstelle, weil die alte am 1. Dezember 2026 abgeschaltet wird. Bestehende Anmeldungen werden übernommen, ohne dass du dich neu anmelden musst. Abmelden löscht die Verbindung bei Smartcar.
 - Tempolimits in den Niederlanden: Die App nutzt die offiziellen Höchstgeschwindigkeiten von Rijkswaterstaat (PDOK, frei nutzbar). Sie zählen bei der Abstimmung wie HERE und TomTom und helfen besonders dort, wo OpenStreetMap keinen Wert hat.
 - Akku bei Ankunft mit Bergen und Wetter: Die Prognose kennt jetzt die Höhen entlang der Route. Bergauf kostet Akku, bergab kommt ein Teil zurück, wie viel lernt die App aus dem echten Akkustand (anfangs 60 %). Gegenwind kostet mehr, besonders bei hohem Tempo, Rückenwind hilft etwas. Regen kostet etwa 7 %, Schnee etwa 18 % mehr. Auch die Ladestopp-Planung rechnet damit.
 - Ladezeit bei Kälte: Unter 10 °C plant die App langsameres Laden ein (bis 40 % weniger Leistung bei −10 °C). Nach über 100 km Fahrt ist der Akku warm, dann nur die Hälfte davon.
