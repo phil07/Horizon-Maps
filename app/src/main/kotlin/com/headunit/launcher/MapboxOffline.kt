@@ -12,6 +12,7 @@ import com.mapbox.common.TileRegionLoadOptions
 import com.mapbox.common.TileStore
 import com.mapbox.geojson.Geometry
 import com.mapbox.geojson.LineString
+import com.mapbox.geojson.MultiLineString
 import com.mapbox.geojson.Point
 import com.mapbox.geojson.Polygon
 import com.mapbox.maps.GlyphsRasterizationMode
@@ -89,10 +90,18 @@ object MapboxOffline {
     }
 
     /** A strip along [pts] (the route), named after where it goes. */
-    fun saveRoute(ctx: Context, name: String, pts: List<LL>, satellite: Boolean = false, auto: Boolean = false) {
+    fun saveRoute(ctx: Context, name: String, pts: List<LL>, satellite: Boolean = false, auto: Boolean = false, runs: List<List<LL>>? = null) {
         if (pts.size < 2) return
         // every route has its own area; a route to the same place again replaces the old one
         val id = "route-" + name.lowercase().replace(Regex("[^a-z0-9]+"), "-").trim('-').take(40)
+        if (runs != null) {
+            // only the parts of the route no downloaded area covers: one strip per stretch
+            val thinRuns = runs.map { r -> val st = maxOf(1, r.size / 200); r.filterIndexed { i, _ -> i % st == 0 || i == r.size - 1 } }
+            val all = thinRuns.flatten()
+            val b = doubleArrayOf(all.minOf { it.lat } - 0.018, all.minOf { it.lon } - 0.03, all.maxOf { it.lat } + 0.018, all.maxOf { it.lon } + 0.03)
+            save(ctx, id, name, MultiLineString.fromLngLats(thinRuns.map { r -> r.map { Point.fromLngLat(it.lon, it.lat) } }), b, all, satellite, auto)
+            return
+        }
         val step = maxOf(1, pts.size / 400)
         val line = pts.filterIndexed { i, _ -> i % step == 0 || i == pts.size - 1 }.map { Point.fromLngLat(it.lon, it.lat) }
         // the strip Mapbox keeps is about 6 km wide: the area counted as covered is the route's line plus 2 km either side
@@ -113,7 +122,16 @@ object MapboxOffline {
         if (busy != null) return
         // only for this trip: any strip an earlier trip left behind goes first, and this one goes when the trip ends (see removeAutoRoutes)
         removeAutoRoutes(ctx)
-        saveRoute(ctx, name, pts, satellite, auto = true)
+        // a downloaded area already has the map (and the roads) for its part of the route: only the stretches outside every area are saved
+        val areas = try { OfflineRouter.installedIds(ctx).mapNotNull { OfflineRouter.bounds(ctx, it) } } catch (e: Throwable) { emptyList() }
+        if (areas.isEmpty()) { saveRoute(ctx, name, pts, satellite, auto = true); return }
+        val m = 0.03   // (about 3 km inside the area's edge counts as covered)
+        fun covered(p: LL) = areas.any { b -> p.lat >= b[0] + m && p.lat <= b[2] - m && p.lon >= b[1] + m && p.lon <= b[3] - m }
+        val runs = ArrayList<List<LL>>(); var cur = ArrayList<LL>()
+        for (p in pts) { if (covered(p)) { if (cur.size >= 2) runs += cur; cur = ArrayList() } else cur.add(p) }
+        if (cur.size >= 2) runs += cur
+        if (runs.isEmpty()) { status = Lang.t("Die Route liegt ganz in einem heruntergeladenen Gebiet: keine Karte gespeichert", "The route lies wholly inside a downloaded area: no map saved"); return }
+        saveRoute(ctx, name, pts, satellite, auto = true, runs = runs)
     }
 
     /** Deletes the strips that were saved by themselves for a trip (not the ones you saved yourself, nor Home's circle). Called when a trip ends. */

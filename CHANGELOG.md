@@ -25,6 +25,7 @@ Add user-facing Horizon Nav changes under **Unreleased** before publishing each 
 
 ### Verbessert
 - Karte jeder Route speichern: Der Kartenstreifen, den die App beim Routenstart von selbst speichert, wird am Ende der Fahrt (Ankunft oder Beenden) wieder gelöscht. Das spart Speicher. Streifen, die du selbst gespeichert hast, und der Umkreis um Zuhause bleiben.
+- Heruntergeladene Gebiete zuerst: Beim automatischen Speichern des Kartenstreifens prüft die App, welche Teile der Route schon in einem heruntergeladenen Gebiet liegen. Nur die Stücke außerhalb werden geladen. Liegt die ganze Route in einem Gebiet, lädt die App nichts und verbraucht kein Datenvolumen dafür.
 - Baustellen-Tempo auf deutschen Autobahnen: Ist bei einer Baustelle der Autobahn GmbH kein Limit angegeben, nimmt die App 100 km/h auf den letzten 1,5 km davor und 80 km/h in der Baustelle an. Ein Schild oder ein angegebenes Limit hat immer Vorrang.
 - Meldungen nach Quellen gewichtet: Eine frische Meldung zählt allein. Eine, die den Großteil ihrer Lebensdauer hinter sich hat, wird nur noch angesagt, wenn eine zweite Quelle dasselbe sagt (Stimme eines anderen Fahrers, zweite Meldung in der Nähe oder ein Eintrag der Verkehrsdienste). Wo es nur wenige Quellen gibt (weniger als drei), wird der einen Quelle immer vertraut.
 - Spuren auf der Karte gleiten: Die Spuranzeige vor dem Pfeil springt nicht mehr, sondern gleitet mit dem Pfeil mit.
