@@ -134,6 +134,8 @@ internal fun Modifier.carTap(id: String, action: () -> Unit): Modifier {
 
 @Composable
 private fun CarScreen(engine: NavEngine, a: android.graphics.Rect?, actions: CarActions, onCover: (Int) -> Unit) {
+    // Saved & recent is open when the car screen comes up (the arrow in the search bar still folds it away)
+    LaunchedEffect(Unit) { engine.quickFolded = false }
     BoxWithConstraints(Modifier.fillMaxSize()) {
         val dens = LocalDensity.current
         val cardScale = engine.prefs.i(PreferenceKeys.CAR_CARD_SIZE, 100).coerceIn(70, 150) / 100f
@@ -257,7 +259,7 @@ private fun CarScreen(engine: NavEngine, a: android.graphics.Rect?, actions: Car
                     androidx.compose.material3.Icon(androidx.compose.material.icons.Icons.Rounded.Search, null, tint = c.sub, modifier = Modifier.size(32.dp))
                     Text(stringResource(R.string.ui_064), color = c.sub, fontSize = 28.sp, modifier = Modifier.padding(start = 14.dp))
                 }
-                // folded away on every connection to the car; the arrow unfolds it (and turns the list back on if Settings hid it)
+                // open on every connection to the car; the arrow folds it away (and turns the list back on if Settings hid it)
                 val open = engine.prefs.b(PreferenceKeys.QUICKLIST, true) && !engine.quickFolded
                 Box(Modifier.padding(end = 6.dp).size(60.dp).clip(androidx.compose.foundation.shape.CircleShape).carTap("fold") {
                     if (open) engine.quickFolded = true else { engine.quickFolded = false; engine.prefs.put(PreferenceKeys.QUICKLIST, true) }
