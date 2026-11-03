@@ -972,7 +972,7 @@ private fun AndroidAutoSection(prefs: Prefs) {
             } catch (e: Exception) { "Unbekannt" }
         }
         SSlider("Gesamtgröße auf dem Autodisplay", prefs.i(PreferenceKeys.CARSCALE, 100).toFloat(), 40f..300f, "%", reset = 100f) { prefs.put(PreferenceKeys.CARSCALE, it) }
-        SSlider("Tacho- und Tempolimitgröße", prefs.i(PreferenceKeys.CAR_SPEED_SIZE, 100).toFloat(), 40f..180f, "%", reset = 100f) { prefs.put(PreferenceKeys.CAR_SPEED_SIZE, it) }
+        SSlider("Tacho- und Tempolimitgröße", prefs.i(PreferenceKeys.CAR_SPEED_SIZE, 140).toFloat(), 40f..220f, "%", reset = 140f) { prefs.put(PreferenceKeys.CAR_SPEED_SIZE, it) }
         var carAdvanced by rememberSaveable { mutableStateOf(false) }
         SItem("Erweiterte Autodisplay-Größen", "Einzelne Elemente unabhängig anpassen") {
             SButton(if (carAdvanced) "Ausblenden" else "Anzeigen") { carAdvanced = !carAdvanced }

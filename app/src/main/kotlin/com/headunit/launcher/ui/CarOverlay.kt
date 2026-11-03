@@ -134,7 +134,7 @@ private fun CarScreen(engine: NavEngine, a: android.graphics.Rect?, actions: Car
         val dens = LocalDensity.current
         val cardScale = engine.prefs.i(PreferenceKeys.CAR_CARD_SIZE, 100).coerceIn(70, 150) / 100f
         val buttonScale = engine.prefs.i(PreferenceKeys.CAR_BUTTON_SIZE, 100).coerceIn(70, 150) / 100f
-        val requestedSpeedScale = engine.prefs.i(PreferenceKeys.CAR_SPEED_SIZE, 100).coerceIn(40, 180) / 100f
+        val requestedSpeedScale = engine.prefs.i(PreferenceKeys.CAR_SPEED_SIZE, 140).coerceIn(40, 220) / 100f
         // Conservative auto-fit for the compact layout; the edge-positioned layout applies a second fit to its exact bounds.
         val speedScale = requestedSpeedScale * minOf(1f, (maxWidth.value / 220f).coerceAtLeast(0.25f), (maxHeight.value / 150f).coerceAtLeast(0.25f))
         val hPx = with(dens) { maxHeight.toPx() }
