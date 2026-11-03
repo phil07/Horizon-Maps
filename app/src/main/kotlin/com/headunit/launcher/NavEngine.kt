@@ -796,6 +796,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         }
         map.onPoiTap = { name, p -> tappedPoi = name to p; tappedAt = android.os.SystemClock.uptimeMillis(); toast(if (route != null && !previewing) Lang.t("$name: lange drücken, um es als Stopp hinzuzufügen", "$name: hold on it to add it as a stop") else Lang.t("$name: lange drücken, um dorthin zu fahren", "$name: hold on it to go there"), 3000) }
         map.onUserGesture = { if (following) { following = false }; scheduleRecentre(12_000) }
+        map.onMapIdle = { box -> refreshChargerLayer(box) }
         map.onAltTap = { i -> switchToAlt(i) }
         // the parked-car spot is no longer used (the app lives in the car): drop any old one
         if (prefs.s(PreferenceKeys.PLACE_PARKED, "").isNotBlank()) places.clearParked()
@@ -5640,6 +5641,33 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
                 }
             }
         } finally { if (evPlanningFor === r) evPlanningFor = null } }
+    }
+
+    private var chgLastBox: DoubleArray? = null
+
+    /**
+     * The charge points in the map view, with their power and free count. Asked again only when the view has moved on; the German
+     * register is asked online, the Dutch and Brussels copies come from the phone. Not shown from zoom 9 out.
+     */
+    private fun refreshChargerLayer(box: DoubleArray) {
+        val last = chgLastBox
+        if (last != null && abs(last[4] - box[4]) < 0.01 && abs(last[0] - box[0]) < 0.003 && abs(last[1] - box[1]) < 0.003 &&
+            abs(last[2] - box[2]) < 0.003 && abs(last[3] - box[3]) < 0.003) return
+        chgLastBox = box
+        if (box[4] < 9.0) { map.setChargers(emptyList()); return }
+        scope.launch {
+            val sites = withContext(Dispatchers.IO) {
+                val out = ArrayList<ChargerSite>()
+                // a region's copy is fetched (once a week) when the view is there
+                if (box[0] < 53.6 && box[2] > 50.7 && box[1] < 7.3 && box[3] > 3.3) try { NdwChargers.refresh(ctx) } catch (e: Exception) { }
+                if (box[0] < 50.91 && box[2] > 50.76 && box[1] < 4.47 && box[3] > 4.23) try { BruChargers.refresh(ctx) } catch (e: Exception) { }
+                try { out += NdwChargers.inBox(ctx, box) } catch (e: Exception) { }
+                try { out += BruChargers.inBox(ctx, box) } catch (e: Exception) { }
+                if (online()) try { out += ChargerInfo.inBox(box) } catch (e: Exception) { }
+                out.take(300)
+            }
+            map.setChargers(sites)
+        }
     }
 
     /** Draws the stops on the way on the map; a stop is a charger when it's one of the planned charging stops. */

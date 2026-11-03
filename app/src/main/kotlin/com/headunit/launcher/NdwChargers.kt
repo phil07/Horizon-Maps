@@ -20,9 +20,9 @@ object NdwChargers {
     private const val WEEK_MS = 7L * 86_400_000L
     /** How close (m) a charge point must be to the route to count. */
     private const val NEAR_M = 150.0
-    private const val FILE = "ndw_chargers.tsv"
+    private const val FILE = "ndw_chargers_v2.tsv"
 
-    private class Cp(val lat: Double, val lon: Double, val kw: Int, val op: String, val addr: String)
+    private class Cp(val lat: Double, val lon: Double, val kw: Int, val op: String, val addr: String, val total: Int, val free: Int)
 
     @Volatile private var loaded: List<Cp>? = null
     @Volatile private var loadedStamp = 0L
@@ -74,6 +74,16 @@ object NdwChargers {
         return out
     }
 
+    /** The charge points inside [box] (minLat, minLon, maxLat, maxLon) for the map, with their counts when the register has them. */
+    fun inBox(ctx: Context, box: DoubleArray): List<ChargerSite> {
+        val out = ArrayList<ChargerSite>()
+        for (c in stored(ctx)) {
+            if (c.lat < box[0] || c.lat > box[2] || c.lon < box[1] || c.lon > box[3]) continue
+            out += ChargerSite(LL(c.lat, c.lon), c.kw.takeIf { it > 0 }, c.total.takeIf { it >= 0 }, c.free.takeIf { it >= 0 })
+        }
+        return out
+    }
+
     private fun stored(ctx: Context): List<Cp> {
         val f = File(ctx.filesDir, FILE)
         if (!f.exists()) return emptyList()
@@ -85,7 +95,7 @@ object NdwChargers {
                 if (p.size < 5) continue
                 val lat = p[0].toDoubleOrNull() ?: continue
                 val lon = p[1].toDoubleOrNull() ?: continue
-                list += Cp(lat, lon, p[2].toIntOrNull() ?: 0, p[3], p.getOrElse(4) { "" })
+                list += Cp(lat, lon, p[2].toIntOrNull() ?: 0, p[3], p.getOrElse(4) { "" }, p.getOrElse(5) { "" }.toIntOrNull() ?: -1, p.getOrElse(6) { "" }.toIntOrNull() ?: -1)
             }
         }
         loaded = list; loadedStamp = f.lastModified()
@@ -109,6 +119,7 @@ object NdwChargers {
     private fun feature(r: JsonReader, w: BufferedWriter) {
         var lat = Double.NaN; var lon = Double.NaN
         var op = ""; var addr = ""; var kw = 0
+        var total = -1; var free = -1
         r.beginObject()
         while (r.hasNext()) {
             when (r.nextName()) {
@@ -138,9 +149,14 @@ object NdwChargers {
                                         if (r.peek() != JsonToken.BEGIN_OBJECT) { r.skipValue(); continue }
                                         r.beginObject()
                                         while (r.hasNext()) {
-                                            if (r.nextName() == "power_max" && r.peek() == JsonToken.NUMBER) {
+                                            val name = r.nextName()
+                                            if (name == "power_max" && r.peek() == JsonToken.NUMBER) {
                                                 // watts, to kilowatts
                                                 kw = maxOf(kw, Math.round(r.nextDouble() / 1000.0).toInt())
+                                            } else if ((name == "total" || name == "available") && r.peek() == JsonToken.NUMBER) {
+                                                // chargers of this connector, and how many are free now: summed over the site
+                                                val n = r.nextInt()
+                                                if (name == "total") total = maxOf(total, 0) + n else free = maxOf(free, 0) + n
                                             } else r.skipValue()
                                         }
                                         r.endObject()
@@ -158,7 +174,7 @@ object NdwChargers {
         }
         r.endObject()
         if (lat.isNaN() || lon.isNaN()) return
-        w.write("$lat\t$lon\t$kw\t${clean(op)}\t${clean(addr)}")
+        w.write("$lat\t$lon\t$kw\t${clean(op)}\t${clean(addr)}\t$total\t$free")
         w.newLine()
     }
 

@@ -89,6 +89,35 @@ object ChargerInfo {
 
     // ---- Bundesnetzagentur Ladesäulenregister (ArcGIS feature service) ----
 
+    /**
+     * Germany's register inside the map view [box] (minLat, minLon, maxLat, maxLon): one request per view. The register gives each
+     * site's number of chargers but not how many are free. Empty outside Germany. Throws when the register can't be reached.
+     */
+    fun inBox(box: DoubleArray): List<ChargerSite> {
+        if (box[0] > 55.1 || box[2] < 47.2 || box[1] > 15.1 || box[3] < 5.8) return emptyList()
+        val form = linkedMapOf(
+            "f" to "json", "geometry" to "${box[1]},${box[0]},${box[3]},${box[2]}", "geometryType" to "esriGeometryEnvelope",
+            "inSR" to "4326", "outSR" to "4326", "spatialRel" to "esriSpatialRelIntersects", "where" to "Status='In Betrieb'",
+            "outFields" to "Betreiber,operator_companyName,max_electric_power_station,Anzahl_Ladepunkte",
+            "returnGeometry" to "true", "resultRecordCount" to "300",
+        )
+        val j = JSONObject(postForm(BNETZA, form))
+        j.optJSONObject("error")?.let { throw IOException(it.optString("message").ifBlank { "error" }) }
+        val feats = j.optJSONArray("features") ?: JSONArray()
+        val out = ArrayList<ChargerSite>()
+        for (i in 0 until feats.length()) {
+            val f = feats.optJSONObject(i) ?: continue
+            val g = f.optJSONObject("geometry") ?: continue
+            val a = f.optJSONObject("attributes") ?: JSONObject()
+            val lon = g.optDouble("x"); val lat = g.optDouble("y")
+            if (lat.isNaN() || lon.isNaN()) continue
+            val kw = str(a, "max_electric_power_station")?.replace(',', '.')?.toDoubleOrNull()?.takeIf { it > 0 && it <= 1500 }?.let { Math.round(it).toInt() }
+            val count = str(a, "Anzahl_Ladepunkte")?.toIntOrNull()?.takeIf { it > 0 }
+            out += ChargerSite(LL(lat, lon), kw, count, null)
+        }
+        return out
+    }
+
     private fun bnetza(line: List<LL>, fastOnly: Boolean): List<Nearby> {
         val path = JSONArray()
         for (p in line) path.put(JSONArray().put(Math.round(p.lon * 1e5) / 1e5).put(Math.round(p.lat * 1e5) / 1e5))

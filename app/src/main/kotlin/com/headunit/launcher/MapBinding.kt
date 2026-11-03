@@ -113,11 +113,17 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
     /** Stops on the way, in order, each with whether it's a charging stop (drawn with a lightning bolt). */
     private var via: List<Pair<LL, Boolean>> = emptyList()
     private var viaLabels: List<String?> = emptyList()
+    /** Charge points in view, drawn as pins with their power and free count. */
+    private var chargers: List<ChargerSite> = emptyList()
+    /** Charger pictures already registered in the current style (cleared when the style is built again). */
+    private val chgImgIds = HashSet<String>()
     private var me: LL? = null
     private var meHeading = 0.0
 
     var onLongPress: ((LL) -> Unit)? = null
     var onUserGesture: (() -> Unit)? = null
+    /** The map has settled: the view as [minLat, minLon, maxLat, maxLon, zoom] (for the charger markers). */
+    var onMapIdle: ((DoubleArray) -> Unit)? = null
     var onStyleLoaded: (() -> Unit)? = null
 
     /** True once a map style is showing (so a failed switch can keep it on screen). */
@@ -248,7 +254,7 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
             // the 3D locator is sized from the zoom: rebuild it when you zoom, even if you are standing still
             if (locatorStyle != "flat") pushModel(false) else placeLocator()
         }
-        subs += mbMap.subscribeMapIdle { placeAltCards(true); refreshLamps(); refreshSignals(); refreshRoads() }
+        subs += mbMap.subscribeMapIdle { placeAltCards(true); refreshLamps(); refreshSignals(); refreshRoads(); viewBox()?.let { onMapIdle?.invoke(it) } }
         installTapSelect()
     }
 
@@ -2116,6 +2122,12 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
             .iconPitchAlignment(IconPitchAlignment.VIEWPORT).iconEmissiveStrength(1.0).iconSize(zoomed(1.0, 10 to 0.4, 15 to 0.55, 18 to 0.7)))
         // the stops on the way (under the destination, so the pin stays on top where they meet). Pictures in both looks:
         // a charging stop has to read as one at a glance, which a plain dot can't do
+        chgImgIds.clear()
+        addS(st, GeoJsonSource.Builder("dl-chargers").featureCollection(empty()).build())
+        addL(st, SymbolLayer("dl-chargers-l", "dl-chargers")
+            .iconImage(Expression.get("img")).iconEmissiveStrength(1.0)
+            .iconAllowOverlap(true).iconIgnorePlacement(true).iconAnchor(IconAnchor.BOTTOM)
+            .iconSize(zoomed(1.0, 10 to 0.45, 13 to 0.6, 16 to 0.8, 18 to 0.9)))
         addImg(st, "dl-via-ev", viaEvBitmap())
         addImg(st, "dl-via-stop", viaStopBitmap())
         addL(st, SymbolLayer("dl-via-l", "dl-via")
@@ -2422,7 +2434,7 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
 
     private fun pushAll() {
         pushLive(); pushRadar(); pushTurn()
-        pushRoute(); pushDest(); pushVia(); pushMe(); pushHazards(); pushCams(); pushSignals(); pushGarages()
+        pushRoute(); pushDest(); pushVia(); pushChargers(); pushMe(); pushHazards(); pushCams(); pushSignals(); pushGarages()
     }
 
     // ---- car parks with their free spaces ----
@@ -3954,6 +3966,49 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
         }))
     }
 
+    /** The charge points in view: [sites] are drawn with their power ("150 kW", or "?") and their free count ("2/5", or "5"). */
+    fun setChargers(sites: List<ChargerSite>) { chargers = sites; pushChargers() }
+
+    private fun pushChargers() {
+        val s = src("dl-chargers") ?: return
+        val st = style ?: return
+        s.featureCollection(FeatureCollection.fromFeatures(chargers.map { c ->
+            val kwLabel = c.kw?.let { "$it kW" } ?: "?"
+            val countLabel = when {
+                c.total == null -> ""
+                c.free != null -> "${c.free}/${c.total}"
+                else -> "${c.total}"
+            }
+            val id = "dl-chg-" + kwLabel.replace(Regex("[^A-Za-z0-9]"), "_") + "-" + countLabel.replace(Regex("[^A-Za-z0-9]"), "_")
+            if (chgImgIds.add(id)) try { addImg(st, id, chargerBitmap(kwLabel, countLabel)) } catch (e: Throwable) { chgImgIds.remove(id) }
+            Feature.fromGeometry(Point.fromLngLat(c.pos.lon, c.pos.lat)).also { it.addStringProperty("img", id) }
+        }))
+    }
+
+    /** A green pin with the free and total count inside, and the power in a dark box above it. */
+    private fun chargerBitmap(kwLabel: String, countLabel: String): Bitmap {
+        val w = 150; val h = 130
+        val bmp = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
+        val c = Canvas(bmp)
+        val cx = w / 2f; val r = 34f; val cy = 50f + r
+        val tail = Path().apply {
+            moveTo(cx - r * 0.55f, cy + r * 0.6f); lineTo(cx, h - 3f); lineTo(cx + r * 0.55f, cy + r * 0.6f); close()
+        }
+        val green = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xFF34A853.toInt() }
+        c.drawPath(tail, green)
+        c.drawCircle(cx, cy, r, green)
+        c.drawCircle(cx, cy, r, Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xFFFFFFFF.toInt(); style = Paint.Style.STROKE; strokeWidth = 4f })
+        if (countLabel.isNotEmpty()) {
+            val tp = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xFFFFFFFF.toInt(); textSize = if (countLabel.length > 4) 19f else 24f; typeface = android.graphics.Typeface.DEFAULT_BOLD; textAlign = Paint.Align.CENTER }
+            c.drawText(countLabel, cx, cy + 8f, tp)
+        }
+        val tp = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xFFFFFFFF.toInt(); textSize = 22f; typeface = android.graphics.Typeface.DEFAULT_BOLD; textAlign = Paint.Align.CENTER }
+        val half = tp.measureText(kwLabel) / 2f + 10f
+        c.drawRoundRect(android.graphics.RectF(cx - half, 2f, cx + half, 40f), 10f, 10f, Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xE6202124.toInt() })
+        c.drawText(kwLabel, cx, 30f, tp)
+        return bmp
+    }
+
     /** The charging-stop picture with its power under it. Registered again on each push (replaces the same name, cheap). */
     private fun evLabelImage(st: Style, label: String): String {
         val id = "dl-via-ev-" + label.replace(Regex("[^A-Za-z0-9]"), "_")
@@ -3999,6 +4054,17 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
     }
 
     // ---- camera ----
+    /** The visible area as [minLat, minLon, maxLat, maxLon, zoom] (a little larger than the screen), or null. */
+    fun viewBox(): DoubleArray? = try {
+        val cs = mbMap.cameraState
+        val c = cs.center
+        val w = mapView.width.toDouble().coerceAtLeast(1.0); val h = mapView.height.toDouble().coerceAtLeast(1.0)
+        val pxPerDeg = Math.pow(2.0, cs.zoom) * 512.0 / 360.0
+        val dLon = w / 2.0 / pxPerDeg * 1.1
+        val dLat = h / 2.0 * Math.cos(Math.toRadians(c.latitude())).coerceAtLeast(0.05) / pxPerDeg * 1.1
+        doubleArrayOf(c.latitude() - dLat, c.longitude() - dLon, c.latitude() + dLat, c.longitude() + dLon, cs.zoom)
+    } catch (e: Throwable) { null }
+
     fun center(): LL? = try { mbMap.cameraState.center.let { LL(it.latitude(), it.longitude()) } } catch (e: Throwable) { null }
 
     /**
