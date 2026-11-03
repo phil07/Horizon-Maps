@@ -336,12 +336,21 @@ jobs:
           rm -f data/cameras.unsorted data/cams.osm.pbf data/cams.geojsonseq
           # every road a car can use, with its speed limit tags and shape, grouped by zoom-14 tile (see OfflineLimits.kt in the app)
           osmium tags-filter data/region.osm.pbf w/highway=motorway,motorway_link,trunk,trunk_link,primary,primary_link,secondary,secondary_link,tertiary,tertiary_link,unclassified,residential,living_street,service,road -o data/roads.osm.pbf --overwrite
-          osmium export data/roads.osm.pbf -f geojsonseq --geometry-types=linestring --add-unique-id=type_id -o data/roads.geojsonseq --overwrite
+          osmium export data/roads.osm.pbf -f geojsonseq --geometry-types=linestring --add-unique-id=type_id -a timestamp -o data/roads.geojsonseq --overwrite
           rm -f data/roads.osm.pbf
           python3 - <<'PY'
           import json, math, base64
           HW = ["motorway","motorway_link","trunk","trunk_link","primary","primary_link","secondary","secondary_link","tertiary","tertiary_link","unclassified","residential","living_street","service","road"]
           HI = {h: i for i, h in enumerate(HW)}
+          import re, datetime
+          def days_of(v):
+              m = re.match(r"^(\d{4})(?:-(\d{1,2}))?(?:-(\d{1,2}))?", str(v or "").strip())
+              if not m: return 0
+              try:
+                  d = datetime.date(int(m.group(1)), int(m.group(2) or 7), int(m.group(3) or 1))
+              except ValueError: return 0
+              n = (d - datetime.date(2000, 1, 1)).days
+              return n if 1000 < n < 40000 else 0
           Z = 16384
           def tile(lat, lon):
               x = min(Z - 1, max(0, int((lon + 180.0) / 360.0 * Z)))
@@ -383,7 +392,14 @@ jobs:
                   for q in pts[1:]:
                       if q != dd[-1]: dd.append(q)
                   if len(dd) < 2: continue
-                  rec = bytearray([HI[hw], flags]); uv(wid, rec)
+                  # when the road's limit was last checked (check_date, survey:date ...) or else last changed; days since 2000-01-01, 0 = unknown
+                  days = 0; chk = False
+                  for kk in ("check_date:maxspeed", "maxspeed:check_date", "check_date", "survey:date"):
+                      dv = days_of(pr.get(kk))
+                      if dv: days = dv; chk = True; break
+                  if not days: days = days_of(pr.get("@timestamp"))
+                  if chk: flags |= 8
+                  rec = bytearray([HI[hw], flags]); uv(wid, rec); uv(days, rec)
                   for s in (pr.get("name"), pr.get("ref"), pr.get("maxspeed"), mt, pr.get("maxspeed:forward"), pr.get("maxspeed:backward")): st(s, rec)
                   uv(len(dd), rec); uv(dd[0][0] + 9000000, rec); uv(dd[0][1] + 18000000, rec)
                   for i in range(1, len(dd)):
@@ -427,7 +443,7 @@ jobs:
                   state["recs"].append(base64.b64decode(e))
               flush(o)
           with open("data/limits.bin", "wb") as o:
-              o.write(b"HNL1"); o.write(struct.pack(">II", 14, len(idx)))
+              o.write(b"HNL2"); o.write(struct.pack(">II", 14, len(idx)))
               for k, of, ln in idx: o.write(struct.pack(">III", k, of, ln))
               with open("data/limits.blobs", "rb") as b:
                   while True:
@@ -724,12 +740,21 @@ jobs:
           rm -f data/cameras.unsorted data/cams.osm.pbf data/cams.geojsonseq
           # every road a car can use, with its speed limit tags and shape, grouped by zoom-14 tile (see OfflineLimits.kt in the app)
           osmium tags-filter data/region.osm.pbf w/highway=motorway,motorway_link,trunk,trunk_link,primary,primary_link,secondary,secondary_link,tertiary,tertiary_link,unclassified,residential,living_street,service,road -o data/roads.osm.pbf --overwrite
-          osmium export data/roads.osm.pbf -f geojsonseq --geometry-types=linestring --add-unique-id=type_id -o data/roads.geojsonseq --overwrite
+          osmium export data/roads.osm.pbf -f geojsonseq --geometry-types=linestring --add-unique-id=type_id -a timestamp -o data/roads.geojsonseq --overwrite
           rm -f data/roads.osm.pbf
           python3 - <<'PY'
           import json, math, base64
           HW = ["motorway","motorway_link","trunk","trunk_link","primary","primary_link","secondary","secondary_link","tertiary","tertiary_link","unclassified","residential","living_street","service","road"]
           HI = {h: i for i, h in enumerate(HW)}
+          import re, datetime
+          def days_of(v):
+              m = re.match(r"^(\d{4})(?:-(\d{1,2}))?(?:-(\d{1,2}))?", str(v or "").strip())
+              if not m: return 0
+              try:
+                  d = datetime.date(int(m.group(1)), int(m.group(2) or 7), int(m.group(3) or 1))
+              except ValueError: return 0
+              n = (d - datetime.date(2000, 1, 1)).days
+              return n if 1000 < n < 40000 else 0
           Z = 16384
           def tile(lat, lon):
               x = min(Z - 1, max(0, int((lon + 180.0) / 360.0 * Z)))
@@ -771,7 +796,14 @@ jobs:
                   for q in pts[1:]:
                       if q != dd[-1]: dd.append(q)
                   if len(dd) < 2: continue
-                  rec = bytearray([HI[hw], flags]); uv(wid, rec)
+                  # when the road's limit was last checked (check_date, survey:date ...) or else last changed; days since 2000-01-01, 0 = unknown
+                  days = 0; chk = False
+                  for kk in ("check_date:maxspeed", "maxspeed:check_date", "check_date", "survey:date"):
+                      dv = days_of(pr.get(kk))
+                      if dv: days = dv; chk = True; break
+                  if not days: days = days_of(pr.get("@timestamp"))
+                  if chk: flags |= 8
+                  rec = bytearray([HI[hw], flags]); uv(wid, rec); uv(days, rec)
                   for s in (pr.get("name"), pr.get("ref"), pr.get("maxspeed"), mt, pr.get("maxspeed:forward"), pr.get("maxspeed:backward")): st(s, rec)
                   uv(len(dd), rec); uv(dd[0][0] + 9000000, rec); uv(dd[0][1] + 18000000, rec)
                   for i in range(1, len(dd)):
@@ -815,7 +847,7 @@ jobs:
                   state["recs"].append(base64.b64decode(e))
               flush(o)
           with open("data/limits.bin", "wb") as o:
-              o.write(b"HNL1"); o.write(struct.pack(">II", 14, len(idx)))
+              o.write(b"HNL2"); o.write(struct.pack(">II", 14, len(idx)))
               for k, of, ln in idx: o.write(struct.pack(">III", k, of, ln))
               with open("data/limits.blobs", "rb") as b:
                   while True:
@@ -1112,12 +1144,21 @@ jobs:
           rm -f data/cameras.unsorted data/cams.osm.pbf data/cams.geojsonseq
           # every road a car can use, with its speed limit tags and shape, grouped by zoom-14 tile (see OfflineLimits.kt in the app)
           osmium tags-filter data/region.osm.pbf w/highway=motorway,motorway_link,trunk,trunk_link,primary,primary_link,secondary,secondary_link,tertiary,tertiary_link,unclassified,residential,living_street,service,road -o data/roads.osm.pbf --overwrite
-          osmium export data/roads.osm.pbf -f geojsonseq --geometry-types=linestring --add-unique-id=type_id -o data/roads.geojsonseq --overwrite
+          osmium export data/roads.osm.pbf -f geojsonseq --geometry-types=linestring --add-unique-id=type_id -a timestamp -o data/roads.geojsonseq --overwrite
           rm -f data/roads.osm.pbf
           python3 - <<'PY'
           import json, math, base64
           HW = ["motorway","motorway_link","trunk","trunk_link","primary","primary_link","secondary","secondary_link","tertiary","tertiary_link","unclassified","residential","living_street","service","road"]
           HI = {h: i for i, h in enumerate(HW)}
+          import re, datetime
+          def days_of(v):
+              m = re.match(r"^(\d{4})(?:-(\d{1,2}))?(?:-(\d{1,2}))?", str(v or "").strip())
+              if not m: return 0
+              try:
+                  d = datetime.date(int(m.group(1)), int(m.group(2) or 7), int(m.group(3) or 1))
+              except ValueError: return 0
+              n = (d - datetime.date(2000, 1, 1)).days
+              return n if 1000 < n < 40000 else 0
           Z = 16384
           def tile(lat, lon):
               x = min(Z - 1, max(0, int((lon + 180.0) / 360.0 * Z)))
@@ -1159,7 +1200,14 @@ jobs:
                   for q in pts[1:]:
                       if q != dd[-1]: dd.append(q)
                   if len(dd) < 2: continue
-                  rec = bytearray([HI[hw], flags]); uv(wid, rec)
+                  # when the road's limit was last checked (check_date, survey:date ...) or else last changed; days since 2000-01-01, 0 = unknown
+                  days = 0; chk = False
+                  for kk in ("check_date:maxspeed", "maxspeed:check_date", "check_date", "survey:date"):
+                      dv = days_of(pr.get(kk))
+                      if dv: days = dv; chk = True; break
+                  if not days: days = days_of(pr.get("@timestamp"))
+                  if chk: flags |= 8
+                  rec = bytearray([HI[hw], flags]); uv(wid, rec); uv(days, rec)
                   for s in (pr.get("name"), pr.get("ref"), pr.get("maxspeed"), mt, pr.get("maxspeed:forward"), pr.get("maxspeed:backward")): st(s, rec)
                   uv(len(dd), rec); uv(dd[0][0] + 9000000, rec); uv(dd[0][1] + 18000000, rec)
                   for i in range(1, len(dd)):
@@ -1203,7 +1251,7 @@ jobs:
                   state["recs"].append(base64.b64decode(e))
               flush(o)
           with open("data/limits.bin", "wb") as o:
-              o.write(b"HNL1"); o.write(struct.pack(">II", 14, len(idx)))
+              o.write(b"HNL2"); o.write(struct.pack(">II", 14, len(idx)))
               for k, of, ln in idx: o.write(struct.pack(">III", k, of, ln))
               with open("data/limits.blobs", "rb") as b:
                   while True:
@@ -1500,12 +1548,21 @@ jobs:
           rm -f data/cameras.unsorted data/cams.osm.pbf data/cams.geojsonseq
           # every road a car can use, with its speed limit tags and shape, grouped by zoom-14 tile (see OfflineLimits.kt in the app)
           osmium tags-filter data/region.osm.pbf w/highway=motorway,motorway_link,trunk,trunk_link,primary,primary_link,secondary,secondary_link,tertiary,tertiary_link,unclassified,residential,living_street,service,road -o data/roads.osm.pbf --overwrite
-          osmium export data/roads.osm.pbf -f geojsonseq --geometry-types=linestring --add-unique-id=type_id -o data/roads.geojsonseq --overwrite
+          osmium export data/roads.osm.pbf -f geojsonseq --geometry-types=linestring --add-unique-id=type_id -a timestamp -o data/roads.geojsonseq --overwrite
           rm -f data/roads.osm.pbf
           python3 - <<'PY'
           import json, math, base64
           HW = ["motorway","motorway_link","trunk","trunk_link","primary","primary_link","secondary","secondary_link","tertiary","tertiary_link","unclassified","residential","living_street","service","road"]
           HI = {h: i for i, h in enumerate(HW)}
+          import re, datetime
+          def days_of(v):
+              m = re.match(r"^(\d{4})(?:-(\d{1,2}))?(?:-(\d{1,2}))?", str(v or "").strip())
+              if not m: return 0
+              try:
+                  d = datetime.date(int(m.group(1)), int(m.group(2) or 7), int(m.group(3) or 1))
+              except ValueError: return 0
+              n = (d - datetime.date(2000, 1, 1)).days
+              return n if 1000 < n < 40000 else 0
           Z = 16384
           def tile(lat, lon):
               x = min(Z - 1, max(0, int((lon + 180.0) / 360.0 * Z)))
@@ -1547,7 +1604,14 @@ jobs:
                   for q in pts[1:]:
                       if q != dd[-1]: dd.append(q)
                   if len(dd) < 2: continue
-                  rec = bytearray([HI[hw], flags]); uv(wid, rec)
+                  # when the road's limit was last checked (check_date, survey:date ...) or else last changed; days since 2000-01-01, 0 = unknown
+                  days = 0; chk = False
+                  for kk in ("check_date:maxspeed", "maxspeed:check_date", "check_date", "survey:date"):
+                      dv = days_of(pr.get(kk))
+                      if dv: days = dv; chk = True; break
+                  if not days: days = days_of(pr.get("@timestamp"))
+                  if chk: flags |= 8
+                  rec = bytearray([HI[hw], flags]); uv(wid, rec); uv(days, rec)
                   for s in (pr.get("name"), pr.get("ref"), pr.get("maxspeed"), mt, pr.get("maxspeed:forward"), pr.get("maxspeed:backward")): st(s, rec)
                   uv(len(dd), rec); uv(dd[0][0] + 9000000, rec); uv(dd[0][1] + 18000000, rec)
                   for i in range(1, len(dd)):
@@ -1591,7 +1655,7 @@ jobs:
                   state["recs"].append(base64.b64decode(e))
               flush(o)
           with open("data/limits.bin", "wb") as o:
-              o.write(b"HNL1"); o.write(struct.pack(">II", 14, len(idx)))
+              o.write(b"HNL2"); o.write(struct.pack(">II", 14, len(idx)))
               for k, of, ln in idx: o.write(struct.pack(">III", k, of, ln))
               with open("data/limits.blobs", "rb") as b:
                   while True:

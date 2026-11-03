@@ -19,7 +19,7 @@ object OfflineLimits {
         "tertiary", "tertiary_link", "unclassified", "residential", "living_street", "service", "road",
     )
 
-    private class Index(val stamp: Long, val zoom: Int, val keys: IntArray, val offs: IntArray, val lens: IntArray, val dataStart: Long)
+    private class Index(val stamp: Long, val v2: Boolean, val zoom: Int, val keys: IntArray, val offs: IntArray, val lens: IntArray, val dataStart: Long)
 
     private val indexes = HashMap<String, Index>()
     private val tiles = object : LinkedHashMap<String, List<Overpass.Way>>(32, 0.75f, true) {
@@ -70,7 +70,8 @@ object OfflineLimits {
         return try {
             RandomAccessFile(f, "r").use { raf ->
                 val magic = ByteArray(4); raf.readFully(magic)
-                if (String(magic, Charsets.US_ASCII) != "HNL1") return null
+                val m = String(magic, Charsets.US_ASCII)
+                if (m != "HNL1" && m != "HNL2") return null
                 val zoom = raf.readInt()
                 val n = raf.readInt()
                 if (n < 0 || n > 20_000_000 || zoom !in 8..18) return null
@@ -79,7 +80,7 @@ object OfflineLimits {
                 val bb = java.nio.ByteBuffer.wrap(buf)
                 val keys = IntArray(n); val offs = IntArray(n); val lens = IntArray(n)
                 for (i in 0 until n) { keys[i] = bb.int; offs[i] = bb.int; lens[i] = bb.int }
-                Index(stamp, zoom, keys, offs, lens, 12L + n * 12L).also { indexes[f.path] = it }
+                Index(stamp, m == "HNL2", zoom, keys, offs, lens, 12L + n * 12L).also { indexes[f.path] = it }
             }
         } catch (e: Exception) { null }
     }
@@ -91,13 +92,13 @@ object OfflineLimits {
         val list = if (i < 0) emptyList() else try {
             val raw = ByteArray(idx.lens[i])
             RandomAccessFile(f, "r").use { raf -> raf.seek(idx.dataStart + (idx.offs[i].toLong() and 0xffffffffL)); raf.readFully(raw) }
-            parse(java.util.zip.InflaterInputStream(raw.inputStream()).readBytes())
+            parse(java.util.zip.InflaterInputStream(raw.inputStream()).readBytes(), idx.v2)
         } catch (e: Exception) { emptyList() }
         tiles[ck] = list
         return list
     }
 
-    private fun parse(b: ByteArray): List<Overpass.Way> {
+    private fun parse(b: ByteArray, v2: Boolean): List<Overpass.Way> {
         var p = 0
         fun uv(): Long {
             var r = 0L; var sh = 0
@@ -116,6 +117,8 @@ object OfflineLimits {
             val hw = b[p++].toInt() and 0xff
             val flags = b[p++].toInt() and 0xff
             val id = uv()
+            // (HNL2: the day the road was last checked or changed, days since 2000-01-01, 0 = unknown; bit 3 of the flags says it is a check date)
+            val days = if (v2) uv().toInt() else 0
             val name = str(); val ref = str(); val ms = str(); val mt = str(); val fwd = str(); val bwd = str()
             val np = uv().toInt()
             var la = uv() - 9_000_000L; var lo = uv() - 18_000_000L
@@ -127,6 +130,7 @@ object OfflineLimits {
             if (flags and 1 != 0) t.put("oneway", "yes")
             if (flags and 2 != 0) t.put("oneway", "-1")
             if (flags and 4 != 0) t.put("junction", "roundabout")
+            if (days > 0) { t.put("hn:days", days); if (flags and 8 != 0) t.put("hn:chk", 1) }
             if (name.isNotEmpty()) t.put("name", name)
             if (ref.isNotEmpty()) t.put("ref", ref)
             if (ms.isNotEmpty()) t.put("maxspeed", ms)

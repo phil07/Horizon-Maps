@@ -2374,8 +2374,14 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         val votes = ArrayList<SpeedVote.Vote>()
         val osmNone = osm != null && osm.noLimit && !osm.estimated
         if (osm != null) {
-            if (osmNone) votes += SpeedVote.Vote("OSM", SpeedVote.NONE, SpeedVote.W_OSM)
-            else if (osm.ms > 0.0) votes += SpeedVote.Vote("OSM", osm.ms, if (osm.estimated) SpeedVote.W_GUESS else SpeedVote.W_OSM, osm.estimated)
+            // how up to date OpenStreetMap's limit is counts a little: changed or checked in the last six months 10% more, over three years
+            // ago 30% less (unknown: unchanged). The other services give no date for their limits.
+            val ageK = if (osm.refDays <= 0) 1.0 else {
+                val years = (System.currentTimeMillis() / 86_400_000L - 10957L - osm.refDays) / 365.25
+                if (years < 0.5) 1.1 else if (years > 3.0) 0.7 else 1.0
+            }
+            if (osmNone) votes += SpeedVote.Vote("OSM", SpeedVote.NONE, SpeedVote.W_OSM * ageK)
+            else if (osm.ms > 0.0) votes += SpeedVote.Vote("OSM", osm.ms, if (osm.estimated) SpeedVote.W_GUESS else SpeedVote.W_OSM * ageK, osm.estimated)
         }
         // OpenStreetMap knows a time rule here that doesn't apply now ("30 @ (22:00-06:00)" in the afternoon): another service
         // giving exactly that value most likely has the rule, not the limit for now, so it counts like a guess

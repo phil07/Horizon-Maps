@@ -129,7 +129,32 @@ object Overpass {
                 /** From a rule for certain times (maxspeed:conditional): other sources don't know these, so it wins over them. */
                 val timed: Boolean = false,
                 /** The limits of this road's time rules that don't apply right now (m/s): another source saying one of these is likely that rule. */
-                val idle: List<Double> = emptyList())
+                val idle: List<Double> = emptyList(),
+                /** When this road was last checked or changed in OpenStreetMap, in days since 2000-01-01 (0 when not known), and whether it is a check date. */
+                val refDays: Int = 0, val refCheck: Boolean = false)
+
+    private val dayFmt = java.util.Calendar.getInstance(java.util.TimeZone.getTimeZone("UTC"))
+    private fun daysOf(date: String): Int {
+        // "2023-05-01", "2023-05" or "2023" (also an OpenStreetMap timestamp "2023-05-01T10:00:00Z": the first ten characters)
+        val m = Regex("^(\\d{4})(?:-(\\d{1,2}))?(?:-(\\d{1,2}))?").find(date.trim()) ?: return 0
+        val y = m.groupValues[1].toInt(); val mo = m.groupValues[2].toIntOrNull() ?: 7; val d = m.groupValues[3].toIntOrNull() ?: 1
+        if (y < 2005 || y > 2100 || mo !in 1..12 || d !in 1..31) return 0
+        synchronized(dayFmt) { dayFmt.clear(); dayFmt.set(y, mo - 1, d); return (dayFmt.timeInMillis / 86_400_000L - 10957L).toInt() }
+    }
+
+    /**
+     * How up to date a road's limit is: the date of a check (check_date, survey:date, ...) when the road has one, else the day it was
+     * last changed in OpenStreetMap ("hn:ts" from the online query, "hn:days" from a downloaded area). Days since 2000-01-01, 0 = unknown.
+     */
+    fun refOf(t: JSONObject): Pair<Int, Boolean> {
+        for (k in listOf("check_date:maxspeed", "maxspeed:check_date", "check_date", "survey:date")) {
+            val d = daysOf(t.optString(k)); if (d > 0) return d to true
+        }
+        val off = t.optInt("hn:days", 0)
+        if (off > 0) return off to (t.optInt("hn:chk", 0) == 1)
+        val ts = daysOf(t.optString("hn:ts"))
+        return ts to false
+    }
 
     /** Set when the last speed-limit lookup failed (no network, server busy…), null when it worked. */
     @Volatile var lastError: String? = null
@@ -213,12 +238,13 @@ object Overpass {
 
     /** Loads the roads around [p] once and keeps them, so the next few hundred metres of lookups need no network at all. */
     private fun loadWays(centre: LL): List<Way> {
-        val els = run("[out:json][timeout:10];way(around:220,${centre.lat},${centre.lon})[\"highway\"];out tags geom 160;")
+        val els = run("[out:json][timeout:10];way(around:220,${centre.lat},${centre.lon})[\"highway\"];out meta geom 160;")
         val out = ArrayList<Way>()
         for (i in 0 until els.length()) {
             val e = els.getJSONObject(i)
             val tags = e.optJSONObject("tags") ?: continue
             if (tags.optString("highway") !in driveable) continue
+            e.optString("timestamp").takeIf { it.isNotBlank() }?.let { tags.put("hn:ts", it) }   // when the road was last changed
             val g = e.optJSONArray("geometry") ?: continue
             val pts = (0 until g.length()).mapNotNull { n -> g.optJSONObject(n)?.let { o -> LL(o.getDouble("lat"), o.getDouble("lon")) } }
             if (pts.size >= 2) out += Way(e.optLong("id", 0L), tags, pts)
@@ -311,9 +337,10 @@ object Overpass {
             val idle = if (cond != null) emptyList() else try {
                 t.optString(condKey).ifBlank { t.optString("maxspeed:conditional") }.takeIf { it.isNotBlank() }?.let { ConditionalLimit.values(it, country) } ?: emptyList()
             } catch (e: Exception) { emptyList() }
-            if (cond != null) { if (cond < 0) Limit(-1.0, false, road, w.id, names, sure, noLimit = true, timed = true) else Limit(cond, false, road, w.id, names, sure, timed = true) }
-            else if (posted != null) Limit(posted, false, road, w.id, names, sure, idle = idle)
-            else if (unposted) Limit(-1.0, false, road, w.id, names, sure, noLimit = none)
+            val rf = refOf(t)
+            if (cond != null) { if (cond < 0) Limit(-1.0, false, road, w.id, names, sure, noLimit = true, timed = true, refDays = rf.first, refCheck = rf.second) else Limit(cond, false, road, w.id, names, sure, timed = true, refDays = rf.first, refCheck = rf.second) }
+            else if (posted != null) Limit(posted, false, road, w.id, names, sure, idle = idle, refDays = rf.first, refCheck = rf.second)
+            else if (unposted) Limit(-1.0, false, road, w.id, names, sure, noLimit = none, refDays = rf.first, refCheck = rf.second)
             else {
                 val isMajor = t.optString("highway") in setOf("motorway", "trunk", "motorway_link", "trunk_link")
                 estimate(t, country)?.let { Limit(if (country == "GB") snapGb(it) else it, true, road, w.id, names, sure, major = isMajor) }
