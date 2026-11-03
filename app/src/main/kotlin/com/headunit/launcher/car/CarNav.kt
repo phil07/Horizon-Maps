@@ -430,9 +430,10 @@ class CarSurface(private val carContext: CarContext, private val onReady: (MapBi
             // the app's cards and buttons first, then the map itself (alternative route cards and lines, skipping the fly-through)
             // (a tap on an empty spot of the map picks it, with a card to go there: Android Auto passes no long press)
             if (!com.headunit.launcher.ui.CarTaps.hit(x, y)) {
-                // a plain tap on the map only picks an alternative route or a garage; it no longer suggests a route to the spot
+                // the app's own cards and buttons first, then the map itself (alternative route cards and lines, skipping the fly-through)
+                // (a tap on an empty spot of the map picks it, with a card to go there: Android Auto passes no long press)
                 val pt = android.graphics.PointF(x, y)
-                map?.tapAt(pt, car = true)
+                if (map?.tapAt(pt) != true) engine?.carMapTap(pt)
             }
         } catch (e: Exception) { }
     }
