@@ -5,7 +5,7 @@ Add user-facing Horizon Nav changes under **Unreleased** before publishing each 
 ## Unreleased
 
 ### Neu
-- Gespeichert & zuletzt im Auto: Die Liste unter Zuhause, Arbeit und den Ladesäulen-, Essen-, Café- und Parken-Knöpfen ist beim Verbinden mit dem Auto jetzt aufgeklappt. Der Pfeil in der Suchleiste klappt sie weiter zu.
+- Gespeichert & zuletzt im Auto: Die Liste unter Zuhause, Arbeit und den Knöpfen für Ladesäule, Essen, Café und Parken klappt sich jetzt selbst auf und zu (Pfeil in ihrer Kopfzeile). Sie startet zugeklappt. Der Pfeil in der Suchleiste ist weg.
 - Neon-Positionspfeil: Im Neon-Look wird dein Standort als leuchtender Winkel mit kleinem Dreieck in der gewählten Neonfarbe (Gelb, Cyan oder Magenta) gezeigt, auf dem Handy, in Android Auto und in der Routenleiste. Er ist so groß wie der normale Pfeil.
 - Ladesäulen filtern auf Android Auto: Bei Elektro gibt es in der Leiste links unter „Einstellungen“ einen Knopf mit Ladesäule. Ein Tipp wechselt die Leistung (alle, ab 50, 150 oder 300 kW) und sagt kurz, was eingestellt ist. Dieselbe Auswahl steht auch in den Einstellungen im Auto.
 - Baustelle melden: Unter „Hier melden“ gibt es jetzt „Baustelle“, in der App und auf Android Auto, mit dem Verkehrszeichen 123 als Symbol (auch für Baustellen von der Autobahn GmbH auf der Karte). Die Meldung bleibt zwölf Stunden, andere Fahrer sehen sie auch.

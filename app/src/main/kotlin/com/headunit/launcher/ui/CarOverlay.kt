@@ -134,8 +134,6 @@ internal fun Modifier.carTap(id: String, action: () -> Unit): Modifier {
 
 @Composable
 private fun CarScreen(engine: NavEngine, a: android.graphics.Rect?, actions: CarActions, onCover: (Int) -> Unit) {
-    // Saved & recent is open when the car screen comes up (the arrow in the search bar still folds it away)
-    LaunchedEffect(Unit) { engine.quickFolded = false }
     BoxWithConstraints(Modifier.fillMaxSize()) {
         val dens = LocalDensity.current
         val cardScale = engine.prefs.i(PreferenceKeys.CAR_CARD_SIZE, 100).coerceIn(70, 150) / 100f
@@ -254,17 +252,10 @@ private fun CarScreen(engine: NavEngine, a: android.graphics.Rect?, actions: Car
             // sized like the car's own Melden button: big enough to hit and read while driving
             Row(Modifier.fillMaxWidth().height(80.dp).panel(10.dp, RoundedCornerShape(40.dp), c.surface).padding(end = 10.dp),
                 verticalAlignment = Alignment.CenterVertically) {
-                // the bar opens the search; the arrow folds Saved & recent away and back (as in the app), so it has a tap area of its own
+                // the bar opens the search (Saved & recent folds itself, by its own header)
                 Row(Modifier.weight(1f).fillMaxHeight().carTap("search") { actions.search() }.padding(start = 24.dp), verticalAlignment = Alignment.CenterVertically) {
                     androidx.compose.material3.Icon(androidx.compose.material.icons.Icons.Rounded.Search, null, tint = c.sub, modifier = Modifier.size(32.dp))
                     Text(stringResource(R.string.ui_064), color = c.sub, fontSize = 28.sp, modifier = Modifier.padding(start = 14.dp))
-                }
-                // open on every connection to the car; the arrow folds it away (and turns the list back on if Settings hid it)
-                val open = engine.prefs.b(PreferenceKeys.QUICKLIST, true) && !engine.quickFolded
-                Box(Modifier.padding(end = 6.dp).size(60.dp).clip(androidx.compose.foundation.shape.CircleShape).carTap("fold") {
-                    if (open) engine.quickFolded = true else { engine.quickFolded = false; engine.prefs.put(PreferenceKeys.QUICKLIST, true) }
-                }, contentAlignment = Alignment.Center) {
-                    androidx.compose.material3.Icon(if (open) androidx.compose.material.icons.Icons.Rounded.KeyboardArrowUp else androidx.compose.material.icons.Icons.Rounded.KeyboardArrowDown, null, tint = c.sub, modifier = Modifier.size(38.dp))
                 }
                 Box(Modifier.size(60.dp).clip(androidx.compose.foundation.shape.CircleShape).background(c.accent).carTap("search-mic") { actions.search() }, contentAlignment = Alignment.Center) {
                     androidx.compose.material3.Icon(androidx.compose.material.icons.Icons.Rounded.Mic, null, tint = Color.White, modifier = Modifier.size(32.dp))
@@ -687,10 +678,16 @@ private fun CarChips(engine: NavEngine, actions: CarActions, rows: Int) {
             val recents = engine.places.recents().filter { r -> favs.none { Geo.dist(it.pos, r.pos) < 60 } && mine.none { Geo.dist(it.place.pos, r.pos) < 60 } }
             mine.map { Triple(it.place, true, it.label) } + favs.map { Triple(it, true, it.name) } + recents.take(4).map { Triple(it, false, it.name) }
         }
-        // (folded away with the arrow in the search bar)
-        if (engine.prefs.b(PreferenceKeys.QUICKLIST, true) && !engine.quickFolded) Column(Modifier.fillMaxWidth().panel(10.dp, RoundedCornerShape(24.dp), c.surface).padding(vertical = 2.dp)) {
-            Row(Modifier.fillMaxWidth().carTap("saved") { actions.places() }.padding(start = 16.dp, end = 14.dp, top = 10.dp, bottom = 10.dp), verticalAlignment = Alignment.CenterVertically) {
+        // Saved & recent: folded when the car screen comes up; its own header folds it open and shut (the Settings switch hides it altogether)
+        if (engine.prefs.b(PreferenceKeys.QUICKLIST, true)) Column(Modifier.fillMaxWidth().panel(10.dp, RoundedCornerShape(24.dp), c.surface).padding(vertical = 2.dp)) {
+            val open = !engine.quickFolded
+            Row(Modifier.fillMaxWidth().carTap("saved") { engine.quickFolded = !engine.quickFolded }.padding(start = 16.dp, end = 14.dp, top = 10.dp, bottom = 10.dp), verticalAlignment = Alignment.CenterVertically) {
                 Text(stringResource(R.string.ui_040), color = c.sub, fontSize = 18.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.2.sp, modifier = Modifier.weight(1f))
+                androidx.compose.material3.Icon(if (open) androidx.compose.material.icons.Icons.Rounded.KeyboardArrowUp else androidx.compose.material.icons.Icons.Rounded.KeyboardArrowDown, null, tint = c.sub, modifier = Modifier.size(34.dp))
+            }
+            if (open) {
+            // all of them: opens the full list
+            Row(Modifier.fillMaxWidth().carTap("saved-all") { actions.places() }.padding(horizontal = 16.dp, vertical = 4.dp), horizontalArrangement = Arrangement.End) {
                 Text(if (saved.size > rows) Lang.t("Alle ${saved.size}", "All ${saved.size}") else Lang.t("Öffnen", "Open"), color = c.accent, fontSize = 20.sp, fontWeight = FontWeight.SemiBold)
             }
             for ((i, tr) in saved.take(rows).withIndex()) {
@@ -706,6 +703,7 @@ private fun CarChips(engine: NavEngine, actions: CarActions, rows: Int) {
                     }
                     if (here != null) Text(Geo.fmtDist(Geo.dist(here, p.pos), engine.imperial), color = c.sub, fontSize = 21.sp, modifier = Modifier.padding(start = 10.dp))
                 }
+            }
             }
         }
     }
