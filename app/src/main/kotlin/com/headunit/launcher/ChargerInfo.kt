@@ -113,8 +113,32 @@ object ChargerInfo {
             if (lat.isNaN() || lon.isNaN()) continue
             val kw = str(a, "max_electric_power_station")?.replace(',', '.')?.toDoubleOrNull()?.takeIf { it > 0 && it <= 1500 }?.let { Math.round(it).toInt() }
             val count = str(a, "Anzahl_Ladepunkte")?.toIntOrNull()?.takeIf { it > 0 }
-            out += ChargerSite(LL(lat, lon), kw, count, null, str(a, "Betreiber") ?: str(a, "operator_companyName"), powerLabel(kw, str(a, "F_response_body")))
+            val body = str(a, "F_response_body")
+            // a car charges at one connector at a time: its power is the strongest connector, at most the station's total
+            out += ChargerSite(LL(lat, lon), carKw(kw, body), count, null, str(a, "Betreiber") ?: str(a, "operator_companyName"), powerLabel(kw, body))
         }
+        return out
+    }
+
+    /** The power a car gets here: the strongest single connector, never more than the station's total. Null when unknown. */
+    internal fun carKw(stationKw: Int?, body: String?): Int? {
+        val best = connectorKws(body).maxOrNull() ?: return stationKw
+        return if (stationKw != null) minOf(best, stationKw) else best
+    }
+
+    /** The power of each connector in the register's detail record (empty when there is none). */
+    private fun connectorKws(body: String?): List<Int> {
+        val out = ArrayList<Int>()
+        try {
+            val evses = JSONObject(body ?: return out).optJSONArray("evses") ?: return out
+            for (i in 0 until evses.length()) {
+                val cs = evses.optJSONObject(i)?.optJSONArray("connectors") ?: continue
+                for (k in 0 until cs.length()) {
+                    val kw = cs.optJSONObject(k)?.optDouble("max_electric_power_connector", 0.0) ?: 0.0
+                    if (kw > 0) out += Math.round(kw).toInt()
+                }
+            }
+        } catch (e: Exception) { }
         return out
     }
 
@@ -123,17 +147,7 @@ object ChargerInfo {
      * station's power (cables that share one power unit, e.g. "150 kW" for two cables). Null when neither is known.
      */
     internal fun powerLabel(stationKw: Int?, body: String?): String? {
-        val conns = ArrayList<Int>()
-        try {
-            val evses = JSONObject(body ?: return stationKw?.let { "$it kW" }).optJSONArray("evses") ?: JSONArray()
-            for (i in 0 until evses.length()) {
-                val cs = evses.optJSONObject(i)?.optJSONArray("connectors") ?: continue
-                for (k in 0 until cs.length()) {
-                    val kw = cs.optJSONObject(k)?.optDouble("max_electric_power_connector", 0.0) ?: 0.0
-                    if (kw > 0) conns += Math.round(kw).toInt()
-                }
-            }
-        } catch (e: Exception) { }
+        val conns = ArrayList(connectorKws(body))
         if (conns.isEmpty()) return stationKw?.let { "$it kW" }
         if (stationKw != null && conns.sum() != stationKw) return "$stationKw kW"
         val distinct = conns.distinct()

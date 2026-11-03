@@ -38,7 +38,7 @@ Add user-facing Horizon Nav changes under **Unreleased** before publishing each 
 - Anmeldedaten der Autohersteller geschützt: Die Schlüssel und Anmeldetoken für „Akkustand aus der Cloud“ werden verschlüsselt auf dem Handy gespeichert (mit dem Android-Schlüsselspeicher). Die Fahrzeugnummer (VIN) wird nicht mehr in die Sicherung geschrieben. Bereits gespeicherte Werte werden beim nächsten Start verschlüsselt. Das gilt auch für deine API-Schlüssel. Abmelden beendet die Anmeldung bei Volvo und schaltet den BMW-Datenzugang ab, und die App sagt dir, wo du den Rest selbst entfernst.
 
 ### Behoben
-- Ladeleistung am Standort: Ein Standort mit zwei Ladepunkten zu je 22 kW zeigte „44 kW“. Jetzt steht dort „2 × 22 kW“, bei gemeinsamer Leistung die Leistung des Standorts.
+- Ladeleistung am Standort: Ein Standort mit zwei Ladepunkten zu je 22 kW zeigte „44 kW“. Jetzt steht dort „2 × 22 kW“. Für den Filter zählt die stärkste Säule, weil ein Auto nur an einer Säule lädt: 2 × 22 kW sind also 22 kW.
 - Tempolimit melden in Android Auto: Die Auswahl steht jetzt aufsteigend (30, 50, 60, 70, 80, 100, 120) statt in zufälliger Reihenfolge.
 - Spracheingabe in der Auto-Suche: Der Mikrofon-Knopf neben „Wohin?“ startet jetzt direkt die Spracheingabe. Bisher öffnete sich zuerst die Tastatur, und das Mikrofon war erst dort zu finden. Tippen geht weiterhin über das Tastatur-Symbol in der Suchleiste.
 - Tempolimit während der Navigation: Das Limit der Route und TomToms Straßenabfrage kommen aus denselben TomTom-Daten, zählten bei der Abstimmung der Quellen aber doppelt. Ein falscher Wert bei TomTom (z. B. 30 statt 50 auf der Darmstädter Straße in Biblis) setzte sich so gegen OpenStreetMap und Mapbox durch. Jetzt zählt jeder Anbieter nur einmal.
