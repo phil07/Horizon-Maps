@@ -63,7 +63,8 @@ import androidx.compose.material.icons.rounded.CameraAlt
 import androidx.compose.material.icons.rounded.CarCrash
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Check
-import androidx.compose.material.icons.rounded.FilterList
+import androidx.compose.material.icons.rounded.FilterAlt
+import androidx.compose.material.icons.rounded.Bolt
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.compose.material.icons.rounded.KeyboardArrowDown
@@ -370,7 +371,13 @@ private fun MapScreen(engine: NavEngine, onSettings: () -> Unit) {
                             // charge points: the power filter, under the minus (only with an electric car)
                             if (engine.prefs.s(PreferenceKeys.FUEL_TYPE, "E10") == "EV") {
                                 Box(Modifier.width(26.dp).height(1.dp).background(c.line))
-                                Box(Modifier.size(52.dp).pressClick { engine.chargerFilterOpen = true }, contentAlignment = Alignment.Center) { Icon(Icons.Rounded.FilterList, Lang.t("Ladesäulen filtern", "Filter chargers"), tint = if (engine.chargerMinKw > 0) c.accent else c.text, modifier = Modifier.size(26.dp)) }
+                                Box(Modifier.size(52.dp).pressClick { engine.chargerFilterOpen = true }, contentAlignment = Alignment.Center) {
+                                    // a funnel (filter) with a small bolt beside it (charging points)
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Icon(Icons.Rounded.FilterAlt, Lang.t("Ladesäulen filtern", "Filter chargers"), tint = if (engine.chargerMinKw > 0) c.accent else c.text, modifier = Modifier.size(24.dp))
+                                        Icon(Icons.Rounded.Bolt, null, tint = Color(0xFF34A853), modifier = Modifier.size(15.dp))
+                                    }
+                                }
                             }
                         }
                     }
