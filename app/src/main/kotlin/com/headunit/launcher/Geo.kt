@@ -180,7 +180,7 @@ object Geo {
         return when {
             act.first() == 0 -> "Links $lanes nutzen"
             act.last() == n - 1 -> "Rechts $lanes nutzen"
-            cnt == 1 -> "Spur ${act[0] + 1} von links nutzen"
+            cnt == 1 -> "${act[0] + 1}te Spur von links nutzen"
             else -> "Mittlere $lanes nutzen"
         }
     }
@@ -525,6 +525,7 @@ object TomTomRest {
                 else for (n in 0 until co.length()) { val q = co.getJSONArray(n); pts += LL(q.getDouble(1), q.getDouble(0)) }
                 if (pts.isEmpty()) continue
                 val ev = pr.optJSONArray("events")?.optJSONObject(0)?.optString("description").orEmpty()
+                if (Regex("\\bfire\\b", RegexOption.IGNORE_CASE).containsMatchIn(ev)) continue
                 out += Incident(pr.optString("id"), pr.optString("iconCategory"), ev, pr.optInt("delayInSeconds", 0), pts)
             } catch (e: Exception) { /* skip bad entry */ }
         }
