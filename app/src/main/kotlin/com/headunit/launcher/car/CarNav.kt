@@ -626,10 +626,10 @@ class MapScreen(carContext: CarContext, private val holder: CarHolder) : Screen(
             strip.addAction(view)
             strip.addAction(Action.Builder().setIcon(icon(R.drawable.ic_car_settings)).setOnClickListener { openSettings() }.build())
             // electric: the charger power filter right under Einstellungen (all, 50, 150, 300 kW); a tap steps on and says which one is on
-            if (prefs.s(PreferenceKeys.FUEL_TYPE, "E10") == "EV") strip.addAction(Action.Builder().setIcon(icon(R.drawable.ic_car_charging)).setOnClickListener {
-                val kw = e?.chargerMinKw ?: prefs.i(PreferenceKeys.CHARGER_FILTER_KW, 0)
+            if (e != null && e.prefs.s(PreferenceKeys.FUEL_TYPE, "E10") == "EV") strip.addAction(Action.Builder().setIcon(icon(R.drawable.ic_car_charging)).setOnClickListener {
+                val kw = e.chargerMinKw
                 val next = when { kw < 50 -> 50; kw < 150 -> 150; kw < 300 -> 300; else -> 0 }
-                if (e != null) e.pickChargerMinKw(next) else prefs.put(PreferenceKeys.CHARGER_FILTER_KW, next)
+                e.pickChargerMinKw(next)
                 try { androidx.car.app.CarToast.makeText(carContext, if (next <= 0) Lang.t("Ladesäulen: alle", "Charging points: all") else Lang.t("Ladesäulen: ab $next kW", "Charging points: $next kW and faster"), androidx.car.app.CarToast.LENGTH_SHORT).show() } catch (x: Exception) { }
             }.build())
         } else {
