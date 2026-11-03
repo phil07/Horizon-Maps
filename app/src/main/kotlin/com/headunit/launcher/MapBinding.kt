@@ -112,6 +112,7 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
     private var dest: LL? = null
     /** Stops on the way, in order, each with whether it's a charging stop (drawn with a lightning bolt). */
     private var via: List<Pair<LL, Boolean>> = emptyList()
+    private var viaLabels: List<String?> = emptyList()
     private var me: LL? = null
     private var meHeading = 0.0
 
@@ -3861,7 +3862,8 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
     }
     fun setDest(p: LL?) { dest = p; pushDest() }
     /** The stops on the way, in order; true = a charging stop. Kept, so they're drawn again after a style change. */
-    fun setVia(stops: List<Pair<LL, Boolean>>) { via = stops; pushVia() }
+    /** [labels] (same order as [stops]) name a charging stop's power on the map: "150 kW", or "?" when it isn't known. */
+    fun setVia(stops: List<Pair<LL, Boolean>>, labels: List<String?> = emptyList()) { via = stops; viaLabels = labels; pushVia() }
     private var meAnim: android.animation.ValueAnimator? = null
     private var lastMePush = 0L
 
@@ -3940,9 +3942,36 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
 
     private fun pushVia() {
         val s = src("dl-via") ?: return
-        s.featureCollection(FeatureCollection.fromFeatures(via.map { (p, ev) ->
-            Feature.fromGeometry(Point.fromLngLat(p.lon, p.lat)).also { it.addStringProperty("img", if (ev) "dl-via-ev" else "dl-via-stop") }
+        val st = style
+        s.featureCollection(FeatureCollection.fromFeatures(via.mapIndexed { i, (p, ev) ->
+            val label = viaLabels.getOrNull(i)
+            val img = when {
+                !ev -> "dl-via-stop"
+                label != null && st != null -> evLabelImage(st, label)
+                else -> "dl-via-ev"
+            }
+            Feature.fromGeometry(Point.fromLngLat(p.lon, p.lat)).also { it.addStringProperty("img", img) }
         }))
+    }
+
+    /** The charging-stop picture with its power under it; added to the style the first time it's needed. */
+    private fun evLabelImage(st: Style, label: String): String {
+        val id = "dl-via-ev-" + label.replace(Regex("[^A-Za-z0-9]"), "_")
+        if (!st.styleImageExists(id)) try { addImg(st, id, viaEvLabelBitmap(label)) } catch (e: Throwable) { return "dl-via-ev" }
+        return id
+    }
+
+    private fun viaEvLabelBitmap(label: String): Bitmap {
+        val icon = viaEvBitmap()
+        val w = 140; val h = 130
+        val bmp = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
+        val c = Canvas(bmp)
+        c.drawBitmap(icon, (w - icon.width) / 2f, 0f, null)
+        val tp = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xFFFFFFFF.toInt(); textSize = 24f; typeface = android.graphics.Typeface.DEFAULT_BOLD; textAlign = Paint.Align.CENTER }
+        val half = tp.measureText(label) / 2f + 8f
+        c.drawRoundRect(android.graphics.RectF(w / 2f - half, 100f, w / 2f + half, 128f), 10f, 10f, Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xE6202124.toInt() })
+        c.drawText(label, w / 2f, 122f, tp)
+        return bmp
     }
 
     private var meShownFlat = false

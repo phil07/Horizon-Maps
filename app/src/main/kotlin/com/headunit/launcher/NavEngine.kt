@@ -5644,7 +5644,9 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
 
     /** Draws the stops on the way on the map; a stop is a charger when it's one of the planned charging stops. */
     private fun pushVia() {
-        map.setVia(via.map { p -> p.pos to evPlanned.any { Geo.dist(it.n.place.pos, p.pos) < 30.0 } })
+        // a charging stop shows its power on the map; "?" when the power isn't known
+        val labels = via.map { p -> evPlanned.firstOrNull { Geo.dist(it.n.place.pos, p.pos) < 30.0 }?.let { st -> st.n.kw?.let { "$it kW" } ?: "?" } }
+        map.setVia(via.map { p -> p.pos to evPlanned.any { Geo.dist(it.n.place.pos, p.pos) < 30.0 } }, labels)
     }
 
     /** Chargers along the whole route, with where they are on it (metres) and the detour. */
