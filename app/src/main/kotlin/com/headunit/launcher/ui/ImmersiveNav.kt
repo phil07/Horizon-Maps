@@ -197,7 +197,7 @@ internal fun ImmStat(value: String, label: String, color: Color, compact: Boolea
     }
 }
 
-private class TileSpec(val icon: ImageVector, val label: String, val tint: Color, val onClick: () -> Unit)
+private class TileSpec(val icon: ImageVector, val label: String, val tint: Color, val onClick: () -> Unit, val picture: Int? = null)
 
 @Composable
 private fun SheetHeading(text: String) {
@@ -620,7 +620,7 @@ private fun OptionsSheet(engine: NavEngine, shareEta: () -> Unit, wide: Boolean 
                     TileSpec(Icons.Rounded.Build, Lang.t("Panne", "Broken down"), Color(0xFFFB8C00), { engine.report("breakdown"); close() }),
                     TileSpec(Icons.Rounded.CameraAlt, Lang.t("Mobiler Blitzer", "Mobile cam"), Color(0xFF1E66F5), { engine.report("mobilecam"); close() }),
                     TileSpec(Icons.Rounded.DirectionsCar, Lang.t("Stau", "Traffic jam"), Color(0xFFF4511E), { engine.report("jam"); close() }),
-                    TileSpec(Icons.Rounded.Build, Lang.t("Baustelle", "Roadworks"), Color(0xFFFBC02D), { engine.report("roadworks"); close() }),
+                    TileSpec(Icons.Rounded.Build, Lang.t("Baustelle", "Roadworks"), Color(0xFFFBC02D), { engine.report("roadworks"); close() }, picture = R.drawable.ic_roadworks_sign),
                 ), compact = true)
                 // with no route the map page already has fuel, charging, food, coffee and parking, so only the rest are here
                 fun find(kind: String): () -> Unit = { engine.loadNearby(kind, false); close() }
@@ -718,7 +718,8 @@ private fun WideTiles(cols: Int, tiles: List<TileSpec>, compact: Boolean = false
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 Box(Modifier.size(if (compact) 32.dp else 38.dp).clip(CircleShape).background(t.tint.copy(alpha = 0.18f)), contentAlignment = Alignment.Center) {
-                    Icon(t.icon, null, tint = t.tint, modifier = Modifier.size(if (compact) 19.dp else 22.dp))
+                    if (t.picture != null) androidx.compose.foundation.Image(androidx.compose.ui.res.painterResource(t.picture), null, modifier = Modifier.size(if (compact) 24.dp else 28.dp))
+                    else Icon(t.icon, null, tint = t.tint, modifier = Modifier.size(if (compact) 19.dp else 22.dp))
                 }
                 Text(t.label, color = c.text, fontSize = if (compact) 11.sp else 12.sp, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = 5.dp))
             }
@@ -1025,8 +1026,12 @@ internal fun ImmTurnCard(
                         modifier = Modifier.widthIn(max = 190.dp).clip(RoundedCornerShape(6.dp)).background(Color.White.copy(alpha = 0.18f)).padding(horizontal = 7.dp, vertical = 2.dp))
                     else if (t.tag.isNotBlank() && !(ukSign && exitTag)) Text(t.tag, color = Color.White, fontSize = chipSp, fontWeight = FontWeight.Bold, maxLines = 1,
                         modifier = Modifier.clip(RoundedCornerShape(6.dp)).background(Color.White.copy(alpha = 0.18f)).padding(horizontal = 7.dp, vertical = 2.dp))
-                    if (!ukSign && t.sign.isNotBlank() && t.sign != t.street) Text(t.sign, color = Color.White, fontSize = chipSp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.widthIn(max = 130.dp).clip(RoundedCornerShape(6.dp)).background(Color(0xFF1E8E55)).padding(horizontal = 7.dp, vertical = 2.dp))
+                    if (!ukSign && t.sign.isNotBlank() && t.sign != t.street) {
+                        // the places on the sign, in the colour of the road they're on: blue Autobahn, yellow Bundes-/Landes-/Kreisstraße, white otherwise
+                        val sc = signColors(t.sign + " " + t.street, t.exitNo.isNotBlank() || exitTag)
+                        Text(t.sign, color = sc.second, fontSize = chipSp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.widthIn(max = 130.dp).clip(RoundedCornerShape(6.dp)).background(sc.first).padding(horizontal = 7.dp, vertical = 2.dp))
+                    }
                     Text(t.street, color = Color.White, fontSize = streetSp, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
             }

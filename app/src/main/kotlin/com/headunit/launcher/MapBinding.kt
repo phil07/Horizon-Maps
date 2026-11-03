@@ -329,7 +329,7 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
         subs.clear()
         for (c in pendingQueries) try { c.cancel() } catch (e: Throwable) { }
         pendingQueries.clear()
-        try { meAnim?.cancel(); lanePulse?.cancel(); pulseAnim?.cancel(); flowAnim?.cancel() } catch (e: Throwable) { }
+        try { meAnim?.cancel(); bubbleAnim?.cancel(); lanePulse?.cancel(); pulseAnim?.cancel(); flowAnim?.cancel() } catch (e: Throwable) { }
         try { mapView.onStop(); mapView.onDestroy() } catch (e: Throwable) { }
     }
 
@@ -661,6 +661,11 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
     @Volatile private var bubbleBmp: Bitmap? = null
     private var bubbleLanesKey = ""
     private var bubbleKey = ""
+    private var bubbleCur: LL? = null
+    private var bubbleAnim: android.animation.ValueAnimator? = null
+    private fun pushBubble(p: LL) {
+        try { src("dl-lanebubble")?.featureCollection(FeatureCollection.fromFeatures(listOf(Feature.fromGeometry(Point.fromLngLat(p.lon, p.lat))))) } catch (e: Throwable) { }
+    }
 
     /** Shows the lane bubble at [at] (null hides it). Same lane description as [setLaneSign]. */
     fun setLaneBubble(at: LL?, lanes: List<Pair<List<Pair<String, Boolean>>, Boolean>>) {
@@ -673,10 +678,26 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
             try {
                 if (at != null && lanes.isNotEmpty()) {
                     if (lk != bubbleLanesKey || bubbleBmp == null) { bubbleLanesKey = lk; bubbleBmp = laneSignBitmap(lanes, false); addImg(st, "dl-lanebubble", bubbleBmp!!) }
-                    bubbleAt = at
-                    src("dl-lanebubble")?.featureCollection(FeatureCollection.fromFeatures(listOf(Feature.fromGeometry(Point.fromLngLat(at.lon, at.lat)))))
+                    // it glides to the new spot over a second, like the arrow it rides ahead of, instead of jumping once a second
+                    val from = bubbleCur
+                    bubbleAnim?.cancel()
+                    if (from == null || Geo.dist(from, at) > 120.0) { bubbleCur = at; bubbleAt = at; pushBubble(at) }
+                    else bubbleAnim = android.animation.ValueAnimator.ofFloat(0f, 1f).apply {
+                        duration = 1000
+                        interpolator = android.view.animation.LinearInterpolator()
+                        var lastPush = 0L
+                        addUpdateListener { a ->
+                            val t = a.animatedFraction.toDouble()
+                            val q = LL(from.lat + (at.lat - from.lat) * t, from.lon + (at.lon - from.lon) * t)
+                            bubbleCur = q; bubbleAt = q
+                            val now = android.os.SystemClock.uptimeMillis()
+                            if (now - lastPush >= 50 || t >= 1.0) { lastPush = now; pushBubble(q) }
+                        }
+                        start()
+                    }
                 } else {
-                    bubbleAt = null
+                    bubbleAnim?.cancel()
+                    bubbleCur = null; bubbleAt = null
                     src("dl-lanebubble")?.featureCollection(FeatureCollection.fromFeatures(emptyList()))
                 }
             } catch (e: Throwable) { }
@@ -2688,6 +2709,13 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
                 c.drawCircle(cx, cx + 3f, 4.5f, p(0xFF37474F.toInt()))
             }
             1 -> {
+                // the roadworks sign (Verkehrszeichen 123), in its own colours
+                val d = androidx.core.content.ContextCompat.getDrawable(ctx, R.drawable.ic_roadworks_sign)
+                if (d != null) {
+                    d.setBounds(2, 6, n - 2, n - 6)
+                    d.draw(c)
+                    return bmp
+                }
                 val tri = Path().apply { moveTo(cx, 10f); lineTo(n - 8f, n - 14f); lineTo(8f, n - 14f); close() }
                 val rounded = android.graphics.CornerPathEffect(10f)
                 c.save(); c.translate(0f, 3f)

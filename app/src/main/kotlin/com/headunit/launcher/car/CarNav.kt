@@ -906,7 +906,7 @@ class ReportScreen(carContext: CarContext, private val holder: CarHolder) : Scre
             Triple("breakdown", Lang.t("Panne", "Broken down"), R.drawable.ic_car_breakdown to 0xFFFCAD70.toInt()),
             Triple("mobilecam", Lang.t("Mobiler Blitzer", "Mobile camera"), R.drawable.ic_car_mobilecam to 0xFF8AB4F8.toInt()),
             Triple("jam", Lang.t("Stau", "Traffic jam"), R.drawable.ic_car_jam to 0xFFFF8A65.toInt()),
-            Triple("roadworks", Lang.t("Baustelle", "Roadworks"), R.drawable.ic_car_roadworks to 0xFFFBC02D.toInt()),
+            Triple("roadworks", Lang.t("Baustelle", "Roadworks"), R.drawable.ic_roadworks_sign to 0xFFFBC02D.toInt()),
         )
         val list = ItemList.Builder()
         // a car that shows only 6 tiles: the speed limit takes the place of "Panne" (the least used), so it isn't cut off
@@ -917,7 +917,9 @@ class ReportScreen(carContext: CarContext, private val holder: CarHolder) : Scre
         // the least used kinds make room when the car shows few tiles (breakdown first)
         val shownKinds = (if (room >= kinds.size) kinds else kinds.filter { it.first != "breakdown" }).take(room.coerceAtLeast(1))
         for ((kind, label, ic) in shownKinds) list.addItem(
-            GridItem.Builder().setTitle(label).setImage(rowIcon(carContext, ic.first, ic.second), GridItem.IMAGE_TYPE_LARGE)
+            // (the roadworks sign keeps its own colours: red, white and black, not one flat tint)
+            GridItem.Builder().setTitle(label)
+                .setImage(if (kind == "roadworks") CarIcon.Builder(IconCompat.createWithResource(carContext, ic.first)).build() else rowIcon(carContext, ic.first, ic.second), GridItem.IMAGE_TYPE_LARGE)
                 .setOnClickListener { send(kind) }.build()
         )
         // the speed limit here: the right value, or that the sign shown is right

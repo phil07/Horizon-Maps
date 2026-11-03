@@ -933,6 +933,19 @@ fun MapboxKeyDialog(prefs: com.headunit.launcher.Prefs, refused: Boolean = false
 }
 
 /**
+ * The colours of a German road sign by the road it's on: blue (white text) for an Autobahn or a motorway exit, yellow (black text)
+ * for a Bundes-, Landes- or Kreisstraße, white (black text) for anything else. Returns the background and the text colour.
+ */
+fun signColors(text: String, exit: Boolean): Pair<Color, Color> {
+    val up = text.uppercase()
+    return when {
+        exit || Regex("\\bA\\s?[0-9]{1,3}\\b").containsMatchIn(up) -> Color(0xFF1554A8) to Color.White
+        Regex("\\b[BLK]\\s?[0-9]{1,4}\\b").containsMatchIn(up) -> Color(0xFFFFD200) to Color.Black
+        else -> Color.White to Color.Black
+    }
+}
+
+/**
  * A UK-style road sign for the junction coming up, from the route's sign data: blue for motorways (with the black junction-number
  * box), green for main roads (yellow road numbers), the roads it leads to and the places on the sign. Only when the route has them.
  */
@@ -945,7 +958,8 @@ fun JunctionSign(t: com.headunit.launcher.TurnInfo, modifier: Modifier = Modifie
         .filter { it.length > 1 && !it.equals("J", true) && !Regex("^J?[0-9]+[A-Z]?$").matches(it) }.distinct().take(3)
     if (refs.isEmpty() && places.isEmpty()) return
     val motorway = t.exitNo.isNotBlank() || refs.any { it.startsWith("M") || it.endsWith("(M)") }
-    val bg = if (motorway) Color(0xFF1554A8) else Color(0xFF0D6B3A)
+    // the sign takes the colour of its road: blue Autobahn, yellow Bundes-/Landes-/Kreisstraße, white otherwise
+    val (bg, fg) = signColors(t.sign, motorway)
     val shape = RoundedCornerShape(14.dp)
     val left = t.maneuver.uppercase().contains("LEFT")
     Column(modifier.widthIn(max = 380.dp).shadow(8.dp, shape).clip(shape).background(Color.White).padding(3.dp).clip(RoundedCornerShape(11.dp)).background(bg)
@@ -957,14 +971,14 @@ fun JunctionSign(t: com.headunit.launcher.TurnInfo, modifier: Modifier = Modifie
                 Spacer(Modifier.width(6.dp))
             }
             refs.forEach { r ->
-                if (motorway) Box(Modifier.padding(end = 6.dp).border(1.5.dp, Color.White, RoundedCornerShape(3.dp)).padding(horizontal = 6.dp, vertical = 1.dp)) {
-                    Text(r, color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.ExtraBold)
-                } else Text(r, color = Color(0xFFFFD200), fontSize = 15.sp, fontWeight = FontWeight.ExtraBold, modifier = Modifier.padding(end = 8.dp))
+                if (motorway) Box(Modifier.padding(end = 6.dp).border(1.5.dp, fg, RoundedCornerShape(3.dp)).padding(horizontal = 6.dp, vertical = 1.dp)) {
+                    Text(r, color = fg, fontSize = 15.sp, fontWeight = FontWeight.ExtraBold)
+                } else Text(r, color = fg, fontSize = 15.sp, fontWeight = FontWeight.ExtraBold, modifier = Modifier.padding(end = 8.dp))
             }
             Spacer(Modifier.weight(1f))
-            Text(if (left) "↖" else "↗", color = Color.White, fontSize = 22.sp, fontWeight = FontWeight.Bold)
+            Text(if (left) "↖" else "↗", color = fg, fontSize = 22.sp, fontWeight = FontWeight.Bold)
         }
-        places.forEach { p -> Text(p, color = Color.White, fontSize = 17.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis) }
+        places.forEach { p -> Text(p, color = fg, fontSize = 17.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis) }
     }
 }
 
