@@ -3954,10 +3954,10 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
         }))
     }
 
-    /** The charging-stop picture with its power under it; added to the style the first time it's needed. */
+    /** The charging-stop picture with its power under it. Registered again on each push (replaces the same name, cheap). */
     private fun evLabelImage(st: Style, label: String): String {
         val id = "dl-via-ev-" + label.replace(Regex("[^A-Za-z0-9]"), "_")
-        if (!st.styleImageExists(id)) try { addImg(st, id, viaEvLabelBitmap(label)) } catch (e: Throwable) { return "dl-via-ev" }
+        try { addImg(st, id, viaEvLabelBitmap(label)) } catch (e: Throwable) { return "dl-via-ev" }
         return id
     }
 
