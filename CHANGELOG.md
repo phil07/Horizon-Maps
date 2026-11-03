@@ -60,6 +60,7 @@ Add user-facing Horizon Nav changes under **Unreleased** before publishing each 
 - Anmeldedaten der Autohersteller geschützt: Die Schlüssel und Anmeldetoken für „Akkustand aus der Cloud“ werden verschlüsselt auf dem Handy gespeichert (mit dem Android-Schlüsselspeicher). Die Fahrzeugnummer (VIN) wird nicht mehr in die Sicherung geschrieben. Bereits gespeicherte Werte werden beim nächsten Start verschlüsselt. Das gilt auch für deine API-Schlüssel. Abmelden beendet die Anmeldung bei Volvo und schaltet den BMW-Datenzugang ab, und die App sagt dir, wo du den Rest selbst entfernst.
 
 ### Behoben
+- Ladepunkte-Filter: Bei einem Filter (z. B. 300 kW) zählt die Zahl am Standort nur noch die Ladepunkte mit dieser Leistung. Ein EnBW-Park mit 200-kW- und 400-kW-Ladepunkten zeigt bei 300 kW nur die 400-kW-Punkte.
 - Ladepunkte auf der Karte: Ein Standort mit mehreren Ladepunkten zeigt jetzt die Summe aller Ladepunkte (z. B. Tesla 20, EnBW Bensheim 24), nicht nur den Eintrag einer einzelnen Säule. Die Zahl am Marker entspricht damit der Anzahl der Ladepunkte.
 - Pfeil bei Gegenrichtung: Fährst du auf der Route in die entgegengesetzte Richtung (z. B. auf der anderen Fahrbahn), zeigt der Pfeil jetzt in deine Fahrtrichtung und springt nicht mehr rückwärts entlang der Route.
 - Automatische UI-Skalierung: Der Schalter hat jetzt die Farbe wie alle anderen Schalter.

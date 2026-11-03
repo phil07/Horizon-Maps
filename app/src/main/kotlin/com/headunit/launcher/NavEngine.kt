@@ -5737,8 +5737,9 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
     var chargerFilterOpen by mutableStateOf(false)
 
     /** Only the charge points in the chosen power class; one whose power is unknown is hidden while a filter is on. */
-    private fun shownChargers(all: List<ChargerSite>): List<ChargerSite> =
-        if (chargerMinKw <= 0) all else all.filter { (it.kw ?: 0) >= chargerMinKw }
+    /** The map's markers: each place's charge points added up, but only those at the chosen power or faster (a 200 kW point isn't counted at 300 kW). */
+    private fun shownChargers(units: List<ChargerSite>): List<ChargerSite> =
+        mergeSites(if (chargerMinKw <= 0) units else units.filter { (it.kw ?: 0) >= chargerMinKw })
 
     fun pickChargerMinKw(kw: Int) {
         chargerMinKw = kw
@@ -5778,8 +5779,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
                 val live = if (fr) try { FrLive.apply(live0, FrLive.statuses()) } catch (e: Exception) { live0 } else live0
                 live.take(300)
             }
-            chgAll = mergeSites(sites)
-            // one marker per place: its charge points added up, its strongest power
+            chgAll = sites
             map.setChargers(shownChargers(chgAll))
         }
     }
