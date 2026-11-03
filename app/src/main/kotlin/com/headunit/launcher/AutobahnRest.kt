@@ -95,6 +95,67 @@ object AutobahnRest {
         return list
     }
 
+    // ---- the usual limit at roadworks without a posted one: 100 before them, 80 in them (German Autobahn) ----
+
+    /** A stretch of roadworks (with or without a posted limit): its line in driving direction and when it applies. */
+    internal class RoadworkZone(val pts: List<LL>, val windows: List<LongRange>?, val from: Long)
+
+    private val zoneCache = HashMap<String, Pair<Long, List<RoadworkZone>>>()
+
+    /** All roadworks on [road] ("A5"), fetched at most every 15 minutes; empty when there are none or no answer. */
+    internal fun roadworkZones(road: String): List<RoadworkZone> {
+        val now = System.currentTimeMillis()
+        synchronized(zoneCache) { zoneCache[road]?.let { if (now - it.first < 15 * 60_000L) return it.second } }
+        val list = try {
+            val arr = JSONObject(get(BASE + road + "/services/roadworks")).optJSONArray("roadworks")
+            val out = ArrayList<RoadworkZone>()
+            if (arr != null) for (i in 0 until arr.length()) parseZone(arr.optJSONObject(i) ?: continue)?.let { out += it }
+            out
+        } catch (e: Exception) {
+            synchronized(zoneCache) { zoneCache[road] = (now - 13 * 60_000L) to (zoneCache[road]?.second ?: emptyList()) }
+            return zoneCache[road]?.second ?: emptyList()
+        }
+        synchronized(zoneCache) { zoneCache[road] = now to list }
+        return list
+    }
+
+    internal fun parseZone(o: JSONObject): RoadworkZone? {
+        val desc = o.optJSONArray("description")?.let { a -> (0 until a.length()).map { a.optString(it) } }.orEmpty()
+        val g = o.optJSONObject("geometry")?.optJSONArray("coordinates") ?: return null
+        val pts = (0 until g.length()).mapNotNull { i -> g.optJSONArray(i)?.let { LL(it.optDouble(1), it.optDouble(0)) } }
+        if (pts.size < 2) return null
+        return RoadworkZone(pts, windows(desc), parseIso(o.optString("startTimestamp")))
+    }
+
+    /**
+     * The usual limit (m/s) at roadworks: 80 km/h when you're in them, 100 km/h in the 1500 m before them in your direction
+     * of travel; null elsewhere. Only a guess for roadworks with no posted limit (the caller leaves it out when one is posted).
+     */
+    internal fun defaultLimitAt(list: List<RoadworkZone>, p: LL, heading: Double, now: Long): Double? {
+        var ahead = false
+        for (z in list) {
+            val w = z.windows
+            if (w != null) { if (w.none { now in it }) continue } else if (z.from > now) continue
+            for (i in 0 until z.pts.size - 1) {
+                val a = z.pts[i]; val b = z.pts[i + 1]
+                if (segDist(p, a, b) > 25.0) continue
+                if (heading >= 0) {
+                    val d = ((Geo.bearing(a, b) - heading) % 360 + 540) % 360 - 180
+                    if (Math.abs(d) > 45.0) continue
+                }
+                return 80.0 / 3.6
+            }
+            val s = z.pts.first()
+            val dist = Geo.dist(p, s)
+            if (heading >= 0 && dist in 30.0..1500.0) {
+                val toStart = ((Geo.bearing(p, s) - heading) % 360 + 540) % 360 - 180
+                val dir = ((Geo.bearing(z.pts[0], z.pts[1]) - heading) % 360 + 540) % 360 - 180
+                if (Math.abs(toStart) < 30.0 && Math.abs(dir) < 45.0) ahead = true
+            }
+        }
+        return if (ahead) 100.0 / 3.6 else null
+    }
+
     private val MAX_RE = Regex("Max\\.\\s*(\\d{2,3})\\s*km/h", RegexOption.IGNORE_CASE)
 
     internal fun parseLimit(o: JSONObject): RoadworkLimit? {

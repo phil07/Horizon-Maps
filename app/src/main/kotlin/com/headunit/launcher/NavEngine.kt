@@ -2357,11 +2357,16 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
                 val ab = if (cc == "DE" && osm != null) (listOf(osm.road) + osm.names).firstNotNullOfOrNull { AutobahnRest.roadOf(it) } else null
                 if (ab == null) null else try { AutobahnRest.limitAt(AutobahnRest.roadworkLimits(ab), p, hd, System.currentTimeMillis()) } catch (e: Exception) { null }
             }
+            // roadworks on a German Autobahn with no posted limit: the usual 100 before them and 80 in them
+            val abGuessJ = async(Dispatchers.IO) {
+                val ab = if (cc == "DE" && osm != null) (listOf(osm.road) + osm.names).firstNotNullOfOrNull { AutobahnRest.roadOf(it) } else null
+                if (ab == null) null else try { AutobahnRest.defaultLimitAt(AutobahnRest.roadworkZones(ab), p, hd, System.currentTimeMillis()) } catch (e: Exception) { null }
+            }
             // Dutch roads: Rijkswaterstaat's own posted limits (WEGGEG, CC0)
             val rwsJ = async(Dispatchers.IO) { if (cc == "NL") RwsSpeedLimits.limitAt(p, hd) else null }
-            Quad(hereJ.await(), ttJ.await(), mbJ.await(), mlyJ.await(), usJ.await(), abJ.await(), rwsJ.await())
+            Quad(hereJ.await(), ttJ.await(), mbJ.await(), mlyJ.await(), usJ.await(), abJ.await(), rwsJ.await(), abGuessJ.await())
         }
-        val (hv, tt, mb, signs, users, roadworks, rws) = got
+        val (hv, tt, mb, signs, users, roadworks, rws, rwGuess) = got
         val votes = ArrayList<SpeedVote.Vote>()
         val osmNone = osm != null && osm.noLimit && !osm.estimated
         if (osm != null) {
@@ -2390,6 +2395,14 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
             if (w > 0.0) votes += SpeedVote.Vote(Lang.t("Schild", "Sign"), s.ms, w)
         }
         if (roadworks != null) votes += SpeedVote.Vote(Lang.t("Baustelle", "Roadworks"), roadworks, SpeedVote.W_ROADWORKS)
+        else if (rwGuess != null) {
+            // roadworks of the Autobahn GmbH with no posted limit: usually 100 before them and 80 in them. The maps don't know such temporary
+            // limits (they say 120 or none), so what they say above that doesn't count; a sign, the Autobahn GmbH's own limit and other
+            // drivers' reports still do
+            val mapSources = setOf("OSM", "HERE", "TomTom", "Mapbox", "RWS", Lang.t("Route", "Route"))
+            votes.removeAll { it.source in mapSources && (it.ms == SpeedVote.NONE || it.ms > rwGuess + 0.5) }
+            votes += SpeedVote.Vote(Lang.t("Baustelle (üblich)", "Roadworks (usual)"), rwGuess, SpeedVote.W_ROADWORKS)
+        }
         votes += SpeedReports.votes(users, p, hd, System.currentTimeMillis())
         val res = SpeedVote.decide(votes, imperial) ?: return osm to null
         android.util.Log.w("SpeedVote", "${res.details} -> ${SpeedVote.label(res.ms, imperial)}${if (res.disputed) " (uneinig)" else ""}")
@@ -2401,7 +2414,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
     }
 
     private data class Quad(val here: Double?, val tt: TomTomRest.RoadLimit?, val mb: Double?, val signs: List<MlySign>?,
-                            val users: List<SpeedReport>, val roadworks: Double?, val rws: Double?)
+                            val users: List<SpeedReport>, val roadworks: Double?, val rws: Double?, val rwGuess: Double?)
 
     /**
      * Your report of the limit where you are now (tap on the sign, or Melden in the car): [kmh] the limit, 0 for no limit, or
