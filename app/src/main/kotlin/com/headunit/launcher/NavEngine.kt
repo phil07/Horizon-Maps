@@ -5779,7 +5779,8 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
                 live.take(300)
             }
             chgAll = mergeSites(sites)
-            map.setChargers(shownChargers(sites))
+            // one marker per place: its charge points added up, its strongest power
+            map.setChargers(shownChargers(chgAll))
         }
     }
 
