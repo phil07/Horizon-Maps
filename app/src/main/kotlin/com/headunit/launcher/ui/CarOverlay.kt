@@ -279,7 +279,7 @@ private fun CarScreen(engine: NavEngine, a: android.graphics.Rect?, actions: Car
         }
 
         // the charger power filter: slides out from the left (opened by the button under Einstellungen), pick one and it closes
-        AnimatedVisibility(engine.chargerFilterOpen && engine.route == null && !arriving, modifier = Modifier.align(Alignment.CenterStart).padding(start = left),
+        AnimatedVisibility(engine.chargerFilterOpen && !arriving, modifier = Modifier.align(Alignment.CenterStart).padding(start = left),
             enter = androidx.compose.animation.slideInHorizontally(tween(220)) { -it } + fadeIn(tween(200)),
             exit = androidx.compose.animation.slideOutHorizontally(tween(200)) { -it } + fadeOut(tween(180))) { CarChargerFilter(engine) }
 

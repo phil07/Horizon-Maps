@@ -621,6 +621,9 @@ class MapScreen(carContext: CarContext, private val holder: CarHolder) : Screen(
                 .setOnClickListener { e?.cycleSim(); invalidate() }.build())
             else strip.addAction(view)
             strip.addAction(sound)
+            // electric: the charger power filter during the trip too (a change plans the charging stops again)
+            if (e != null && e.prefs.s(PreferenceKeys.FUEL_TYPE, "E10") == "EV") strip.addAction(Action.Builder().setIcon(icon(R.drawable.ic_car_charger_filter))
+                .setOnClickListener { e.chargerFilterOpen = !e.chargerFilterOpen; invalidate() }.build())
             strip.addAction(reportAction())
         } else if (taps) {
             // cars that pass taps on use the app's own search bar and chips on the map, so Melden has the Search button's place

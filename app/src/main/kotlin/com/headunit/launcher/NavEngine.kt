@@ -2982,6 +2982,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
             }
         }
         try { checkPolice(p) } catch (e: Exception) { }
+        try { maybeRefreshChargers() } catch (e: Exception) { }
         try { checkWrongWay(p) } catch (e: Exception) { }
         noteCameraBan()
         if (!camerasOnMap()) { cameraDist = null; if (cameras.isNotEmpty()) { cameras = emptyList(); map.setCameras(emptyList()) }; camPos = null; return }
@@ -6145,6 +6146,37 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         chargerMinKw = kw
         prefs.put(PreferenceKeys.CHARGER_FILTER_KW, kw)
         map.setChargers(shownChargers(chgAll))
+        // on a trip with electric planning: the charging stops are planned again with the chargers the filter leaves
+        if (route != null && !previewing && isEv && prefs.b(PreferenceKeys.SMARTFUEL, true)) refreshEvPlan()
+    }
+
+    private var chgNavAt = 0L
+
+    /**
+     * While driving, the map is never still, so the charge points are asked for as the car goes: the view and the next 30 km of the
+     * route (as one box), every 15 s. The layer's own check skips the call while the box hasn't moved far.
+     */
+    private fun maybeRefreshChargers() {
+        val r = route ?: return
+        if (previewing || prefs.s(PreferenceKeys.FUEL_TYPE, "E10") != "EV") return
+        val now = System.currentTimeMillis()
+        if (now - chgNavAt < 15_000L) return
+        chgNavAt = now
+        val i0 = lastIdx.coerceIn(0, max(0, r.pts.size - 1))
+        var minLat = 90.0; var maxLat = -90.0; var minLon = 180.0; var maxLon = -180.0
+        var acc = 0.0; var prev: LL? = null
+        for (i in i0 until r.pts.size) {
+            val p = r.pts[i]
+            if (prev != null) acc += Geo.dist(prev, p)
+            prev = p
+            minLat = min(minLat, p.lat); maxLat = max(maxLat, p.lat); minLon = min(minLon, p.lon); maxLon = max(maxLon, p.lon)
+            if (acc > 30_000.0) break
+        }
+        if (minLat > maxLat) return
+        val view = try { map.viewBox() } catch (e: Exception) { null }
+        val b = if (view == null) doubleArrayOf(minLat, minLon, maxLat, maxLon, 12.0)
+            else doubleArrayOf(min(view[0], minLat), min(view[1], minLon), max(view[2], maxLat), max(view[3], maxLon), view[4])
+        refreshChargerLayer(b)
     }
 
     /**
