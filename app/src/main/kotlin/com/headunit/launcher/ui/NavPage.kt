@@ -153,6 +153,28 @@ internal fun BoxScope.RoutePreview(engine: NavEngine) {
     // electric: a route's time counts its charging stops (the plan of each route is on its card)
     val evTrip = engine.prefs.s(PreferenceKeys.FUEL_TYPE, "E10") == "EV"
     val plansPending = evTrip && engine.evPlansPending
+    // electric: the routes are offered only once every one has its real charging plan, so no card ever shows a time without
+    // the charging stops. Until then: a loading panel (the routes are already drawn on the map)
+    if (plansPending) {
+        Column(Modifier.align(Alignment.BottomCenter).padding(horizontal = 10.dp, vertical = 4.dp).fillMaxWidth().floating(28.dp).padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f)) {
+                    Text(Lang.t("Ziel", "Destination"), color = c.sub, fontSize = 13.sp)
+                    Text(engine.dest?.name ?: "", color = c.text, fontSize = 20.sp, fontWeight = FontWeight.Bold, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                }
+                RoundBtn(Icons.Rounded.Close, { engine.endRoute() }, size = 46.dp)
+            }
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+                CircularProgressIndicator(Modifier.size(26.dp), color = c.accent, strokeWidth = 3.dp)
+                Column {
+                    Text(Lang.t("Routen werden berechnet …", "Working out the routes …"), color = c.text, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+                    Text(Lang.t("Ladestopps für jede Route werden geplant", "Planning the charging stops for each route"), color = c.sub, fontSize = 13.sp)
+                }
+            }
+        }
+        return
+    }
     val totalSecs: (com.headunit.launcher.Route) -> Double = { r -> r.time + (if (evTrip) (engine.evPlanShown(r)?.minutes ?: 0) * 60.0 else 0.0) }
     val fastest = rs.indices.minByOrNull { totalSecs(rs[it]) } ?: 0
     val shortest = rs.indices.minByOrNull { rs[it].len } ?: 0

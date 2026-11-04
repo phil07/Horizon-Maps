@@ -5924,6 +5924,11 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
                     val res = try { computeEvPlan(r) } catch (e: Exception) { null }
                     if (routes === rs) { evEstimated.remove(r); evRoutePlans[r] = if (res == null) EvRouteSummary(0, 0, true) else EvRouteSummary(res.first.size, res.first.sumOf { it.minutes }, res.second != null) }
                 } }.forEach { it.await() }
+                // the routes are offered only now: pre-select the quickest one counting its charging time
+                if (routes === rs && previewing) {
+                    val best = rs.indices.minByOrNull { rs[it].time + (evRoutePlans[rs[it]]?.minutes ?: 0) * 60.0 }
+                    if (best != null && best != active) selectRoute(best)
+                }
             } finally {
                 if (routes === rs) evPlansPending = false
             }

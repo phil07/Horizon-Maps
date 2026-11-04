@@ -5,7 +5,7 @@ Add user-facing Horizon Nav changes under **Unreleased** before publishing each 
 ## Unreleased
 
 ### Verbessert
-- Elektro-Routenvorschau: Keine Routenkarte erscheint mehr ohne Ladepausen, auch nicht für einen Augenblick. Bis der echte Plan da ist, steht die Schätzung („ca.“).
+- Elektro-Routenvorschau: Statt geschätzter Zeiten zeigt die Vorschau „Routen werden berechnet …“, bis die Ladeplanung für alle Routen fertig ist. Erst dann erscheinen die Routen zur Auswahl, mit Ladestopps und Ladepausen; die schnellste (samt Laden) ist vorgewählt.
 
 
 ## 1.0.246 — 2026-10-28
