@@ -5756,8 +5756,11 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
 
     private fun evStartRef(pct: Int) { evRefPct = pct; evRefDist = tripDist; evRefModel = 0.0; evRefModelB.fill(0.0); evRefAux = 0.0; evRefUp = 0.0; evRefDown = 0.0; evRefKm.fill(0.0) }
 
-    /** Of the energy going downhill, the share that comes back (learned from the battery level; 60 % to start with). */
-    private fun evRegen(): Double = (prefs.s(PreferenceKeys.EV_REGEN, "").toDoubleOrNull() ?: EvModel.DEFAULT_REGEN).coerceIn(0.3, 0.85)
+    /**
+     * Of the energy going downhill, the share that comes back: none. The estimate counts the full use on the hills, so it stays on
+     * the safe side (also on mountain routes). The recovery is therefore not learned or shown any more.
+     */
+    private fun evRegen(): Double = 0.0
 
     /** The weight: an ordinary car of this battery, or the motorhome / car with trailer from Settings > Fahrzeug when that is heavier. */
     private fun evMass(): Double {
@@ -5811,7 +5814,6 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         out += Lang.t("Tempo ohne Limit", "Speed with no limit") to "${Math.round(evFreeKmh())} km/h"
         out += Lang.t("Fahrzeit gegenüber Routenplan", "Driving time against the route's") to String.format(Locale.getDefault(), "%+.0f %%", (etaPace() - 1.0) * 100)
         if (isEv) {
-            out += Lang.t("Rückgewinnung bergab", "Regained downhill") to "${Math.round(evRegen() * 100)} %"
             out += Lang.t("Verbrauch Stadt / Land / Autobahn", "Use town / country / motorway") to l.joinToString(" / ") { String.format(Locale.getDefault(), "%+.0f %%", (it - 1.0) * 100) }
         }
         return out

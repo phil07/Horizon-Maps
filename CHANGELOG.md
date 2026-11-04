@@ -6,6 +6,7 @@ Add user-facing Horizon Nav changes under **Unreleased** before publishing each 
 
 ### Verbessert
 - Akku-Schätzung auf dem Handy: Die Anzeige zeigt jetzt dieselbe Schätzung wie im Auto (mit „ca.“, wenn der letzte Wert alt ist).
+- Akku-Schätzung: Die Rückgewinnung bergab wird nicht mehr angerechnet. Die Schätzung bleibt auch auf Bergstrecken vorsichtig. Die Anzeige „Rückgewinnung bergab“ bei den gelernten Werten entfällt.
 - Einstellungen, Fahrtenbuch: Der Bereich startet zugeklappt. Die Kopfzeile mit Anzahl und Strecke klappt die Liste auf und zu. „Löschen“ steht jetzt im aufgeklappten Bereich.
 - Laden erkennen: Steht das Auto im Stand nahe einer Ladesäule und ist der neue Akkustand höher als der vorige, zeigen Auto und Handy „lädt“. Die Schätzung folgt dann dem Widget. Die Anzeige endet, sobald das Auto losfährt.
 - Akku-Schätzung ohne Route: Höhenunterschiede des GPS zählen ab 5 m Änderung (bei guter Genauigkeit), auf Bergfahrten und Abfahrten wie mit Route.
