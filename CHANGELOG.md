@@ -4,16 +4,16 @@ Add user-facing Horizon Nav changes under **Unreleased** before publishing each 
 
 ## Unreleased
 
+### Behoben
+- Verbrauch: Die Einstellung „Effizienz (km pro kWh)“ wurde als Meilen pro kWh gelesen. Der Verbrauch war dadurch um rund ein Drittel zu niedrig geschätzt. Ein Komma wird jetzt auch angenommen (5,5).
+- Verbrauch: Der unterwegs mitgezählte Verbrauch berücksichtigt die gelernte Korrektur je Straßenart, wie die Planung.
+
 ### Verbessert
-- Ladeplanung unterwegs: Wird während der Fahrt neu geplant, rechnet die App mit dem aktuellen Akkustand: der letzte Wert vom Auto abzüglich des Verbrauchs seither, nach einem Ladestopp der dort geplante Ladestand, sonst der Startwert abzüglich des bisherigen Verbrauchs. Bisher galt der Akkustand vom Start.
-- Ladeplanung unterwegs: Neue Stopps oder eine Neuplanung setzen Fahrzeit, Strecke und Verbrauch der laufenden Fahrt nicht mehr auf null zurück.
-- Navigation starten: Die gewählte Route (z. B. „Kürzeste“) bleibt erhalten, wenn die Ladestopps beim Start eingebaut werden. Wird während der Ladeplanung gestartet, wartet die Navigation auf den Plan und startet dann mit den Stopps.
-- Ladestopps: Eine Ladesäule gilt schon im Umkreis von 150 m als erreicht (Ladeparks sind größer). Fährst du an einem Ladestopp vorbei, plant die App für den neuen Weg neu, statt dich weit zurückzuschicken.
-- Ohne Internet: Die Ladeplanung sagt „Offline: keine Ladeplanung“, statt fälschlich zu melden, dass keine Ladesäule erreichbar sei.
-- Einstellungen > Kraftstoffpreise: Client ID, Client Secret, Preise und „Falschen Preis entdeckt?“ gehören zum britischen Preisdienst Fuel Finder und erscheinen nur noch in Großbritannien mit einem Verbrenner.
-- Ladestopps nach Neuberechnung: Weichst du als Elektroauto deutlich von der Route ab, werden die Ladestopps für den neuen Weg neu geplant, wenn der Weg über die alten Säulen mehr als 5 Minuten länger wäre. Eigene Stopps bleiben. Reicht der Akku nach einem Umweg nicht mehr, wird ein Ladestopp eingeplant. Eine Meldung nennt die neuen Stopps.
-- Routenvorschau beim Verbrenner: Der Tankstopp-Vorschlag entfällt. Zwischenstopps zum Laden werden nur noch für Elektroautos geplant. In den Einstellungen heißt der Schalter jetzt „Ladestopps auf langen Fahrten planen“ und erscheint nur beim Elektroauto.
-- Elektro-Routenvorschau: Statt geschätzter Zeiten zeigt die Vorschau „Routen werden berechnet …“, bis die Ladeplanung für alle Routen fertig ist. Erst dann erscheinen die Routen zur Auswahl, mit Ladestopps und Ladepausen; die schnellste (samt Laden) ist vorgewählt.
+- Verbrauch mit Anhänger oder Wohnmobil (Einstellungen > Fahrzeug): mehr Gewicht und mehr Luftwiderstand werden eingerechnet.
+- Verbrauch: Heizung und Klimaanlage zählen nach Fahrzeit statt nach Strecke. Ein Stau im Winter kostet mehr Akku, eine flotte Fahrt weniger.
+- Verbrauch: Staus und stockender Verkehr auf der Route fließen ein (langsamer, dafür länger unterwegs).
+- Verbrauch: Ohne eingetragene Effizienz dient die Reichweitenanzeige des Autos als ruhige Grundlage, die sich nur langsam anpasst. Die gelernte Korrektur wird anteilig auf Stadt, Land und Autobahn verteilt.
+- Ladeplanung: Kein versteckter Zuschlag von 10 % mehr. Die Sicherheit kommt aus deinen Reserven (an der Ladesäule und am Ziel), dadurch weniger unnötige Ladestopps.
 
 
 ## 1.0.246 — 2026-10-28

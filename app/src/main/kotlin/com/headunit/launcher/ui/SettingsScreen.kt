@@ -826,7 +826,7 @@ private fun FuelSection(prefs: Prefs, engine: NavEngine) {
     if (prefs.s(PreferenceKeys.FUEL_TYPE, "E10") == "EV") CloudAccountGroup(prefs)
     if (prefs.s(PreferenceKeys.FUEL_TYPE, "E10") == "EV") SGroup("Dein Elektroauto") {
         EvCarItem(prefs)
-        SFieldItem("Effizienz (km pro kWh)", prefs.s(PreferenceKeys.EVMPK, ""), placeholder = "z. B. 5.5", number = true) { s -> prefs.put(PreferenceKeys.EVMPK, s.filter { it.isDigit() || it == '.' }.take(5)) }
+        SFieldItem("Effizienz (km pro kWh)", prefs.s(PreferenceKeys.EVMPK, ""), placeholder = "z. B. 5.5", number = true) { s -> prefs.put(PreferenceKeys.EVMPK, s.replace(',', '.').filter { it.isDigit() || it == '.' }.take(5)) }
         // a chosen car brings its own battery size; the typed one is then not used
         val carKwh = if (prefs.s(PreferenceKeys.EV_CAR, "").isNotBlank()) com.headunit.launcher.EvCars.batteryKwh(prefs) else null
         if (carKwh != null) SItem("Nutzbare Batterie", "${evNum(carKwh)} kWh aus den Fahrzeugdaten")

@@ -9,12 +9,17 @@ package com.headunit.launcher
  * - hills: climbing costs, going down gives some back (how much is learned from the battery level),
  * - wind against you, a wet or snowy road,
  * - what the car's own battery level shows during the drive corrects it (learned per kind of road, kept between trips),
- * - and 10 % is added on top, so the estimate errs on the safe side.
+ * - heating and air conditioning by the time driven (a jam in winter costs more than the same road at speed),
+ * - the traffic along the way (a slow stretch is driven slower: less air drag, more time for the heating),
+ * - a trailer or motorhome (Settings > Fahrzeug): more weight and more air drag.
+ * There's no hidden margin on top: the safety margin is what you set (charge left at a charger and at the destination).
  * Pure functions, so they can be tested without a car.
  */
 object EvModel {
-    /** Added on top of every estimate, so you arrive with a little more than shown rather than less. */
-    const val BUFFER = 1.10
+    /** Added on top of every estimate. 1.0: none, the reserves you set (at the charger, at the destination) are the margin. */
+    const val BUFFER = 1.0
+    /** A petrol or diesel car's range keeps its 10 % margin (unchanged; it has no learned correction from a battery level). */
+    const val FUEL_BUFFER = 1.10
 
     // consumption at each speed (km/h), relative to 80 km/h (about where a car's rated, mixed figure sits)
     private val SPEEDS = doubleArrayOf(0.0, 30.0, 50.0, 70.0, 80.0, 100.0, 120.0, 130.0, 150.0, 170.0, 200.0, 230.0, 250.0)
@@ -30,11 +35,36 @@ object EvModel {
         return FACTORS.last()
     }
 
-    /** Extra consumption in the cold: none from 15 °C up, rising evenly to a quarter more at −5 °C and below. Null: unknown. */
+    /**
+     * Extra consumption of the drive itself in the cold (a cold battery, stiffer tyres, denser air): none from 15 °C up, rising evenly
+     * to a tenth more at −5 °C and below. Null: unknown. The heating is counted separately, by the time driven (see [auxKw]).
+     */
     fun tempFactor(c: Double?): Double {
         if (c == null || c.isNaN()) return 1.0
         if (c >= 15.0) return 1.0
-        return 1.0 + 0.25 * ((15.0 - c) / 20.0).coerceIn(0.0, 1.0)
+        return 1.0 + 0.10 * ((15.0 - c) / 20.0).coerceIn(0.0, 1.0)
+    }
+
+    /**
+     * The power for heating or cooling the car (kW), used for as long as you drive: none between 15 and 25 °C, rising evenly to 3 kW at
+     * −5 °C and below, and 0.6 kW of air conditioning from 25 °C up. Null: unknown (a mild day).
+     */
+    fun auxKw(c: Double?): Double {
+        if (c == null || c.isNaN()) return 0.0
+        if (c < 15.0) return 3.0 * ((15.0 - c) / 20.0).coerceIn(0.0, 1.0)
+        if (c > 25.0) return 0.6
+        return 0.0
+    }
+
+    /**
+     * A trailer or a motorhome: [dragExtra] is how much more air drag (0.6: 60 % more), [massKg] against [massRef] the extra weight,
+     * which adds rolling resistance. Air drag counts the more the faster you go; rolling resistance at low speed.
+     */
+    fun vehicleFactor(kmh: Double, dragExtra: Double, massKg: Double, massRef: Double): Double {
+        if (dragExtra <= 0.0 && massKg <= massRef) return 1.0
+        val share = kmh * kmh / (kmh * kmh + 70.0 * 70.0)
+        val heavier = if (massRef > 0) (massKg / massRef - 1.0).coerceAtLeast(0.0) else 0.0
+        return 1.0 + dragExtra * share + (1.0 - share) * heavier * 0.8
     }
 
     /** The kind of road by speed, for what's learned: 0 town (under 60 km/h), 1 country (to 100), 2 motorway. */
@@ -52,6 +82,10 @@ object EvModel {
         val elevOff: DoubleArray = DoubleArray(0), val elevH: DoubleArray = DoubleArray(0),
         val massKg: Double = 2000.0, val regen: Double = DEFAULT_REGEN,
         val wx: List<Wx> = emptyList(), val bearing: (Double) -> Double? = { null },
+        /** A trailer or motorhome: extra air drag, and the weight of an ordinary car of this battery to compare [massKg] with. */
+        val dragExtra: Double = 0.0, val massRef: Double = massKg,
+        /** The traffic delays along the route: a slow stretch is driven slower (less air drag) and takes longer (more heating). */
+        val delays: List<DelaySeg> = emptyList(),
     ) {
         fun heightAt(off: Double): Double? {
             val n = elevOff.size
@@ -127,6 +161,9 @@ object EvModel {
         // (accelF: 1 = a usual driver, more for a brisk one, less for a gentle one), so quick acceleration costs more than gentle
         var prevKmh: Double? = null
         var speedUp = 0.0
+        var aux = 0.0
+        val auxP = auxKw(tempC)
+        val dls = env.delays.sortedBy { it.off }
         while (at < to - 1e-6) {
             while (ci < cuts.size && cuts[ci] <= at + 1e-6) ci++
             val b = minOf(at + STEP, to, cuts.getOrNull(ci) ?: to)
@@ -141,13 +178,20 @@ object EvModel {
             val pk = prevKmh
             if (pk != null && kmh > pk + 5.0) { val v1 = pk / 3.6; val v2 = kmh / 3.6; speedUp += 0.5 * env.massKg * (v2 * v2 - v1 * v1) / DRIVE_EFF / 3.6e6 }
             prevKmh = kmh
-            flat += part(b - at, kmh, baseKwhPerKm, learned) * (if (env.wx.isEmpty()) 1.0 else wxFactor(env.wxAt(mid), kmh, env.bearing(mid)))
+            // traffic: this piece's share of a delay on its stretch makes it slower
+            val piece = b - at
+            var secs = piece / (kmh.coerceAtLeast(5.0) / 3.6)
+            dls.firstOrNull { mid >= it.off && mid < it.end && it.end > it.off }?.let { d -> secs += d.secs * piece / (d.end - d.off) }
+            val v = (piece / secs * 3.6).coerceAtLeast(5.0)
+            aux += auxP * secs / 3600.0
+            flat += part(piece, v, baseKwhPerKm, learned) * vehicleFactor(v, env.dragExtra, env.massKg, env.massRef) *
+                (if (env.wx.isEmpty()) 1.0 else wxFactor(env.wxAt(mid), v, env.bearing(mid)))
             val h = env.heightAt(b)
             if (h != null && prevH != null) grade += env.gradeKwh(h - prevH)
             prevH = h
             at = b
         }
-        return maxOf(0.0, flat * tempFactor(tempC) + grade + speedUp * (accelF - 1.0)) * BUFFER
+        return maxOf(0.0, flat * tempFactor(tempC) + aux + grade + speedUp * (accelF - 1.0)) * BUFFER
     }
 
     private const val STEP = 500.0
@@ -201,7 +245,7 @@ object EvModel {
             if (at >= to) break
         }
         if (at < to) sum += (to - at) / 100_000.0 * lPer100 * fuelSpeedFactor(fallbackKmh)
-        return sum * BUFFER
+        return sum * FUEL_BUFFER
     }
 
     /** The learned corrections from the settings ("1.05,1.12,1.2"), three numbers; 1.0 each when nothing is learned yet. */

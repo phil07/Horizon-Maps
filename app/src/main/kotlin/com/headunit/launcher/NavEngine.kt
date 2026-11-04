@@ -5462,7 +5462,8 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
     /** Usable battery (kWh): the chosen car's, else from Settings > Fuel (60 if not set). */
     private fun evBatteryKwh(): Double = EvCars.batteryKwh(prefs) ?: (prefs.s(PreferenceKeys.EV_BATTERY_KWH, "").toDoubleOrNull() ?: 60.0).coerceIn(10.0, 200.0)
     /** kWh used per km: from the efficiency in Settings > Fuel (miles per kWh), or a typical 0.18. */
-    private fun evKwhPerKm(): Double = prefs.s(PreferenceKeys.EVMPK, "").toDoubleOrNull()?.takeIf { it in 1.0..8.0 }?.let { 1.0 / (it * 1.609344) } ?: 0.18
+    /** kWh per km from Settings > Effizienz, which is given in km per kWh (it was read as miles per kWh before: far too hopeful). */
+    private fun evKwhPerKm(): Double = prefs.s(PreferenceKeys.EVMPK, "").replace(',', '.').toDoubleOrNull()?.takeIf { it in 2.0..15.0 }?.let { 1.0 / it } ?: 0.18
     /** Roughly how much battery (%) you'll arrive with: the charge you set before the trip, less what's been driven and what's left. */
     /** The battery level (%) the car reported, if it was read in the last 6 hours, or null. */
     fun evNowPct(): Int? {
@@ -5530,6 +5531,10 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
     private var evRefPct = -1
     private var evRefDist = 0.0
     private var evRefModel = 0.0
+    /** The modelled road use since the reference reading, per kind of road, and the heating / air conditioning in it. */
+    private val evRefModelB = DoubleArray(3)
+    private var evRefAux = 0.0
+    private var evTrackAt = 0L
     private val evRefKm = DoubleArray(3)
     /** Since the battery reading: the modelled kWh for climbing, and the kWh that going downhill could give back. */
     private var evRefUp = 0.0
@@ -5547,10 +5552,19 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
 
     private fun evBaseKwhPerKm(): Double {
         if (prefs.s(PreferenceKeys.EVMPK, "").isNotBlank()) return evKwhPerKm()
-        // no efficiency set: the car's own figure (its range against its battery level), when both are fresh
-        val km = evNowKm(); val pct = evNowPct()?.takeIf { (evNowAgeMin() ?: Long.MAX_VALUE) <= 60 }
-        if (km != null && pct != null && pct >= 5) return (evBatteryKwh() * pct / 100.0 / km).coerceIn(0.12, 0.35)
+        // no efficiency set: the car's own figure (its range against its battery level). That figure already holds the speeds the car
+        // was driven at lately (mixed driving), while the model's base is the use at 80 km/h and adds speed on top: so it is taken
+        // as a tenth lower. It is kept (and only eased towards each new reading), so what is learned is corrected against a steady base
+        prefs.s(PreferenceKeys.EV_BASE_GOM, "").toDoubleOrNull()?.takeIf { it in 0.08..0.4 }?.let { return it }
+        evGomKwhPerKm()?.let { prefs.put(PreferenceKeys.EV_BASE_GOM, String.format(java.util.Locale.US, "%.4f", it)); return it }
         return 0.18
+    }
+
+    /** The car's own consumption figure (its range against its battery level, both fresh), normalised to 80 km/h; null when not known. */
+    private fun evGomKwhPerKm(): Double? {
+        val km = evNowKm(); val pct = evNowPct()?.takeIf { (evNowAgeMin() ?: Long.MAX_VALUE) <= 60 }
+        if (km == null || pct == null || pct < 5) return null
+        return (evBatteryKwh() * pct / 100.0 / km / 1.1).coerceIn(0.10, 0.35)
     }
 
     private fun evLearned(): DoubleArray = EvModel.parseLearned(prefs.s(PreferenceKeys.EV_LEARN, ""))
@@ -5596,7 +5610,14 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         // the road's own use (speed, cold, wind, rain), then the hill climbed or gone down since the last point
         val wx = routeWx.takeIf { it.isNotEmpty() && route != null }?.minByOrNull { abs(it.off - curProgress) }
         val flatK = d / 1000.0 * evBaseKwhPerKm() * EvModel.speedFactor(kmh) * EvModel.tempFactor(evTemp()) *
+            EvModel.vehicleFactor(kmh, evDragExtra(), evMass(), EvModel.massFor(evBatteryKwh())) *
             (if (wx != null) EvModel.wxFactor(EvModel.Wx(wx.off, wx.windKmh, wx.windFrom, wx.wet, wx.snow), kmh, fix?.heading?.toDouble()) else 1.0)
+        // heating / air conditioning: by the time since the last point (also standing in a jam), at most a minute at a time
+        val nowT = System.currentTimeMillis()
+        val dtS = if (evTrackAt > 0) ((nowT - evTrackAt) / 1000.0).coerceIn(0.0, 60.0) else 0.0
+        evTrackAt = nowT
+        val aux = EvModel.auxKw(evTemp()) * dtS / 3600.0
+        val bk = EvModel.bucket(kmh)
         var up = 0.0; var down = 0.0
         val r = route; val prof = r?.elev
         if (r != null && prof != null && !previewing) {
@@ -5609,9 +5630,10 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
             }
             evLastH = h
         } else evLastH = null
-        val kwh = flatK + up - down * evRegen()
+        // what the battery is counted down by: with the correction learned for this kind of road (the planning uses it too)
+        val kwh = flatK * (evLearned().getOrNull(bk) ?: 1.0) + aux + up - down * evRegen()
         evSinceRead += kwh; evSinceNav += kwh; evSinceCharge += kwh
-        if (evRefPct >= 0) { evRefModel += flatK; evRefUp += up; evRefDown += down; evRefKm[EvModel.bucket(kmh)] += d / 1000.0 }
+        if (evRefPct >= 0) { evRefModel += flatK; evRefModelB[bk] += flatK; evRefAux += aux; evRefUp += up; evRefDown += down; evRefKm[bk] += d / 1000.0 }
         val now = System.currentTimeMillis()
         if (evTemp() == null && now - evTempAt > 30 * 60_000L && route != null) {
             evTempAt = now
@@ -5623,22 +5645,34 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         if (readAt != evReadSeen) {
             evReadSeen = readAt
             evSinceRead = 0.0
+            // the car's own figure eases the steady base a little (a new car or season shows over time, one odd reading doesn't)
+            if (prefs.s(PreferenceKeys.EVMPK, "").isBlank()) evGomKwhPerKm()?.let { g ->
+                val old = prefs.s(PreferenceKeys.EV_BASE_GOM, "").toDoubleOrNull() ?: g
+                prefs.put(PreferenceKeys.EV_BASE_GOM, String.format(java.util.Locale.US, "%.4f", old * 0.9 + g * 0.1))
+            }
             val pct = evNowPct() ?: return
             if (evRefPct < 0 || pct > evRefPct) { evStartRef(pct); return }   // first reading, or charged since
             val drop = evRefPct - pct
             if (drop >= 5 && tripDist - evRefDist >= 10_000 && evRefModel > 0.5) {
                 // what the battery really lost against what the model said (without its buffer and corrections)
                 val actual = drop / 100.0 * evBatteryKwh()
-                val b = evRefKm.indices.maxByOrNull { evRefKm[it] } ?: 1
                 val l = evLearned()
                 val regen = evRegen()
-                if (evRefDown >= 0.5 && evRefDown * regen >= 0.15 * (evRefModel + evRefUp)) {
+                // the model with what is learned so far, each kind of road with its own correction
+                val modelL = (0 until 3).sumOf { evRefModelB[it] * l[it] }
+                if (evRefDown >= 0.5 && evRefDown * regen >= 0.15 * (modelL + evRefUp)) {
                     // mostly downhill: what came back on the way down is what's learned
-                    val est = ((evRefModel * l[b] + evRefUp - actual) / evRefDown).coerceIn(0.3, 0.85)
+                    val est = ((modelL + evRefAux + evRefUp - actual) / evRefDown).coerceIn(0.3, 0.85)
                     prefs.put(PreferenceKeys.EV_REGEN, String.format(java.util.Locale.US, "%.3f", (regen * 0.7 + est * 0.3).coerceIn(0.3, 0.85)))
-                } else {
-                    val ratio = ((actual - evRefUp + regen * evRefDown) / evRefModel).coerceIn(0.6, 1.8)
-                    l[b] = (l[b] * 0.7 + ratio * 0.3).coerceIn(0.6, 1.8)
+                } else if (modelL > 0.3) {
+                    // how far off the whole stretch was; each kind of road is corrected by its share of the stretch (not all of it put
+                    // on the one driven most)
+                    val err = ((actual - evRefAux - evRefUp + regen * evRefDown) / modelL).coerceIn(0.6, 1.8)
+                    val tot = evRefModelB.sum()
+                    for (b in 0 until 3) {
+                        val w = if (tot > 0) evRefModelB[b] / tot else 0.0
+                        l[b] = (l[b] * (1.0 + 0.3 * w * (err - 1.0))).coerceIn(0.6, 1.8)
+                    }
                     prefs.put(PreferenceKeys.EV_LEARN, EvModel.formatLearned(l))
                 }
                 evStartRef(pct)
@@ -5646,19 +5680,28 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         }
     }
 
-    private fun evStartRef(pct: Int) { evRefPct = pct; evRefDist = tripDist; evRefModel = 0.0; evRefUp = 0.0; evRefDown = 0.0; evRefKm.fill(0.0) }
+    private fun evStartRef(pct: Int) { evRefPct = pct; evRefDist = tripDist; evRefModel = 0.0; evRefModelB.fill(0.0); evRefAux = 0.0; evRefUp = 0.0; evRefDown = 0.0; evRefKm.fill(0.0) }
 
     /** Of the energy going downhill, the share that comes back (learned from the battery level; 60 % to start with). */
     private fun evRegen(): Double = (prefs.s(PreferenceKeys.EV_REGEN, "").toDoubleOrNull() ?: EvModel.DEFAULT_REGEN).coerceIn(0.3, 0.85)
 
-    private fun evMass(): Double = EvModel.massFor(evBatteryKwh())
+    /** The weight: an ordinary car of this battery, or the motorhome / car with trailer from Settings > Fahrzeug when that is heavier. */
+    private fun evMass(): Double {
+        val car = EvModel.massFor(evBatteryKwh())
+        val v = Vehicle.from(prefs)
+        return if (v.isCar) car else maxOf(car, v.weightKg.toDouble())
+    }
+
+    /** Extra air drag: a motorhome 70 %, a car with a trailer 60 %, none for a car. */
+    private fun evDragExtra(): Double = when (Vehicle.from(prefs).kind) { "camper" -> 0.7; "lorry" -> 0.6; else -> 0.0 }
 
     /** The hills and the weather along [r], for the estimate. */
     private fun evEnv(r: Route): EvModel.Env {
         val prof = r.elev
         if (prof == null) evLoadElev(r)
         val wx = (if (route === r || routes.getOrNull(0) === r) routeWx else emptyList()).map { EvModel.Wx(it.off, it.windKmh, it.windFrom, it.wet, it.snow) }
-        return EvModel.Env(prof?.off ?: DoubleArray(0), prof?.h ?: DoubleArray(0), evMass(), evRegen(), wx) { off -> pointAt(r, off).second }
+        return EvModel.Env(prof?.off ?: DoubleArray(0), prof?.h ?: DoubleArray(0), evMass(), evRegen(), wx, { off -> pointAt(r, off).second },
+            evDragExtra(), EvModel.massFor(evBatteryKwh()), r.delays)
     }
 
     private var elevAskedFor: Route? = null
@@ -5681,7 +5724,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
 
     /** Clears what's been learned about your driving and your car's use. */
     fun resetLearned() {
-        listOf(PreferenceKeys.EV_LEARN, PreferenceKeys.EV_STYLE, PreferenceKeys.EV_ACCEL, PreferenceKeys.EV_FREE_KMH, PreferenceKeys.EV_REGEN, PreferenceKeys.ETA_PACE).forEach { prefs.put(it, "") }
+        listOf(PreferenceKeys.EV_LEARN, PreferenceKeys.EV_STYLE, PreferenceKeys.EV_ACCEL, PreferenceKeys.EV_FREE_KMH, PreferenceKeys.EV_REGEN, PreferenceKeys.ETA_PACE, PreferenceKeys.EV_BASE_GOM).forEach { prefs.put(it, "") }
         paceReal = 0.0; pacePred = 0.0
         evStyleSum = 0.0; evStyleM = 0.0; evFreeSum = 0.0; evFreeM = 0.0; evAccSum = 0.0; evAccT = 0.0
     }
@@ -6279,13 +6322,13 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
             val avg = eta?.let { e -> if (e.secs - e.chargeSecs > 30) e.dist / (e.secs - e.chargeSecs) * 3.6 else null } ?: 70.0
             fun use(to: Double) = EvModel.litres(from, to, r.limits, avg.coerceIn(20.0, 140.0), evStyle(), evFreeKmh(), l100)
             val all = use(r.len)
-            if (all <= litres) (r.len - from) / 1000.0 + (litres - all) / (l100 * EvModel.BUFFER) * 100.0
+            if (all <= litres) (r.len - from) / 1000.0 + (litres - all) / (l100 * EvModel.FUEL_BUFFER) * 100.0
             else {
                 var lo = from; var hi = r.len
                 repeat(18) { val m = (lo + hi) / 2; if (use(m) <= litres) lo = m else hi = m }
                 (lo - from) / 1000.0
             }
-        } else litres / (l100 * 1.1 * EvModel.BUFFER) * 100.0
+        } else litres / (l100 * 1.1 * EvModel.FUEL_BUFFER) * 100.0
         fuelRangeKm = Math.round(km).toInt()
         if (km >= 95.0) { fuelWarned = false; return }
         if (km >= 80.0 || fuelWarned) return

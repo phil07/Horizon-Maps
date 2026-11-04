@@ -143,6 +143,8 @@ internal object PreferenceKeys {
     const val DRIVELOCK = "drivelock"
     const val DRIVESIMPLE = "drivesimple"
     const val EVMPK = "evmpk"
+    /** The steady base consumption (kWh/km at 80 km/h) taken from the car's own range figure. */
+    const val EV_BASE_GOM = "ev_base_gom"
     const val EVPPK = "evppk"
     const val FACADES = "facades"
     const val FFID = "ffid"
