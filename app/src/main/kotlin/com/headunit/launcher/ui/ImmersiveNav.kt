@@ -1338,34 +1338,6 @@ private fun ImmQuick(engine: NavEngine, showSaved: Boolean = true) {
                 Icon(Icons.Rounded.Close, Lang.t("Schließen", "Dismiss"), tint = Color.White, modifier = Modifier.padding(start = 8.dp).size(24.dp).clickable { engine.resume = null; engine.prefs.put(PreferenceKeys.RESUME, "{}") })
             }
         }
-        // predictive destination with the live journey time (checked again every few minutes while the map is idle)
-        LaunchedEffect(engine.fix != null) { while (true) { engine.refreshPrediction(); delay(60_000) } }
-        val pr = engine.prediction?.takeIf { engine.prefs.b(PreferenceKeys.PREDICT, true) }
-        if (pr != null) Row(
-            Modifier.fillMaxWidth().shadow(8.dp, RoundedCornerShape(22.dp)).clip(RoundedCornerShape(22.dp)).background(Teal).clickable { engine.startRoute(pr.place) }.padding(horizontal = 16.dp, vertical = 13.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Icon(when (pr.title) { Lang.t("Zuhause", "Home") -> Icons.Rounded.Home; Lang.t("Arbeit", "Work") -> Icons.Rounded.Work; else -> Icons.Rounded.History }, null, tint = Color.White, modifier = Modifier.size(26.dp))
-            Column(Modifier.padding(start = 12.dp).weight(1f)) {
-                Text(listOfNotNull(pr.title, if (pr.mins >= 0) Geo.fmtDur(pr.mins * 60.0) else null, pr.note.ifBlank { null }).joinToString(" · "),
-                    color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                val arrive = if (pr.mins >= 0) Lang.t("Ankunft etwa ", "Arrive about ") + java.text.SimpleDateFormat("HH:mm", java.util.Locale.UK).format(java.util.Date(System.currentTimeMillis() + pr.mins * 60_000L)) else pr.place.sub
-                Text(if (pr.delayMin >= 3) Lang.t("$arrive · +${pr.delayMin} Min. Verzögerung", "$arrive · +${pr.delayMin} min delays") else arrive, color = Color.White.copy(alpha = 0.85f), fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            }
-            Text(stringResource(R.string.ui_019), color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold)
-        }
-        val suggestion = remember { engine.habits.suggest(System.currentTimeMillis()) }
-        if (pr == null && suggestion != null) Row(
-            Modifier.fillMaxWidth().shadow(8.dp, RoundedCornerShape(22.dp)).clip(RoundedCornerShape(22.dp)).background(Teal).clickable { engine.startRoute(suggestion) }.padding(horizontal = 16.dp, vertical = 13.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Icon(Icons.Rounded.History, null, tint = Color.White, modifier = Modifier.size(26.dp))
-            Column(Modifier.padding(start = 12.dp).weight(1f)) {
-                Text(Lang.t("Fährst du nach ${suggestion.name}?", "Going to ${suggestion.name}?"), color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                if (suggestion.sub.isNotBlank()) Text(suggestion.sub, color = Color.White.copy(alpha = 0.8f), fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            }
-            Text(stringResource(R.string.ui_019), color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold)
-        }
         // three places on show to keep the map clear; "All" opens the rest (it used to be a list up to five tall)
         AnimatedVisibility(showSaved && engine.prefs.b(PreferenceKeys.QUICKLIST, true),
             enter = fadeIn(tween(200)) + androidx.compose.animation.expandVertically(tween(240)), exit = fadeOut(tween(140)) + androidx.compose.animation.shrinkVertically(tween(200))) {
