@@ -5555,6 +5555,33 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
 
     /** The height (m) the last climb or descent without a route was counted from, from the phone's GPS. */
     private var evAltRef: Double? = null
+    /** The distance driven since the app began (kept over trips and restarts, unlike tripDist), when the state was last saved, and whether it is loaded. */
+    private var evDriven = 0.0
+    private var evSavedAt = 0L
+    private var evLoaded = false
+
+    /** The learning state as a list (see evLoad for the order). */
+    private fun evState(): List<Double> = listOf(evRefPct.toDouble(), evRefDist, evRefModel, evRefModelB[0], evRefModelB[1], evRefModelB[2],
+        evRefAux, evRefUp, evRefDown, evRefKm[0], evRefKm[1], evRefKm[2], evReadSeen.toDouble(), evSinceRead, evSinceNav, evSinceCharge,
+        evDriven, evChargeRefPct, evChargeRefAt.toDouble())
+
+    /** Saved to the settings, so the reference reading and the drive since it survive a restart of the app. */
+    private fun evSave() {
+        evSavedAt = System.currentTimeMillis()
+        try { prefs.put(PreferenceKeys.EV_STATE, evState().joinToString(",") { it.toString() }) } catch (e: Exception) { }
+    }
+
+    /** Loaded once, on the first drive: the state of the last drive, if it is complete. */
+    private fun evLoad() {
+        val v = prefs.s(PreferenceKeys.EV_STATE, "").split(",").mapNotNull { it.toDoubleOrNull() }
+        if (v.size != 19) return
+        evRefPct = v[0].toInt(); evRefDist = v[1]; evRefModel = v[2]
+        for (i in 0..2) evRefModelB[i] = v[3 + i]
+        evRefAux = v[6]; evRefUp = v[7]; evRefDown = v[8]
+        for (i in 0..2) evRefKm[i] = v[9 + i]
+        evReadSeen = v[12].toLong(); evSinceRead = v[13]; evSinceNav = v[14]; evSinceCharge = v[15]
+        evDriven = v[16]; evChargeRefPct = v[17]; evChargeRefAt = v[18].toLong()
+    }
     /** Charging at a charger: the last battery reading seen (its time and level), and whether the level rose while standing there. */
     private var evChargeReadAt = 0L
     private var evChargeLastPct = -1.0
@@ -5671,6 +5698,9 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
 
     /** Every few metres driven (electric): the modelled use, how you drive against the limit, and learning from the battery level. */
     private fun evTrack(speedMs: Double, d: Double) {
+        if (!evLoaded) { evLoaded = true; evLoad() }
+        evDriven += d
+        if (System.currentTimeMillis() - evSavedAt > 60_000L) evSave()
         val kmh = speedMs * 3.6
         // how briskly you speed up: the acceleration over the last few metres, while the speed rises (not at a standstill or past 120 km/h)
         val last = evLastSpeedMs
@@ -5734,6 +5764,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         if (readAt != evReadSeen) {
             evReadSeen = readAt
             evSinceRead = 0.0
+            evSave()
             // the car's own figure eases the steady base a little (a new car or season shows over time, one odd reading doesn't)
             if (prefs.s(PreferenceKeys.EVMPK, "").isBlank()) evGomKwhPerKm()?.let { g ->
                 val old = prefs.s(PreferenceKeys.EV_BASE_GOM, "").toDoubleOrNull() ?: g
@@ -5742,7 +5773,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
             val pct = evNowPct() ?: return
             if (evRefPct < 0 || pct > evRefPct) { evStartRef(pct); return }   // first reading, or charged since
             val drop = evRefPct - pct
-            if (drop >= 5 && tripDist - evRefDist >= 10_000 && evRefModel > 0.5) {
+            if (drop >= 5 && evDriven - evRefDist >= 10_000 && evRefModel > 0.5) {
                 // what the battery really lost against what the model said (without its buffer and corrections)
                 val actual = drop / 100.0 * evBatteryKwh()
                 val l = evLearned()
@@ -5769,7 +5800,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         }
     }
 
-    private fun evStartRef(pct: Int) { evRefPct = pct; evRefDist = tripDist; evRefModel = 0.0; evRefModelB.fill(0.0); evRefAux = 0.0; evRefUp = 0.0; evRefDown = 0.0; evRefKm.fill(0.0) }
+    private fun evStartRef(pct: Int) { evRefPct = pct; evRefDist = evDriven; evRefModel = 0.0; evRefModelB.fill(0.0); evRefAux = 0.0; evRefUp = 0.0; evRefDown = 0.0; evRefKm.fill(0.0) }
 
     /**
      * Of the energy going downhill, the share that comes back: none. The estimate counts the full use on the hills, so it stays on
@@ -5816,7 +5847,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
 
     /** Clears what's been learned about your driving and your car's use. */
     fun resetLearned() {
-        listOf(PreferenceKeys.EV_LEARN, PreferenceKeys.EV_STYLE, PreferenceKeys.EV_ACCEL, PreferenceKeys.EV_FREE_KMH, PreferenceKeys.EV_REGEN, PreferenceKeys.ETA_PACE, PreferenceKeys.EV_BASE_GOM).forEach { prefs.put(it, "") }
+        listOf(PreferenceKeys.EV_LEARN, PreferenceKeys.EV_STYLE, PreferenceKeys.EV_ACCEL, PreferenceKeys.EV_FREE_KMH, PreferenceKeys.EV_REGEN, PreferenceKeys.ETA_PACE, PreferenceKeys.EV_BASE_GOM, PreferenceKeys.EV_STATE).forEach { prefs.put(it, "") }
         paceReal = 0.0; pacePred = 0.0
         evStyleSum = 0.0; evStyleM = 0.0; evFreeSum = 0.0; evFreeM = 0.0; evAccSum = 0.0; evAccT = 0.0
     }

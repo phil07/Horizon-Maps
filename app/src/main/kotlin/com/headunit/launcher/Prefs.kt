@@ -307,6 +307,8 @@ internal object PreferenceKeys {
     const val EV_FREE_KMH = "evfreekmh"
     /** Of the energy going downhill, the share that comes back (learned). */
     const val EV_REGEN = "evregen"
+    /** The learning state kept between drives: the reference reading and what was driven since it (see NavEngine.evSave). */
+    const val EV_STATE = "evstate"
     /** The look of the app: "standard", or "neon" (dark city, glowing lines, cut corners). */
     const val LOOK = "look"
     /** The neon look's colour: "yellow", "cyan" or "magenta". */
