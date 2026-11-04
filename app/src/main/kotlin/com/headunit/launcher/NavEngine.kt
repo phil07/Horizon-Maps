@@ -1266,6 +1266,8 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         if (prev != null && speed > 0.8) {
             val d = Geo.dist(prev, cur)
             if (d in 3.0..200.0) { tripDist += d; tripMoving += 1.0; try { evTrack(speed, d) } catch (e: Exception) { } }
+            // a gap in the GPS track (a tunnel, a lost signal): the distance along the route between the two fixes
+            else if (d > 200.0 && d < 5000.0) try { evGapOnRoute(speed, prev, cur, d) } catch (e: Exception) { }
         }
         if (speed > tripMax) tripMax = speed
         val firstFix = fix == null
@@ -5652,6 +5654,19 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         routeWx.takeIf { it.isNotEmpty() }?.let { w -> return w.map { it.temp }.average() }
         weather?.let { return it.tempC }
         return evTempC
+    }
+
+    /**
+     * A gap in the GPS track (a tunnel, a lost signal) while on a route: the distance is the way along the route between the two
+     * fixes, not the straight line. Only when the route agrees with the straight line (no jump to another road).
+     */
+    private fun evGapOnRoute(speed: Double, prev: LL, cur: LL, straight: Double) {
+        val r = route ?: return
+        if (previewing || r.pts.size < 2) return
+        val along = RouteMatcher.snap(r, cur, 0).progress - RouteMatcher.snap(r, prev, 0).progress
+        if (along < 0.0 || along < straight * 0.5 - 200.0 || along > straight * 1.5 + 200.0) return
+        tripDist += along
+        evTrack(speed, along)
     }
 
     /** Every few metres driven (electric): the modelled use, how you drive against the limit, and learning from the battery level. */
