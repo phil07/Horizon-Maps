@@ -2662,52 +2662,95 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
 
     // ---- height warning (motorhome / caravan) ----
 
-    /** Height limits on the route ahead lower than your vehicle (offset along the route, the limit, a name). */
-    private var lowSpots: List<Triple<Double, Double, String>> = emptyList()
-    private var lowRoute: Route? = null
-    private var lowUpTo = 0.0
-    private var lowBusy = false
-    private val lowSaid = HashSet<Long>()
+    data class DimensionLimit(val offset: Double, val type: String, val limitValue: Double, val vehicleValue: Double, val name: String)
+
+    /** Dimension limits on the route ahead (offset, type, limit, vehicle value, name). */
+    private var dimSpots: List<DimensionLimit> = emptyList()
+    private var dimRoute: Route? = null
+    private var dimUpTo = 0.0
+    private var dimBusy = false
+    private val dimSaid = HashSet<Long>()
 
     /**
-     * With a motorhome or caravan profile: bridges and underpasses on the route lower than your vehicle (OpenStreetMap's
-     * maxheight), looked up 100 km at a time; one about 1.5 km ahead is shown and announced once.
+     * With a motorhome or truck profile: bridges/underpasses/weight limits on the route (OpenStreetMap's maxheight, maxwidth,
+     * maxweight, maxaxleweight), looked up 100 km at a time; one about 1.5 km ahead is shown and announced once.
      */
     private fun checkClearances(p: Fix) {
         val r = route ?: return
         if (previewing) return
         val v = Vehicle.active
-        if (v.isCar || v.heightM <= 0.0) return
+        if (v.isCar || (v.heightM <= 0.0 && v.widthM <= 0.0 && v.weightKg <= 0 && v.axleWeightKg <= 0)) return
         val prog = curProgress
-        if (r !== lowRoute) { lowRoute = r; lowSpots = emptyList(); lowUpTo = 0.0; lowSaid.clear() }
-        if (!lowBusy && online() && prog + 30_000.0 > lowUpTo && lowUpTo < r.len) {
-            lowBusy = true
-            val from = max(prog, lowUpTo - 500.0); val to = min(r.len, from + 100_000.0)
+        if (r !== dimRoute) { dimRoute = r; dimSpots = emptyList(); dimUpTo = 0.0; dimSaid.clear() }
+        if (!dimBusy && online() && prog + 30_000.0 > dimUpTo && dimUpTo < r.len) {
+            dimBusy = true
+            val from = max(prog, dimUpTo - 500.0); val to = min(r.len, from + 100_000.0)
             scope.launch {
                 try {
                     val found = withContext(Dispatchers.IO) { Overpass.clearances(RouteExtras.line(r, from, to, 40.0, 2500)) }
                     if (found != null && route === r) {
-                        val add = found.filter { it.heightM < v.heightM + 0.1 }.mapNotNull { c ->
-                            val pr = RouteExtras.project(r, c.pos, 25.0, from) ?: return@mapNotNull null
-                            Triple(pr.first, c.heightM, c.name)
-                        }
-                        lowSpots = (lowSpots + add).distinctBy { Math.round(it.first / 30.0) }.sortedBy { it.first }
-                        lowUpTo = to
+                        val add = found.mapNotNull { c ->
+                            val vWeightTons = v.weightKg / 1000.0
+                            val vAxleWeightTons = v.axleWeightKg / 1000.0
+                            val limits = listOfNotNull(
+                                if (c.heightM > 0.0 && c.heightM < v.heightM + 0.1) "height" to c.heightM else null,
+                                if (c.widthM > 0.0 && c.widthM < v.widthM + 0.05) "width" to c.widthM else null,
+                                if (c.weightTons > 0.0 && c.weightTons < vWeightTons + 0.1) "weight" to c.weightTons else null,
+                                if (c.axleWeightTons > 0.0 && c.axleWeightTons < vAxleWeightTons + 0.05) "axleweight" to c.axleWeightTons else null
+                            )
+                            limits.mapNotNull { (type, limit) ->
+                                val pr = RouteExtras.project(r, c.pos, 25.0, from) ?: return@mapNotNull null
+                                when (type) {
+                                    "height" -> DimensionLimit(pr.first, "h", limit, v.heightM, c.name)
+                                    "width" -> DimensionLimit(pr.first, "w", limit, v.widthM, c.name)
+                                    "weight" -> DimensionLimit(pr.first, "wt", limit, vWeightTons, c.name)
+                                    "axleweight" -> DimensionLimit(pr.first, "aw", limit, vAxleWeightTons, c.name)
+                                    else -> null
+                                }
+                            }
+                        }.flatten()
+                        dimSpots = (dimSpots + add).distinctBy { Math.round(it.offset / 30.0) to it.type }.sortedBy { it.offset }
+                        dimUpTo = to
                     }
-                } finally { lowBusy = false }
+                } finally { dimBusy = false }
             }
         }
-        val next = lowSpots.firstOrNull { it.first > prog - 20.0 } ?: return
-        val dist = next.first - prog
-        val key = Math.round(next.first / 30.0)
-        if (dist > 1500.0 || key in lowSaid) return
-        lowSaid += key
-        val h = String.format(Locale.GERMANY, "%.1f", next.second)
+        val next = dimSpots.firstOrNull { it.offset > prog - 20.0 } ?: return
+        val dist = next.offset - prog
+        val key = Math.round(next.offset / 30.0) * 1000 + next.type.hashCode()
+        if (dist > 1500.0 || key in dimSaid) return
+        dimSaid += key
         val d = Geo.fmtDist(dist, imperial)
-        showNotice(Notice("wx", Lang.t("Durchfahrtshöhe $h m in $d", "Height limit $h m in $d"),
-            Lang.t("Dein Fahrzeug ist ${String.format(Locale.GERMANY, "%.1f", v.heightM)} m hoch", "Your vehicle is ${String.format(Locale.UK, "%.1f", v.heightM)} m high") +
-                (if (next.third.isNotBlank()) " · ${next.third}" else ""), 3), 25_000L)
-        speak(Lang.t("Achtung, Durchfahrtshöhe $h Meter in $d. Dein Fahrzeug ist zu hoch.", "Caution, height limit $h metres in $d. Your vehicle is too high."), true)
+        when (next.type) {
+            "h" -> {
+                val h = String.format(Locale.GERMANY, "%.1f", next.limitValue)
+                showNotice(Notice("wx", Lang.t("Durchfahrtshöhe $h m in $d", "Height limit $h m in $d"),
+                    Lang.t("Dein Fahrzeug ist ${String.format(Locale.GERMANY, "%.1f", next.vehicleValue)} m hoch", "Your vehicle is ${String.format(Locale.UK, "%.1f", next.vehicleValue)} m high") +
+                        (if (next.name.isNotBlank()) " · ${next.name}" else ""), 3), 25_000L)
+                speak(Lang.t("Achtung, Durchfahrtshöhe $h Meter in $d. Dein Fahrzeug ist zu hoch.", "Caution, height limit $h metres in $d. Your vehicle is too high."), true)
+            }
+            "w" -> {
+                val w = String.format(Locale.GERMANY, "%.2f", next.limitValue)
+                showNotice(Notice("wx", Lang.t("Fahrbahn $w m breit in $d", "Road width $w m in $d"),
+                    Lang.t("Dein Fahrzeug ist ${String.format(Locale.GERMANY, "%.2f", next.vehicleValue)} m breit", "Your vehicle is ${String.format(Locale.UK, "%.2f", next.vehicleValue)} m wide") +
+                        (if (next.name.isNotBlank()) " · ${next.name}" else ""), 3), 25_000L)
+                speak(Lang.t("Achtung, Fahrbahn $w Meter breit in $d. Dein Fahrzeug könnte zu breit sein.", "Caution, road width $w metres in $d. Your vehicle may be too wide."), true)
+            }
+            "wt" -> {
+                val wt = String.format(Locale.GERMANY, "%.1f", next.limitValue)
+                showNotice(Notice("wx", Lang.t("Gewichtsbegrenzung $wt t in $d", "Weight limit $wt t in $d"),
+                    Lang.t("Dein Fahrzeug wiegt ${String.format(Locale.GERMANY, "%.1f", next.vehicleValue)} t", "Your vehicle weighs ${String.format(Locale.UK, "%.1f", next.vehicleValue)} t") +
+                        (if (next.name.isNotBlank()) " · ${next.name}" else ""), 3), 25_000L)
+                speak(Lang.t("Achtung, Gewichtsbegrenzung $wt Tonnen in $d. Dein Fahrzeug ist zu schwer.", "Caution, weight limit $wt tonnes in $d. Your vehicle is too heavy."), true)
+            }
+            "aw" -> {
+                val aw = String.format(Locale.GERMANY, "%.1f", next.limitValue)
+                showNotice(Notice("wx", Lang.t("Achslastbegrenzung $aw t in $d", "Axle weight limit $aw t in $d"),
+                    Lang.t("Deine Achslast ist ${String.format(Locale.GERMANY, "%.1f", next.vehicleValue)} t", "Your axle weight is ${String.format(Locale.UK, "%.1f", next.vehicleValue)} t") +
+                        (if (next.name.isNotBlank()) " · ${next.name}" else ""), 3), 25_000L)
+                speak(Lang.t("Achtung, Achslastbegrenzung $aw Tonnen in $d. Deine Achslast ist zu schwer.", "Caution, axle weight limit $aw tonnes in $d. Your axle weight is too heavy."), true)
+            }
+        }
     }
 
     /** While navigating a TomTom route: the posted limit for exactly where you are on it, updated with every GPS fix. */
