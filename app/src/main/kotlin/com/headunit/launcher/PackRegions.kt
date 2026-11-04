@@ -26,7 +26,7 @@ object PackRegions {
 
     private fun r(group: String, path: String, name: String, cc: String) = PackRegion(idOf(path), name, group, path, cc)
 
-    val groups = listOf("UK & Ireland", "Europe", "United States", "Canada", "Mexico & Central America", "South America", "Asia", "Africa", "Oceania")
+    val groups = listOf("UK & Ireland", "Europe", "Deutschland (Bundesländer)", "United States", "Canada", "Mexico & Central America", "South America", "Asia", "Africa", "Oceania")
 
     val all: List<PackRegion> = buildList {
         // the original UK packs (built by the "Build offline region pack" workflow)
@@ -56,6 +56,14 @@ object PackRegions {
         for ((p, nc) in eu) add(r("Europe", "europe/$p", nc.first, nc.second))
         add(r("Europe", "europe/azores", "Azores", "PT"))
         add(r("Europe", "russia", "Russia", "RU"))
+        val germanStates = listOf(
+            "baden-wuerttemberg" to "Baden-Württemberg", "bayern" to "Bayern", "berlin" to "Berlin", "brandenburg" to "Brandenburg",
+            "bremen" to "Bremen", "hamburg" to "Hamburg", "hessen" to "Hessen", "mecklenburg-vorpommern" to "Mecklenburg-Vorpommern",
+            "niedersachsen" to "Niedersachsen", "nordrhein-westfalen" to "Nordrhein-Westfalen", "rheinland-pfalz" to "Rheinland-Pfalz",
+            "saarland" to "Saarland", "sachsen" to "Sachsen", "sachsen-anhalt" to "Sachsen-Anhalt", "schleswig-holstein" to "Schleswig-Holstein",
+            "thueringen" to "Thüringen",
+        )
+        for ((p, name) in germanStates) add(r("Deutschland (Bundesländer)", "europe/germany/$p", name, "DE"))
         val states = listOf(
             "alabama", "alaska", "arizona", "arkansas", "california", "colorado", "connecticut", "delaware", "district-of-columbia", "florida",
             "georgia", "hawaii", "idaho", "illinois", "indiana", "iowa", "kansas", "kentucky", "louisiana", "maine", "maryland", "massachusetts",

@@ -44,7 +44,8 @@ object Vehicle {
 
     /** TomTom's routing parameters for the profile (nothing for a car). */
     fun tomtomParams(v: VehicleProfile = active): String = if (v.isCar) "" else String.format(java.util.Locale.US,
-        "&vehicleMaxSpeed=%d&vehicleHeight=%.2f&vehicleWidth=%.2f&vehicleLength=%.2f&vehicleWeight=%d", v.maxKmh, v.heightM, v.widthM, v.lengthM, v.weightKg)
+        "&vehicleMaxSpeed=%d&vehicleHeight=%.2f&vehicleWidth=%.2f&vehicleLength=%.2f&vehicleWeight=%d", v.maxKmh, v.heightM, v.widthM, v.lengthM, v.weightKg) +
+        (if (v.axleWeightKg > 0) "&vehicleAxleWeight=${v.axleWeightKg}" else "")
 
     /** Mapbox's routing parameters for the profile: height and width in metres, weight in tonnes (nothing for a car). */
     fun mapboxParams(v: VehicleProfile = active): String = if (v.isCar) "" else String.format(java.util.Locale.US,

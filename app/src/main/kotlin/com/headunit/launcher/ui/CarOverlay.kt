@@ -289,6 +289,11 @@ private fun CarScreen(engine: NavEngine, a: android.graphics.Rect?, actions: Car
             else Modifier.align(Alignment.TopCenter).padding(top = top, start = if (guiding) maxWidth * 0.42f else left, end = maxOf(rightTop, maxWidth * 0.30f))
         AnimatedVisibility(alert != null, modifier = alertMod, enter = fadeIn(), exit = fadeOut()) { alert?.let { AlertBanner(it) } }
 
+        // the compass, top right (below the sound button when the screen is tall), as on the phone: a tap turns north up or back
+        if (!previewing) CompositionLocalProvider(LocalDensity provides Density(dens.density * buttonScale, dens.fontScale)) {
+            ImmCompass(engine, Modifier.align(Alignment.TopEnd).padding(end = rightTop, top = top + below + if (portrait) 84.dp else 0.dp))
+        }
+
         if (!previewing && !arriving) {
             val hazards: @Composable () -> Unit = {
                 // (only when there's no turn card to carry them)

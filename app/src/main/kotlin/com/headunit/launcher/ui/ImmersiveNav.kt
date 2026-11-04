@@ -816,10 +816,10 @@ private fun TripArea(engine: NavEngine, shareEta: () -> Unit, narrow: Boolean = 
 }
 
 @Composable
-private fun ImmCompass(engine: NavEngine) {
+internal fun ImmCompass(engine: NavEngine, modifier: Modifier = Modifier) {
     val c = LocalVw.current
     Box(
-        (if (LocalInRail.current) Modifier.size(52.dp) else Modifier.size(52.dp).panel(6.dp, CircleShape, c.surface)).pressClick { engine.toggleNorthUp() },
+        (if (LocalInRail.current) Modifier.size(52.dp) else Modifier.size(52.dp).panel(6.dp, CircleShape, c.surface)).then(modifier).pressClick { engine.toggleNorthUp() },
         contentAlignment = Alignment.Center,
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
