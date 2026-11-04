@@ -124,7 +124,7 @@ internal val settingsIndex = listOf(
     SettingRef("Client Secret", "", "Kraftstoffpreise", 8),
     SettingRef("Preise", "", "Kraftstoffpreise", 8),
     SettingRef("Falschen Preis entdeckt?", "", "Kraftstoffpreise", 8),
-    SettingRef("Tankerkönig-Schlüssel (Deutschland)", "Spritpreise in Deutschland", "Kraftstoffpreise", 8),
+    SettingRef("Tankerkönig-Schlüssel (Deutschland)", "Spritpreise in Deutschland", "Kraftstoffpreise außerhalb Großbritanniens", 13),
     SettingRef("Effizienz (km pro kWh)", "", "Dein Elektroauto", 8),
     SettingRef("Nutzbare Batterie (kWh)", "", "Dein Elektroauto", 8),
     SettingRef("Strompreis (Cent pro kWh)", "", "Dein Elektroauto", 8),

@@ -818,9 +818,6 @@ private fun FuelSection(prefs: Prefs, engine: NavEngine) {
         }
         SItem("Falschen Preis entdeckt?") { SButton("Melden") { openSystemSettings(ctx, android.content.Intent.ACTION_VIEW, android.net.Uri.parse(FuelFinder.REPORT_URL)) } }
     }
-    SGroup("Kraftstoffpreise außerhalb Großbritanniens", footer = "Deutschland benötigt einen kostenlosen Schlüssel von Tankerkönig (creativecommons.tankerkoenig.de).") {
-        SFieldItem("Tankerkönig-Schlüssel (Deutschland)", prefs.s(PreferenceKeys.TANKERKOENIG_KEY, ""), placeholder = "Schlüssel einfügen", password = true) { prefs.put(PreferenceKeys.TANKERKOENIG_KEY, it.trim()) }
-    }
     if (prefs.s(PreferenceKeys.FUEL_TYPE, "E10") == "EV") CloudAccountGroup(prefs)
     if (prefs.s(PreferenceKeys.FUEL_TYPE, "E10") == "EV") SGroup("Dein Elektroauto") {
         EvCarItem(prefs)
@@ -1038,6 +1035,9 @@ private fun KeyTestGroup(prefs: Prefs) {
 @Composable
 private fun KeysSection(prefs: Prefs, engine: NavEngine) {
     KeyTestGroup(prefs)
+    SGroup("Kraftstoffpreise außerhalb Großbritanniens", footer = "Deutschland benötigt einen kostenlosen Schlüssel von Tankerkönig (creativecommons.tankerkoenig.de).") {
+        SFieldItem("Tankerkönig-Schlüssel (Deutschland)", prefs.s(PreferenceKeys.TANKERKOENIG_KEY, ""), placeholder = "Schlüssel einfügen", password = true) { prefs.put(PreferenceKeys.TANKERKOENIG_KEY, it.trim()) }
+    }
     SGroup("Suche") {
         SChoice("Suchergebnisse", searchCountryOptions(engine), searchCountryValue(prefs)) { prefs.put(PreferenceKeys.COUNTRY, it) }
         if (engine.hasKey && engine.hasMapbox) SChoice("Suchen mit", listOf("auto" to "TomTom", "mapbox" to "Mapbox"), if (prefs.s(PreferenceKeys.SEARCHWITH, "auto") == "mapbox") "mapbox" else "auto",
