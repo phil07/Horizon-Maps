@@ -1520,7 +1520,7 @@ private fun VehicleGroup(prefs: Prefs) {
     val kind = prefs.s(PreferenceKeys.VEHICLE, "car")
     SGroup("Fahrzeug", footer = if (kind == "car") "Wohnmobil oder Anhänger: eigenes Höchsttempo für Ankunftszeit und Tempowarnung, Maße und Gewicht für die Route." else
         "Die Ankunftszeit rechnet mit dem Höchsttempo, die Tempowarnung warnt ab diesem Wert. Zu niedrige Brücken, zu schmale Straßen und Gewichtsgrenzen meidet die Route, soweit TomTom und Mapbox sie kennen. Gilt für die nächste geplante Route.") {
-        SChoice("Profil", listOf("car" to "Pkw", "camper" to "Wohnmobil", "trailer" to "Anhänger"), kind) { prefs.put(PreferenceKeys.VEHICLE, it) }
+        SChoice("Profil", listOf("car" to "Pkw", "camper" to "Wohnmobil", "lorry" to "Lastkraftwagen"), kind) { prefs.put(PreferenceKeys.VEHICLE, it) }
         if (kind != "car") {
             val d = com.headunit.launcher.Vehicle.defaults(kind)
             VehicleField(prefs, kind, "max", "Höchsttempo (km/h)", d.maxKmh.toString(), "km/h")

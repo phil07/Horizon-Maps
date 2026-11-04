@@ -15,10 +15,11 @@ object Vehicle {
     /** The profile in use, set before each route is asked for. */
     @Volatile var active: VehicleProfile = VehicleProfile("car", 0, 0.0, 0.0, 0.0, 0)
 
-    /** The settings' defaults for each kind: a motorhome (up to 100 km/h) and a car with a caravan (80 km/h in Germany). */
+    /** The settings' defaults for each kind: a motorhome (up to 100 km/h) and a truck/caravan (80 km/h in Germany). */
     fun defaults(kind: String): VehicleProfile = when (kind) {
         "camper" -> VehicleProfile("camper", 100, 3.0, 2.3, 7.0, 3500, 3500)
-        "trailer" -> VehicleProfile("trailer", 80, 2.6, 2.3, 12.0, 3000, 3000)
+        "lorry" -> VehicleProfile("lorry", 80, 2.6, 2.3, 12.0, 3000, 3000)
+        "trailer" -> VehicleProfile("lorry", 80, 2.6, 2.3, 12.0, 3000, 3000)
         else -> VehicleProfile("car", 0, 0.0, 0.0, 0.0, 0, 0)
     }
 
@@ -26,7 +27,13 @@ object Vehicle {
     fun key(kind: String, what: String) = "veh_${kind}_$what"
 
     fun from(prefs: Prefs): VehicleProfile {
-        val kind = prefs.s(PreferenceKeys.VEHICLE, "car").let { if (it in setOf("car", "camper", "trailer")) it else "car" }
+        val kind = prefs.s(PreferenceKeys.VEHICLE, "car").let {
+            when (it) {
+                "trailer" -> "lorry"
+                in setOf("car", "camper", "lorry") -> it
+                else -> "car"
+            }
+        }
         val d = defaults(kind)
         if (d.isCar) return d
         fun num(w: String, def: Double) = prefs.s(key(kind, w), "").replace(',', '.').toDoubleOrNull()?.takeIf { it > 0 } ?: def
