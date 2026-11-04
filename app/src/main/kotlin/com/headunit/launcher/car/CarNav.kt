@@ -586,7 +586,18 @@ class MapScreen(carContext: CarContext, private val holder: CarHolder) : Screen(
     private fun reportAction(): Action = Action.Builder().setTitle(Lang.t("Melden", "Report"))
         .setOnClickListener { screenManager.push(ReportScreen(carContext, holder)) }.build()
 
-    override fun onGetTemplate(): Template {
+    override fun onGetTemplate(): Template = try {
+        buildTemplate()
+    } catch (ex: IllegalArgumentException) {
+        // a template the car refuses (e.g. too many buttons) must not close the app: show the map with Melden only
+        android.util.Log.w("HorizonCar", "Map template refused: ${ex.message}")
+        NavigationTemplate.Builder()
+            .setActionStrip(ActionStrip.Builder().addAction(reportAction()).build())
+            .setMapActionStrip(ActionStrip.Builder().addAction(Action.PAN).build())
+            .build()
+    }
+
+    private fun buildTemplate(): Template {
         val e = holder.engine
         val guiding = e != null && e.route != null && !e.previewing
         val strip = ActionStrip.Builder()
