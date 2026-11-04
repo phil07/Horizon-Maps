@@ -5,6 +5,7 @@ Add user-facing Horizon Nav changes under **Unreleased** before publishing each 
 ## Unreleased
 
 ### Verbessert
+- Elektro-Routenvorschau: Keine Routenkarte erscheint mehr ohne Ladepausen, auch nicht für einen Augenblick. Bis der echte Plan da ist, steht die Schätzung („ca.“).
 - Routenvorschau: Der Knopf „Ankunft bis…“ entfällt, die Navigation startet immer jetzt.
 
 

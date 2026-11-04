@@ -153,7 +153,7 @@ internal fun BoxScope.RoutePreview(engine: NavEngine) {
     // electric: a route's time counts its charging stops (the plan of each route is on its card)
     val evTrip = engine.prefs.s(PreferenceKeys.FUEL_TYPE, "E10") == "EV"
     val plansPending = evTrip && engine.evPlansPending
-    val totalSecs: (com.headunit.launcher.Route) -> Double = { r -> r.time + (if (evTrip) (engine.evRoutePlans[r]?.minutes ?: 0) * 60.0 else 0.0) }
+    val totalSecs: (com.headunit.launcher.Route) -> Double = { r -> r.time + (if (evTrip) (engine.evPlanShown(r)?.minutes ?: 0) * 60.0 else 0.0) }
     val fastest = rs.indices.minByOrNull { totalSecs(rs[it]) } ?: 0
     val shortest = rs.indices.minByOrNull { rs[it].len } ?: 0
     val progress = remember { Animatable(0f) }
@@ -203,7 +203,7 @@ internal fun BoxScope.RoutePreview(engine: NavEngine) {
         if (ev) {
             val pctNow = engine.evNowPct() ?: engine.prefs.i(PreferenceKeys.EV_CHARGE_PCT, 80).coerceIn(5, 100)
             add(Lang.t("Akku $pctNow %", "Battery $pctNow%"))
-            val selPlan = engine.route?.let { engine.evRoutePlans[it] }
+            val selPlan = engine.route?.let { engine.evPlanShown(it) }
             val nStops = if (evPlan.isNotEmpty()) evPlan.size else selPlan?.stops ?: 0
             if (nStops > 0) {
                 add(if (nStops == 1) Lang.t("1 Ladestopp", "1 charging stop") else Lang.t("$nStops Ladestopps", "$nStops charging stops"))
@@ -300,7 +300,7 @@ internal fun BoxScope.RoutePreview(engine: NavEngine) {
                                         .clickable { engine.selectRoute(i) }.padding(horizontal = 14.dp, vertical = 9.dp),
             ) {
                 Text(label.uppercase(), color = if (sel) c.accent else c.sub, fontSize = 11.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
-                val est = evTrip && engine.evEstimated[r] == true
+                val est = evTrip && engine.evPlanIsEstimate(r)
                 Text((if (est) "ca. " else "") + Geo.fmtDur(totalSecs(r)), color = c.text, fontSize = 22.sp, fontWeight = FontWeight.Bold)
                 Text("${Geo.fmtDist(r.len, engine.imperial)} · ${Lang.t("Ankunft", "arrive")} ${if (est) "ca. " else ""}${fmt.format(java.util.Date(baseMs + (totalSecs(r) * 1000).toLong()))}", color = c.sub, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 val via = viaOf(r)
@@ -311,8 +311,8 @@ internal fun BoxScope.RoutePreview(engine: NavEngine) {
                 )
                 // electric: what this route needs in charging, so the routes can be compared before one is chosen
                 if (ev) {
-                    val ps = engine.evRoutePlans[r]
-                    val estPre = if (engine.evEstimated[r] == true) "ca. " else ""
+                    val ps = engine.evPlanShown(r)
+                    val estPre = if (engine.evPlanIsEstimate(r)) "ca. " else ""
                     Text(
                         estPre + when {
                             ps == null -> Lang.t("Ladeplanung …", "Planning charging …")

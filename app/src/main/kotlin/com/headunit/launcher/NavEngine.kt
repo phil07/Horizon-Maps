@@ -5879,6 +5879,16 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
      * A rough plan that takes no network at all: charger stops as far apart as the range allows, each with the charging time of the car's
      * curve at a 150 kW charger and a few minutes' detour. Shown at once on the route cards until the real plan is in.
      */
+    /**
+     * The charging plan to show for a route on offer: the real one when it is in, else the quick estimate. Never nothing for an
+     * electric car with charge planning on, so a route card is never drawn, even for one frame, without its charging time.
+     */
+    fun evPlanShown(r: Route): EvRouteSummary? =
+        evRoutePlans[r] ?: if (isEv && prefs.b(PreferenceKeys.SMARTFUEL, true) && via.isEmpty()) evQuickPlan(r) else null
+
+    /** True while what [evPlanShown] gives for [r] is only the estimate. */
+    fun evPlanIsEstimate(r: Route): Boolean = evEstimated[r] == true || (evRoutePlans[r] == null && evPlanShown(r) != null)
+
     private fun evQuickPlan(r: Route): EvRouteSummary {
         return try {
             val destKm = prefs.i(PreferenceKeys.EV_DEST_KM, 50).coerceIn(0, 500).toDouble()
