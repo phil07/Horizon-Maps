@@ -310,9 +310,9 @@ internal fun BoxScope.RoutePreview(engine: NavEngine) {
                                         .clickable { engine.selectRoute(i) }.padding(horizontal = 14.dp, vertical = 9.dp),
             ) {
                 Text(label.uppercase(), color = if (sel) c.accent else c.sub, fontSize = 11.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
-                val waitPlan = plansPending && engine.evRoutePlans[r] == null
-                Text(if (waitPlan) "…" else Geo.fmtDur(totalSecs(r)), color = c.text, fontSize = 22.sp, fontWeight = FontWeight.Bold)
-                Text("${Geo.fmtDist(r.len, engine.imperial)} · ${Lang.t("Ankunft", "arrive")} ${if (waitPlan) "…" else fmt.format(java.util.Date(baseMs + (totalSecs(r) * 1000).toLong()))}", color = c.sub, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                val est = evTrip && engine.evEstimated[r] == true
+                Text((if (est) "ca. " else "") + Geo.fmtDur(totalSecs(r)), color = c.text, fontSize = 22.sp, fontWeight = FontWeight.Bold)
+                Text("${Geo.fmtDist(r.len, engine.imperial)} · ${Lang.t("Ankunft", "arrive")} ${if (est) "ca. " else ""}${fmt.format(java.util.Date(baseMs + (totalSecs(r) * 1000).toLong()))}", color = c.sub, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 val via = viaOf(r)
                 val delayMin = Math.round(r.delay / 60.0).toInt()
                 Text(
@@ -322,8 +322,9 @@ internal fun BoxScope.RoutePreview(engine: NavEngine) {
                 // electric: what this route needs in charging, so the routes can be compared before one is chosen
                 if (ev) {
                     val ps = engine.evRoutePlans[r]
+                    val estPre = if (engine.evEstimated[r] == true) "ca. " else ""
                     Text(
-                        when {
+                        estPre + when {
                             ps == null -> Lang.t("Ladeplanung …", "Planning charging …")
                             ps.stops == 0 && !ps.warning -> Lang.t("Kein Ladestopp nötig", "No charging stop needed")
                             ps.stops == 0 -> Lang.t("Ladeplanung reicht nicht", "Charging plan falls short")

@@ -5872,19 +5872,47 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
     val evRoutePlans = androidx.compose.runtime.mutableStateMapOf<Route, EvRouteSummary>()
 
     /** Plans the charging for every route on offer, one after the other, so each route card can show its own stops. */
+    /** Routes whose plan in [evRoutePlans] is only a quick estimate so far (the real plan replaces it). */
+    val evEstimated = androidx.compose.runtime.mutableStateMapOf<Route, Boolean>()
+
+    /**
+     * A rough plan that takes no network at all: charger stops as far apart as the range allows, each with the charging time of the car's
+     * curve at a 150 kW charger and a few minutes' detour. Shown at once on the route cards until the real plan is in.
+     */
+    private fun evQuickPlan(r: Route): EvRouteSummary {
+        return try {
+            val destKm = prefs.i(PreferenceKeys.EV_DEST_KM, 50).coerceIn(0, 500).toDouble()
+            val chargerKm = prefs.i(PreferenceKeys.EV_CHARGER_KM, 30).coerceIn(0, 500).toDouble()
+            val (startKm, full) = evRangeKm()
+            val lenKm = r.len / 1000.0
+            val batt = evBatteryKwh()
+            var s = 0.0; var range = startKm; var n = 0; var mins = 0
+            while (range - (lenKm - s) < destKm && n < 6 && full > chargerKm + 20) {
+                val ck = s + range - chargerKm
+                if (ck <= s + 1.0) break
+                val arr = chargerKm
+                val target = minOf(full, maxOf(arr, (lenKm - ck) + destKm))
+                mins += EvCars.chargeMinutes(prefs, arr / full * 100.0, target / full * 100.0, batt, 150, 1.0).coerceAtLeast(0) + 3
+                s = ck; range = target; n++
+            }
+            EvRouteSummary(n, mins, range - (lenKm - s) < destKm)
+        } catch (e: Exception) { EvRouteSummary(0, 0, false) }
+    }
+
     /** True while the routes on offer are still being planned: their times are not final until every plan is in. */
     var evPlansPending by mutableStateOf(false)
 
     private fun planEvAllRoutes() {
         val rs = routes
-        evRoutePlans.clear()
+        evRoutePlans.clear(); evEstimated.clear()
         evPlansPending = true
+        for (r in rs) { evRoutePlans[r] = evQuickPlan(r); evEstimated[r] = true }
         scope.launch {
             try {
                 // all routes at once: the slowest one decides, not the sum
                 rs.map { r -> scope.async {
                     val res = try { computeEvPlan(r) } catch (e: Exception) { null }
-                    if (routes === rs) evRoutePlans[r] = if (res == null) EvRouteSummary(0, 0, true) else EvRouteSummary(res.first.size, res.first.sumOf { it.minutes }, res.second != null)
+                    if (routes === rs) { evEstimated.remove(r); evRoutePlans[r] = if (res == null) EvRouteSummary(0, 0, true) else EvRouteSummary(res.first.size, res.first.sumOf { it.minutes }, res.second != null) }
                 } }.forEach { it.await() }
             } finally {
                 if (routes === rs) evPlansPending = false
