@@ -5,12 +5,7 @@ Add user-facing Horizon Nav changes under **Unreleased** before publishing each 
 ## Unreleased
 
 ### Verbessert
-- Ladeplanung: Die Routen der Vorschau werden gleichzeitig statt nacheinander geplant und die Wartezeit ist deutlich kürzer. Der Plan der gewählten Route wird nicht noch einmal berechnet. Auch innerhalb einer Route laufen Höhenprofil, TomTom und die Ladesäulen-Register jetzt gleichzeitig.
-- Startbildschirm: Das grüne Vorschlagsfeld mit der letzten oder vermuteten Route („Berlin · 5 h 49 min · Los“) entfällt.
-- Elektro-Routenvorschau: Die Routenkarten erscheinen sofort. Zeit, Ankunft und Ladestopps stehen zuerst als grobe Schätzung („ca.“) da und werden ersetzt, sobald die echte Ladeplanung fertig ist. Der Start-Countdown wartet darauf.
-- Routenvorschau: Die Auswahl „Abfahrt: Jetzt / +15 Min. / +30 Min. …“ entfällt, die Navigation startet immer jetzt. „Ankunft bis…“ bleibt.
-- Fortschrittsbalken: Die Zielflagge sitzt genau am rechten Ende des Balkens, wie der Pfeil am linken Ende.
-- Gespeichert & zuletzt: Unter häufigen Zielen steht jetzt die Adresse statt „Meist gegen 12:02“, auch bei schon gespeicherten Zielen.
+- Routenvorschau: Der Knopf „Ankunft bis…“ entfällt, die Navigation startet immer jetzt.
 
 
 ## 1.0.246 — 2026-10-28

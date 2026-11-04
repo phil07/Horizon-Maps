@@ -243,12 +243,6 @@ internal fun BoxScope.RoutePreview(engine: NavEngine) {
         if (engine.via.isNotEmpty()) Text(engine.via.joinToString(" › ") { it.name }, color = c.text, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.widthIn(max = 220.dp))
         if (costText != null) Text(costText, color = c.sub, fontSize = 13.sp, modifier = Modifier.padding(horizontal = 8.dp))
     }
-    Row(
-        Modifier.floating(50.dp).horizontalScroll(rememberScrollState()).padding(6.dp),
-        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp),
-    ) {
-        Pill(Lang.t("Ankunft bis…", "Arrive by…"), planHold, { arriveBy = true })
-    }
     // electric: the battery now, the least you want to arrive with, and the eco route; charging stops are then planned.
     // A fresh reading from the battery widget makes the "battery now" setting pointless: then only the other two are shown.
     if (ev) Row(
