@@ -3025,6 +3025,13 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
 
     private fun trackParking(p: Fix) {
         if (simMode != 0) return
+        // the battery estimate also follows the drive without a route: the distance since the last fix, at the steady consumption
+        // (standing still adds nothing, so the estimate doesn't fall while charging)
+        val prevEst = evEstPrev
+        if (isEv && prevEst != null && p.speed > 3.0) { val d = Geo.dist(prevEst, p.pos); if (d in 2.0..500.0) evSinceRead += d / 1000.0 * evBaseKwhPerKm() }
+        evEstPrev = p.pos
+        // a reading that is the same as the last one, after the car has used more than 1 % since, is the widget's old figure: not believed
+        EvWidget.staleCheck = { evSinceRead / evBatteryKwh() * 100.0 >= 1.0 }
         val now = System.currentTimeMillis()
         // ---- trip recording ----
         if (tripOn) {
@@ -5533,6 +5540,14 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
     private var evChargeRefPct = -1.0
     private var evChargeRefAt = 0L
     private var evSinceCharge = 0.0
+
+    private var evEstPrev: LL? = null
+
+    /** The range now in km, from the same estimate (null when there is no reading yet). */
+    fun evEstimateKm(): Int? = Math.round(evRangeKm().first).toInt().takeIf { it > 0 }
+
+    /** True when the last real reading is so old that the battery figure on screen is an estimate. */
+    fun evEstimateOld(): Boolean = (evNowAgeMin() ?: Long.MAX_VALUE) > 10
 
     /**
      * The battery now, in %: the car's reading (60 minutes at most) less the modelled kWh driven since it; or, when a charging stop

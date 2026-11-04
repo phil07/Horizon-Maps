@@ -247,11 +247,15 @@ object EvWidget {
         lastPct = pct; lastAt = at
     }
 
+    /** Set by the engine: true when the car has used more than 1 % since the last reading (so an unchanged figure is an old one). */
+    var staleCheck: (() -> Boolean)? = null
+
     /** A reading from the car itself (Android Auto). The widget's reading comes first: the car's value is used only while the widget has no fresh one. */
     fun liveReading(p: Prefs, pct: Int, km: Int?) {
         val now = System.currentTimeMillis()
         liveAt = now
         if (p.s(TAG_SRC, "widget") == "widget" && now - readAt(p) < 10 * 60_000L) return
+        if (pct == nowPct && staleCheck?.invoke() == true) return
         publish(p, pct, km ?: fallbackKm(p, pct), "car", now)
     }
 
@@ -263,6 +267,7 @@ object EvWidget {
     /** A reading from the widget (or the cloud). It replaces the car's value at once. */
     private fun onPct(p: Prefs, pct: Int?, km: Int?, src: String = "widget") {
         if (pct == null) return
+        if (pct == nowPct && staleCheck?.invoke() == true) return
         val now = System.currentTimeMillis()
         // no range in this reading: work it out from the level, rather than keep an older one
         publish(p, pct, km ?: fallbackKm(p, pct), src, now)

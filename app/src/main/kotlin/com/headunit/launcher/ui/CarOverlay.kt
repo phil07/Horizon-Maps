@@ -450,13 +450,21 @@ private fun FasterCard(engine: NavEngine, modifier: Modifier) {
 @Composable
 private fun EvPill(engine: NavEngine) {
     val c = LocalVw.current
-    // the widget's or the car's latest reading (observed state, so the screen redraws when it changes); the stored one until then
-    val evPct = com.headunit.launcher.EvWidget.nowPct ?: engine.prefs.s(PreferenceKeys.EV_NOW_PCT, "").toIntOrNull()
-    val evKm = com.headunit.launcher.EvWidget.nowKm ?: engine.prefs.s(PreferenceKeys.EV_NOW_KM, "").toIntOrNull()
+    // the estimate from the last reading, worked on every second: the drive since then comes off the battery (standing still adds nothing)
+    val est by androidx.compose.runtime.produceState<Pair<Int, Int?>?>(null, engine) {
+        while (true) {
+            value = if (com.headunit.launcher.EvWidget.readAt(engine.prefs) > 0) Math.round(engine.evNowEstimatePct()).toInt() to engine.evEstimateKm() else null
+            kotlinx.coroutines.delay(1000L)
+        }
+    }
+    val evPct = est?.first ?: engine.prefs.s(PreferenceKeys.EV_NOW_PCT, "").toIntOrNull()
+    val evKm = est?.second ?: engine.prefs.s(PreferenceKeys.EV_NOW_KM, "").toIntOrNull()
+    // "ca." once the last real reading is more than 10 minutes old
+    val approx = if (est != null && engine.evEstimateOld()) "ca. " else ""
     Row(Modifier.height(64.dp).panel(10.dp, RoundedCornerShape(32.dp), c.surface).padding(horizontal = 22.dp),
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-        Text(if (evPct != null) "$evPct %" else "– %", color = if (evPct == null) c.sub else if (evPct < 15) Bad else if (evPct < 30) Warn else c.text, fontSize = 28.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
-        Text(if (evKm != null) "· $evKm km" else "· – km", color = if (evKm == null) c.sub else c.text, fontSize = 28.sp, maxLines = 1)
+        Text(if (evPct != null) "$approx$evPct %" else "– %", color = if (evPct == null) c.sub else if (evPct < 15) Bad else if (evPct < 30) Warn else c.text, fontSize = 28.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
+        Text(if (evKm != null) "· $approx$evKm km" else "· – km", color = if (evKm == null) c.sub else c.text, fontSize = 28.sp, maxLines = 1)
     }
 }
 
