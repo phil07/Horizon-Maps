@@ -601,6 +601,8 @@ fun EvStopsRow(engine: NavEngine, planned: List<com.headunit.launcher.EvStop>? =
                         )
                     }
                 }
+                if (scrollList) Text(Lang.t("▼ Alle ${stops.size} Stopps: nach unten scrollen", "▼ All ${stops.size} stops: scroll down"),
+                    color = c.accent, fontSize = 12.sp, fontWeight = FontWeight.Bold)
                 if (warn != null) Text(warn, color = Bad, fontSize = 12.sp)
             }
         }
