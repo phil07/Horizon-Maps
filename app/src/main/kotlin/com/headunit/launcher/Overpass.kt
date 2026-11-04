@@ -675,6 +675,32 @@ object Overpass {
         return out
     }
 
+    /** Traffic/ALPR cameras along a route: location and type. Null when the servers didn't answer. */
+    fun cameras(line: List<LL>, radius: Int = 50): List<Camera>? {
+        if (line.size < 2) return emptyList()
+        val poly = line.joinToString(",") { String.format(java.util.Locale.US, "%.5f,%.5f", it.lat, it.lon) }
+        val q = "[out:json][timeout:15];(node(around:$radius,$poly)[\"amenity\"=\"camera\"];node(around:$radius,$poly)[\"man_made\"=\"surveillance\"];way(around:$radius,$poly)[\"amenity\"=\"camera\"];way(around:$radius,$poly)[\"man_made\"=\"surveillance\"];);out center tags 100;"
+        val els = try { run(q, 6000, 12000, 2) } catch (e: Exception) { return null }
+        val out = ArrayList<Camera>()
+        for (i in 0 until els.length()) {
+            val e = els.optJSONObject(i) ?: continue
+            val t = e.optJSONObject("tags") ?: continue
+            val c = e.optJSONObject("center")
+            val pos = if (c != null) LL(c.optDouble("lat"), c.optDouble("lon")) else if (e.has("lat")) LL(e.optDouble("lat"), e.optDouble("lon")) else continue
+            val type = when {
+                t.optString("camera:type").contains("speed") -> "speed"
+                t.optString("camera:purpose").contains("traffic") -> "traffic"
+                t.optString("enforcement") == "yes" -> "speed"
+                t.optString("traffic_signals:camera") == "yes" -> "traffic"
+                else -> "camera"
+            }
+            out += Camera(pos, type, t.optString("ref").ifBlank { t.optString("name") })
+        }
+        return out
+    }
+
+    data class Camera(val pos: LL, val type: String, val ref: String)
+
     // (a number followed by "x" is a count, as in "2x150 kW")
     private val KW_RE = Regex("([0-9]+(?:[.,][0-9]+)?)\\s*(kw|mw|w)?(?![0-9x×])", RegexOption.IGNORE_CASE)
 
