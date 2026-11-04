@@ -340,6 +340,20 @@ internal object PreferenceKeys {
     const val REPORTS_URL = "reportsurl"
     /** A random id made once on this device, sent with every request to the reports server (anonymous, nothing else). */
     const val REPORTS_DEVICE = "reportsdevice"
+
+    // Fahrzeugprofile: Typ und Abmessungen für Höhen-, Breiten- und Gewichtswarnungen
+    /** Fahrzeugtyp: CAR, RV, TRAILER, LORRY. */
+    const val VEHICLE_TYPE = "vehicletype"
+    /** Fahrzeughöhe in Metern. */
+    const val VEHICLE_HEIGHT = "vehicleheight"
+    /** Fahrzeugbreite in Metern. */
+    const val VEHICLE_WIDTH = "vehiclewidth"
+    /** Fahrzeuglänge in Metern. */
+    const val VEHICLE_LENGTH = "vehiclelength"
+    /** Fahrzeuggewicht in Tonnen. */
+    const val VEHICLE_WEIGHT = "vehicleweight"
+    /** Achslast in Tonnen. */
+    const val VEHICLE_AXLE_WEIGHT = "vehicleaxleweight"
 }
 
 /**

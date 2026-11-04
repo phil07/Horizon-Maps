@@ -56,3 +56,28 @@ class Prediction(val place: Place, val title: String, val mins: Int, val delayMi
 class IncidentAhead(val label: String, val dist: Double, val delaySec: Int)
 /** [chargeSecs]: of [secs], the time at the charging stops still ahead (charging, and getting off and back on the road). */
 class EtaInfo(val arrive: String, val dist: Double, val secs: Double, val delayMin: Int, val chargeSecs: Double = 0.0)
+
+/** Fahrzeugtypen mit Höhen-, Breiten- und Gewichtsbeschränkungen: Pkw, Wohnmobil, Anhänger, Lastkraftwagen. */
+enum class VehicleType(val label: String) {
+    CAR("Pkw"),
+    RV("Wohnmobil"),
+    TRAILER("Anhänger"),
+    LORRY("Lastkraftwagen")
+}
+
+/** Fahrzeugabmessungen in Metern und Tonnen (für Brücken-, Durchfahrts- und Gewichtswarnungen). */
+class VehicleDimensions(
+    val heightM: Double = 0.0,      // Höhe in m
+    val widthM: Double = 0.0,       // Breite in m
+    val lengthM: Double = 0.0,      // Länge in m
+    val weightTons: Double = 0.0,   // Gesamtgewicht in Tonnen
+    val axleWeightTons: Double = 0.0 // Achslast in Tonnen
+) {
+    val hasLimits: Boolean get() = heightM > 0 || widthM > 0 || lengthM > 0 || weightTons > 0 || axleWeightTons > 0
+}
+
+/** Fahrzeugprofil: Typ (Pkw/Wohnmobil/etc.) mit Abmessungen. */
+class VehicleProfile(
+    val type: VehicleType = VehicleType.CAR,
+    val dimensions: VehicleDimensions = VehicleDimensions()
+)
