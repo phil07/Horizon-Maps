@@ -4980,7 +4980,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
             fix?.let { f -> try { checkYieldSigns(f.pos, f.heading) } catch (e: Exception) { } }
             fix?.let { f -> if (via.isNotEmpty() && Geo.dist(f.pos, via[0].pos) < viaReachM()) { toast(str(R.string.rest_432, via[0].name), 3000); val reached = via[0].pos
                 // a charging stop reached: from here the battery counts from the charge planned there (until the car reports a newer level)
-                evPlanned.firstOrNull { Geo.dist(it.n.place.pos, reached) < 30.0 }?.let { st -> evChargeRefPct = st.toPct.toDouble(); evChargeRefAt = System.currentTimeMillis(); evSinceCharge = 0.0 }
+                evPlanned.firstOrNull { Geo.dist(it.n.place.pos, reached) < 30.0 }?.let { st -> evChargeRefPct = st.toPct.toDouble(); evChargeRefAt = System.currentTimeMillis(); evSinceCharge = 0.0; evRefPct = -1 }
                 evPlanned = evPlanned.filter { Geo.dist(it.n.place.pos, reached) >= 30.0 }; via = via.drop(1); pushVia() } }
             if (via.isEmpty()) checkParking(r, rem)
             curProgress = progress
@@ -5559,13 +5559,15 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
     private var evDriven = 0.0
     private var evSavedAt = 0L
     private var evLoaded = false
+    /** The battery level at the previous reading (to see a rise, that is a charge), -1 when none yet. */
+    private var evPrevPct = -1
     /** True when a stretch of the drive since the reference reading could not be measured (a gap off the route): no learning from it. */
     private var evGapBad = false
 
     /** The learning state as a list (see evLoad for the order). */
     private fun evState(): List<Double> = listOf(evRefPct.toDouble(), evRefDist, evRefModel, evRefModelB[0], evRefModelB[1], evRefModelB[2],
         evRefAux, evRefUp, evRefDown, evRefKm[0], evRefKm[1], evRefKm[2], evReadSeen.toDouble(), evSinceRead, evSinceNav, evSinceCharge,
-        evDriven, evChargeRefPct, evChargeRefAt.toDouble(), if (evGapBad) 1.0 else 0.0)
+        evDriven, evChargeRefPct, evChargeRefAt.toDouble(), if (evGapBad) 1.0 else 0.0, evPrevPct.toDouble())
 
     /** Saved to the settings, so the reference reading and the drive since it survive a restart of the app. */
     private fun evSave() {
@@ -5576,13 +5578,13 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
     /** Loaded once, on the first drive: the state of the last drive, if it is complete. */
     private fun evLoad() {
         val v = prefs.s(PreferenceKeys.EV_STATE, "").split(",").mapNotNull { it.toDoubleOrNull() }
-        if (v.size != 20) return
+        if (v.size != 21) return
         evRefPct = v[0].toInt(); evRefDist = v[1]; evRefModel = v[2]
         for (i in 0..2) evRefModelB[i] = v[3 + i]
         evRefAux = v[6]; evRefUp = v[7]; evRefDown = v[8]
         for (i in 0..2) evRefKm[i] = v[9 + i]
         evReadSeen = v[12].toLong(); evSinceRead = v[13]; evSinceNav = v[14]; evSinceCharge = v[15]
-        evDriven = v[16]; evChargeRefPct = v[17]; evChargeRefAt = v[18].toLong(); evGapBad = v[19] > 0.5
+        evDriven = v[16]; evChargeRefPct = v[17]; evChargeRefAt = v[18].toLong(); evGapBad = v[19] > 0.5; evPrevPct = v[20].toInt()
     }
     /** Charging at a charger: the last battery reading seen (its time and level), and whether the level rose while standing there. */
     private var evChargeReadAt = 0L
@@ -5774,6 +5776,10 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
                 prefs.put(PreferenceKeys.EV_BASE_GOM, String.format(java.util.Locale.US, "%.4f", old * 0.8 + g * 0.2))
             }
             val pct = evNowPct() ?: return
+            // the level went up since the previous reading: the car was charged in between, so the drive before it is not learned from
+            val rose = evPrevPct >= 0 && pct > evPrevPct
+            evPrevPct = pct
+            if (rose) { evStartRef(pct); return }
             if (evRefPct < 0 || pct > evRefPct) { evStartRef(pct); return }   // first reading, or charged since
             val drop = evRefPct - pct
             if (drop >= 5 && evDriven - evRefDist >= 10_000 && evRefModel > 0.5 && !evGapBad) {
