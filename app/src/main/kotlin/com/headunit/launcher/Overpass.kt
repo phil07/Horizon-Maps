@@ -539,28 +539,58 @@ object Overpass {
     }
 
     /** A place with a height limit (a bridge, an underpass, a tunnel), with its limit in metres. */
-    class Clearance(val pos: LL, val heightM: Double, val name: String)
+    class Clearance(val pos: LL, val heightM: Double, val name: String, val widthM: Double = 0.0, val weightTons: Double = 0.0, val axleWeightTons: Double = 0.0)
 
     /**
-     * The height limits within [radius] metres of [line] (the route ahead): roads and bridges tagged maxheight, and barriers
-     * (height restrictors) with one. Null when the servers didn't answer.
+     * The dimension limits within [radius] metres of [line] (the route ahead): roads and bridges tagged maxheight, maxwidth,
+     * maxweight, maxaxleweight, and barriers (restrictors) with one. Null when the servers didn't answer.
      */
     fun clearances(line: List<LL>, radius: Int = 20): List<Clearance>? {
         if (line.size < 2) return emptyList()
         val poly = line.joinToString(",") { String.format(java.util.Locale.US, "%.5f,%.5f", it.lat, it.lon) }
         val q = "[out:json][timeout:25];(way(around:$radius,$poly)[\"maxheight\"];node(around:$radius,$poly)[\"maxheight\"];" +
-            "way(around:$radius,$poly)[\"maxheight:physical\"];);out center tags 300;"
+            "way(around:$radius,$poly)[\"maxheight:physical\"];way(around:$radius,$poly)[\"maxwidth\"];way(around:$radius,$poly)[\"maxweight\"];way(around:$radius,$poly)[\"maxaxleweight\"];);out center tags 300;"
         val els = try { run(q, 6000, 20000, 2) } catch (e: Exception) { return null }
         val out = ArrayList<Clearance>()
         for (i in 0 until els.length()) {
             val e = els.optJSONObject(i) ?: continue
             val t = e.optJSONObject("tags") ?: continue
-            val h = parseHeight(t.optString("maxheight").ifBlank { t.optString("maxheight:physical") }) ?: continue
+            val h = parseHeight(t.optString("maxheight").ifBlank { t.optString("maxheight:physical") })
+            val w = parseDistance(t.optString("maxwidth"))
+            val wt = parseWeight(t.optString("maxweight"))
+            val awt = parseWeight(t.optString("maxaxleweight"))
+            if (h == null && w == null && wt == null && awt == null) continue
             val c = e.optJSONObject("center")
             val pos = if (c != null) LL(c.optDouble("lat"), c.optDouble("lon")) else if (e.has("lat")) LL(e.optDouble("lat"), e.optDouble("lon")) else continue
-            out += Clearance(pos, h, t.optString("name").ifBlank { t.optString("ref") })
+            out += Clearance(pos, h ?: 0.0, t.optString("name").ifBlank { t.optString("ref") }, w ?: 0.0, wt ?: 0.0, awt ?: 0.0)
         }
         return out
+    }
+
+    /** "3.5", "3,8 m", "3.5 m", "12'6\"" → metres; nonsense → null. */
+    fun parseDistance(v: String): Double? {
+        val s = v.trim().lowercase()
+        if (s.isEmpty()) return null
+        Regex("^(\\d+)'\\s*(\\d+)?\"?$").find(s)?.let { m -> return (m.groupValues[1].toInt() * 12 + (m.groupValues[2].toIntOrNull() ?: 0)) * 0.0254 }
+        val n = Regex("^(\\d+(?:[.,]\\d+)?)\\s*(m)?$").find(s)?.groupValues?.get(1)?.replace(',', '.')?.toDoubleOrNull() ?: return null
+        return n.takeIf { it in 0.5..5.0 }
+    }
+
+    /** "7.5", "7,5 t", "7.5 t", "7500 kg" → tonnes; nonsense → null. */
+    fun parseWeight(v: String): Double? {
+        val s = v.trim().lowercase()
+        if (s.isEmpty()) return null
+        val n = Regex("^(\\d+(?:[.,]\\d+)?)\\s*([tk]g?)?$").find(s)?.let { m ->
+            val num = m.groupValues[1].replace(',', '.').toDoubleOrNull() ?: return null
+            val unit = m.groupValues[2]
+            when {
+                unit.isEmpty() -> num
+                unit in setOf("kg", "k") -> num / 1000.0
+                unit in setOf("t", "tg") -> num
+                else -> return null
+            }
+        } ?: return null
+        return n.takeIf { it in 0.5..100.0 }
     }
 
     /** "3.5", "3,8 m", "4.0 m", "12'6\"" → metres; "default", "none", "below_default" and nonsense → null. */
