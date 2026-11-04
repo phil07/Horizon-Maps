@@ -1267,7 +1267,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
             val d = Geo.dist(prev, cur)
             if (d in 3.0..200.0) { tripDist += d; tripMoving += 1.0; try { evTrack(speed, d) } catch (e: Exception) { } }
             // a gap in the GPS track (a tunnel, a lost signal): the distance along the route between the two fixes
-            else if (d > 200.0 && d < 5000.0) try { evGapOnRoute(speed, prev, cur, d) } catch (e: Exception) { }
+            else if (d > 200.0) try { if (!(d < 5000.0 && evGapOnRoute(speed, prev, cur, d))) evGapBad = true } catch (e: Exception) { evGapBad = true }
         }
         if (speed > tripMax) tripMax = speed
         val firstFix = fix == null
@@ -5559,11 +5559,13 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
     private var evDriven = 0.0
     private var evSavedAt = 0L
     private var evLoaded = false
+    /** True when a stretch of the drive since the reference reading could not be measured (a gap off the route): no learning from it. */
+    private var evGapBad = false
 
     /** The learning state as a list (see evLoad for the order). */
     private fun evState(): List<Double> = listOf(evRefPct.toDouble(), evRefDist, evRefModel, evRefModelB[0], evRefModelB[1], evRefModelB[2],
         evRefAux, evRefUp, evRefDown, evRefKm[0], evRefKm[1], evRefKm[2], evReadSeen.toDouble(), evSinceRead, evSinceNav, evSinceCharge,
-        evDriven, evChargeRefPct, evChargeRefAt.toDouble())
+        evDriven, evChargeRefPct, evChargeRefAt.toDouble(), if (evGapBad) 1.0 else 0.0)
 
     /** Saved to the settings, so the reference reading and the drive since it survive a restart of the app. */
     private fun evSave() {
@@ -5574,13 +5576,13 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
     /** Loaded once, on the first drive: the state of the last drive, if it is complete. */
     private fun evLoad() {
         val v = prefs.s(PreferenceKeys.EV_STATE, "").split(",").mapNotNull { it.toDoubleOrNull() }
-        if (v.size != 19) return
+        if (v.size != 20) return
         evRefPct = v[0].toInt(); evRefDist = v[1]; evRefModel = v[2]
         for (i in 0..2) evRefModelB[i] = v[3 + i]
         evRefAux = v[6]; evRefUp = v[7]; evRefDown = v[8]
         for (i in 0..2) evRefKm[i] = v[9 + i]
         evReadSeen = v[12].toLong(); evSinceRead = v[13]; evSinceNav = v[14]; evSinceCharge = v[15]
-        evDriven = v[16]; evChargeRefPct = v[17]; evChargeRefAt = v[18].toLong()
+        evDriven = v[16]; evChargeRefPct = v[17]; evChargeRefAt = v[18].toLong(); evGapBad = v[19] > 0.5
     }
     /** Charging at a charger: the last battery reading seen (its time and level), and whether the level rose while standing there. */
     private var evChargeReadAt = 0L
@@ -5687,13 +5689,14 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
      * A gap in the GPS track (a tunnel, a lost signal) while on a route: the distance is the way along the route between the two
      * fixes, not the straight line. Only when the route agrees with the straight line (no jump to another road).
      */
-    private fun evGapOnRoute(speed: Double, prev: LL, cur: LL, straight: Double) {
-        val r = route ?: return
-        if (previewing || r.pts.size < 2) return
+    private fun evGapOnRoute(speed: Double, prev: LL, cur: LL, straight: Double): Boolean {
+        val r = route ?: return false
+        if (previewing || r.pts.size < 2) return false
         val along = RouteMatcher.snap(r, cur, 0).progress - RouteMatcher.snap(r, prev, 0).progress
-        if (along < 0.0 || along < straight * 0.5 - 200.0 || along > straight * 1.5 + 200.0) return
+        if (along < 0.0 || along < straight * 0.5 - 200.0 || along > straight * 1.5 + 200.0) return false
         tripDist += along
         evTrack(speed, along)
+        return true
     }
 
     /** Every few metres driven (electric): the modelled use, how you drive against the limit, and learning from the battery level. */
@@ -5773,7 +5776,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
             val pct = evNowPct() ?: return
             if (evRefPct < 0 || pct > evRefPct) { evStartRef(pct); return }   // first reading, or charged since
             val drop = evRefPct - pct
-            if (drop >= 5 && evDriven - evRefDist >= 10_000 && evRefModel > 0.5) {
+            if (drop >= 5 && evDriven - evRefDist >= 10_000 && evRefModel > 0.5 && !evGapBad) {
                 // what the battery really lost against what the model said (without its buffer and corrections)
                 val actual = drop / 100.0 * evBatteryKwh()
                 val l = evLearned()
@@ -5800,7 +5803,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         }
     }
 
-    private fun evStartRef(pct: Int) { evRefPct = pct; evRefDist = evDriven; evRefModel = 0.0; evRefModelB.fill(0.0); evRefAux = 0.0; evRefUp = 0.0; evRefDown = 0.0; evRefKm.fill(0.0) }
+    private fun evStartRef(pct: Int) { evRefPct = pct; evRefDist = evDriven; evGapBad = false; evRefModel = 0.0; evRefModelB.fill(0.0); evRefAux = 0.0; evRefUp = 0.0; evRefDown = 0.0; evRefKm.fill(0.0) }
 
     /**
      * Of the energy going downhill, the share that comes back: none. The estimate counts the full use on the hills, so it stays on
