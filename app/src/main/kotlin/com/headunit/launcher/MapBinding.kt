@@ -2165,6 +2165,10 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
             .iconPitchAlignment(IconPitchAlignment.VIEWPORT).iconEmissiveStrength(1.0).iconAnchor(IconAnchor.BOTTOM)
             .iconSize(zoomed(1.0, 13 to 0.42, 15 to 0.55, 18 to 0.7)).minZoom(13.0))
         // every speed camera around you, route or not: a small camera badge on the road (the route's own ones sit on top, bigger)
+        addS(st, GeoJsonSource.Builder("dl-alpr").featureCollection(empty()).build())
+        addL(st, CircleLayer("dl-alpr-l", "dl-alpr")
+            .circleColor("#7C4DFF").circleStrokeColor("#FFFFFF").circleStrokeWidth(1.5)
+            .circleRadius(zoomed(1.0, 10 to 4.0, 14 to 6.0, 18 to 9.0)).circleEmissiveStrength(1.0))
         addS(st, GeoJsonSource.Builder("dl-cams").featureCollection(empty()).build())
         addL(st, SymbolLayer("dl-cams", "dl-cams")
             .iconImage("dl-hz-cam").iconAllowOverlap(true).iconIgnorePlacement(true)
@@ -2505,7 +2509,7 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
 
     private fun pushAll() {
         pushLive(); pushRadar(); pushTurn()
-        pushRoute(); pushDest(); pushVia(); pushChargers(); pushMe(); pushHazards(); pushCams(); pushSignals(); pushGarages()
+        pushRoute(); pushDest(); pushVia(); pushChargers(); pushMe(); pushHazards(); pushCams(); pushAlpr(); pushSignals(); pushGarages()
     }
 
     // ---- car parks with their free spaces ----
@@ -2576,10 +2580,21 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
     }
 
     private var cams: List<LL> = emptyList()
+    private var alpr: List<LL> = emptyList()
 
     /** The speed cameras around you, shown on the map whether or not you're on a route. */
     fun setCameras(list: List<LL>) {
         main0.post { if (list != cams) { cams = list; pushCams() } }
+    }
+
+    /** Automatic number-plate reader cameras on the route ahead, drawn as violet dots. */
+    fun setAlprCameras(list: List<LL>) {
+        main0.post { if (list != alpr) { alpr = list; pushAlpr() } }
+    }
+
+    private fun pushAlpr() {
+        val s = src("dl-alpr") ?: return
+        try { s.featureCollection(FeatureCollection.fromFeatures(alpr.map { Feature.fromGeometry(Point.fromLngLat(it.lon, it.lat)) })) } catch (e: Exception) { }
     }
 
     private fun pushCams() {
