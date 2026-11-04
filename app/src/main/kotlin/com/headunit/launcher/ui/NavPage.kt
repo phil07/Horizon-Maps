@@ -247,10 +247,6 @@ internal fun BoxScope.RoutePreview(engine: NavEngine) {
         Modifier.floating(50.dp).horizontalScroll(rememberScrollState()).padding(6.dp),
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp),
     ) {
-        Text(stringResource(R.string.ui_030), color = c.sub, fontSize = 13.sp, modifier = Modifier.padding(horizontal = 10.dp))
-        for ((label, m) in listOf(Lang.t("Jetzt", "Now") to 0, Lang.t("+15 Min.", "+15 min") to 15, Lang.t("+30 Min.", "+30 min") to 30, "+1 h" to 60, "+2 h" to 120)) {
-            Pill(label, engine.departMin == m, { if (engine.departMin != m) engine.setDeparture(m) })
-        }
         Pill(Lang.t("Ankunft bis…", "Arrive by…"), planHold, { arriveBy = true })
     }
     // electric: the battery now, the least you want to arrive with, and the eco route; charging stops are then planned.
