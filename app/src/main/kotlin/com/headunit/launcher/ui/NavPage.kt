@@ -152,6 +152,7 @@ internal fun BoxScope.RoutePreview(engine: NavEngine) {
     if (rs.isEmpty()) return
     // electric: a route's time counts its charging stops (the plan of each route is on its card)
     val evTrip = engine.prefs.s(PreferenceKeys.FUEL_TYPE, "E10") == "EV"
+    val plansPending = evTrip && engine.evPlansPending
     val totalSecs: (com.headunit.launcher.Route) -> Double = { r -> r.time + (if (evTrip) (engine.evRoutePlans[r]?.minutes ?: 0) * 60.0 else 0.0) }
     val fastest = rs.indices.minByOrNull { totalSecs(rs[it]) } ?: 0
     val shortest = rs.indices.minByOrNull { rs[it].len } ?: 0
@@ -164,7 +165,7 @@ internal fun BoxScope.RoutePreview(engine: NavEngine) {
     val planHold = arriveBy || plannedHere
     // and while the route is still being worked out or its charging stops planned: they may be put on it in a moment
     // (re-routing it), and a trip started from the old route would be thrown back into this preview when the new one arrives
-    val hold = planHold || showOpts || engine.flyingOver || engine.busy || engine.evPlanning
+    val hold = planHold || showOpts || engine.flyingOver || engine.busy || engine.evPlanning || plansPending
     val autoStart = engine.prefs.b(PreferenceKeys.AUTO_START_ROUTE, true)
     val countdownMs = engine.prefs.i(PreferenceKeys.AUTO_START_SECONDS, 10).coerceIn(3, 30) * 1000
     LaunchedEffect(engine.active, engine.routes, hold, autoStart, countdownMs) {
@@ -309,8 +310,9 @@ internal fun BoxScope.RoutePreview(engine: NavEngine) {
                                         .clickable { engine.selectRoute(i) }.padding(horizontal = 14.dp, vertical = 9.dp),
             ) {
                 Text(label.uppercase(), color = if (sel) c.accent else c.sub, fontSize = 11.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
-                Text(Geo.fmtDur(totalSecs(r)), color = c.text, fontSize = 22.sp, fontWeight = FontWeight.Bold)
-                Text("${Geo.fmtDist(r.len, engine.imperial)} · ${Lang.t("Ankunft", "arrive")} ${fmt.format(java.util.Date(baseMs + (totalSecs(r) * 1000).toLong()))}", color = c.sub, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                val waitPlan = plansPending && engine.evRoutePlans[r] == null
+                Text(if (waitPlan) "…" else Geo.fmtDur(totalSecs(r)), color = c.text, fontSize = 22.sp, fontWeight = FontWeight.Bold)
+                Text("${Geo.fmtDist(r.len, engine.imperial)} · ${Lang.t("Ankunft", "arrive")} ${if (waitPlan) "…" else fmt.format(java.util.Date(baseMs + (totalSecs(r) * 1000).toLong()))}", color = c.sub, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 val via = viaOf(r)
                 val delayMin = Math.round(r.delay / 60.0).toInt()
                 Text(

@@ -5855,15 +5855,23 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
     val evRoutePlans = androidx.compose.runtime.mutableStateMapOf<Route, EvRouteSummary>()
 
     /** Plans the charging for every route on offer, one after the other, so each route card can show its own stops. */
+    /** True while the routes on offer are still being planned: their times are not final until every plan is in. */
+    var evPlansPending by mutableStateOf(false)
+
     private fun planEvAllRoutes() {
         val rs = routes
         evRoutePlans.clear()
+        evPlansPending = true
         scope.launch {
-            for (r in rs) {
-                if (routes !== rs) return@launch
-                val res = try { computeEvPlan(r) } catch (e: Exception) { null } ?: continue
-                if (routes !== rs) return@launch
-                evRoutePlans[r] = EvRouteSummary(res.first.size, res.first.sumOf { it.minutes }, res.second != null)
+            try {
+                for (r in rs) {
+                    if (routes !== rs) return@launch
+                    val res = try { computeEvPlan(r) } catch (e: Exception) { null }
+                    if (routes !== rs) return@launch
+                    evRoutePlans[r] = if (res == null) EvRouteSummary(0, 0, true) else EvRouteSummary(res.first.size, res.first.sumOf { it.minutes }, res.second != null)
+                }
+            } finally {
+                if (routes === rs) evPlansPending = false
             }
         }
     }

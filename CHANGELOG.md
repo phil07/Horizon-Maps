@@ -5,7 +5,7 @@ Add user-facing Horizon Nav changes under **Unreleased** before publishing each 
 ## Unreleased
 
 ### Verbessert
-- Ladeplanung bei der Routenwahl: Beim Elektroauto bleiben alle Routen zur Auswahl. Jede Karte zeigt ihre Ladestopps und ihre Zeit samt Ladepausen, die Ankunftszeit rechnet sie mit. Die Ladestopps der gewählten Route kommen erst beim Start der Navigation auf die Fahrt. Die Liste „Ladestopps geplant“ in der Vorschau entfällt.
+- Elektro-Routenvorschau: Zeit und Ankunft aller Routen erscheinen erst, wenn die Ladeplanung fertig ist, und enthalten dann gleich die Ladepausen. Bis dahin steht „…“ und der Start-Countdown wartet.
 
 
 ## 1.0.246 — 2026-10-28
