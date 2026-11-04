@@ -5675,8 +5675,8 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
     }
 
     /** kWh the rest of route [r] takes from [from] metres, with your speed, the limits, the weather and what's been learned. */
-    private fun evRouteKwh(r: Route, from: Double, avgKmh: Double): Double =
-        EvModel.kwh(from, r.len, r.limits, avgKmh.coerceIn(20.0, 140.0), evStyle(), evFreeKmh(), evBaseKwhPerKm(), evTemp(), evLearned(), evEnv(r), evAccelF())
+    private fun evRouteKwh(r: Route, from: Double, avgKmh: Double, to: Double = r.len): Double =
+        EvModel.kwh(from, to, r.limits, avgKmh.coerceIn(20.0, 140.0), evStyle(), evFreeKmh(), evBaseKwhPerKm(), evTemp(), evLearned(), evEnv(r), evAccelF())
 
     fun evArrivalPct(): Int? {
         if (!isEv) return null
@@ -5689,8 +5689,18 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         val startPct = if (now != null) now - evSinceRead / batt * 100.0
             else prefs.i(PreferenceKeys.EV_CHARGE_PCT, 80).coerceIn(1, 100) - (if (navStartMs > 0) evSinceNav else 0.0) / batt * 100.0
         val avgKmh = if (e.secs - e.chargeSecs > 30) e.dist / (e.secs - e.chargeSecs) * 3.6 else 60.0
-        val need = evRouteKwh(r, (r.len - e.dist).coerceAtLeast(0.0), avgKmh)
-        return Math.round(startPct - need / batt * 100.0).toInt().coerceIn(0, 100)
+        // the charging stops still ahead: the battery goes up to each stop's charge target, and the rest of the way is driven from there
+        val here = curProgress
+        val stops = evPlanned.mapNotNull { st -> RouteExtras.project(r, st.n.place.pos, 50.0, here)?.first?.takeIf { it > here }?.let { it to st } }
+            .sortedBy { it.first }
+        var pct = startPct; var at = here
+        for ((off, st) in stops) {
+            pct -= evRouteKwh(r, at, avgKmh, off) / batt * 100.0
+            pct = st.toPct.toDouble().coerceAtLeast(pct).coerceAtMost(100.0)
+            at = off
+        }
+        pct -= evRouteKwh(r, at, avgKmh) / batt * 100.0
+        return Math.round(pct).toInt().coerceIn(0, 100)
     }
 
     /** The battery level or the charge to arrive with changed on the route options: look again for a charging stop. */
