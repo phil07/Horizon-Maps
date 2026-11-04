@@ -137,12 +137,37 @@ jobs:
           ls -l data
 
       # ---------------- map ----------------
+      - name: Water polygons for the map (with retries)
+        if: matrix.part == 'map'
+        run: |
+          # planetiler fetches these itself from osmdata.openstreetmap.de, which now and then doesn't answer from the runners for
+          # minutes ("HTTP connect timed out"): so fetch the file here, trying both hosts again and again, and hand it to planetiler
+          # from a small local web server (planetiler asks for the size first, so a plain file path would not be enough)
+          mkdir -p data/sources
+          ok=""
+          for try in $(seq 1 12); do
+            for U in "https://osmdata.openstreetmap.de/download/water-polygons-split-3857.zip" "https://data.openstreetmapdata.com/water-polygons-split-3857.zip"; do
+              echo "Downloading $U (try $try)"
+              if curl -fL --connect-timeout 30 --max-time 1500 -A "HorizonNav-pack-builder" -o data/sources/water-polygons-split-3857.zip "$U" \
+                 && [ "$(stat -c%s data/sources/water-polygons-split-3857.zip)" -gt 100000000 ]; then ok=1; break; fi
+              rm -f data/sources/water-polygons-split-3857.zip
+            done
+            [ -n "$ok" ] && break
+            sleep $(( 30 * try ))
+          done
+          [ -n "$ok" ] || echo "Water polygons: no host answered, planetiler will try on its own"
+          if [ -n "$ok" ]; then
+            (cd data/sources && nohup python3 -m http.server 8765 --bind 0.0.0.0 > /tmp/water-server.log 2>&1 &)
+            sleep 2
+            echo "WATER_URL=http://$(docker network inspect bridge -f '{{(index .IPAM.Config 0).Gateway}}'):8765/water-polygons-split-3857.zip" >> "$GITHUB_ENV"
+          fi
       - name: Build the offline map (planetiler)
         if: matrix.part == 'map'
         run: |
           MEM=$(( $(free -g | awk '/Mem:/{print $2}') - 3 ))
+          WATER=""; [ -n "$WATER_URL" ] && WATER="--water_polygons_url=$WATER_URL"
           docker run --rm -e JAVA_TOOL_OPTIONS="-Xmx${MEM}g" -v "$PWD/data:/data" ghcr.io/onthegomap/planetiler:latest \
-            --osm-path=/data/region.osm.pbf --output=/data/map.pmtiles --download --download_dir=/data/sources \
+            --osm-path=/data/region.osm.pbf --output=/data/map.pmtiles --download --download_dir=/data/sources $WATER \
             --force --maxzoom=14 --fetch-wikidata=false --storage=mmap
           sudo chown -R "$USER" data
           rm -rf data/sources
@@ -547,12 +572,37 @@ jobs:
           ls -l data
 
       # ---------------- map ----------------
+      - name: Water polygons for the map (with retries)
+        if: matrix.part == 'map'
+        run: |
+          # planetiler fetches these itself from osmdata.openstreetmap.de, which now and then doesn't answer from the runners for
+          # minutes ("HTTP connect timed out"): so fetch the file here, trying both hosts again and again, and hand it to planetiler
+          # from a small local web server (planetiler asks for the size first, so a plain file path would not be enough)
+          mkdir -p data/sources
+          ok=""
+          for try in $(seq 1 12); do
+            for U in "https://osmdata.openstreetmap.de/download/water-polygons-split-3857.zip" "https://data.openstreetmapdata.com/water-polygons-split-3857.zip"; do
+              echo "Downloading $U (try $try)"
+              if curl -fL --connect-timeout 30 --max-time 1500 -A "HorizonNav-pack-builder" -o data/sources/water-polygons-split-3857.zip "$U" \
+                 && [ "$(stat -c%s data/sources/water-polygons-split-3857.zip)" -gt 100000000 ]; then ok=1; break; fi
+              rm -f data/sources/water-polygons-split-3857.zip
+            done
+            [ -n "$ok" ] && break
+            sleep $(( 30 * try ))
+          done
+          [ -n "$ok" ] || echo "Water polygons: no host answered, planetiler will try on its own"
+          if [ -n "$ok" ]; then
+            (cd data/sources && nohup python3 -m http.server 8765 --bind 0.0.0.0 > /tmp/water-server.log 2>&1 &)
+            sleep 2
+            echo "WATER_URL=http://$(docker network inspect bridge -f '{{(index .IPAM.Config 0).Gateway}}'):8765/water-polygons-split-3857.zip" >> "$GITHUB_ENV"
+          fi
       - name: Build the offline map (planetiler)
         if: matrix.part == 'map'
         run: |
           MEM=$(( $(free -g | awk '/Mem:/{print $2}') - 3 ))
+          WATER=""; [ -n "$WATER_URL" ] && WATER="--water_polygons_url=$WATER_URL"
           docker run --rm -e JAVA_TOOL_OPTIONS="-Xmx${MEM}g" -v "$PWD/data:/data" ghcr.io/onthegomap/planetiler:latest \
-            --osm-path=/data/region.osm.pbf --output=/data/map.pmtiles --download --download_dir=/data/sources \
+            --osm-path=/data/region.osm.pbf --output=/data/map.pmtiles --download --download_dir=/data/sources $WATER \
             --force --maxzoom=14 --fetch-wikidata=false --storage=mmap
           sudo chown -R "$USER" data
           rm -rf data/sources
@@ -957,12 +1007,37 @@ jobs:
           ls -l data
 
       # ---------------- map ----------------
+      - name: Water polygons for the map (with retries)
+        if: matrix.part == 'map'
+        run: |
+          # planetiler fetches these itself from osmdata.openstreetmap.de, which now and then doesn't answer from the runners for
+          # minutes ("HTTP connect timed out"): so fetch the file here, trying both hosts again and again, and hand it to planetiler
+          # from a small local web server (planetiler asks for the size first, so a plain file path would not be enough)
+          mkdir -p data/sources
+          ok=""
+          for try in $(seq 1 12); do
+            for U in "https://osmdata.openstreetmap.de/download/water-polygons-split-3857.zip" "https://data.openstreetmapdata.com/water-polygons-split-3857.zip"; do
+              echo "Downloading $U (try $try)"
+              if curl -fL --connect-timeout 30 --max-time 1500 -A "HorizonNav-pack-builder" -o data/sources/water-polygons-split-3857.zip "$U" \
+                 && [ "$(stat -c%s data/sources/water-polygons-split-3857.zip)" -gt 100000000 ]; then ok=1; break; fi
+              rm -f data/sources/water-polygons-split-3857.zip
+            done
+            [ -n "$ok" ] && break
+            sleep $(( 30 * try ))
+          done
+          [ -n "$ok" ] || echo "Water polygons: no host answered, planetiler will try on its own"
+          if [ -n "$ok" ]; then
+            (cd data/sources && nohup python3 -m http.server 8765 --bind 0.0.0.0 > /tmp/water-server.log 2>&1 &)
+            sleep 2
+            echo "WATER_URL=http://$(docker network inspect bridge -f '{{(index .IPAM.Config 0).Gateway}}'):8765/water-polygons-split-3857.zip" >> "$GITHUB_ENV"
+          fi
       - name: Build the offline map (planetiler)
         if: matrix.part == 'map'
         run: |
           MEM=$(( $(free -g | awk '/Mem:/{print $2}') - 3 ))
+          WATER=""; [ -n "$WATER_URL" ] && WATER="--water_polygons_url=$WATER_URL"
           docker run --rm -e JAVA_TOOL_OPTIONS="-Xmx${MEM}g" -v "$PWD/data:/data" ghcr.io/onthegomap/planetiler:latest \
-            --osm-path=/data/region.osm.pbf --output=/data/map.pmtiles --download --download_dir=/data/sources \
+            --osm-path=/data/region.osm.pbf --output=/data/map.pmtiles --download --download_dir=/data/sources $WATER \
             --force --maxzoom=14 --fetch-wikidata=false --storage=mmap
           sudo chown -R "$USER" data
           rm -rf data/sources
@@ -1367,12 +1442,37 @@ jobs:
           ls -l data
 
       # ---------------- map ----------------
+      - name: Water polygons for the map (with retries)
+        if: matrix.part == 'map'
+        run: |
+          # planetiler fetches these itself from osmdata.openstreetmap.de, which now and then doesn't answer from the runners for
+          # minutes ("HTTP connect timed out"): so fetch the file here, trying both hosts again and again, and hand it to planetiler
+          # from a small local web server (planetiler asks for the size first, so a plain file path would not be enough)
+          mkdir -p data/sources
+          ok=""
+          for try in $(seq 1 12); do
+            for U in "https://osmdata.openstreetmap.de/download/water-polygons-split-3857.zip" "https://data.openstreetmapdata.com/water-polygons-split-3857.zip"; do
+              echo "Downloading $U (try $try)"
+              if curl -fL --connect-timeout 30 --max-time 1500 -A "HorizonNav-pack-builder" -o data/sources/water-polygons-split-3857.zip "$U" \
+                 && [ "$(stat -c%s data/sources/water-polygons-split-3857.zip)" -gt 100000000 ]; then ok=1; break; fi
+              rm -f data/sources/water-polygons-split-3857.zip
+            done
+            [ -n "$ok" ] && break
+            sleep $(( 30 * try ))
+          done
+          [ -n "$ok" ] || echo "Water polygons: no host answered, planetiler will try on its own"
+          if [ -n "$ok" ]; then
+            (cd data/sources && nohup python3 -m http.server 8765 --bind 0.0.0.0 > /tmp/water-server.log 2>&1 &)
+            sleep 2
+            echo "WATER_URL=http://$(docker network inspect bridge -f '{{(index .IPAM.Config 0).Gateway}}'):8765/water-polygons-split-3857.zip" >> "$GITHUB_ENV"
+          fi
       - name: Build the offline map (planetiler)
         if: matrix.part == 'map'
         run: |
           MEM=$(( $(free -g | awk '/Mem:/{print $2}') - 3 ))
+          WATER=""; [ -n "$WATER_URL" ] && WATER="--water_polygons_url=$WATER_URL"
           docker run --rm -e JAVA_TOOL_OPTIONS="-Xmx${MEM}g" -v "$PWD/data:/data" ghcr.io/onthegomap/planetiler:latest \
-            --osm-path=/data/region.osm.pbf --output=/data/map.pmtiles --download --download_dir=/data/sources \
+            --osm-path=/data/region.osm.pbf --output=/data/map.pmtiles --download --download_dir=/data/sources $WATER \
             --force --maxzoom=14 --fetch-wikidata=false --storage=mmap
           sudo chown -R "$USER" data
           rm -rf data/sources
