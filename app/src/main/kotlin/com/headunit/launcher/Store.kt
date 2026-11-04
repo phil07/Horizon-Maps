@@ -90,7 +90,10 @@ class PlaceStore(private val prefs: Prefs) {
         writeList("places_fav", favourites().map { if (same(it, p)) it.copy(name = n) else it })
     }
 
-    fun recents(): List<Place> = readList("places_recent")
+    /** Recents saved while the habit suggestion still put "Meist gegen 12:02" in the subtitle: that text is no address, so it is dropped. */
+    fun recents(): List<Place> = readList("places_recent").map { p ->
+        if (p.sub.startsWith("Meist gegen") || p.sub.startsWith("Usually around")) Place(p.name, "", p.pos) else p
+    }
     /** Takes one place off the recent list (it's still remembered for searching without signal). */
     fun removeRecent(p: Place) = writeList("places_recent", recents().filterNot { same(it, p) })
     fun clearSlot(name: String) = prefs.put("place_$name", "")
