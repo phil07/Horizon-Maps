@@ -5761,7 +5761,20 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
      * The charging plan for one route: the stops and a warning when the plan falls short. No stops (and no warning) when the
      * battery already gets you there; null when the route was dropped meanwhile or its data didn't come.
      */
+    /** Each route's plan is worked out once, however many places ask for it (the route cards and the chosen route's stops), and all routes at the same time. */
+    private val evPlanJobs = HashMap<Route, kotlinx.coroutines.Deferred<Pair<List<EvStop>, String?>?>>()
+
     private suspend fun computeEvPlan(r: Route): Pair<List<EvStop>, String?>? {
+        val job = evPlanJobs.getOrPut(r) {
+            if (evPlanJobs.size > 12) evPlanJobs.clear()
+            scope.async { try { computeEvPlanRaw(r) } catch (e: Exception) { null } }
+        }
+        val res = job.await()
+        if (res == null) evPlanJobs.remove(r)
+        return res
+    }
+
+    private suspend fun computeEvPlanRaw(r: Route): Pair<List<EvStop>, String?>? {
         val batt = evBatteryKwh()
         val destKm = prefs.i(PreferenceKeys.EV_DEST_KM, 50).coerceIn(0, 500).toDouble()
         val chargerKm = prefs.i(PreferenceKeys.EV_CHARGER_KM, 30).coerceIn(0, 500).toDouble()
@@ -5833,6 +5846,8 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         // charging stops put on it stays: that plan still falls short somewhere)
         // your own stops are fixed: the charging stops are planned round them (a stop of yours is not counted as a charge: no charge assumed there)
         evPlanningFor = r
+        // while driving, the battery and the position have moved on: plan afresh (in the preview the cards' plan is reused)
+        if (!previewing) evPlanJobs.remove(r)
         scope.launch { try {
             val (stops, warning) = computeEvPlan(r) ?: return@launch
             if (route === r) {
@@ -5864,12 +5879,11 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         evPlansPending = true
         scope.launch {
             try {
-                for (r in rs) {
-                    if (routes !== rs) return@launch
+                // all routes at once: the slowest one decides, not the sum
+                rs.map { r -> scope.async {
                     val res = try { computeEvPlan(r) } catch (e: Exception) { null }
-                    if (routes !== rs) return@launch
-                    evRoutePlans[r] = if (res == null) EvRouteSummary(0, 0, true) else EvRouteSummary(res.first.size, res.first.sumOf { it.minutes }, res.second != null)
-                }
+                    if (routes === rs) evRoutePlans[r] = if (res == null) EvRouteSummary(0, 0, true) else EvRouteSummary(res.first.size, res.first.sumOf { it.minutes }, res.second != null)
+                } }.forEach { it.await() }
             } finally {
                 if (routes === rs) evPlansPending = false
             }

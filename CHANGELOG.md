@@ -1,12 +1,14 @@
 # Changelog
 
-Add user-facing Horizon Nav changes under **Unreleased** before publishing each build, in German (the app shows them as they are), under ### Neu, ### Verbessert or ### Behoben headings, each written as "Überschrift: was es tut" (the What's new card shows the headline in bold with the rest underneath). Keep entries focused on features, improvements, and fixes in the app—not GitHub Actions or release-publishing maintenance. There is no need to delete entries after publishing: notes that an earlier release already included are left out of the next one automatically. After a build has been published, remove its entries from Unreleased again: the What's new card shows exactly what is in this section, so anything left there is shown again with the next build.
+Add user-facing Horizon Nav changes under **Unreleased** before publishing each build, in German (the app shows them as they are), under ### Neu, ### Verbessert
+- Elektro-Routenvorschau: Die Ladeplanung aller Routen läuft gleichzeitig statt nacheinander und wird für die gewählte Route nicht noch einmal berechnet. Das verkürzt die Wartezeit deutlich.
 
 ## Unreleased
 
 ### Verbessert
 - Elektro-Routenvorschau: Zeit und Ankunft aller Routen erscheinen erst, wenn die Ladeplanung fertig ist, und enthalten dann gleich die Ladepausen. Bis dahin steht „…“ und der Start-Countdown wartet.
 - Elektro-Routenvorschau: Die geplanten Ladestopps der gewählten Route werden schon in der Vorschau auf der Karte gezeigt.
+- Elektro-Routenvorschau: Die Ladeplanung aller Routen läuft gleichzeitig statt nacheinander und wird für die gewählte Route nicht noch einmal berechnet. Das verkürzt die Wartezeit deutlich.
 - Der Pfeil im Fortschrittsbalken sitzt am Anfang der Route ganz links (und am Ziel ganz rechts).
 
 
