@@ -9,6 +9,9 @@ Add user-facing Horizon Nav changes under **Unreleased** before publishing each 
 - Verbrauch: Der unterwegs mitgezählte Verbrauch berücksichtigt die gelernte Korrektur je Straßenart, wie die Planung.
 
 ### Verbessert
+- Blitzer ohne Route: Warnung nur für Kameras, die voraus und höchstens 35 m seitlich der Fahrlinie liegen. Kameras auf anderen Straßen lösen keinen Alarm mehr aus.
+- Blitzer auf der Route: Der Suchstreifen ist 30 m breit (vorher 40 m).
+- Tag und Nacht: Die Systemeinstellung wird alle 1,5 Sekunden gelesen (vorher alle 4), dadurch schaltet die Karte schneller um.
 - Neigung der 3D-Karte: Einstellungen > Karte (Spuren und Kreuzungen) setzt die Neigung getrennt für breiten und hohen Bildschirm, auf Auto oder 30 bis 65 Grad. Im Auto stellst du sie unter Android Auto > Einstellungen ein.
 - Android Auto: Neue Zeile „Kartenrichtung“ in den Einstellungen. Nord oben oder mit der Fahrtrichtung, die Wahl wird für das Auto gemerkt.
 - Verbrauch mit Anhänger oder Wohnmobil (Einstellungen > Fahrzeug): mehr Gewicht und mehr Luftwiderstand werden eingerechnet.

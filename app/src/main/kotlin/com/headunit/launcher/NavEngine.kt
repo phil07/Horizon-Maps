@@ -2834,7 +2834,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
             val from = max(prog, camUpTo - 500.0); val to = min(r.len, from + 100_000.0)
             scope.launch {
                 try {
-                    val found = withContext(Dispatchers.IO) { Overpass.cameras(RouteExtras.line(r, from, to, 40.0, 2500)) }
+                    val found = withContext(Dispatchers.IO) { Overpass.cameras(RouteExtras.line(r, from, to, 30.0, 2500)) }
                     if (found != null && route === r) {
                         val add = found.mapNotNull { cam ->
                             val pr = RouteExtras.project(r, cam.pos, 50.0, from) ?: return@mapNotNull null
@@ -3001,7 +3001,20 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
                 best = c; bestD = max(0.0, ahead)
             }
         }
-        // off the route (or not navigating) nothing is announced: only the cameras on your route are warned about
+        // off the route (or driving without one): a camera counts when it lies ahead, within 35 m to the side of the line you drive along
+        val onRouteCams = camerasOn() && navigatingNow() && onRouteNow && rc.isNotEmpty()
+        if (best == null && !onRouteCams && p.heading >= 0 && p.speed > 2.0) {
+            for (c in cameras) {
+                val d = Geo.dist(p.pos, c)
+                if (d < 1.0 || d > warnAt + 40.0) continue
+                val ang = angDiff(Geo.bearing(p.pos, c), p.heading)
+                val along = d * Math.cos(Math.toRadians(ang))
+                val side = Math.abs(d * Math.sin(Math.toRadians(ang)))
+                if (along < 0.0 || along > warnAt || side > 35.0) continue
+                if (!camFacesUs(c, p.heading)) continue
+                if (along < bestD) { best = c; bestD = along }
+            }
+        }
         cameraDist = if (best != null) bestD.toInt() else null
         if (best != null) {
             if (camAlerted.size > 100) camAlerted.clear()

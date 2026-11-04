@@ -77,7 +77,7 @@ fun rememberSystemNight(): Boolean {
     val ctx = androidx.compose.ui.platform.LocalContext.current
     val fromConfig = isSystemInDarkTheme()
     var polled by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(readSystemNight(ctx)) }
-    androidx.compose.runtime.LaunchedEffect(Unit) { while (true) { kotlinx.coroutines.delay(4000L); polled = readSystemNight(ctx) } }
+    androidx.compose.runtime.LaunchedEffect(Unit) { while (true) { kotlinx.coroutines.delay(1500L); polled = readSystemNight(ctx) } }
     return fromConfig || polled
 }
 
