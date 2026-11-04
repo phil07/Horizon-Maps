@@ -837,7 +837,10 @@ internal fun ImmCompass(engine: NavEngine, modifier: Modifier = Modifier) {
  */
 @Composable
 internal fun EvNowChip(engine: NavEngine) {
-    val pct = engine.evNowPct() ?: return
+    // the estimate, as on the car screen: the last reading moved on by what has been driven or charged since
+    if (com.headunit.launcher.EvWidget.readAt(engine.prefs) <= 0) return
+    val pct = Math.round(engine.evNowEstimatePct()).toInt()
+    val km = engine.evEstimateKm()
     val age = engine.evNowAgeMin() ?: 0L
     val col = if (pct < 10) Bad else if (pct < 20) Warn else Good
     Row(
@@ -845,8 +848,8 @@ internal fun EvNowChip(engine: NavEngine) {
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         Box(Modifier.size(8.dp).clip(CircleShape).background(col))
-        Text("$pct %", color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Bold)
-        engine.evNowKm()?.let { Text("· $it km", color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Bold) }
+        Text((if (engine.evEstimateOld()) "ca. " else "") + "$pct %", color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+        km?.let { Text("· $it km", color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Bold) }
         // charging, from the car maker's cloud (only while that reading is recent)
         if (engine.prefs.s(PreferenceKeys.CLOUD_CHARGING, "") == "1" && System.currentTimeMillis() - (engine.prefs.s(PreferenceKeys.CLOUD_AT, "").toLongOrNull() ?: 0L) < 30 * 60_000L) {
             val m = engine.prefs.s(PreferenceKeys.CLOUD_CHARGE_MIN, "").toIntOrNull()

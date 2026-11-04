@@ -3025,11 +3025,8 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
 
     private fun trackParking(p: Fix) {
         if (simMode != 0) return
-        // the battery estimate also follows the drive without a route: the distance since the last fix, at the steady consumption
-        // (standing still adds nothing, so the estimate doesn't fall while charging)
-        val prevEst = evEstPrev
-        if (isEv && prevEst != null && p.speed > 3.0) { val d = Geo.dist(prevEst, p.pos); if (d in 2.0..500.0) evSinceRead += d / 1000.0 * evBaseKwhPerKm() }
-        evEstPrev = p.pos
+        // the battery estimate's drive is counted in evTrack, from every GPS fix (heat, wind, hills, the learned correction). It used
+        // to be counted here again at the base use only, so each stretch was taken twice. Standing still adds nothing.
         // a reading that is the same as the last one, after the car has used more than 1 % since, is the widget's old figure: not believed
         EvWidget.staleCheck = { evSinceRead / evBatteryKwh() * 100.0 >= 1.0 }
         val now = System.currentTimeMillis()
@@ -5541,7 +5538,8 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
     private var evChargeRefAt = 0L
     private var evSinceCharge = 0.0
 
-    private var evEstPrev: LL? = null
+    /** The height (m) the last climb or descent without a route was counted from, from the phone's GPS. */
+    private var evAltRef: Double? = null
 
     /** The range now in km, from the same estimate (null when there is no reading yet). */
     fun evEstimateKm(): Int? = Math.round(evRangeKm().first).toInt().takeIf { it > 0 }
@@ -5675,7 +5673,18 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
                 if (g >= 0) up = g else down = -g
             }
             evLastH = h
-        } else evLastH = null
+            evAltRef = null
+        } else {
+            // no route: the height from the phone's GPS, with a good fix only, and only a change of 5 m or more counts (the GPS height
+            // wobbles by a few metres). A missing height comes as 0.
+            evLastH = null
+            val alt = fix?.takeIf { it.alt != 0.0 && it.acc <= 15.0 }?.alt
+            val ref = evAltRef
+            if (alt != null) {
+                if (ref == null) evAltRef = alt
+                else if (abs(alt - ref) in 5.0..150.0) { val g = EvModel.gradeKwh(alt - ref, evMass(), 1.0); if (g >= 0) up = g else down = -g; evAltRef = alt }
+            }
+        }
         // what the battery is counted down by: with the correction learned for this kind of road (the planning uses it too)
         val kwh = flatK * (evLearned().getOrNull(bk) ?: 1.0) + aux + up - down * evRegen()
         evSinceRead += kwh; evSinceNav += kwh; evSinceCharge += kwh

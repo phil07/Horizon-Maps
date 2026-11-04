@@ -5,12 +5,15 @@ Add user-facing Horizon Nav changes under **Unreleased** before publishing each 
 ## Unreleased
 
 ### Verbessert
+- Akku-Schätzung auf dem Handy: Die Anzeige zeigt jetzt dieselbe Schätzung wie im Auto (mit „ca.“, wenn der letzte Wert alt ist).
+- Akku-Schätzung ohne Route: Höhenunterschiede des GPS zählen ab 5 m Änderung (bei guter Genauigkeit), auf Bergfahrten und Abfahrten wie mit Route.
 - Akku und Reichweite im Auto: Zwischen zwei Werten vom Widget rechnet die App den Verbrauch seit dem letzten Wert mit, jede Sekunde. Die Anzeige zeigt dann „ca.“, wenn der letzte echte Wert älter als 10 Minuten ist. Ein gleich gebliebener Widget-Wert gilt als veraltet, wenn das Auto seitdem mehr als 1 % verbraucht hat. Beim Stehen sinkt die Schätzung nicht.
 - Akku bei Ankunft: vorsichtiger geschätzt (10 % mehr Verbrauch) und das Modell lernt schneller aus der Fahrt.
 - Parkplatz-Karte am Ziel: größere Schrift und ein größeres X zum Schließen.
 - Android Auto während der Fahrt: Beenden, Ladesäulen-Filter (bei Elektroautos), Ton und Melden stehen dauerhaft links auf der Karte. Die Leiste oben von Android Auto bleibt dafür leer.
 
 ### Behoben
+- Akku-Schätzung: Jede gefahrene Strecke wurde doppelt abgezogen (einmal mit Temperatur, Wind und Höhe, einmal nur mit dem Grundverbrauch). Jetzt nur noch einmal.
 - Ortung beim Start einer Navigation: Der Pfeil springt nicht mehr von bis zu 30 m Entfernung auf die Route, sondern rastet erst ein, wenn du wirklich auf ihr bist (15 m).
 - Android Auto: Beenden, Ladesäulen-Filter und Ton stehen während der Fahrt als eigene Knopfspalte links auf der Karte und bleiben immer sichtbar. Melden bleibt in der Leiste oben.
 - Absturz beim Start in Android Auto (1.0.1300): Wenn das Auto eine Kartenansicht mit zu vielen Schaltflächen ablehnt, bleibt die App jetzt offen und zeigt die Karte mit „Melden“. Die Ursache wird im Log protokolliert (HorizonCar).
