@@ -2004,6 +2004,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
                 stopSim()
                 if (TomTomRest.avoidDropped && !usedOffline) toast(ctx.getString(R.string.toast_005), 5000)
                 dest = to; routes = rs; active = pick
+                if (isEv && via.isEmpty() && prefs.b(PreferenceKeys.SMARTFUEL, true)) planEvAllRoutes()
                 prediction = null; predictionAt = 0L
                 updateRouteZones()
                 said.clear(); offCount = 0; lastIdx = 0; trustProg = -1.0
@@ -5747,75 +5748,84 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
      * Electric: the charging stops this trip needs. Each stop is the furthest charger reachable with the reserve left there, or
      * the furthest of a preferred operator (Settings) when that plan has as many stops and costs only a few minutes more.
      */
-    private fun planEv(r: Route) {
-        evStops = emptyList(); evWarning = null
-        // stops already on the trip are the user's plan: no suggestion on top of them (but a warning that came with the
-        // charging stops put on it stays: that plan still falls short somewhere)
-        // your own stops are fixed: the charging stops are planned round them (a stop of yours is not counted as a charge: no charge assumed there)
+    /**
+     * The charging plan for one route: the stops and a warning when the plan falls short. No stops (and no warning) when the
+     * battery already gets you there; null when the route was dropped meanwhile or its data didn't come.
+     */
+    private suspend fun computeEvPlan(r: Route): Pair<List<EvStop>, String?>? {
         val batt = evBatteryKwh()
         val destKm = prefs.i(PreferenceKeys.EV_DEST_KM, 50).coerceIn(0, 500).toDouble()
         val chargerKm = prefs.i(PreferenceKeys.EV_CHARGER_KM, 30).coerceIn(0, 500).toDouble()
         val (startKm0, full0) = evRangeKm()
         val lenKm = r.len / 1000.0
+        // the heights along the route first (hills change the range a lot)
+        evElevNow(r)
+        if (route !== r && routes.none { it === r }) return null
+        // the range counts as far as this route's speeds, hills, the weather and the safety margin allow (EvModel), not the rated km
+        val rf = try {
+            if (lenKm > 1.0 && r.time > 60) (evRouteKwh(r, 0.0, r.len / r.time * 3.6) / (lenKm * evBaseKwhPerKm())).coerceIn(0.5, 2.5) else 1.0
+        } catch (e: Exception) { 1.0 }
+        val startKm = startKm0 / rf; val full = full0 / rf
+        if (startKm - lenKm >= destKm) return emptyList<EvStop>() to null
+        val cands = withContext(Dispatchers.IO) { chargersAlong(r) }
+        if (route !== r && routes.none { it === r }) return null
+        val ids = ChargeOperators.selected(prefs)
+        // the greedy plan: at each stop [pick] chooses among the chargers in reach; the stops and a warning if it falls short
+        fun plan(pick: (List<Nearby>) -> Nearby?): Pair<List<EvStop>, String?> {
+            val stops = ArrayList<EvStop>()
+            var s = 0.0; var range = startKm; var warning: String? = null
+            while (range - (lenKm - s) < destKm) {
+                if (stops.size >= 6) { warning = Lang.t("Mehr als 6 Ladestopps: die Strecke ist für diese Planung zu lang.", "More than 6 charging stops: the trip is too long for this plan."); break }
+                val reach = s + range - chargerKm
+                val inReach = cands.filter { it.dist / 1000.0 > s + 0.5 && it.dist / 1000.0 <= reach }
+                val c = pick(inReach)
+                if (c == null) {
+                    val minKw = prefs.i(PreferenceKeys.EV_MIN_KW, 50)
+                    warning = if (minKw > 0) Lang.t("Kein Ladepunkt mit mind. $minKw kW auf der Strecke ist mit ${chargerKm.toInt()} km Reserve erreichbar.", "No charger of at least $minKw kW on the route can be reached with ${chargerKm.toInt()} km left.")
+                    else Lang.t("Kein Ladepunkt auf der Strecke ist mit ${chargerKm.toInt()} km Reserve erreichbar.", "No charger on the route can be reached with ${chargerKm.toInt()} km left.")
+                    break
+                }
+                val ck = c.dist / 1000.0
+                val arr = range - (ck - s)
+                // charge only as far as the destination needs (with its reserve), never past full
+                val target = min(full, max(arr, (lenKm - ck) + destKm))
+                // the car's charging curve, capped by what this charger delivers
+                // a cold battery charges slower; one warmed by a long drive (an hour or more since the start or the last stop) less so
+                val pf = EvModel.chargeTempFactor(evTemp(), warm = ck - s >= 100.0)
+                val mins = EvCars.chargeMinutes(prefs, arr / full * 100.0, target / full * 100.0, batt, c.kw, pf).coerceAtLeast(0)
+                stops += EvStop(c, Math.round(arr / full * 100.0).toInt().coerceIn(0, 100), Math.round(target / full * 100.0).toInt().coerceIn(0, 100), mins, ChargeOperators.matches(c, ids))
+                s = ck; range = target
+            }
+            return stops to warning
+        }
+        // a charger of known power first; one of unknown power only when nothing else is in reach
+        fun quickest(inReach: List<Nearby>) = inReach.filter { it.kw != null }.ifEmpty { inReach }.maxByOrNull { it.dist }
+        // time the stops cost: charging plus the detour to each charger
+        fun total(p: List<EvStop>) = p.sumOf { it.minutes + max(0, it.n.detourMin) }
+        var (stops, warning) = plan { quickest(it) }
+        if (ids.isNotEmpty() && stops.isNotEmpty() && stops.any { !it.preferred }) {
+            // the furthest preferred charger in reach. One of unknown power only when no charger of known power is in reach
+            // at all, so a preference never swaps a known fast charger for what may be a slow one; none: the quickest rule
+            val pref = plan { inReach ->
+                val known = inReach.filter { it.kw != null }
+                (if (known.isEmpty()) inReach else known).filter { ChargeOperators.matches(it, ids) }.maxByOrNull { it.dist } ?: quickest(inReach)
+            }
+            // only when it needs no extra stop and costs at most the extra minutes allowed in Settings
+            val allowed = prefs.i(PreferenceKeys.EV_PREF_MIN, 10).coerceIn(0, 120)
+            if ((pref.second == null) == (warning == null) && pref.first.size == stops.size && pref.first.count { it.preferred } > stops.count { it.preferred } &&
+                total(pref.first) - total(stops) <= allowed) { stops = pref.first; warning = pref.second }
+        }
+        return stops to warning
+    }
+
+    private fun planEv(r: Route) {
+        evStops = emptyList(); evWarning = null
+        // stops already on the trip are the user's plan: no suggestion on top of them (but a warning that came with the
+        // charging stops put on it stays: that plan still falls short somewhere)
+        // your own stops are fixed: the charging stops are planned round them (a stop of yours is not counted as a charge: no charge assumed there)
         evPlanningFor = r
         scope.launch { try {
-            // the heights along the route first (hills change the range a lot)
-            evElevNow(r)
-            if (route !== r && routes.getOrNull(0) !== r) return@launch
-            // the range counts as far as this route's speeds, hills, the weather and the safety margin allow (EvModel), not the rated km
-            val rf = try {
-                if (lenKm > 1.0 && r.time > 60) (evRouteKwh(r, 0.0, r.len / r.time * 3.6) / (lenKm * evBaseKwhPerKm())).coerceIn(0.5, 2.5) else 1.0
-            } catch (e: Exception) { 1.0 }
-            val startKm = startKm0 / rf; val full = full0 / rf
-            if (startKm - lenKm >= destKm) return@launch
-            val cands = withContext(Dispatchers.IO) { chargersAlong(r) }
-            if (route !== r) return@launch
-            val ids = ChargeOperators.selected(prefs)
-            // the greedy plan: at each stop [pick] chooses among the chargers in reach; the stops and a warning if it falls short
-            fun plan(pick: (List<Nearby>) -> Nearby?): Pair<List<EvStop>, String?> {
-                val stops = ArrayList<EvStop>()
-                var s = 0.0; var range = startKm; var warning: String? = null
-                while (range - (lenKm - s) < destKm) {
-                    if (stops.size >= 6) { warning = Lang.t("Mehr als 6 Ladestopps: die Strecke ist für diese Planung zu lang.", "More than 6 charging stops: the trip is too long for this plan."); break }
-                    val reach = s + range - chargerKm
-                    val inReach = cands.filter { it.dist / 1000.0 > s + 0.5 && it.dist / 1000.0 <= reach }
-                    val c = pick(inReach)
-                    if (c == null) {
-                        val minKw = prefs.i(PreferenceKeys.EV_MIN_KW, 50)
-                        warning = if (minKw > 0) Lang.t("Kein Ladepunkt mit mind. $minKw kW auf der Strecke ist mit ${chargerKm.toInt()} km Reserve erreichbar.", "No charger of at least $minKw kW on the route can be reached with ${chargerKm.toInt()} km left.")
-                        else Lang.t("Kein Ladepunkt auf der Strecke ist mit ${chargerKm.toInt()} km Reserve erreichbar.", "No charger on the route can be reached with ${chargerKm.toInt()} km left.")
-                        break
-                    }
-                    val ck = c.dist / 1000.0
-                    val arr = range - (ck - s)
-                    // charge only as far as the destination needs (with its reserve), never past full
-                    val target = min(full, max(arr, (lenKm - ck) + destKm))
-                    // the car's charging curve, capped by what this charger delivers
-                    // a cold battery charges slower; one warmed by a long drive (an hour or more since the start or the last stop) less so
-                    val pf = EvModel.chargeTempFactor(evTemp(), warm = ck - s >= 100.0)
-                    val mins = EvCars.chargeMinutes(prefs, arr / full * 100.0, target / full * 100.0, batt, c.kw, pf).coerceAtLeast(0)
-                    stops += EvStop(c, Math.round(arr / full * 100.0).toInt().coerceIn(0, 100), Math.round(target / full * 100.0).toInt().coerceIn(0, 100), mins, ChargeOperators.matches(c, ids))
-                    s = ck; range = target
-                }
-                return stops to warning
-            }
-            // a charger of known power first; one of unknown power only when nothing else is in reach
-            fun quickest(inReach: List<Nearby>) = inReach.filter { it.kw != null }.ifEmpty { inReach }.maxByOrNull { it.dist }
-            // time the stops cost: charging plus the detour to each charger
-            fun total(p: List<EvStop>) = p.sumOf { it.minutes + max(0, it.n.detourMin) }
-            var (stops, warning) = plan { quickest(it) }
-            if (ids.isNotEmpty() && stops.isNotEmpty() && stops.any { !it.preferred }) {
-                // the furthest preferred charger in reach. One of unknown power only when no charger of known power is in reach
-                // at all, so a preference never swaps a known fast charger for what may be a slow one; none: the quickest rule
-                val pref = plan { inReach ->
-                    val known = inReach.filter { it.kw != null }
-                    (if (known.isEmpty()) inReach else known).filter { ChargeOperators.matches(it, ids) }.maxByOrNull { it.dist } ?: quickest(inReach)
-                }
-                // only when it needs no extra stop and costs at most the extra minutes allowed in Settings
-                val allowed = prefs.i(PreferenceKeys.EV_PREF_MIN, 10).coerceIn(0, 120)
-                if ((pref.second == null) == (warning == null) && pref.first.size == stops.size && pref.first.count { it.preferred } > stops.count { it.preferred } &&
-                    total(pref.first) - total(stops) <= allowed) { stops = pref.first; warning = pref.second }
-            }
+            val (stops, warning) = computeEvPlan(r) ?: return@launch
             if (route === r) {
                 evStops = stops; evWarning = warning
                 // put the stops on the trip straight away, once per destination: if you take them off again (stops editor) they
@@ -5827,6 +5837,24 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
                 }
             }
         } finally { if (evPlanningFor === r) evPlanningFor = null } }
+    }
+
+    /** What the charging plan of each route comes to, for the route cards: number of stops, minutes of charging, falls short or not. */
+    class EvRouteSummary(val stops: Int, val minutes: Int, val warning: Boolean)
+    val evRoutePlans = androidx.compose.runtime.mutableStateMapOf<Route, EvRouteSummary>()
+
+    /** Plans the charging for every route on offer, one after the other, so each route card can show its own stops. */
+    private fun planEvAllRoutes() {
+        val rs = routes
+        evRoutePlans.clear()
+        scope.launch {
+            for (r in rs) {
+                if (routes !== rs) return@launch
+                val res = try { computeEvPlan(r) } catch (e: Exception) { null } ?: continue
+                if (routes !== rs) return@launch
+                evRoutePlans[r] = EvRouteSummary(res.first.size, res.first.sumOf { it.minutes }, res.second != null)
+            }
+        }
     }
 
     private var chgLastBox: DoubleArray? = null

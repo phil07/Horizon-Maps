@@ -314,6 +314,20 @@ internal fun BoxScope.RoutePreview(engine: NavEngine) {
                     if (delayMin >= 1) Lang.t("+$delayMin Min. Verkehr", "+$delayMin min traffic") else if (via.isNotEmpty()) Lang.t("über $via", "via $via") else Lang.t("Keine Verzögerungen", "No delays"),
                     color = if (delayMin >= 10) Bad else if (delayMin >= 1) Warn else c.sub, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis,
                 )
+                // electric: what this route needs in charging, so the routes can be compared before one is chosen
+                if (ev) {
+                    val ps = engine.evRoutePlans[r]
+                    Text(
+                        when {
+                            ps == null -> Lang.t("Ladeplanung …", "Planning charging …")
+                            ps.stops == 0 && !ps.warning -> Lang.t("Kein Ladestopp nötig", "No charging stop needed")
+                            ps.stops == 0 -> Lang.t("Ladeplanung reicht nicht", "Charging plan falls short")
+                            else -> (if (ps.stops == 1) Lang.t("1 Ladestopp", "1 charging stop") else Lang.t("${ps.stops} Ladestopps", "${ps.stops} charging stops")) +
+                                " · ${ps.minutes} " + Lang.t("Min. laden", "min charging") + (if (ps.warning) " !" else "")
+                        },
+                        color = if (ps != null && ps.warning) Warn else c.sub, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis,
+                    )
+                }
             }
         }
     }
