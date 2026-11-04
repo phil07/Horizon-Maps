@@ -1339,7 +1339,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
     }
 
     /** Adds the planned charging stops to the trip, in route order, and routes once. */
-    fun addStops(list: List<EvStop>, auto: Boolean = false) {
+    fun addStops(list: List<EvStop>, auto: Boolean = false, startNow: Boolean = route != null && !previewing) {
         val d = dest ?: return
         val all = via + list.map { it.n.place }
         // in route order, so a stop before a later one on the route comes first
@@ -1351,7 +1351,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         evPlanned = evPlanned + list
         toast(if (auto) Lang.t("${list.size} Ladestopp(s) automatisch eingeplant", "${list.size} charging stop(s) added automatically")
             else Lang.t("${list.size} Ladestopp(s) eingeplant", "${list.size} charging stop(s) added"), 2500)
-        startRoute(d, departMin, true, startNow = route != null && !previewing)
+        startRoute(d, departMin, true, startNow = startNow)
     }
 
     fun addStop(p: Place) {
@@ -2056,6 +2056,15 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
 
     fun beginNavigation() {
         if (!previewing) return
+        // electric: the chosen route's charging stops go onto the trip as it starts (once per destination), and the route is
+        // worked out through them; the other routes stayed on offer until now
+        val d0 = dest
+        if (isEv && via.isEmpty() && evStops.isNotEmpty() && evPlanningFor == null && prefs.b(PreferenceKeys.SMARTFUEL, true) && d0 != null &&
+            evAutoDest?.let { Geo.dist(it, d0.pos) < 50.0 } != true) {
+            evAutoDest = d0.pos
+            addStops(evStops, auto = true, startNow = true)
+            return
+        }
         map.stopFly()
         previewing = false
         // where this trip started, for "Route back" when you arrive
@@ -5831,7 +5840,9 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
                 // put the stops on the trip straight away, once per destination: if you take them off again (stops editor) they
                 // stay a suggestion (the "Add stops" pill) instead of coming back with every new route
                 val d = dest
-                if (stops.isNotEmpty() && d != null && evAutoDest?.let { Geo.dist(it, d.pos) < 50.0 } != true) {
+                // (not while the routes are on offer: then they stay a plan per route, and the chosen route's stops go on
+                // the trip as it starts; this is for a plan that only finishes while you are already driving)
+                if (stops.isNotEmpty() && d != null && !previewing && evAutoDest?.let { Geo.dist(it, d.pos) < 50.0 } != true) {
                     evAutoDest = d.pos
                     addStops(stops, auto = true)
                 }

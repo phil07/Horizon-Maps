@@ -150,7 +150,10 @@ internal fun BoxScope.RoutePreview(engine: NavEngine) {
     val c = LocalVw.current
     val rs = engine.routes.take(3)
     if (rs.isEmpty()) return
-    val fastest = rs.indices.minByOrNull { rs[it].time } ?: 0
+    // electric: a route's time counts its charging stops (the plan of each route is on its card)
+    val evTrip = engine.prefs.s(PreferenceKeys.FUEL_TYPE, "E10") == "EV"
+    val totalSecs: (com.headunit.launcher.Route) -> Double = { r -> r.time + (if (evTrip) (engine.evRoutePlans[r]?.minutes ?: 0) * 60.0 else 0.0) }
+    val fastest = rs.indices.minByOrNull { totalSecs(rs[it]) } ?: 0
     val shortest = rs.indices.minByOrNull { rs[it].len } ?: 0
     val progress = remember { Animatable(0f) }
     // planning an arrive-by trip (or having the picker open) stops the countdown: you are not leaving now.
@@ -199,9 +202,11 @@ internal fun BoxScope.RoutePreview(engine: NavEngine) {
         if (ev) {
             val pctNow = engine.evNowPct() ?: engine.prefs.i(PreferenceKeys.EV_CHARGE_PCT, 80).coerceIn(5, 100)
             add(Lang.t("Akku $pctNow %", "Battery $pctNow%"))
-            if (evPlan.isNotEmpty()) {
-                add(if (evPlan.size == 1) Lang.t("1 Ladestopp", "1 charging stop") else Lang.t("${evPlan.size} Ladestopps", "${evPlan.size} charging stops"))
-                val cm = engine.evChargeMinutes()
+            val selPlan = engine.route?.let { engine.evRoutePlans[it] }
+            val nStops = if (evPlan.isNotEmpty()) evPlan.size else selPlan?.stops ?: 0
+            if (nStops > 0) {
+                add(if (nStops == 1) Lang.t("1 Ladestopp", "1 charging stop") else Lang.t("$nStops Ladestopps", "$nStops charging stops"))
+                val cm = if (evPlan.isNotEmpty()) engine.evChargeMinutes() else selPlan?.minutes ?: 0
                 if (cm > 0) add(Lang.t("$cm Min. laden", "$cm min charging"))
             }
         }
@@ -266,8 +271,6 @@ internal fun BoxScope.RoutePreview(engine: NavEngine) {
         for (km in listOf(30, 50, 100)) Pill("$km km", destKm == km, { engine.prefs.put(PreferenceKeys.EV_DEST_KM, km); engine.refreshEvPlan() })
         Pill(if (eco) Lang.t("Öko-Route ✓", "Eco route ✓") else Lang.t("Öko-Route", "Eco route"), eco, { engine.prefs.put(PreferenceKeys.ROUTE_ECO, !eco); engine.rerouteForSettings() })
     }
-    // the charging stops already planned into the route, with charge on arrival, charge-to and minutes
-    if (evPlan.isNotEmpty()) EvStopsRow(engine, evPlan)
     }
     // outside the options: a fuel stop suggestion, or (electric) a warning / charging stops not yet added
     FuelSuggestionRow(engine)
@@ -306,8 +309,8 @@ internal fun BoxScope.RoutePreview(engine: NavEngine) {
                                         .clickable { engine.selectRoute(i) }.padding(horizontal = 14.dp, vertical = 9.dp),
             ) {
                 Text(label.uppercase(), color = if (sel) c.accent else c.sub, fontSize = 11.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
-                Text(Geo.fmtDur(r.time), color = c.text, fontSize = 22.sp, fontWeight = FontWeight.Bold)
-                Text("${Geo.fmtDist(r.len, engine.imperial)} · ${Lang.t("Ankunft", "arrive")} ${fmt.format(java.util.Date(baseMs + (r.time * 1000).toLong()))}", color = c.sub, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(Geo.fmtDur(totalSecs(r)), color = c.text, fontSize = 22.sp, fontWeight = FontWeight.Bold)
+                Text("${Geo.fmtDist(r.len, engine.imperial)} · ${Lang.t("Ankunft", "arrive")} ${fmt.format(java.util.Date(baseMs + (totalSecs(r) * 1000).toLong()))}", color = c.sub, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 val via = viaOf(r)
                 val delayMin = Math.round(r.delay / 60.0).toInt()
                 Text(

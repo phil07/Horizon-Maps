@@ -615,7 +615,11 @@ fun EvStopsRow(engine: NavEngine, planned: List<com.headunit.launcher.EvStop>? =
 /** Route options row: a good place to fill up on a long trip. */
 @Composable
 fun FuelSuggestionRow(engine: NavEngine) {
-    if (engine.prefs.s(PreferenceKeys.FUEL_TYPE, "E10") == "EV") { EvStopsRow(engine); return }
+    // electric: no list of stops here (each route card shows its own); only a warning that the plan falls short
+    if (engine.prefs.s(PreferenceKeys.FUEL_TYPE, "E10") == "EV") {
+        engine.evWarning?.let { Text(it, color = Bad, fontSize = 12.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)) }
+        return
+    }
     val n = engine.fuelSuggestion ?: return
     val c = LocalVw.current
     Row(
