@@ -802,22 +802,26 @@ private fun FuelSection(prefs: Prefs, engine: NavEngine) {
         SChoice("Dein Kraftstoff", listOf("E10" to "Super E10", "E5" to "Super E5", "B7" to "Diesel", "E85" to "Bioethanol (E85)", "EV" to "Elektro"), prefs.s(PreferenceKeys.FUEL_TYPE, "E10")) { prefs.put(PreferenceKeys.FUEL_TYPE, it) }
         // only an electric car gets stops planned on the route: for a combustion car the switch would do nothing, so it is not shown
         if (prefs.s(PreferenceKeys.FUEL_TYPE, "E10") == "EV") SToggle(prefs, "Ladestopps auf langen Fahrten planen", "smartfuel", true, "Plant Ladestopps entlang der Route, wenn der Akku nicht bis zum Ziel reicht")
-        SFieldItem("Client ID", prefs.s(PreferenceKeys.FFID, "")) { prefs.put(PreferenceKeys.FFID, it.trim()) }
-        SFieldItem("Client Secret", prefs.s(PreferenceKeys.FFSECRET, ""), password = true) { prefs.put(PreferenceKeys.FFSECRET, it.trim()) }
-        var st by remember { mutableStateOf(FuelFinder.status) }
-        var busy by remember { mutableStateOf(false) }
-        SItem("Preise", st.ifBlank { if (FuelFinder.configured(prefs)) "Noch nicht heruntergeladen" else "Zuerst Daten eintragen" }) {
-            SButton(if (busy) "Sucht…" else "Jetzt aktualisieren", primary = true) {
-                if (!busy && FuelFinder.configured(prefs)) {
-                    busy = true; st = "Tankstellen und Preise werden heruntergeladen…"
-                    sc.launch {
-                        try { withContext(Dispatchers.IO) { FuelFinder.refresh(ctx, prefs, force = true) } } catch (e: Exception) { }
-                        st = FuelFinder.status; busy = false
+        // the UK government's Fuel Finder (pump prices): only in Great Britain and only for a combustion car
+        val ukFuel = engine.countryCode().uppercase() in setOf("GB", "UK") && prefs.s(PreferenceKeys.FUEL_TYPE, "E10") != "EV"
+        if (ukFuel) {
+            SFieldItem("Client ID", prefs.s(PreferenceKeys.FFID, "")) { prefs.put(PreferenceKeys.FFID, it.trim()) }
+            SFieldItem("Client Secret", prefs.s(PreferenceKeys.FFSECRET, ""), password = true) { prefs.put(PreferenceKeys.FFSECRET, it.trim()) }
+            var st by remember { mutableStateOf(FuelFinder.status) }
+            var busy by remember { mutableStateOf(false) }
+            SItem("Preise", st.ifBlank { if (FuelFinder.configured(prefs)) "Noch nicht heruntergeladen" else "Zuerst Daten eintragen" }) {
+                SButton(if (busy) "Sucht…" else "Jetzt aktualisieren", primary = true) {
+                    if (!busy && FuelFinder.configured(prefs)) {
+                        busy = true; st = "Tankstellen und Preise werden heruntergeladen…"
+                        sc.launch {
+                            try { withContext(Dispatchers.IO) { FuelFinder.refresh(ctx, prefs, force = true) } } catch (e: Exception) { }
+                            st = FuelFinder.status; busy = false
+                        }
                     }
                 }
             }
+            SItem("Falschen Preis entdeckt?") { SButton("Melden") { openSystemSettings(ctx, android.content.Intent.ACTION_VIEW, android.net.Uri.parse(FuelFinder.REPORT_URL)) } }
         }
-        SItem("Falschen Preis entdeckt?") { SButton("Melden") { openSystemSettings(ctx, android.content.Intent.ACTION_VIEW, android.net.Uri.parse(FuelFinder.REPORT_URL)) } }
     }
     if (prefs.s(PreferenceKeys.FUEL_TYPE, "E10") == "EV") CloudAccountGroup(prefs)
     if (prefs.s(PreferenceKeys.FUEL_TYPE, "E10") == "EV") SGroup("Dein Elektroauto") {
