@@ -834,8 +834,6 @@ private fun FuelSection(prefs: Prefs, engine: NavEngine) {
         EvOperatorsItem(prefs)
         SChoice("Umweg für bevorzugte Anbieter", listOf("5" to "5 Min.", "10" to "10 Min.", "15" to "15 Min.", "20" to "20 Min."), prefs.i(PreferenceKeys.EV_PREF_MIN, 10).toString(),
             "Ladesäulen deiner bevorzugten Anbieter werden nur gewählt, wenn die Fahrt dadurch höchstens so viele Minuten länger dauert und keinen zusätzlichen Ladestopp braucht (Standard: 10 Min.)") { prefs.put(PreferenceKeys.EV_PREF_MIN, it.toInt()) }
-        SFieldItem("Open Charge Map API-Schlüssel", prefs.s(PreferenceKeys.OCM_KEY, ""), "Optional, kostenlos auf openchargemap.org: findet Leistung und Betreiber von Ladesäulen außerhalb Deutschlands. Weitere Quellen: NDW (Niederlande, CC0), Brussels Mobility (Brüssel, CC BY 4.0). In Deutschland nutzt die App das Ladesäulenregister der Bundesnetzagentur. Ladedaten: Bundesnetzagentur.de (CC BY 4.0), Open Charge Map (CC BY-SA 4.0).", placeholder = "Schlüssel einfügen", password = true) { prefs.put(PreferenceKeys.OCM_KEY, it.trim()) }
-        OcmTestItem(prefs)
         SToggle(prefs, "Ladesäulen-Daten im Ausland laden", PreferenceKeys.FR_CHARGERS, false, "Ohne Einschalten lädt die App keine Ladesäulen-Dateien herunter. Eingeschaltet lädt sie bei Bedarf: Frankreich (einmal im Monat rund 127 MB, dazu rund 9 MB Verfügbarkeit), Niederlande (NDW) und Brüssel (jeweils wöchentlich, klein), nur wenn das Gebiet auf der Karte liegt. Quellen: transport.data.gouv.fr (Licence Ouverte 2.0, Beta), NDW (CC0), Brussels Mobility (CC BY 4.0).")
         EvWidgetItem(prefs)
     } else SGroup("Kraftstoffkosten auf der Route") {
@@ -1037,6 +1035,10 @@ private fun KeysSection(prefs: Prefs, engine: NavEngine) {
     KeyTestGroup(prefs)
     SGroup("Kraftstoffpreise außerhalb Großbritanniens", footer = "Deutschland benötigt einen kostenlosen Schlüssel von Tankerkönig (creativecommons.tankerkoenig.de).") {
         SFieldItem("Tankerkönig-Schlüssel (Deutschland)", prefs.s(PreferenceKeys.TANKERKOENIG_KEY, ""), placeholder = "Schlüssel einfügen", password = true) { prefs.put(PreferenceKeys.TANKERKOENIG_KEY, it.trim()) }
+    }
+    SGroup("Ladesäulen-Daten außerhalb Deutschlands") {
+        SFieldItem("Open Charge Map API-Schlüssel", prefs.s(PreferenceKeys.OCM_KEY, ""), "Optional, kostenlos auf openchargemap.org: findet Leistung und Betreiber von Ladesäulen außerhalb Deutschlands. Weitere Quellen: NDW (Niederlande, CC0), Brussels Mobility (Brüssel, CC BY 4.0). In Deutschland nutzt die App das Ladesäulenregister der Bundesnetzagentur. Ladedaten: Bundesnetzagentur.de (CC BY 4.0), Open Charge Map (CC BY-SA 4.0).", placeholder = "Schlüssel einfügen", password = true) { prefs.put(PreferenceKeys.OCM_KEY, it.trim()) }
+        OcmTestItem(prefs)
     }
     SGroup("Suche") {
         SChoice("Suchergebnisse", searchCountryOptions(engine), searchCountryValue(prefs)) { prefs.put(PreferenceKeys.COUNTRY, it) }
