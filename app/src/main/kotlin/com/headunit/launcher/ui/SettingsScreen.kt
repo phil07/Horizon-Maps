@@ -1527,7 +1527,8 @@ private fun VehicleGroup(prefs: Prefs) {
             VehicleField(prefs, kind, "h", "Höhe (m)", d.heightM.toString(), "m")
             VehicleField(prefs, kind, "w", "Breite (m)", d.widthM.toString(), "m")
             VehicleField(prefs, kind, "l", "Länge (m)", d.lengthM.toString(), "m")
-            VehicleField(prefs, kind, "kg", "Gewicht (kg)", d.weightKg.toString(), "kg")
+            VehicleField(prefs, kind, "kg", "Gesamtgewicht (kg)", d.weightKg.toString(), "kg")
+            VehicleField(prefs, kind, "axlekg", "Achsgewicht (kg)", d.axleWeightKg.toString(), "kg")
         }
     }
 }
