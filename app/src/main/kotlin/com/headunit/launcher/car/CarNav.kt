@@ -617,13 +617,14 @@ class MapScreen(carContext: CarContext, private val holder: CarHolder) : Screen(
             strip.addAction(Action.Builder().setTitle("Beenden").setOnClickListener { e?.endRoute(); invalidate() }.build())
             // the demo drive (for trying it out parked; only with Demo switched on in Settings, as in the app): starts it, speeds it
             // up, stops it. Otherwise that space is the 2D / 3D button
-            if (demoOn) strip.addAction(Action.Builder().setTitle(when (e?.simMode ?: 0) { 0 -> "Demo"; 1 -> "Schneller"; else -> "Demo beenden" })
+            // Android Auto allows four buttons here: electric cars get the charger power filter in that place (a change plans the
+            // charging stops again); 2D / 3D stays on the phone and in Settings
+            if (e != null && e.prefs.s(PreferenceKeys.FUEL_TYPE, "E10") == "EV") strip.addAction(Action.Builder().setIcon(icon(R.drawable.ic_car_charger_filter))
+                .setOnClickListener { e.chargerFilterOpen = !e.chargerFilterOpen; invalidate() }.build())
+            else if (demoOn) strip.addAction(Action.Builder().setTitle(when (e?.simMode ?: 0) { 0 -> "Demo"; 1 -> "Schneller"; else -> "Demo beenden" })
                 .setOnClickListener { e?.cycleSim(); invalidate() }.build())
             else strip.addAction(view)
             strip.addAction(sound)
-            // electric: the charger power filter during the trip too (a change plans the charging stops again)
-            if (e != null && e.prefs.s(PreferenceKeys.FUEL_TYPE, "E10") == "EV") strip.addAction(Action.Builder().setIcon(icon(R.drawable.ic_car_charger_filter))
-                .setOnClickListener { e.chargerFilterOpen = !e.chargerFilterOpen; invalidate() }.build())
             strip.addAction(reportAction())
         } else if (taps) {
             // cars that pass taps on use the app's own search bar and chips on the map, so Melden has the Search button's place
