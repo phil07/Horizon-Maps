@@ -2146,7 +2146,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
                                 if (haveOffline && NavigationFallbackPolicy.shouldUseOffline(e)) OfflineRouter.routes(ctx, f.pos, d.pos, via.map { it.pos }, hd) else throw e
                             }
                         }
-                        if (rs.isNotEmpty()) { routes = rs; active = rs.indices.minByOrNull { rs[it].time } ?: 0; said.clear(); offCount = 0; lastIdx = 0; trustProg = -1.0; clearLiveAlts(); drawRoutes(); cardsForStartAlts(); updateRouteZones(); err = null; break }
+                        if (rs.isNotEmpty()) { routes = rs; active = rs.indices.minByOrNull { rs[it].time } ?: 0; said.clear(); offCount = 0; lastIdx = 0; trustProg = -1.0; clearLiveAlts(); drawRoutes(); cardsForStartAlts(); updateRouteZones(); evAfterReroute(); err = null; break }
                         err = "no route found"
                     } catch (e: Exception) { err = e.message ?: "unknown error" }
                     if (attempt < 3) delay(2500)
@@ -5842,6 +5842,44 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         return stops to warning
     }
 
+    /** After a reroute, what to say once the charging is planned again: 0 nothing, 1 the result, 2 only if stops were added. */
+    private var evReplanNotice = 0
+
+    /**
+     * Electric, after a reroute while driving. With charging stops on the trip: when the new way to them is clearly longer than the
+     * way without them (more than 5 minutes on top of their own detours), they are planned again for the new way, your own stops
+     * kept. With no charging stops yet: checks the (maybe longer) new way still reaches; if not, a stop is planned.
+     */
+    private fun evAfterReroute() {
+        if (!isEv || previewing || !prefs.b(PreferenceKeys.SMARTFUEL, true)) return
+        val d = dest ?: return
+        val r = route ?: return
+        val auto = evPlanned
+        if (auto.isEmpty()) {
+            // (not when you took the planned stops off yourself for this destination)
+            if (evAutoDest?.let { Geo.dist(it, d.pos) < 50.0 } != true && evPlanningFor == null) { evReplanNotice = 2; planEv(r) }
+            return
+        }
+        val f = fix ?: return
+        if (!online()) return
+        scope.launch {
+            val own = via.filter { p -> auto.none { Geo.dist(it.n.place.pos, p.pos) < 30.0 } }
+            val hd = if (f.speed > 2.0) f.heading else -1.0
+            val direct = try {
+                withContext(Dispatchers.IO) { netRoutes(f.pos, d.pos, false, 0L, own.map { it.pos }, hd, true) }.minByOrNull { it.time }
+            } catch (e: Exception) { null } ?: return@launch
+            // the trip may have moved on meanwhile (another reroute, stops changed, ended)
+            if (route !== r || evPlanned !== auto || previewing) return@launch
+            val extraMin = (r.time - direct.time) / 60.0 - auto.sumOf { max(0, it.n.detourMin) }
+            if (extraMin <= 5.0) return@launch
+            // take the automatic stops off (your own stay) and plan again for the new way, like a changed range does
+            via = own
+            evPlanned = emptyList(); evAutoDest = null; evPlanWarn = null
+            evReplanNotice = 1
+            startRoute(d, departMin, true, startNow = true)
+        }
+    }
+
     private fun planEv(r: Route) {
         evStops = emptyList(); evWarning = null; pushVia()
         // stops already on the trip are the user's plan: no suggestion on top of them (but a warning that came with the
@@ -5854,6 +5892,15 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
             val (stops, warning) = computeEvPlan(r) ?: return@launch
             if (route === r) {
                 evStops = stops; evWarning = warning; pushVia()
+                // after a reroute that planned the charging again: say what came of it
+                val notice = evReplanNotice
+                if (notice != 0 && !previewing) {
+                    evReplanNotice = 0
+                    if (stops.isNotEmpty()) {
+                        toast(Lang.t("Ladestopps neu geplant: ", "Charging stops planned again: ") + stops.joinToString(", ") { it.n.place.name }, 7000)
+                        speak(if (stops.size == 1) Lang.t("Ladestopp neu geplant", "Charging stop planned again") else Lang.t("${stops.size} Ladestopps neu geplant", "${stops.size} charging stops planned again"))
+                    } else if (notice == 1) toast(Lang.t("Ladestopps neu geplant: kein Ladestopp mehr nötig", "Charging planned again: no stop needed now"), 6000)
+                }
                 // put the stops on the trip straight away, once per destination: if you take them off again (stops editor) they
                 // stay a suggestion (the "Add stops" pill) instead of coming back with every new route
                 val d = dest

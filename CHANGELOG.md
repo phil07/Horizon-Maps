@@ -5,6 +5,7 @@ Add user-facing Horizon Nav changes under **Unreleased** before publishing each 
 ## Unreleased
 
 ### Verbessert
+- Ladestopps nach Neuberechnung: Weichst du als Elektroauto deutlich von der Route ab, werden die Ladestopps für den neuen Weg neu geplant, wenn der Weg über die alten Säulen mehr als 5 Minuten länger wäre. Eigene Stopps bleiben. Reicht der Akku nach einem Umweg nicht mehr, wird ein Ladestopp eingeplant. Eine Meldung nennt die neuen Stopps.
 - Routenvorschau beim Verbrenner: Der Tankstopp-Vorschlag entfällt. Zwischenstopps zum Laden werden nur noch für Elektroautos geplant. In den Einstellungen heißt der Schalter jetzt „Ladestopps auf langen Fahrten planen“ und erscheint nur beim Elektroauto.
 - Elektro-Routenvorschau: Statt geschätzter Zeiten zeigt die Vorschau „Routen werden berechnet …“, bis die Ladeplanung für alle Routen fertig ist. Erst dann erscheinen die Routen zur Auswahl, mit Ladestopps und Ladepausen; die schnellste (samt Laden) ist vorgewählt.
 
