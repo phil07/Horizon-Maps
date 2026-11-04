@@ -5,7 +5,7 @@ Add user-facing Horizon Nav changes under **Unreleased** before publishing each 
 ## Unreleased
 
 ### Verbessert
-- Ladeplanung: Die Routen der Vorschau werden gleichzeitig statt nacheinander geplant und die Wartezeit ist deutlich kürzer. Der Plan der gewählten Route wird nicht noch einmal berechnet.
+- Ladeplanung: Die Routen der Vorschau werden gleichzeitig statt nacheinander geplant und die Wartezeit ist deutlich kürzer. Der Plan der gewählten Route wird nicht noch einmal berechnet. Auch innerhalb einer Route laufen Höhenprofil, TomTom und die Ladesäulen-Register jetzt gleichzeitig.
 - Startbildschirm: Das grüne Vorschlagsfeld mit der letzten oder vermuteten Route („Berlin · 5 h 49 min · Los“) entfällt.
 - Gespeichert & zuletzt: Unter häufigen Zielen steht jetzt die Adresse statt „Meist gegen 12:02“, auch bei schon gespeicherten Zielen.
 

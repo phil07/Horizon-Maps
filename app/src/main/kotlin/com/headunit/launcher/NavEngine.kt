@@ -5780,16 +5780,18 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         val chargerKm = prefs.i(PreferenceKeys.EV_CHARGER_KM, 30).coerceIn(0, 500).toDouble()
         val (startKm0, full0) = evRangeKm()
         val lenKm = r.len / 1000.0
+        // the chargers along the route are looked up while the heights load (both are network calls)
+        val candsJob = scope.async { withContext(Dispatchers.IO) { chargersAlong(r) } }
         // the heights along the route first (hills change the range a lot)
         evElevNow(r)
-        if (route !== r && routes.none { it === r }) return null
+        if (route !== r && routes.none { it === r }) { candsJob.cancel(); return null }
         // the range counts as far as this route's speeds, hills, the weather and the safety margin allow (EvModel), not the rated km
         val rf = try {
             if (lenKm > 1.0 && r.time > 60) (evRouteKwh(r, 0.0, r.len / r.time * 3.6) / (lenKm * evBaseKwhPerKm())).coerceIn(0.5, 2.5) else 1.0
         } catch (e: Exception) { 1.0 }
         val startKm = startKm0 / rf; val full = full0 / rf
-        if (startKm - lenKm >= destKm) return emptyList<EvStop>() to null
-        val cands = withContext(Dispatchers.IO) { chargersAlong(r) }
+        if (startKm - lenKm >= destKm) { candsJob.cancel(); return emptyList<EvStop>() to null }
+        val cands = candsJob.await()
         if (route !== r && routes.none { it === r }) return null
         val ids = ChargeOperators.selected(prefs)
         // the greedy plan: at each stop [pick] chooses among the chargers in reach; the stops and a warning if it falls short
@@ -5972,28 +5974,37 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         // (the planner takes them only when no charger of known power is in reach)
         fun fast(n: Nearby) = minKw <= 0 || n.kw == null || n.kw >= minKw
         try {
-            val tt = ArrayList<Nearby>()
-            if (hasKey && online()) {
-                val line = RouteExtras.line(r, 0.0, r.len, 800.0, 140)
-                try {
-                    for ((n, secs) in TomTomRest.poiAlong(apiKey, "charging", line, 600)) {
-                        val pr = RouteExtras.project(r, n.place.pos, 3000.0) ?: continue
-                        tt += n.copy(dist = pr.first, detourMin = if (secs >= 0) Math.round(secs / 60.0).toInt() else detour(pr.second), ahead = true)
+            // TomTom's list and the registers are asked at the same time (each is a network call of a second or more)
+            val (tt, reg) = kotlinx.coroutines.runBlocking {
+                val ttJob = async(Dispatchers.IO) {
+                    val l = ArrayList<Nearby>()
+                    if (hasKey && online()) {
+                        val line = RouteExtras.line(r, 0.0, r.len, 800.0, 140)
+                        try {
+                            for ((n, secs) in TomTomRest.poiAlong(apiKey, "charging", line, 600)) {
+                                val pr = RouteExtras.project(r, n.place.pos, 3000.0) ?: continue
+                                l += n.copy(dist = pr.first, detourMin = if (secs >= 0) Math.round(secs / 60.0).toInt() else detour(pr.second), ahead = true)
+                            }
+                        } catch (e: Exception) { }
                     }
-                } catch (e: Exception) { }
+                    l
+                }
+                val regJob = async(Dispatchers.IO) {
+                    // the German register / Open Charge Map: the power and operator of chargers TomTom lists without them (filled in before
+                    // the power filter, so one of unknown power can turn out fast or slow), and the fast chargers TomTom left out
+                    val regLine = RouteExtras.line(r, 0.0, r.len, 1000.0, 150)
+                    val reg0: List<Nearby> = if (online()) ChargerInfo.along(prefs, regLine) else emptyList()
+                    // the Netherlands: NDW's national register too, each site counted once with the others
+                    val regNl: List<Nearby> = if (online() && regLine.any { it.lat in 50.7..53.6 && it.lon in 3.3..7.3 })
+                        reg0 + NdwChargers.nearby(ctx, regLine).filter { n -> reg0.none { Geo.dist(it.place.pos, n.place.pos) < 150.0 } }
+                        else reg0
+                    // Brussels: its open charge points (DC only, no power given)
+                    if (online() && regLine.any { it.lat in 50.76..50.91 && it.lon in 4.23..4.47 })
+                        regNl + BruChargers.nearby(ctx, regLine).filter { n -> regNl.none { Geo.dist(it.place.pos, n.place.pos) < 150.0 } }
+                        else regNl
+                }
+                ttJob.await() to regJob.await()
             }
-            // the German register / Open Charge Map: the power and operator of chargers TomTom lists without them (filled in before
-            // the power filter, so one of unknown power can turn out fast or slow), and the fast chargers TomTom left out
-            val regLine = RouteExtras.line(r, 0.0, r.len, 1000.0, 150)
-            val reg0: List<Nearby> = if (online()) ChargerInfo.along(prefs, regLine) else emptyList()
-            // the Netherlands: NDW's national register too, each site counted once with the others
-            val regNl: List<Nearby> = if (online() && regLine.any { it.lat in 50.7..53.6 && it.lon in 3.3..7.3 })
-                reg0 + NdwChargers.nearby(ctx, regLine).filter { n -> reg0.none { Geo.dist(it.place.pos, n.place.pos) < 150.0 } }
-                else reg0
-            // Brussels: its open charge points (DC only, no power given)
-            val reg: List<Nearby> = if (online() && regLine.any { it.lat in 50.76..50.91 && it.lon in 4.23..4.47 })
-                regNl + BruChargers.nearby(ctx, regLine).filter { n -> regNl.none { Geo.dist(it.place.pos, n.place.pos) < 150.0 } }
-                else regNl
             val known = ChargerInfo.enrich(tt, reg)
             out += known.filter { fast(it) }
             val added = ArrayList<Nearby>()
