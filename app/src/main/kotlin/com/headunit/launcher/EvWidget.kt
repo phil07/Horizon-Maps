@@ -151,8 +151,6 @@ object EvWidget {
     // from the background). How often is set in Settings, every minute to every 30 (the maker's server wakes the car for each
     // request, and frequent requests can go against its terms of use: Settings says so).
     // Every minute while a route is being driven, every 10 minutes otherwise (both set in Settings).
-    private fun tapEveryMs(p: Prefs): Long =
-        (if (RouteSync.anyGuiding()) p.i(PreferenceKeys.EV_REFRESH_MIN, 1) else p.i(PreferenceKeys.EV_REFRESH_IDLE_MIN, 10)).coerceIn(1, 30) * 60_000L
     private var tapPrefs: Prefs? = null
     private var lastTapAt = 0L
     /** What the last tap did, with the time, for Settings ("" before the first one). */
@@ -164,7 +162,7 @@ object EvWidget {
             // (switched off in Settings meanwhile: no tap, but it keeps checking, so switching it back on works at once)
             // checked every minute, so starting or ending a route switches between the two intervals straight away
             val now = System.currentTimeMillis()
-            if (p.b(PreferenceKeys.EV_AUTOREFRESH, true) && now - liveAt >= 10 * 60_000L && now - lastTapAt >= tapEveryMs(p) - 5_000L) { lastTapAt = now; tapRefresh() }
+            if (p.b(PreferenceKeys.EV_AUTOREFRESH, true) && now - lastTapAt >= 55_000L) { lastTapAt = now; tapRefresh() }
             main.postDelayed(this, 60_000L)
             if (view == null) try { appCtx?.let { start(it, p) } } catch (e: Exception) { }
         }
@@ -229,28 +227,45 @@ object EvWidget {
     }
 
     /** Live battery level from the car (Android Auto). Takes precedence over the widget for a while. */
-    fun liveReading(p: Prefs, pct: Int, km: Int?) {
-        liveAt = System.currentTimeMillis()
+    /** The battery level and range the car screen shows, as observable state: the screen redraws the moment a new reading arrives. */
+    var nowPct: Int? by mutableStateOf(null); private set
+    var nowKm: Int? by mutableStateOf(null); private set
+
+    /** Range from the battery level, when the reading has none: level × battery size × km per kWh (Settings), or null if unknown. */
+    private fun fallbackKm(p: Prefs, pct: Int): Int? {
+        val batt = p.s(PreferenceKeys.EV_BATTERY_KWH, "").replace(',', '.').toDoubleOrNull()?.takeIf { it > 5.0 } ?: return null
+        val kmPerKwh = p.s(PreferenceKeys.EVMPK, "").replace(',', '.').toDoubleOrNull()?.takeIf { it in 2.0..15.0 } ?: 5.5
+        return Math.round(pct / 100.0 * batt * kmPerKwh).toInt().takeIf { it >= 1 }
+    }
+
+    /** Stores the reading and updates the car screen's state with it. */
+    private fun publish(p: Prefs, pct: Int, km: Int?, src: String, at: Long) {
+        nowPct = pct; nowKm = km
         p.put(PreferenceKeys.EV_NOW_PCT, pct.toString())
         p.put(PreferenceKeys.EV_NOW_KM, km?.toString() ?: "")
-        p.put(TAG_AT, liveAt.toString()); p.put(TAG_SRC, "car")
-        lastPct = pct; lastAt = liveAt
+        p.put(TAG_AT, at.toString()); p.put(TAG_SRC, src)
+        lastPct = pct; lastAt = at
+    }
+
+    /** A reading from the car itself (Android Auto). The widget's reading comes first: the car's value is used only while the widget has no fresh one. */
+    fun liveReading(p: Prefs, pct: Int, km: Int?) {
+        val now = System.currentTimeMillis()
+        liveAt = now
+        if (p.s(TAG_SRC, "widget") == "widget" && now - readAt(p) < 10 * 60_000L) return
+        publish(p, pct, km ?: fallbackKm(p, pct), "car", now)
     }
 
     private var liveAt = 0L
 
-    /** A battery level from the car maker's cloud (see [CarCloud]): like the widget's, the car's own live value wins while it is fresh. */
+    /** A battery level from the car maker's cloud (see [CarCloud]). */
     fun cloudReading(p: Prefs, pct: Int, km: Int?) = onPct(p, pct, km, "cloud")
 
+    /** A reading from the widget (or the cloud). It replaces the car's value at once. */
     private fun onPct(p: Prefs, pct: Int?, km: Int?, src: String = "widget") {
-        // the car's own live value wins for 10 minutes after it last arrived
-        if (System.currentTimeMillis() - liveAt < 10 * 60_000L) return
         if (pct == null) return
         val now = System.currentTimeMillis()
-        lastPct = pct; lastAt = now
-        p.put(PreferenceKeys.EV_NOW_PCT, pct.toString())
-        p.put(PreferenceKeys.EV_NOW_KM, km?.toString() ?: "")  // no range in this reading: don't keep an older one
-        p.put(TAG_AT, now.toString()); p.put(TAG_SRC, src)
+        // no range in this reading: work it out from the level, rather than keep an older one
+        publish(p, pct, km ?: fallbackKm(p, pct), src, now)
     }
 
     /** The range in km the widget shows, e.g. "212 km" (its figures can be split into separate pieces of text, so they're joined first). */

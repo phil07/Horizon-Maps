@@ -441,8 +441,9 @@ private fun FasterCard(engine: NavEngine, modifier: Modifier) {
 @Composable
 private fun EvPill(engine: NavEngine) {
     val c = LocalVw.current
-    val evPct = engine.prefs.s(PreferenceKeys.EV_NOW_PCT, "").toIntOrNull()
-    val evKm = engine.prefs.s(PreferenceKeys.EV_NOW_KM, "").toIntOrNull()
+    // the widget's or the car's latest reading (observed state, so the screen redraws when it changes); the stored one until then
+    val evPct = com.headunit.launcher.EvWidget.nowPct ?: engine.prefs.s(PreferenceKeys.EV_NOW_PCT, "").toIntOrNull()
+    val evKm = com.headunit.launcher.EvWidget.nowKm ?: engine.prefs.s(PreferenceKeys.EV_NOW_KM, "").toIntOrNull()
     Row(Modifier.height(64.dp).panel(10.dp, RoundedCornerShape(32.dp), c.surface).padding(horizontal = 22.dp),
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
         Text(if (evPct != null) "$evPct %" else "– %", color = if (evPct == null) c.sub else if (evPct < 15) Bad else if (evPct < 30) Warn else c.text, fontSize = 28.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)

@@ -5,6 +5,9 @@ Add user-facing Horizon Nav changes under **Unreleased** before publishing each 
 ## Unreleased
 
 ### Behoben
+- Akkustand und Reichweite in Android Auto: Die Werte aus dem Widget (oder vom Auto) werden sofort übernommen und auf dem Autobildschirm neu gezeichnet. Vorher blieb ein alter Wert stehen, bis man die Karte neu öffnete. Das Widget hat Vorrang, das Auto liefert den Wert nur, wenn das Widget keinen aktuellen hat.
+- Akkustand im Auto: Das Widget wird während der Verbindung jede Minute aktualisiert (vorher alle 10 Minuten ohne Auto-Wert).
+- Restkilometer: Fehlen sie im Widget, werden sie aus Akkustand, Akkugröße und Verbrauch errechnet.
 - Verbrauch: Die Einstellung „Effizienz (km pro kWh)“ wurde als Meilen pro kWh gelesen. Der Verbrauch war dadurch um rund ein Drittel zu niedrig geschätzt. Ein Komma wird jetzt auch angenommen (5,5).
 - Verbrauch: Der unterwegs mitgezählte Verbrauch berücksichtigt die gelernte Korrektur je Straßenart, wie die Planung.
 
