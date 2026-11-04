@@ -5,7 +5,7 @@ Add user-facing Horizon Nav changes under **Unreleased** before publishing each 
 ## Unreleased
 
 ### Verbessert
-- Routenvorschau beim Verbrenner: Der Tankstopp-Vorschlag entfällt. Zwischenstopps zum Laden werden nur noch für Elektroautos geplant.
+- Routenvorschau beim Verbrenner: Der Tankstopp-Vorschlag entfällt. Zwischenstopps zum Laden werden nur noch für Elektroautos geplant. In den Einstellungen heißt der Schalter jetzt „Ladestopps auf langen Fahrten planen“ und erscheint nur beim Elektroauto.
 - Elektro-Routenvorschau: Statt geschätzter Zeiten zeigt die Vorschau „Routen werden berechnet …“, bis die Ladeplanung für alle Routen fertig ist. Erst dann erscheinen die Routen zur Auswahl, mit Ladestopps und Ladepausen; die schnellste (samt Laden) ist vorgewählt.
 
 

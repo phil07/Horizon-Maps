@@ -119,7 +119,7 @@ internal val settingsIndex = listOf(
     SettingRef("Smartphone koppeln", "Orte vom Smartphone an das Auto senden", "Orte vom Smartphone senden", 7),
     SettingRef("Google Maps Links", "", "Orte aus anderen Apps", 7),
     SettingRef("Dein Kraftstoff", "", "Kraftstoffpreise", 8),
-    SettingRef("Tankstopp bei langen Fahrten vorschlagen", "Günstigste Tankstelle entlang der Route", "Kraftstoffpreise", 8),
+    SettingRef("Ladestopps auf langen Fahrten planen", "Ladestopps entlang der Route (Elektroauto)", "Kraftstoffpreise", 8),
     SettingRef("Client ID", "", "Kraftstoffpreise", 8),
     SettingRef("Client Secret", "", "Kraftstoffpreise", 8),
     SettingRef("Preise", "", "Kraftstoffpreise", 8),

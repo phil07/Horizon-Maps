@@ -800,7 +800,8 @@ private fun FuelSection(prefs: Prefs, engine: NavEngine) {
     val sc = rememberCoroutineScope()
     SGroup("Kraftstoffpreise") {
         SChoice("Dein Kraftstoff", listOf("E10" to "Super E10", "E5" to "Super E5", "B7" to "Diesel", "E85" to "Bioethanol (E85)", "EV" to "Elektro"), prefs.s(PreferenceKeys.FUEL_TYPE, "E10")) { prefs.put(PreferenceKeys.FUEL_TYPE, it) }
-        SToggle(prefs, "Tankstopp bei langen Fahrten vorschlagen", "smartfuel", true, if (prefs.s(PreferenceKeys.FUEL_TYPE, "E10") == "EV") "Über ca. 150 km eine Ladestation entlang des Weges" else "Über ca. 150 km die günstigste Tankstelle entlang des Weges")
+        // only an electric car gets stops planned on the route: for a combustion car the switch would do nothing, so it is not shown
+        if (prefs.s(PreferenceKeys.FUEL_TYPE, "E10") == "EV") SToggle(prefs, "Ladestopps auf langen Fahrten planen", "smartfuel", true, "Plant Ladestopps entlang der Route, wenn der Akku nicht bis zum Ziel reicht")
         SFieldItem("Client ID", prefs.s(PreferenceKeys.FFID, "")) { prefs.put(PreferenceKeys.FFID, it.trim()) }
         SFieldItem("Client Secret", prefs.s(PreferenceKeys.FFSECRET, ""), password = true) { prefs.put(PreferenceKeys.FFSECRET, it.trim()) }
         var st by remember { mutableStateOf(FuelFinder.status) }
