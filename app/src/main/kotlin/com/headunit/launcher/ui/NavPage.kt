@@ -338,6 +338,7 @@ internal fun BoxScope.RoutePreview(engine: NavEngine) {
                     Text(
                         estPre + when {
                             ps == null -> Lang.t("Ladeplanung …", "Planning charging …")
+                            ps.offline -> Lang.t("Offline: keine Ladeplanung", "Offline: no charging plan")
                             ps.stops == 0 && !ps.warning -> Lang.t("Kein Ladestopp nötig", "No charging stop needed")
                             ps.stops == 0 -> Lang.t("Ladeplanung reicht nicht", "Charging plan falls short")
                             else -> (if (ps.stops == 1) Lang.t("1 Ladestopp", "1 charging stop") else Lang.t("${ps.stops} Ladestopps", "${ps.stops} charging stops")) +

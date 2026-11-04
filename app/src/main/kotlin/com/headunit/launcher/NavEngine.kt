@@ -213,6 +213,8 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
     /** Destination of a trip that was still running when the app last closed. */
     var resume by mutableStateOf<Place?>(null)
     private var navStartMs = 0L
+    /** Where the trip under way goes: a restart to the same place (new stops) continues the trip instead of starting a new one. */
+    private var navTripDest: LL? = null
     private var navStartDist = 0.0
     var brakeFlash by mutableStateOf(false)
     /** True for a few seconds after the speed limit changes, so the sign can pulse. */
@@ -1986,7 +1988,11 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
                 val rs = if (usedOffline) rs0 else avoidVignette(rs0, from, to.pos, departMs)
                 if (usedOffline) toast(ctx.getString(R.string.toast_030), 4000)
                 // the fastest route is the one chosen first: everything planned for the trip (rain, weather, charging stops) is for it
-                val pick = rs.indices.minByOrNull { rs[it].time } ?: 0
+                // except when the charging stops went onto the trip as it started: then the way that follows the route you chose
+                // (fastest, shortest or an alternative) most closely, not simply the quickest one through the stops
+                val prefer = evPreferRoute; evPreferRoute = null
+                val pick = (if (prefer != null && keepVia && rs.size > 1) rs.indices.maxByOrNull { routeOverlap(rs[it], prefer) } else null)
+                    ?: rs.indices.minByOrNull { rs[it].time } ?: 0
                 if (rs[pick].steps.isEmpty()) toast(if (lastRouteProvider == "mapbox") Lang.t("Mapbox hat für diese Route keine Abbiegehinweise geliefert", "Mapbox returned no turn instructions for this route") else Lang.t("Dieser Schlüssel liefert keine Abbiegehinweise. Prüfe, ob er Zugriff auf die TomTom Routing API hat", "This key returned no turn instructions. Check it has TomTom Routing API access"), 6000)
                 if (departInMin > 0 && !usedOffline && !departApplied) toast(ctx.getString(R.string.toast_007), 4000)
                 departMin = departInMin
@@ -2054,14 +2060,37 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         return "$from → $to"
     }
 
+    /** The route chosen on the cards, while the trip is worked out again through its charging stops (see startRoute). */
+    private var evPreferRoute: Route? = null
+    /** Starting was asked for while the charging was still being planned: it starts as soon as the plan is in. */
+    private var evStartPending = false
+
+    /** How much of [b] route [a] follows (share of sampled points of [a] within 300 m of [b]). */
+    private fun routeOverlap(a: Route, b: Route): Double {
+        if (a.pts.isEmpty()) return 0.0
+        val step = maxOf(1, a.pts.size / 60)
+        var n = 0; var on = 0
+        for (i in a.pts.indices step step) { n++; if (RouteExtras.project(b, a.pts[i], 300.0) != null) on++ }
+        return if (n == 0) 0.0 else on.toDouble() / n
+    }
+
     fun beginNavigation() {
         if (!previewing) return
+        // electric: the charging plan of the chosen route is still being worked out. Starting now would set off without its stops
+        // (they would only come a little later, with the route worked out again on the way): wait for the plan, then start
+        if (isEv && via.isEmpty() && evPlanningFor != null && prefs.b(PreferenceKeys.SMARTFUEL, true)) {
+            if (!evStartPending) toast(Lang.t("Ladestopps werden noch geplant, die Navigation startet gleich …", "Still planning the charging stops, starting in a moment …"), 3500)
+            evStartPending = true
+            return
+        }
+        evStartPending = false
         // electric: the chosen route's charging stops go onto the trip as it starts (once per destination), and the route is
         // worked out through them; the other routes stayed on offer until now
         val d0 = dest
         if (isEv && via.isEmpty() && evStops.isNotEmpty() && evPlanningFor == null && prefs.b(PreferenceKeys.SMARTFUEL, true) && d0 != null &&
             evAutoDest?.let { Geo.dist(it, d0.pos) < 50.0 } != true) {
             evAutoDest = d0.pos
+            evPreferRoute = route
             addStops(evStops, auto = true, startNow = true)
             return
         }
@@ -2072,7 +2101,13 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         // the other screen (phone or car) follows onto the same trip
         dest?.let { d -> try { RouteSync.started(this, d, via) } catch (e: Exception) { } }
         said.clear(); lastIdx = 0; zoomOffset = 0.0
-        navStartMs = System.currentTimeMillis(); navStartDist = tripDist; evSinceNav = 0.0
+        // a new trip starts its counters; a trip that only got new stops or a new way (stops added, charging planned again) keeps
+        // them, so the battery driven down so far and the trip's time and distance are not forgotten
+        val continuing = navStartMs > 0 && navTripDest?.let { a -> dest?.let { Geo.dist(a, it.pos) < 50.0 } } == true
+        if (!continuing) {
+            navStartMs = System.currentTimeMillis(); navStartDist = tripDist; evSinceNav = 0.0; evChargeRefPct = -1.0; evChargeRefAt = 0L; evSinceCharge = 0.0
+            navTripDest = dest?.pos
+        }
         lastFasterCheck = System.currentTimeMillis(); faster = null; lastTrafficAt = 0L; undoRoute = null; if (notice?.kind == "reroute") notice = null
         dest?.let { d -> prefs.put(PreferenceKeys.RESUME, org.json.JSONObject().put("n", d.name).put("s", d.sub).put("la", d.pos.lat).put("lo", d.pos.lon).put("t", System.currentTimeMillis()).toString()) }
         following = true
@@ -2172,7 +2207,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         routeCams = emptyList(); camsRoute = null; camsAt = 0L; camsCount = -1; hazardSig = 0; policeSig = 0; map.setHazards(emptyList())
         via = emptyList(); evPlanned = emptyList(); evAutoDest = null; evStops = emptyList(); evWarning = null; stopMode = false; destRain = null; routeWx = emptyList()
         routes = emptyList(); active = 0; dest = null; turn = null; eta = null; lastIdx = 0; previewing = false; routeFrac = 0f; onRoad = ""
-        departMin = 0; departAtMs = 0L
+        departMin = 0; departAtMs = 0L; navStartMs = 0L; navTripDest = null; evStartPending = false; evPreferRoute = null
         fuelSuggestion = null; parkingNear = emptyList(); parkingFor = null
         turnArrowKey = -1; map.setTurnArrow(emptyList())
         clearLiveAlts(); liveSaid.clear(); radar = emptyList(); radarSig = 0; bendsFor = null; bends = emptyList()
@@ -4893,7 +4928,10 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         if (!light) {
             try { checkIncidents(r, progress) } catch (e: Exception) { }
             fix?.let { f -> try { checkYieldSigns(f.pos, f.heading) } catch (e: Exception) { } }
-            fix?.let { f -> if (via.isNotEmpty() && Geo.dist(f.pos, via[0].pos) < 80) { toast(str(R.string.rest_432, via[0].name), 3000); val reached = via[0].pos; evPlanned = evPlanned.filter { Geo.dist(it.n.place.pos, reached) >= 30.0 }; via = via.drop(1); pushVia() } }
+            fix?.let { f -> if (via.isNotEmpty() && Geo.dist(f.pos, via[0].pos) < viaReachM()) { toast(str(R.string.rest_432, via[0].name), 3000); val reached = via[0].pos
+                // a charging stop reached: from here the battery counts from the charge planned there (until the car reports a newer level)
+                evPlanned.firstOrNull { Geo.dist(it.n.place.pos, reached) < 30.0 }?.let { st -> evChargeRefPct = st.toPct.toDouble(); evChargeRefAt = System.currentTimeMillis(); evSinceCharge = 0.0 }
+                evPlanned = evPlanned.filter { Geo.dist(it.n.place.pos, reached) >= 30.0 }; via = via.drop(1); pushVia() } }
             if (via.isEmpty()) checkParking(r, rem)
             curProgress = progress
             // time left = what the rest of the road takes with no traffic + the delays that are still ahead of you
@@ -5449,12 +5487,38 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
     private fun evRangeKm(): Pair<Double, Double> {
         val nowKm = evNowKm(); val nowPct = evNowPct()?.takeIf { (evNowAgeMin() ?: Long.MAX_VALUE) <= 60 }
         val full = if (nowKm != null && nowPct != null && nowPct > 0 && nowKm > 0) nowKm * 100.0 / nowPct else evBatteryKwh() / evKwhPerKm()
+        // where the battery is now (the car's reading less what has been driven since, the charge at the last charging stop, or
+        // the charge set before the trip less what has been driven on it): a plan made mid-trip starts from here, not from the start
+        val readingWins = (nowKm != null || nowPct != null) && EvWidget.readAt(prefs) >= evChargeRefAt
         val start = when {
-            nowKm != null -> nowKm.toDouble()
-            nowPct != null -> nowPct / 100.0 * full
-            else -> prefs.i(PreferenceKeys.EV_CHARGE_PCT, 80).coerceIn(1, 100) / 100.0 * full
+            readingWins && nowKm != null && nowPct == null -> nowKm - evSinceRead / evBaseKwhPerKm()
+            else -> evNowEstimatePct() / 100.0 * full
         }
-        return start to full
+        return start.coerceAtLeast(0.0) to full
+    }
+
+    /** The charge at the last charging stop reached on this trip (%), when it was reached, and the kWh driven since. */
+    private var evChargeRefPct = -1.0
+    private var evChargeRefAt = 0L
+    private var evSinceCharge = 0.0
+
+    /**
+     * The battery now, in %: the car's reading (60 minutes at most) less the modelled kWh driven since it; or, when a charging stop
+     * was reached after that reading, the charge planned there less what has been driven since; or the charge set before the
+     * trip less what has been driven since the start.
+     */
+    fun evNowEstimatePct(): Double {
+        val batt = evBatteryKwh()
+        val nowPct = evNowPct()?.takeIf { (evNowAgeMin() ?: Long.MAX_VALUE) <= 60 }?.toDouble()
+        val nowKm = evNowKm()
+        val readAt = EvWidget.readAt(prefs)
+        val fromReading = nowPct ?: nowKm?.let { km -> km * evBaseKwhPerKm() / batt * 100.0 }
+        val pct = when {
+            fromReading != null && readAt >= evChargeRefAt -> fromReading - evSinceRead / batt * 100.0
+            evChargeRefPct >= 0 -> evChargeRefPct - evSinceCharge / batt * 100.0
+            else -> prefs.i(PreferenceKeys.EV_CHARGE_PCT, 80).coerceIn(1, 100) - (if (navStartMs > 0) evSinceNav else 0.0) / batt * 100.0
+        }
+        return pct.coerceIn(0.0, 100.0)
     }
 
     // ---- electric: what the drive really uses (see EvModel) ----
@@ -5546,7 +5610,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
             evLastH = h
         } else evLastH = null
         val kwh = flatK + up - down * evRegen()
-        evSinceRead += kwh; evSinceNav += kwh
+        evSinceRead += kwh; evSinceNav += kwh; evSinceCharge += kwh
         if (evRefPct >= 0) { evRefModel += flatK; evRefUp += up; evRefDown += down; evRefKm[EvModel.bucket(kmh)] += d / 1000.0 }
         val now = System.currentTimeMillis()
         if (evTemp() == null && now - evTempAt > 30 * 60_000L && route != null) {
@@ -5696,10 +5760,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         val r = route ?: return null
         val batt = evBatteryKwh()
         // where the battery is now: the car's reading less what's been driven since it, else the charge set before the trip
-        val now = evNowPct()?.takeIf { (evNowAgeMin() ?: Long.MAX_VALUE) <= 60 }?.toDouble()
-            ?: evNowKm()?.let { val (start, full) = evRangeKm(); start / full * 100.0 }
-        val startPct = if (now != null) now - evSinceRead / batt * 100.0
-            else prefs.i(PreferenceKeys.EV_CHARGE_PCT, 80).coerceIn(1, 100) - (if (navStartMs > 0) evSinceNav else 0.0) / batt * 100.0
+        val startPct = evNowEstimatePct()
         val avgKmh = if (e.secs - e.chargeSecs > 30) e.dist / (e.secs - e.chargeSecs) * 3.6 else 60.0
         // the charging stops still ahead: the battery goes up to each stop's charge target, and the rest of the way is driven from there
         val here = curProgress
@@ -5791,6 +5852,8 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         } catch (e: Exception) { 1.0 }
         val startKm = startKm0 / rf; val full = full0 / rf
         if (startKm - lenKm >= destKm) { candsJob.cancel(); return emptyList<EvStop>() to null }
+        // no internet: no charger can be looked up, so no plan; say so plainly (not "no charger in reach")
+        if (!online()) { candsJob.cancel(); return emptyList<EvStop>() to EV_OFFLINE_MSG }
         val cands = candsJob.await()
         if (route !== r && routes.none { it === r }) return null
         val ids = ChargeOperators.selected(prefs)
@@ -5876,8 +5939,15 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
             via = own
             evPlanned = emptyList(); evAutoDest = null; evPlanWarn = null
             evReplanNotice = 1
+            toast(Lang.t("Neuer Weg: Ladestopps werden neu geplant …", "New way: planning the charging stops again …"), 4000)
             startRoute(d, departMin, true, startNow = true)
         }
+    }
+
+    /** How close counts as reached for the next stop: a charging site (a car park) more generously than a plain stop. */
+    private fun viaReachM(): Double {
+        val p = via.firstOrNull() ?: return 80.0
+        return if (evPlanned.any { Geo.dist(it.n.place.pos, p.pos) < 30.0 }) 150.0 else 80.0
     }
 
     private fun planEv(r: Route) {
@@ -5911,11 +5981,17 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
                     addStops(stops, auto = true)
                 }
             }
-        } finally { if (evPlanningFor === r) evPlanningFor = null } }
+        } finally {
+            if (evPlanningFor === r) evPlanningFor = null
+            // Start was tapped while this plan was still being worked out: start now (with the stops it found)
+            if (evStartPending && previewing && route === r && evPlanningFor == null) beginNavigation()
+        } }
     }
 
     /** What the charging plan of each route comes to, for the route cards: number of stops, minutes of charging, falls short or not. */
-    class EvRouteSummary(val stops: Int, val minutes: Int, val warning: Boolean)
+    class EvRouteSummary(val stops: Int, val minutes: Int, val warning: Boolean, val offline: Boolean = false)
+    /** The warning of a plan that could not be made for lack of internet. */
+    val EV_OFFLINE_MSG get() = Lang.t("Ohne Internet können keine Ladestopps geplant werden. Der Akku reicht nicht bis zum Ziel.", "No internet: charging stops can't be planned, and the battery won't reach the destination.")
     val evRoutePlans = androidx.compose.runtime.mutableStateMapOf<Route, EvRouteSummary>()
 
     /** Plans the charging for every route on offer, one after the other, so each route card can show its own stops. */
@@ -5969,7 +6045,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
                 // all routes at once: the slowest one decides, not the sum
                 rs.map { r -> scope.async {
                     val res = try { computeEvPlan(r) } catch (e: Exception) { null }
-                    if (routes === rs) { evEstimated.remove(r); evRoutePlans[r] = if (res == null) EvRouteSummary(0, 0, true) else EvRouteSummary(res.first.size, res.first.sumOf { it.minutes }, res.second != null) }
+                    if (routes === rs) { evEstimated.remove(r); evRoutePlans[r] = if (res == null) EvRouteSummary(0, 0, true) else EvRouteSummary(res.first.size, res.first.sumOf { it.minutes }, res.second != null, res.second == EV_OFFLINE_MSG) }
                 } }.forEach { it.await() }
                 // the routes are offered only now: pre-select the quickest one counting its charging time
                 if (routes === rs && previewing) {

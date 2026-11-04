@@ -5,6 +5,11 @@ Add user-facing Horizon Nav changes under **Unreleased** before publishing each 
 ## Unreleased
 
 ### Verbessert
+- Ladeplanung unterwegs: Wird während der Fahrt neu geplant, rechnet die App mit dem aktuellen Akkustand: der letzte Wert vom Auto abzüglich des Verbrauchs seither, nach einem Ladestopp der dort geplante Ladestand, sonst der Startwert abzüglich des bisherigen Verbrauchs. Bisher galt der Akkustand vom Start.
+- Ladeplanung unterwegs: Neue Stopps oder eine Neuplanung setzen Fahrzeit, Strecke und Verbrauch der laufenden Fahrt nicht mehr auf null zurück.
+- Navigation starten: Die gewählte Route (z. B. „Kürzeste“) bleibt erhalten, wenn die Ladestopps beim Start eingebaut werden. Wird während der Ladeplanung gestartet, wartet die Navigation auf den Plan und startet dann mit den Stopps.
+- Ladestopps: Eine Ladesäule gilt schon im Umkreis von 150 m als erreicht (Ladeparks sind größer). Fährst du an einem Ladestopp vorbei, plant die App für den neuen Weg neu, statt dich weit zurückzuschicken.
+- Ohne Internet: Die Ladeplanung sagt „Offline: keine Ladeplanung“, statt fälschlich zu melden, dass keine Ladesäule erreichbar sei.
 - Einstellungen > Kraftstoffpreise: Client ID, Client Secret, Preise und „Falschen Preis entdeckt?“ gehören zum britischen Preisdienst Fuel Finder und erscheinen nur noch in Großbritannien mit einem Verbrenner.
 - Ladestopps nach Neuberechnung: Weichst du als Elektroauto deutlich von der Route ab, werden die Ladestopps für den neuen Weg neu geplant, wenn der Weg über die alten Säulen mehr als 5 Minuten länger wäre. Eigene Stopps bleiben. Reicht der Akku nach einem Umweg nicht mehr, wird ein Ladestopp eingeplant. Eine Meldung nennt die neuen Stopps.
 - Routenvorschau beim Verbrenner: Der Tankstopp-Vorschlag entfällt. Zwischenstopps zum Laden werden nur noch für Elektroautos geplant. In den Einstellungen heißt der Schalter jetzt „Ladestopps auf langen Fahrten planen“ und erscheint nur beim Elektroauto.
