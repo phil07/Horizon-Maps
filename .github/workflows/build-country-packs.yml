@@ -74,9 +74,42 @@ jobs:
           print("parts=%s" % json.dumps(["extras"] if os.environ.get("MODE") == "extras only" else ["routing", "map", "lists"]))
           PY
 
-  build1:
+  # The map jobs all need the same 750 MB water-polygons file from osmdata.openstreetmap.de. Sixteen jobs asking that server at once
+  # got no answer ("HTTP connect timed out"), so one job fetches it (patiently) and keeps it as a file of the release "map-sources"
+  # in this repo, which GitHub's runners reach without trouble; the map jobs take it from there. It never fails the run: without
+  # the file the map jobs try the server themselves.
+  water:
     needs: plan
-    if: needs.plan.outputs.a1 != '[]'
+    if: ${{ github.event.inputs.mode != 'extras only' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 150
+    permissions:
+      contents: write
+    steps:
+      - name: Water polygons into the release map-sources
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          A=water-polygons-split-3857.zip
+          REPO="${{ github.repository }}"
+          if gh release view map-sources --repo "$REPO" --json assets --jq '.assets[].name' 2>/dev/null | grep -qx "$A"; then echo "Already in the release map-sources"; exit 0; fi
+          ok=""
+          for try in $(seq 1 15); do
+            echo "Downloading from osmdata.openstreetmap.de (try $try)"
+            if curl -fL --connect-timeout 30 --max-time 1500 -A "HorizonNav-pack-builder" -o "$A" "https://osmdata.openstreetmap.de/download/water-polygons-split-3857.zip" \
+               && [ "$(stat -c%s "$A")" -gt 100000000 ]; then ok=1; break; fi
+            rm -f "$A"
+            sleep $(( 60 * try ))
+          done
+          [ -n "$ok" ] || { echo "No answer from the server: the map jobs will try on their own"; exit 0; }
+          gh release view map-sources --repo "$REPO" >/dev/null 2>&1 || gh release create map-sources --repo "$REPO" --title "Map sources" \
+            --notes "Source files for building the offline maps (water polygons from osmdata.openstreetmap.de). Not an app release." --prerelease --latest=false
+          gh release upload map-sources "$A" --repo "$REPO" --clobber
+          echo "Uploaded"
+
+  build1:
+    needs: [plan, water]
+    if: ${{ !cancelled() && needs.plan.result == 'success' && needs.plan.outputs.a1 != '[]' }}
     runs-on: ubuntu-latest
     timeout-minutes: 355
     strategy:
@@ -144,6 +177,13 @@ jobs:
           # minutes ("HTTP connect timed out"): so fetch the file here, trying both hosts again and again, and hand it to planetiler
           # from a small local web server (planetiler asks for the size first, so a plain file path would not be enough)
           mkdir -p data/sources
+          # first choice: the copy in this repo's release map-sources (put there by the "water" job)
+          REL="https://github.com/${{ github.repository }}/releases/download/map-sources/water-polygons-split-3857.zip"
+          if curl -fsIL --connect-timeout 20 "$REL" >/dev/null; then
+            echo "Using the copy in the release map-sources"
+            echo "WATER_URL=$REL" >> "$GITHUB_ENV"
+            exit 0
+          fi
           ok=""
           for try in $(seq 1 12); do
             for U in "https://osmdata.openstreetmap.de/download/water-polygons-split-3857.zip" "https://data.openstreetmapdata.com/water-polygons-split-3857.zip"; do
@@ -510,8 +550,8 @@ jobs:
           echo "Download address: https://github.com/phil07/Horizon-Maps/releases/download/${{ matrix.area.tag }}"
 
   build2:
-    needs: plan
-    if: needs.plan.outputs.a2 != '[]'
+    needs: [plan, water]
+    if: ${{ !cancelled() && needs.plan.result == 'success' && needs.plan.outputs.a2 != '[]' }}
     runs-on: ubuntu-latest
     timeout-minutes: 355
     strategy:
@@ -579,6 +619,13 @@ jobs:
           # minutes ("HTTP connect timed out"): so fetch the file here, trying both hosts again and again, and hand it to planetiler
           # from a small local web server (planetiler asks for the size first, so a plain file path would not be enough)
           mkdir -p data/sources
+          # first choice: the copy in this repo's release map-sources (put there by the "water" job)
+          REL="https://github.com/${{ github.repository }}/releases/download/map-sources/water-polygons-split-3857.zip"
+          if curl -fsIL --connect-timeout 20 "$REL" >/dev/null; then
+            echo "Using the copy in the release map-sources"
+            echo "WATER_URL=$REL" >> "$GITHUB_ENV"
+            exit 0
+          fi
           ok=""
           for try in $(seq 1 12); do
             for U in "https://osmdata.openstreetmap.de/download/water-polygons-split-3857.zip" "https://data.openstreetmapdata.com/water-polygons-split-3857.zip"; do
@@ -945,8 +992,8 @@ jobs:
           echo "Download address: https://github.com/phil07/Horizon-Maps/releases/download/${{ matrix.area.tag }}"
 
   build3:
-    needs: plan
-    if: needs.plan.outputs.a3 != '[]'
+    needs: [plan, water]
+    if: ${{ !cancelled() && needs.plan.result == 'success' && needs.plan.outputs.a3 != '[]' }}
     runs-on: ubuntu-latest
     timeout-minutes: 355
     strategy:
@@ -1014,6 +1061,13 @@ jobs:
           # minutes ("HTTP connect timed out"): so fetch the file here, trying both hosts again and again, and hand it to planetiler
           # from a small local web server (planetiler asks for the size first, so a plain file path would not be enough)
           mkdir -p data/sources
+          # first choice: the copy in this repo's release map-sources (put there by the "water" job)
+          REL="https://github.com/${{ github.repository }}/releases/download/map-sources/water-polygons-split-3857.zip"
+          if curl -fsIL --connect-timeout 20 "$REL" >/dev/null; then
+            echo "Using the copy in the release map-sources"
+            echo "WATER_URL=$REL" >> "$GITHUB_ENV"
+            exit 0
+          fi
           ok=""
           for try in $(seq 1 12); do
             for U in "https://osmdata.openstreetmap.de/download/water-polygons-split-3857.zip" "https://data.openstreetmapdata.com/water-polygons-split-3857.zip"; do
@@ -1380,8 +1434,8 @@ jobs:
           echo "Download address: https://github.com/phil07/Horizon-Maps/releases/download/${{ matrix.area.tag }}"
 
   build4:
-    needs: plan
-    if: needs.plan.outputs.a4 != '[]'
+    needs: [plan, water]
+    if: ${{ !cancelled() && needs.plan.result == 'success' && needs.plan.outputs.a4 != '[]' }}
     runs-on: ubuntu-latest
     timeout-minutes: 355
     strategy:
@@ -1449,6 +1503,13 @@ jobs:
           # minutes ("HTTP connect timed out"): so fetch the file here, trying both hosts again and again, and hand it to planetiler
           # from a small local web server (planetiler asks for the size first, so a plain file path would not be enough)
           mkdir -p data/sources
+          # first choice: the copy in this repo's release map-sources (put there by the "water" job)
+          REL="https://github.com/${{ github.repository }}/releases/download/map-sources/water-polygons-split-3857.zip"
+          if curl -fsIL --connect-timeout 20 "$REL" >/dev/null; then
+            echo "Using the copy in the release map-sources"
+            echo "WATER_URL=$REL" >> "$GITHUB_ENV"
+            exit 0
+          fi
           ok=""
           for try in $(seq 1 12); do
             for U in "https://osmdata.openstreetmap.de/download/water-polygons-split-3857.zip" "https://data.openstreetmapdata.com/water-polygons-split-3857.zip"; do
