@@ -112,6 +112,7 @@ interface CarActions {
     fun places()
     fun nearby(kind: String)
     fun settings()
+    fun report() {}
 }
 
 /**
@@ -288,6 +289,7 @@ private fun CarScreen(engine: NavEngine, a: android.graphics.Rect?, actions: Car
             Box(Modifier.carTap("trip-end") { engine.endRoute() }) { ImmPill(Lang.t("Beenden", "End"), {}) }
             if (engine.isEv) Box(Modifier.carTap("trip-filter") { engine.chargerFilterOpen = !engine.chargerFilterOpen }) { ImmPill(Lang.t("Filter", "Filter"), {}, filled = engine.chargerMinKw > 0) }
             Box(Modifier.carTap("trip-sound") { engine.cycleSound() }) { ImmPill(Lang.t("Ton", "Sound"), {}) }
+            Box(Modifier.carTap("trip-report") { actions.report() }) { ImmPill(Lang.t("Melden", "Report"), {}) }
         }
 
         // alerts (cameras, limits, hazards...): beside the turn card on wide screens, under it on tall ones

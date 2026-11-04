@@ -178,6 +178,7 @@ class CarNavSession : Session() {
             override fun places() { screen.screenManager.push(PlacesScreen(carContext, holder)) }
             override fun nearby(kind: String) { screen.screenManager.push(NearbyScreen(carContext, holder, kind)) }
             override fun settings() { screen.screenManager.push(CarSettingsScreen(carContext, holder) { applyTheme() }) }
+            override fun report() { screen.screenManager.push(ReportScreen(carContext, holder)) }
         }
         screen.openSettings = { screen.screenManager.push(CarSettingsScreen(carContext, holder) { applyTheme() }) }
         // the battery level from the car itself, when Android Auto shares it (the widget is the fallback)
@@ -628,12 +629,9 @@ class MapScreen(carContext: CarContext, private val holder: CarHolder) : Screen(
             strip.addAction(Action.Builder().setTitle("Beenden").setOnClickListener { e?.endRoute(); invalidate() }.build())
             // the demo drive (for trying it out parked; only with Demo switched on in Settings, as in the app): starts it, speeds it
             // up, stops it. Otherwise that space is the 2D / 3D button
-            // the trip's own buttons (end, charger filter, sound) are drawn on the map's left side, where they stay visible;
-            // here only Melden, and the demo drive / 2D-3D where there is no such room
-            if (demoOn) strip.addAction(Action.Builder().setTitle(when (e?.simMode ?: 0) { 0 -> "Demo"; 1 -> "Schneller"; else -> "Demo beenden" })
-                .setOnClickListener { e?.cycleSim(); invalidate() }.build())
-            else if (e?.prefs?.s(PreferenceKeys.FUEL_TYPE, "E10") != "EV") strip.addAction(view)
-            strip.addAction(reportAction())
+            // the trip's buttons (end, charger filter, sound, Melden) are the app's own, on the left of the map and always there:
+            // Android Auto's bar stays empty during the trip, so nothing is shown twice
+
         } else if (taps) {
             // cars that pass taps on use the app's own search bar and chips on the map, so Melden has the Search button's place
             strip.addAction(reportAction())
