@@ -37,7 +37,7 @@ class HabitStore(private val prefs: Prefs) {
         val best = groups.values.maxByOrNull { it.size } ?: return null
         if (best.size < 3) return null
         val r = best.last()
-        val avg = best.map { minutes(it.t) }.average().toInt()
-        return Place(r.name, Lang.t("Meist gegen %02d:%02d", "Usually around %02d:%02d").format(avg / 60, avg % 60), LL(r.lat, r.lon))
+        // the line under the name is the place's own address line (street and town), not the time you usually leave
+        return Place(r.name, r.sub, LL(r.lat, r.lon))
     }
 }

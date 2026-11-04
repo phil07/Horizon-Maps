@@ -1,13 +1,13 @@
 # Changelog
 
-Add user-facing Horizon Nav changes under **Unreleased** before publishing each build, in German (the app shows them as they are), under ### Neu, ### Verbessert
-- Startbildschirm: Das grüne Vorschlagsfeld mit der letzten oder vermuteten Route („Berlin · 5 h 49 min · Los“) entfällt.
-or ### Behoben headings, each written as "Überschrift: was es tut" (the What's new card shows the headline in bold with the rest underneath). Keep entries focused on features, improvements, and fixes in the app—not GitHub Actions or release-publishing maintenance. There is no need to delete entries after publishing: notes that an earlier release already included are left out of the next one automatically. After a build has been published, remove its entries from Unreleased again: the What's new card shows exactly what is in this section, so anything left there is shown again with the next build.
+Add user-facing Horizon Nav changes under **Unreleased** before publishing each build, in German (the app shows them as they are), under ### Neu, ### Verbessert or ### Behoben headings, each written as "Überschrift: was es tut" (the What's new card shows the headline in bold with the rest underneath). Keep entries focused on features, improvements, and fixes in the app—not GitHub Actions or release-publishing maintenance. There is no need to delete entries after publishing: notes that an earlier release already included are left out of the next one automatically. After a build has been published, remove its entries from Unreleased again: the What's new card shows exactly what is in this section, so anything left there is shown again with the next build.
 
 ## Unreleased
 
 ### Verbessert
 - Ladeplanung: Die Routen der Vorschau werden gleichzeitig statt nacheinander geplant und die Wartezeit ist deutlich kürzer. Der Plan der gewählten Route wird nicht noch einmal berechnet.
+- Startbildschirm: Das grüne Vorschlagsfeld mit der letzten oder vermuteten Route („Berlin · 5 h 49 min · Los“) entfällt.
+- Gespeichert & zuletzt: Unter häufigen Zielen steht jetzt die Adresse statt „Meist gegen 12:02“.
 
 
 ## 1.0.246 — 2026-10-28
