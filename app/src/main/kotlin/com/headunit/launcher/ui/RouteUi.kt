@@ -568,7 +568,9 @@ fun PlannedCard(engine: NavEngine) {
 @Composable
 fun EvStopsRow(engine: NavEngine, planned: List<com.headunit.launcher.EvStop>? = null) {
     // with [planned]: just list those stops (already on the route), without the "add stops" button or the warning
-    val stops = planned ?: engine.evStops; val warn = if (planned != null) null else engine.evWarning
+    // the stops already planned (the same ones the route card counts); the suggestions only until a plan exists
+    val plannedNow = planned ?: engine.evPlanned.takeIf { it.isNotEmpty() }
+    val stops = plannedNow ?: engine.evStops; val warn = if (plannedNow != null) null else engine.evWarning
     if (stops.isEmpty() && warn == null) return
     val c = LocalVw.current
     val many = if (stops.size > 1) "s" else ""
@@ -579,7 +581,7 @@ fun EvStopsRow(engine: NavEngine, planned: List<com.headunit.launcher.EvStop>? =
         Column(Modifier.weight(1f, fill = false).widthIn(max = 460.dp)) {
             if (stops.isEmpty()) Text(warn ?: "", color = Bad, fontSize = 13.sp, fontWeight = FontWeight.Bold)
             else {
-                Text(if (planned != null) Lang.t("${stops.size} Ladestopp$many geplant", "${stops.size} charging stop$many planned") else Lang.t("${stops.size} Ladestopp$many nötig", "${stops.size} charging stop$many needed"), color = Good, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                Text(if (plannedNow != null) Lang.t("${stops.size} Ladestopp$many geplant", "${stops.size} charging stop$many planned") else Lang.t("${stops.size} Ladestopp$many nötig", "${stops.size} charging stop$many needed"), color = Good, fontSize = 13.sp, fontWeight = FontWeight.Bold)
                 // up to two stops are simply listed; from three on the list is as tall as the first two (plus a sliver of
                 // the third, so it shows there is more) and scrolls by itself
                 val scrollList = stops.size >= 3
@@ -606,7 +608,7 @@ fun EvStopsRow(engine: NavEngine, planned: List<com.headunit.launcher.EvStop>? =
                 if (warn != null) Text(warn, color = Bad, fontSize = 12.sp)
             }
         }
-        if (planned == null && stops.isNotEmpty()) Pill(Lang.t("Stopps hinzufügen", "Add stops"), false, { engine.addStops(stops) })
+        if (plannedNow == null && stops.isNotEmpty()) Pill(Lang.t("Stopps hinzufügen", "Add stops"), false, { engine.addStops(stops) })
     }
 }
 
