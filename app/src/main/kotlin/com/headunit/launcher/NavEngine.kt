@@ -5679,7 +5679,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
             // the car's own figure eases the steady base a little (a new car or season shows over time, one odd reading doesn't)
             if (prefs.s(PreferenceKeys.EVMPK, "").isBlank()) evGomKwhPerKm()?.let { g ->
                 val old = prefs.s(PreferenceKeys.EV_BASE_GOM, "").toDoubleOrNull() ?: g
-                prefs.put(PreferenceKeys.EV_BASE_GOM, String.format(java.util.Locale.US, "%.4f", old * 0.9 + g * 0.1))
+                prefs.put(PreferenceKeys.EV_BASE_GOM, String.format(java.util.Locale.US, "%.4f", old * 0.8 + g * 0.2))
             }
             val pct = evNowPct() ?: return
             if (evRefPct < 0 || pct > evRefPct) { evStartRef(pct); return }   // first reading, or charged since
@@ -5702,7 +5702,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
                     val tot = evRefModelB.sum()
                     for (b in 0 until 3) {
                         val w = if (tot > 0) evRefModelB[b] / tot else 0.0
-                        l[b] = (l[b] * (1.0 + 0.3 * w * (err - 1.0))).coerceIn(0.6, 1.8)
+                        l[b] = (l[b] * (1.0 + 0.5 * w * (err - 1.0))).coerceIn(0.6, 1.8)
                     }
                     prefs.put(PreferenceKeys.EV_LEARN, EvModel.formatLearned(l))
                 }
@@ -5840,13 +5840,15 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         val here = curProgress
         val stops = evPlanned.mapNotNull { st -> RouteExtras.project(r, st.n.place.pos, 50.0, here)?.first?.takeIf { it > here }?.let { it to st } }
             .sortedBy { it.first }
+        // the arrival estimate is kept on the safe side: 10 % more energy than the model says (the charge planning is unchanged)
+        val safety = 1.10
         var pct = startPct; var at = here
         for ((off, st) in stops) {
-            pct -= evRouteKwh(r, at, avgKmh, off) / batt * 100.0
+            pct -= evRouteKwh(r, at, avgKmh, off) * safety / batt * 100.0
             pct = st.toPct.toDouble().coerceAtLeast(pct).coerceAtMost(100.0)
             at = off
         }
-        pct -= evRouteKwh(r, at, avgKmh) / batt * 100.0
+        pct -= evRouteKwh(r, at, avgKmh) * safety / batt * 100.0
         return Math.round(pct).toInt().coerceIn(0, 100)
     }
 

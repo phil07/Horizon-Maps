@@ -530,9 +530,9 @@ internal fun NearbyCard(engine: NavEngine) {
     Column(Modifier.floating(24.dp).padding(14.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             IconBadge(nearbyIcon(engine.nearbyKind), c.accent, Modifier.padding(end = 12.dp), 36.dp)
-            Text(title, color = c.text, fontSize = 16.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
+            Text(title, color = c.text, fontSize = 20.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
             if (engine.nearbyBusy) CircularProgressIndicator(Modifier.size(18.dp), color = c.accent, strokeWidth = 2.dp)
-            Icon(Icons.Rounded.Close, Lang.t("Schließen", "Close"), tint = c.sub, modifier = Modifier.padding(start = 12.dp).size(22.dp).clickable { engine.clearNearby() })
+            Box(Modifier.padding(start = 10.dp).size(48.dp).clip(androidx.compose.foundation.shape.CircleShape).clickable { engine.clearNearby() }, contentAlignment = Alignment.Center) { Icon(Icons.Rounded.Close, Lang.t("Schließen", "Close"), tint = c.text, modifier = Modifier.size(32.dp)) }
         }
         if (hasPrices) Row(Modifier.padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
             Pill(if (along) Lang.t("Am frühesten", "Soonest") else Lang.t("Am nächsten", "Nearest"), engine.nearbySort != "cheap", { engine.changeNearbySort("near") })
@@ -546,11 +546,11 @@ internal fun NearbyCard(engine: NavEngine) {
                         Icon(nearbyIcon(engine.nearbyKind), null, tint = c.accent, modifier = Modifier.size(20.dp))
                     }
                     Column(Modifier.weight(1f).padding(start = 12.dp)) {
-                        Text(n.place.name, color = c.text, fontSize = 16.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        Text(n.place.name, color = c.text, fontSize = 20.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                         val parkLive = n.free != null || n.total != null || n.open != null
                         // (a car park's free spaces get their own coloured pill, so they're not repeated here)
                         val sub = listOfNotNull(n.extra.takeIf { it.isNotBlank() && !parkLive }, n.place.sub.takeIf { it.isNotBlank() && engine.nearbyKind == "fuel" }).joinToString(" · ")
-                        if (sub.isNotBlank()) Text(sub, color = c.sub, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        if (sub.isNotBlank()) Text(sub, color = c.sub, fontSize = 15.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     }
                     if (n.free != null || n.total != null || n.open != null) ParkSpaces(n)
                     if (n.price != null) Text(com.headunit.launcher.fmtFuelPrice(n.price, n.unit), color = c.text, fontSize = 16.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(start = 8.dp))
