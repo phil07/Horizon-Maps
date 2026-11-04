@@ -220,6 +220,12 @@ internal object PreferenceKeys {
     const val QUICKFOLD = "quickfold"
     /** The map in 3D (true) or flat 2D: remembered between drives, and shared by the phone / head unit and Android Auto. */
     const val VIEW_3D = "view3d"
+    /** 3D tilt in degrees (30 to 65) for a wide screen, a tall (portrait) screen and Android Auto; 0 = automatic. */
+    const val TILT_WIDE = "tilt_wide"
+    const val TILT_TALL = "tilt_tall"
+    const val TILT_CAR = "tilt_car"
+    /** North up in Android Auto, remembered for the car (the phone's own setting is not stored). */
+    const val NORTHUP_CAR = "northup_car"
     /** Your own normal zoom when not on a route, in zoom levels from the standard one (-2 to +2; 0 = standard). */
     const val DEFAULT_ZOOM = "defzoom"
     /** The + / - zoom last used when not on a route, kept for next time: on the phone / head unit, and on Android Auto. */

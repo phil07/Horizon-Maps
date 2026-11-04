@@ -1271,7 +1271,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         val firstFix = fix == null
         onPosition(Fix(cur, h, speed, if (l.hasAltitude()) l.altitude else 0.0, if (l.hasAccuracy()) l.accuracy.toDouble() else 0.0), firstFix || first)
         if (firstFix) {
-            map.cameraTo(cur, null, if (tilt3d) 55.0 else 0.0, 15.5, 0, 0.0)
+            map.cameraTo(cur, null, if (tilt3d) (chosenTilt() ?: 55.0) else 0.0, 15.5, 0, 0.0)
         }
         // current weather is only used for the rain effect on the map, so it is only fetched when that is switched on
         if (prefs.b(PreferenceKeys.RAIN_EFFECTS, false) && now - weatherAt > 20 * 60 * 1000L) {
@@ -2226,7 +2226,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         // back to the zoom you use when not on a route
         zoomOffset = try { savedFreeZoom() } catch (e: Exception) { 0.0 }
         refreshRoad()
-        map.setTilt(if (tilt3d) 55.0 else 0.0)
+        map.setTilt(if (tilt3d) (chosenTilt() ?: 55.0) else 0.0)
     }
 
     // ---- camera controls ----
@@ -2265,13 +2265,26 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
 
     fun toggleNorthUp() {
         northUp = !northUp
+        if (isCar) prefs.put(PreferenceKeys.NORTHUP_CAR, northUp)
         if (northUp) map.resetNorth() else fix?.let { onPosition(it, true) }
+    }
+
+    /** The 3D tilt chosen for this screen (30 to 65 degrees), or null for automatic. Tall = the trip card sits at the bottom. */
+    fun chosenTilt(): Double? {
+        val key = if (isCar) PreferenceKeys.TILT_CAR else if (bottomCover > 0.0) PreferenceKeys.TILT_TALL else PreferenceKeys.TILT_WIDE
+        return prefs.i(key, 0).takeIf { it in 30..65 }?.toDouble()
     }
 
     fun toggleTilt() {
         tilt3d = !tilt3d
         prefs.put(PreferenceKeys.VIEW_3D, tilt3d)
-        map.setTilt(if (tilt3d) 55.0 else 0.0)
+        refreshTilt()
+        if (following) fix?.let { onPosition(it, true) }
+    }
+
+    /** Applies the tilt again after it was changed in the settings. */
+    fun refreshTilt() {
+        map.setTilt(if (tilt3d) (chosenTilt() ?: 55.0) else 0.0)
         if (following) fix?.let { onPosition(it, true) }
     }
 
@@ -3807,7 +3820,9 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         // a lower view shows far fewer distant tiles and labels, which is a large saving on a slow GPU
         val lite = prefs.mapDetail() != "full"
         // the full map stays a touch lower than it used to (fewer distant tiles to draw), the light map lower still
-        tilt = minOf(tilt, if (lite) 52.0 else 54.0)
+        val chosen = chosenTilt()
+        // a tilt the driver picked is used as it is; automatic keeps the cap that goes with the map's detail
+        tilt = if (chosen != null && tilt3d) chosen else minOf(tilt, if (lite) 52.0 else 54.0)
         // tilt with speed: a little flatter when slow (easier to read streets), lower and further-looking at speed
         // (with the lighter map it only ever flattens, so it never draws more than before)
         if (tilt3d && prefs.b(PreferenceKeys.SPEEDTILT, true)) {

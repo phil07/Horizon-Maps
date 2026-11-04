@@ -230,6 +230,8 @@ class CarNavSession : Session() {
         val engine = NavEngine(app, prefs, map)
         // the car screen does the talking while it's connected, and shares the trip with the phone
         engine.isCar = true
+        // the car keeps its own map direction (north up or turning with you)
+        engine.northUp = prefs.b(PreferenceKeys.NORTHUP_CAR, false)
         // back in the car: the "Your car" spot on the phone isn't needed any more
         try { prefs.put(PreferenceKeys.PARKED_SPOT, "") } catch (e: Exception) { }
         // the Bluetooth device that just connected is the car (for "where you parked" without Android Auto)
@@ -1172,6 +1174,26 @@ class CarSettingsScreen(carContext: CarContext, private val holder: CarHolder, p
                     invalidate()
                 }.build()
         }
+        // the map's direction in the car: north up, or turning with you (remembered for the car)
+        val nu = e?.northUp ?: prefs.b(PreferenceKeys.NORTHUP_CAR, false)
+        rows += Row.Builder().setTitle(Lang.t("Kartenrichtung", "Map direction"))
+            .addText(if (nu) Lang.t("Nord oben · tippen zum Wechseln", "North up · tap to change") else Lang.t("Mit der Fahrtrichtung · tippen zum Wechseln", "Turning with you · tap to change"))
+            .setOnClickListener {
+                val want = !nu
+                if (e != null) { if (e.northUp != want) e.toggleNorthUp() } else prefs.put(PreferenceKeys.NORTHUP_CAR, want)
+                invalidate()
+            }.build()
+        // the 3D tilt in the car: automatic, or 30 to 65 degrees, one step per tap
+        val tiltCar = prefs.i(PreferenceKeys.TILT_CAR, 0).let { if (it in 30..65) it else 0 }
+        rows += Row.Builder().setTitle(Lang.t("3D-Neigung im Auto", "3D tilt in the car"))
+            .addText(if (tiltCar == 0) Lang.t("Auto · tippen zum Wechseln", "Automatic · tap to change") else Lang.t("$tiltCar° · tippen zum Wechseln", "$tiltCar° · tap to change"))
+            .setOnClickListener {
+                val levels = listOf(0) + (30..65 step 5).toList()
+                val next = levels[(levels.indexOf(tiltCar).takeIf { it >= 0 } ?: 0).let { (it + 1) % levels.size }]
+                prefs.put(PreferenceKeys.TILT_CAR, next)
+                e?.refreshTilt()
+                invalidate()
+            }.build()
         val th = prefs.s(PreferenceKeys.CARTHEME, "car")
         rows += Row.Builder().setTitle(Lang.t("Tag und Nacht", "Day and night"))
             .addText(when (th) { "day" -> Lang.t("Immer Tag", "Always day"); "night" -> Lang.t("Immer Nacht", "Always night"); else -> Lang.t("Folgt dem Auto", "Follows the car") })

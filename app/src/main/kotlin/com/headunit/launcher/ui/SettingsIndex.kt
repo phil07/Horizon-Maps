@@ -79,6 +79,8 @@ internal val settingsIndex = listOf(
     SettingRef("Kreuzungs-Nahansicht", "Flachere Nahansicht bei Ausfahrten", "Spuren und Kreuzungen", 4),
     SettingRef("Karte beim Abbiegen auf 2D flachlegen", "", "Spuren und Kreuzungen", 4),
     SettingRef("Neigung nach Geschwindigkeit", "Flacher bei langsamer Fahrt", "Spuren und Kreuzungen", 4),
+    SettingRef("3D-Neigung, breiter Bildschirm", "Auto oder eigene Neigung von 30 bis 65 Grad", "Spuren und Kreuzungen", 4),
+    SettingRef("3D-Neigung, hoher Bildschirm", "Auto oder eigene Neigung von 30 bis 65 Grad", "Spuren und Kreuzungen", 4),
     SettingRef("Routenleiste auf der Fahrtenkarte", "Verkehr, Kameras, Raststätten und Fortschritt", "Fahrtenkarte", 4),
     SettingRef("Nächste Raststätten-Karte", "", "Fahrtenkarte", 4),
     SettingRef("Gefahrenradar", "Kurven, Schulen, Schwellen und Blitzer voraus", "Fahrtenkarte", 4),

@@ -472,6 +472,8 @@ private fun GuidanceSection(prefs: Prefs) {
         SToggle(prefs, "Kreuzungs-Nahansicht", "junctionview", true, "Nähere, flachere Ansicht bei Ausfahrten und Gabelungen")
         SToggle(prefs, "Karte beim Abbiegen auf 2D flachlegen", "turn2d", true)
         SToggle(prefs, "Neigung nach Geschwindigkeit", "speedtilt", true, "Flacher bei langsamer Fahrt, weitblickender bei Tempo")
+        TiltSetting(prefs, "3D-Neigung, breiter Bildschirm", PreferenceKeys.TILT_WIDE)
+        TiltSetting(prefs, "3D-Neigung, hoher Bildschirm", PreferenceKeys.TILT_TALL)
     }
     SGroup("Fahrtenkarte") {
         SToggle(prefs, "Routenleiste auf der Fahrtenkarte", "routebar", true, "Verkehr, Kameras, Raststätten und Fortschritt")
@@ -1585,4 +1587,16 @@ private fun CloudAccountGroup(prefs: Prefs) {
             }
         }
     }
+}
+
+/** The 3D tilt for one kind of screen: automatic, or your own angle from 30 to 65 degrees (0 in the settings = automatic). */
+@Composable
+internal fun TiltSetting(prefs: Prefs, title: String, key: String) {
+    val v = prefs.i(key, 0)
+    val own = v in 30..65
+    SChoice(title, listOf("auto" to Lang.t("Auto", "Auto"), "own" to Lang.t("Eigene Neigung", "Own angle")), if (own) "own" else "auto",
+        sub = if (own) null else Lang.t("Wie bisher, je nach Tempo und Ansicht", "As before, depending on speed and view")) { pick ->
+        prefs.put(key, if (pick == "own") 55 else 0)
+    }
+    if (own) SSlider("Neigung", v.toFloat(), 30f..65f, "°", steps = 34, reset = 55f) { prefs.put(key, it.coerceIn(30, 65)) }
 }
