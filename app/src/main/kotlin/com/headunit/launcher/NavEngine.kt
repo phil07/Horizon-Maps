@@ -6073,7 +6073,8 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
 
     private fun suggestFuel(r: Route) {
         val fuel = prefs.s(PreferenceKeys.FUEL_TYPE, "E10")
-        if (fuel != "EV" && r.len < 150_000) return
+        // a fuel stop is suggested only for an electric car (its charging stops); a combustion car gets no stop suggestion on the route
+        if (fuel != "EV") return
         var a = r.len * 0.35; var b = r.len * 0.75
         // electric: a charger before the battery gets down to the charge you want to keep (Settings > Fuel), with the shortest
         // detour, and how much you'll have when you get there. Only when the trip needs one.

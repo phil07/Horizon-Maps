@@ -620,19 +620,7 @@ fun FuelSuggestionRow(engine: NavEngine) {
         engine.evWarning?.let { Text(it, color = Bad, fontSize = 12.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)) }
         return
     }
-    val n = engine.fuelSuggestion ?: return
-    val c = LocalVw.current
-    Row(
-        Modifier.floating(50.dp).padding(start = 16.dp, end = 6.dp, top = 6.dp, bottom = 6.dp),
-        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp),
-    ) {
-        Text(if (engine.prefs.s(PreferenceKeys.FUEL_TYPE, "E10") == "EV") stringResource(R.string.ui_090) else stringResource(R.string.ui_091), color = Good, fontSize = 13.sp, fontWeight = FontWeight.Bold)
-        Text(
-            n.place.name + " · " + Geo.fmtDist(n.dist, engine.imperial) + Lang.t(" entfernt", " in") + (if (n.price != null) " · " + com.headunit.launcher.fmtFuelPrice(n.price, n.unit) else "") + (if (n.detourMin >= 0) Lang.t(" · +${n.detourMin} Min.", " · +${n.detourMin} min") else "") + (if (n.extra.startsWith("arrive")) " · " + n.extra else ""),
-            color = c.text, fontSize = 13.sp, maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.widthIn(max = 420.dp),
-        )
-        Pill(Lang.t("Stopp hinzufügen", "Add stop"), false, { engine.addStop(n.place); engine.fuelSuggestion = null })
-    }
+    // a combustion car: no fuel stop suggestion in the route preview (only electric cars get stops planned)
 }
 
 // ------------------------------------------------------------------ UK road signs
