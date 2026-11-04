@@ -185,12 +185,12 @@ fun RouteBar(engine: NavEngine, modifier: Modifier = Modifier, thin: Boolean = f
             if (x - lastX < (if (thin) 36f else 22f)) continue
             lastX = x
             Box(
-                Modifier.offset(x = (w * f - dot / 2).coerceIn(0.dp, w - dot), y = 0.dp).size(dot).shadow(3.dp, CircleShape).clip(CircleShape).background(Color.White),
+                Modifier.offset(x = (w * f - dot / 2).coerceIn(-dot / 2, w - dot / 2), y = 0.dp).size(dot).shadow(3.dp, CircleShape).clip(CircleShape).background(Color.White),
                 contentAlignment = Alignment.Center,
             ) { Icon(barIcon(e.kind), null, tint = barColor(e.kind), modifier = Modifier.size(dot * 0.8f)) }
         }
         Box(
-            Modifier.offset(x = w - dot, y = 0.dp).size(dot).shadow(3.dp, CircleShape).clip(CircleShape).background(Color.White),
+            Modifier.offset(x = w - dot / 2, y = 0.dp).size(dot).shadow(3.dp, CircleShape).clip(CircleShape).background(Color.White),
             contentAlignment = Alignment.Center,
         ) { Icon(Icons.Rounded.Flag, null, tint = Color(0xFFEA4335), modifier = Modifier.size(dot * 0.8f)) }
     }
