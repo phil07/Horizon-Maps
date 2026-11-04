@@ -76,8 +76,3 @@ class VehicleDimensions(
     val hasLimits: Boolean get() = heightM > 0 || widthM > 0 || lengthM > 0 || weightTons > 0 || axleWeightTons > 0
 }
 
-/** Fahrzeugprofil: Typ (Pkw/Wohnmobil/etc.) mit Abmessungen. */
-class VehicleProfile(
-    val type: VehicleType = VehicleType.CAR,
-    val dimensions: VehicleDimensions = VehicleDimensions()
-)

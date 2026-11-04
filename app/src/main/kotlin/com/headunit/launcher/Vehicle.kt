@@ -5,7 +5,7 @@ package com.headunit.launcher
  * speed (for the arrival time and the speed warning) and its size and weight (so TomTom and Mapbox route round low bridges and
  * weight limits where their road data knows them).
  */
-data class VehicleProfile(val kind: String, val maxKmh: Int, val heightM: Double, val widthM: Double, val lengthM: Double, val weightKg: Int) {
+data class VehicleProfile(val kind: String, val maxKmh: Int, val heightM: Double, val widthM: Double, val lengthM: Double, val weightKg: Int, val axleWeightKg: Int = 0) {
     val isCar get() = kind == "car"
     /** The top speed in m/s, or null when there's none (a car). */
     val maxMs: Double? get() = if (isCar || maxKmh <= 0) null else maxKmh / 3.6
@@ -17,9 +17,9 @@ object Vehicle {
 
     /** The settings' defaults for each kind: a motorhome (up to 100 km/h) and a car with a caravan (80 km/h in Germany). */
     fun defaults(kind: String): VehicleProfile = when (kind) {
-        "camper" -> VehicleProfile("camper", 100, 3.0, 2.3, 7.0, 3500)
-        "trailer" -> VehicleProfile("trailer", 80, 2.6, 2.3, 12.0, 3000)
-        else -> VehicleProfile("car", 0, 0.0, 0.0, 0.0, 0)
+        "camper" -> VehicleProfile("camper", 100, 3.0, 2.3, 7.0, 3500, 3500)
+        "trailer" -> VehicleProfile("trailer", 80, 2.6, 2.3, 12.0, 3000, 3000)
+        else -> VehicleProfile("car", 0, 0.0, 0.0, 0.0, 0, 0)
     }
 
     /** The settings key for one of a kind's values ("max", "h", "w", "l", "kg"). */
@@ -31,7 +31,8 @@ object Vehicle {
         if (d.isCar) return d
         fun num(w: String, def: Double) = prefs.s(key(kind, w), "").replace(',', '.').toDoubleOrNull()?.takeIf { it > 0 } ?: def
         return VehicleProfile(kind, num("max", d.maxKmh.toDouble()).toInt().coerceIn(30, 200), num("h", d.heightM).coerceIn(1.0, 5.0),
-            num("w", d.widthM).coerceIn(1.0, 3.0), num("l", d.lengthM).coerceIn(2.0, 25.0), num("kg", d.weightKg.toDouble()).toInt().coerceIn(500, 40000))
+            num("w", d.widthM).coerceIn(1.0, 3.0), num("l", d.lengthM).coerceIn(2.0, 25.0), num("kg", d.weightKg.toDouble()).toInt().coerceIn(500, 40000),
+            num("axlekg", d.axleWeightKg.toDouble()).toInt().coerceIn(500, 25000))
     }
 
     /** TomTom's routing parameters for the profile (nothing for a car). */
