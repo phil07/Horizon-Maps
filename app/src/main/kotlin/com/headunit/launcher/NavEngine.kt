@@ -1985,23 +1985,25 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
                 if (rs0.isEmpty()) throw IllegalStateException("No route found")
                 val rs = if (usedOffline) rs0 else avoidVignette(rs0, from, to.pos, departMs)
                 if (usedOffline) toast(ctx.getString(R.string.toast_030), 4000)
-                if (rs[0].steps.isEmpty()) toast(if (lastRouteProvider == "mapbox") Lang.t("Mapbox hat für diese Route keine Abbiegehinweise geliefert", "Mapbox returned no turn instructions for this route") else Lang.t("Dieser Schlüssel liefert keine Abbiegehinweise. Prüfe, ob er Zugriff auf die TomTom Routing API hat", "This key returned no turn instructions. Check it has TomTom Routing API access"), 6000)
+                // the fastest route is the one chosen first: everything planned for the trip (rain, weather, charging stops) is for it
+                val pick = rs.indices.minByOrNull { rs[it].time } ?: 0
+                if (rs[pick].steps.isEmpty()) toast(if (lastRouteProvider == "mapbox") Lang.t("Mapbox hat für diese Route keine Abbiegehinweise geliefert", "Mapbox returned no turn instructions for this route") else Lang.t("Dieser Schlüssel liefert keine Abbiegehinweise. Prüfe, ob er Zugriff auf die TomTom Routing API hat", "This key returned no turn instructions. Check it has TomTom Routing API access"), 6000)
                 if (departInMin > 0 && !usedOffline && !departApplied) toast(ctx.getString(R.string.toast_007), 4000)
                 departMin = departInMin
                 departAtMs = if (!usedOffline && departApplied) departMs else 0L
                 if (to.name != "Dropped pin") places.addRecent(to)
                 if (!keepVia) habits.record(to)
-                loadRain(to, rs[0].time)
-                loadRouteWeather(rs[0])
+                loadRain(to, rs[pick].time)
+                loadRouteWeather(rs[pick])
                 fuelSuggestion = null
                 evStops = emptyList(); evWarning = null
                 clearLiveAlts()
-                if (prefs.b(PreferenceKeys.SMARTFUEL, true)) suggestFuel(rs[0])
+                if (prefs.b(PreferenceKeys.SMARTFUEL, true)) suggestFuel(rs[pick])
                 clearNearby()
                 results = emptyList()
                 stopSim()
                 if (TomTomRest.avoidDropped && !usedOffline) toast(ctx.getString(R.string.toast_005), 5000)
-                dest = to; routes = rs; active = rs.indices.minByOrNull { rs[it].time } ?: 0
+                dest = to; routes = rs; active = pick
                 prediction = null; predictionAt = 0L
                 updateRouteZones()
                 said.clear(); offCount = 0; lastIdx = 0; trustProg = -1.0
@@ -2015,8 +2017,8 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
                 // a short fly-through along the new route first (not when stops change mid-drive)
                 // (on long routes the fly-through has to load map tiles all along the way, which made the start of a trip stutter;
                 // those go straight to the overview)
-                if (!startNow && prefs.b(PreferenceKeys.CINEMATIC, true) && rs[0].len < 40_000.0) {
-                    val r0 = rs[0]
+                if (!startNow && prefs.b(PreferenceKeys.CINEMATIC, true) && rs[pick].len < 40_000.0) {
+                    val r0 = rs[pick]
                     map.flyRoute(r0.pts, r0.cum, r0.len, 50.0) { if (previewing && routes === rs) map.fit(allPts) }
                 } else map.fit(allPts)
                 waitingFor = null; waitJob?.cancel()
