@@ -854,6 +854,9 @@ internal fun EvNowChip(engine: NavEngine) {
         if (engine.prefs.s(PreferenceKeys.CLOUD_CHARGING, "") == "1" && System.currentTimeMillis() - (engine.prefs.s(PreferenceKeys.CLOUD_AT, "").toLongOrNull() ?: 0L) < 30 * 60_000L) {
             val m = engine.prefs.s(PreferenceKeys.CLOUD_CHARGE_MIN, "").toIntOrNull()
             Text("· " + Lang.t("lädt", "charging") + (m?.let { " · $it min" } ?: ""), color = Good, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+        } else if (engine.evCharging()) {
+            // standing at a charger with a rising reading (see NavEngine.evCharging)
+            Text("· " + Lang.t("lädt", "charging"), color = Good, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
         }
         if (age >= 10) Text("· $age Min.", color = if (age > 60) Warn else Color(0xFFC3CAD5), fontSize = 12.sp)
     }

@@ -465,6 +465,7 @@ private fun EvPill(engine: NavEngine) {
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
         Text(if (evPct != null) "$approx$evPct %" else "– %", color = if (evPct == null) c.sub else if (evPct < 15) Bad else if (evPct < 30) Warn else c.text, fontSize = 28.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
         Text(if (evKm != null) "· $approx$evKm km" else "· – km", color = if (evKm == null) c.sub else c.text, fontSize = 28.sp, maxLines = 1)
+        if (est != null && engine.evCharging()) Text(Lang.t("· lädt", "· charging"), color = Good, fontSize = 22.sp, maxLines = 1)
     }
 }
 

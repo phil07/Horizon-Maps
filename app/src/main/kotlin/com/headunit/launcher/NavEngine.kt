@@ -3027,6 +3027,19 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         if (simMode != 0) return
         // the battery estimate's drive is counted in evTrack, from every GPS fix (heat, wind, hills, the learned correction). It used
         // to be counted here again at the base use only, so each stretch was taken twice. Standing still adds nothing.
+        // charging: standing at a known charger, and a new reading higher than the last one. It ends when the car moves off.
+        if (isEv) {
+            val readAt = EvWidget.readAt(prefs)
+            if (readAt != evChargeReadAt) {
+                evChargeReadAt = readAt
+                val pct = evNowPct()
+                if (pct != null) {
+                    evChargingNow = evChargeLastPct >= 0 && pct > evChargeLastPct && p.speed < 1.0 && chgAll.any { Geo.dist(it.pos, p.pos) <= 50.0 }
+                    evChargeLastPct = pct.toDouble()
+                }
+            }
+            if (p.speed > 3.0) evChargingNow = false
+        }
         // a reading that is the same as the last one, after the car has used more than 1 % since, is the widget's old figure: not believed
         EvWidget.staleCheck = { evSinceRead / evBatteryKwh() * 100.0 >= 1.0 }
         val now = System.currentTimeMillis()
@@ -5540,6 +5553,12 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
 
     /** The height (m) the last climb or descent without a route was counted from, from the phone's GPS. */
     private var evAltRef: Double? = null
+    /** Charging at a charger: the last battery reading seen (its time and level), and whether the level rose while standing there. */
+    private var evChargeReadAt = 0L
+    private var evChargeLastPct = -1.0
+    private var evChargingNow = false
+    /** True while the car stands at a charger and the battery level has risen (until it moves off). */
+    fun evCharging(): Boolean = evChargingNow
 
     /** The range now in km, from the same estimate (null when there is no reading yet). */
     fun evEstimateKm(): Int? = Math.round(evRangeKm().first).toInt().takeIf { it > 0 }

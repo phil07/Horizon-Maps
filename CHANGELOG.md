@@ -6,6 +6,7 @@ Add user-facing Horizon Nav changes under **Unreleased** before publishing each 
 
 ### Verbessert
 - Akku-Schätzung auf dem Handy: Die Anzeige zeigt jetzt dieselbe Schätzung wie im Auto (mit „ca.“, wenn der letzte Wert alt ist).
+- Laden erkennen: Steht das Auto im Stand nahe einer Ladesäule und ist der neue Akkustand höher als der vorige, zeigen Auto und Handy „lädt“. Die Schätzung folgt dann dem Widget. Die Anzeige endet, sobald das Auto losfährt.
 - Akku-Schätzung ohne Route: Höhenunterschiede des GPS zählen ab 5 m Änderung (bei guter Genauigkeit), auf Bergfahrten und Abfahrten wie mit Route.
 - Akku und Reichweite im Auto: Zwischen zwei Werten vom Widget rechnet die App den Verbrauch seit dem letzten Wert mit, jede Sekunde. Die Anzeige zeigt dann „ca.“, wenn der letzte echte Wert älter als 10 Minuten ist. Ein gleich gebliebener Widget-Wert gilt als veraltet, wenn das Auto seitdem mehr als 1 % verbraucht hat. Beim Stehen sinkt die Schätzung nicht.
 - Akku bei Ankunft: vorsichtiger geschätzt (10 % mehr Verbrauch) und das Modell lernt schneller aus der Fahrt.
