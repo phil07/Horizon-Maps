@@ -6,6 +6,8 @@ Add user-facing Horizon Nav changes under **Unreleased** before publishing each 
 
 ### Verbessert
 - Elektro-Routenvorschau: Zeit und Ankunft aller Routen erscheinen erst, wenn die Ladeplanung fertig ist, und enthalten dann gleich die Ladepausen. Bis dahin steht „…“ und der Start-Countdown wartet.
+- Elektro-Routenvorschau: Die geplanten Ladestopps der gewählten Route werden schon in der Vorschau auf der Karte gezeigt.
+- Der Pfeil im Fortschrittsbalken sitzt am Anfang der Route ganz links (und am Ziel ganz rechts).
 
 
 ## 1.0.246 — 2026-10-28

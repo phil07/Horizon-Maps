@@ -167,7 +167,7 @@ fun RouteBar(engine: NavEngine, modifier: Modifier = Modifier, thin: Boolean = f
             }
             // the arrow: the map's own locator, shrunk and turned to point along the bar
             val sz = (if (thin) 38.dp else 32.dp).toPx()
-            val ax = (frac * size.width).coerceIn(sz / 2f, size.width - sz / 2f)
+            val ax = (frac * size.width).coerceIn(0f, size.width)
             val cy = size.height / 2f
             rotate(90f, Offset(ax, cy)) {
                 drawImage(

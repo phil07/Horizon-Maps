@@ -5828,7 +5828,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
     }
 
     private fun planEv(r: Route) {
-        evStops = emptyList(); evWarning = null
+        evStops = emptyList(); evWarning = null; pushVia()
         // stops already on the trip are the user's plan: no suggestion on top of them (but a warning that came with the
         // charging stops put on it stays: that plan still falls short somewhere)
         // your own stops are fixed: the charging stops are planned round them (a stop of yours is not counted as a charge: no charge assumed there)
@@ -5836,7 +5836,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         scope.launch { try {
             val (stops, warning) = computeEvPlan(r) ?: return@launch
             if (route === r) {
-                evStops = stops; evWarning = warning
+                evStops = stops; evWarning = warning; pushVia()
                 // put the stops on the trip straight away, once per destination: if you take them off again (stops editor) they
                 // stay a suggestion (the "Add stops" pill) instead of coming back with every new route
                 val d = dest
@@ -5940,6 +5940,11 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
 
     /** Draws the stops on the way on the map; a stop is a charger when it's one of the planned charging stops. */
     private fun pushVia() {
+        // in the route preview the planned charging stops are not on the trip yet, but they are drawn so you see where you would charge
+        if (previewing && via.isEmpty() && evStops.isNotEmpty()) {
+            map.setVia(evStops.map { it.n.place.pos to true }, evStops.map { st -> st.n.kw?.let { "$it kW" } ?: "?" })
+            return
+        }
         // a charging stop shows its power on the map; "?" when the power isn't known
         val labels = via.map { p -> evPlanned.firstOrNull { Geo.dist(it.n.place.pos, p.pos) < 30.0 }?.let { st -> st.n.kw?.let { "$it kW" } ?: "?" } }
         map.setVia(via.map { p -> p.pos to evPlanned.any { Geo.dist(it.n.place.pos, p.pos) < 30.0 } }, labels)
