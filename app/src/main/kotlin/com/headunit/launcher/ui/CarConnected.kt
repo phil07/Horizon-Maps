@@ -57,7 +57,7 @@ internal fun CarConnectedScreen(engine: NavEngine, onShowMap: () -> Unit, onSett
                     Text(engine.dest?.name ?: Lang.t("Dein Ziel", "Your destination"), color = c.text, fontSize = 18.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     Row(horizontalArrangement = Arrangement.spacedBy(26.dp), verticalAlignment = Alignment.CenterVertically) {
                         ImmStat(Geo.fmtDur(e.secs), if (e.delayMin >= 1) Lang.t("+${e.delayMin} Min. Verkehr", "+${e.delayMin} min traffic") else Lang.t("Restzeit", "time left"), dc)
-                        ImmStat(e.arrive, "arrival", c.text)
+                        ImmStat(e.arrive, Lang.t("Ankunft", "arrival"), c.text)
                         ImmStat(Geo.fmtDist(e.dist, engine.imperial), Lang.t("verbleibend", "to go"), c.text)
                     }
                 }
