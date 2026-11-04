@@ -224,8 +224,10 @@ private fun CarScreen(engine: NavEngine, a: android.graphics.Rect?, actions: Car
         // separate pill: the left side is then just the turn card and the trip card
         val alert = engine.alert
         val inc = engine.incidentAhead; val cam = engine.cameraDist
-        val incShown = inc != null && alert?.kind != "incident"
-        val camShown = cam != null && alert?.kind != "camera"
+        // with the hazard radar on (as on the phone) it shows the incidents and cameras, so the single lines step aside
+        val radarOn = engine.prefs.b(PreferenceKeys.HAZARDRADAR, false)
+        val incShown = inc != null && alert?.kind != "incident" && !radarOn
+        val camShown = cam != null && alert?.kind != "camera" && !radarOn
         // one slim line while the turn is far off (about 2 km), the full card as it comes up (a little either side, so it can't flicker)
         val slimHold = remember { booleanArrayOf(false) }
         if (t != null) slimHold[0] = if (t.dist > 2100.0) true else if (t.dist < 1900.0) false else slimHold[0]
@@ -245,6 +247,9 @@ private fun CarScreen(engine: NavEngine, a: android.graphics.Rect?, actions: Car
                 }
                 if (!compact) engine.advice?.let { AdvicePill(it) }
                 NoticeCard(engine, big = true)
+                CompositionLocalProvider(LocalDensity provides Density(dens.density * cardScale, dens.fontScale)) {
+                    AvgSpeedCard(engine); ServicesCard(engine); ParkingCard(engine)
+                }
             }
         }
 
@@ -267,6 +272,7 @@ private fun CarScreen(engine: NavEngine, a: android.graphics.Rect?, actions: Car
                 }
             }
             NoticeCard(engine, big = true)
+            if (!engine.cruising) CompositionLocalProvider(LocalDensity provides Density(dens.density * cardScale, dens.fontScale)) { PlannedCard(engine) }
             CarChips(engine, actions, if (engine.notice != null) 0 else savedRows)
             // (portrait screens: battery and range stay here; on a landscape screen they sit above the speed, bottom right)
             if (portrait) EvPill(engine)
@@ -286,7 +292,8 @@ private fun CarScreen(engine: NavEngine, a: android.graphics.Rect?, actions: Car
         if (!previewing && !arriving) {
             val hazards: @Composable () -> Unit = {
                 // (only when there's no turn card to carry them)
-                if (!showTurn && (incShown || camShown)) Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                if (radarOn) HazardRadar(engine)
+                else if (!showTurn && (incShown || camShown)) Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     if (incShown && inc != null) HazardBadge("incident", inc.label, Geo.fmtDist(inc.dist, engine.imperial))
                     if (camShown && cam != null) HazardBadge("camera", "Blitzer", Geo.fmtDist(cam.toDouble(), engine.imperial))
                 }
