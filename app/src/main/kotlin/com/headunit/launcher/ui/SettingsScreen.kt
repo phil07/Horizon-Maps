@@ -692,9 +692,15 @@ private fun TripsGroup(engine: NavEngine) {
     val k = if (engine.imperial) 2.23694 else 3.6
     val unit = if (engine.imperial) "mph" else "km/h"
     SGroup("Fahrtenbuch") {
+        // closed at start to save room; the header (count and distance) opens and closes it
+        var open by remember { mutableStateOf(false) }
         if (shown.isEmpty()) SNote("Noch keine Fahrten aufgezeichnet.")
-        else SItem("${shown.size} Fahrten", Geo.fmtDist(shown.sumOf { it.dist }, engine.imperial) + " insgesamt") { SButton("Löschen", danger = true) { engine.trips.clear(); shown = emptyList() } }
+        else SItem("${shown.size} Fahrten", Geo.fmtDist(shown.sumOf { it.dist }, engine.imperial) + " insgesamt", onClick = { open = !open }) {
+            Text(if (open) "▴" else "▾", color = LocalVw.current.sub, fontSize = 18.sp)
+        }
+        if (!open) return@SGroup
         if (shown.isNotEmpty()) {
+            SItem("Fahrtenbuch leeren", "Alle Fahrten löschen") { SButton("Löschen", danger = true) { engine.trips.clear(); shown = emptyList() } }
             val ctx = androidx.compose.ui.platform.LocalContext.current
             SItem("Exportieren", "Als Tabelle (CSV) oder druckbare Monatsübersicht (PDF). Tippe eine Fahrt an, um sie als dienstlich oder privat zu markieren.") {
                 SButton("CSV") { com.headunit.launcher.TripExport.share(ctx, engine.prefs, shown, false)?.let { engine.toast("Export fehlgeschlagen: $it", 4000) } }
