@@ -93,34 +93,6 @@ jobs:
             sed -i '/./,$!d' "$CHANGE_NOTES"
           fi
 
-          # Leave out any notes an earlier release already published, so the changelog never has to be emptied
-          # by hand. If GitHub can't be asked for the old releases, the notes are used as they are.
-          PUBLISHED="$RUNNER_TEMP/published-notes.txt"
-          gh api "repos/phil07/Horizon-Maps/releases?per_page=100" --paginate --jq '.[].body' > "$PUBLISHED" 2>/dev/null || : > "$PUBLISHED"
-          python3 - "$PUBLISHED" "$CHANGE_NOTES" <<'PY'
-          import re, sys
-          def key(t): return re.sub(r"[^a-z0-9]+", " ", t.lower()).strip()
-          bullet = re.compile(r"\s*[-*]\s+(.*)")
-          old = set()
-          for line in open(sys.argv[1], encoding="utf-8", errors="ignore"):
-              m = bullet.match(line)
-              if m: old.add(key(m.group(1)))
-          lines = [l for l in open(sys.argv[2], encoding="utf-8").read().splitlines() if l.strip()]
-          out, keep = [], True
-          for line in lines:
-              m = bullet.match(line)
-              if m: keep = key(m.group(1)) not in old
-              elif line[:1].isspace(): pass   # a wrapped line goes with its bullet
-              else: keep = True               # a heading: tidied below
-              if keep: out.append(line)
-          tidy = []
-          for i, line in enumerate(out):
-              if not bullet.match(line) and not line[:1].isspace():
-                  nxt = next((l for l in out[i + 1:] if bullet.match(l) or not l[:1].isspace()), "")
-                  if not bullet.match(nxt): continue   # a heading with nothing new under it
-              tidy.append(line)
-          open(sys.argv[2], "w", encoding="utf-8").write("\n".join(tidy) + ("\n" if tidy else ""))
-          PY
           # The app shows these itself after updating, so the What's new card works with no connection and doesn't depend on
           # GitHub's API (which only allows a few requests an hour and often turned the card blank).
           mkdir -p "$GITHUB_WORKSPACE/app/src/main/assets"
