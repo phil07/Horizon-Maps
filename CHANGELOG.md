@@ -5,6 +5,8 @@ Add user-facing Horizon Nav changes under **Unreleased** before publishing each 
 ## Unreleased
 
 ### Behoben
+- Ortung beim Start einer Navigation: Der Pfeil springt nicht mehr von bis zu 30 m Entfernung auf die Route, sondern rastet erst ein, wenn du wirklich auf ihr bist (15 m).
+- Android Auto: Beenden, Ladesäulen-Filter und Ton stehen während der Fahrt als eigene Knopfspalte links auf der Karte und bleiben immer sichtbar. Melden bleibt in der Leiste oben.
 - Absturz beim Start in Android Auto (1.0.1300): Wenn das Auto eine Kartenansicht mit zu vielen Schaltflächen ablehnt, bleibt die App jetzt offen und zeigt die Karte mit „Melden“. Die Ursache wird im Log protokolliert (HorizonCar).
 - Absturz beim Start in Android Auto (1.0.1299): Die Navigationsleiste hatte fünf statt höchstens vier Schaltflächen. Bei Elektroautos steht der Ladesäulen-Filter jetzt an der Stelle von 2D/3D; 2D/3D bleibt auf dem Handy und in den Einstellungen.
 - Akkustand und Reichweite in Android Auto: Die Werte aus dem Widget (oder vom Auto) werden sofort übernommen und auf dem Autobildschirm neu gezeichnet. Vorher blieb ein alter Wert stehen, bis man die Karte neu öffnete. Das Widget hat Vorrang, das Auto liefert den Wert nur, wenn das Widget keinen aktuellen hat.

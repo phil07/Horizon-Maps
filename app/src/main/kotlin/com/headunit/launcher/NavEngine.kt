@@ -3653,7 +3653,9 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         // reroute below still notices it by the direction)
         val againstRoute = r != null && s != null && !isStill && p.speed > 4.0 && gpsReliableForReroute &&
             abs(angDiff(Geo.bearing(r.pts[s.segmentIndex], r.pts[min(s.segmentIndex + 1, r.pts.size - 1)]), p.heading)) > 130.0
-        val onR = r != null && s != null && !jump && !againstRoute && (holdSide || s.dist < (if (glideOnRoute) offLim + 12.0 else joinLim))
+        // starting a route: the arrow only joins it when you are really on it (15 m), not from up to 30 m away (it jumped onto the line)
+        val onR = r != null && s != null && !jump && !againstRoute && (holdSide || s.dist < (if (glideOnRoute) offLim + 12.0 else joinLim)) &&
+            (glideOnRoute || s.dist < 15.0)
         if (onR && s != null && newFix && s.dist <= offLim) { trustProg = s.progress; trustAt = nowT }
         if (newFix) {
             mAt = tNow; mSpeed = sp

@@ -283,6 +283,13 @@ private fun CarScreen(engine: NavEngine, a: android.graphics.Rect?, actions: Car
             enter = androidx.compose.animation.slideInHorizontally(tween(220)) { -it } + fadeIn(tween(200)),
             exit = androidx.compose.animation.slideOutHorizontally(tween(200)) { -it } + fadeOut(tween(180))) { CarChargerFilter(engine) }
 
+        // the trip's own buttons, always on screen on the left (Android Auto's bar at the top can hide itself): end, charger filter, sound
+        if (guiding && !previewing && !arriving) Column(Modifier.align(Alignment.CenterStart).padding(start = left), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Box(Modifier.carTap("trip-end") { engine.endRoute() }) { ImmPill(Lang.t("Beenden", "End"), {}) }
+            if (engine.isEv) Box(Modifier.carTap("trip-filter") { engine.chargerFilterOpen = !engine.chargerFilterOpen }) { ImmPill(Lang.t("Filter", "Filter"), {}, filled = engine.chargerMinKw > 0) }
+            Box(Modifier.carTap("trip-sound") { engine.cycleSound() }) { ImmPill(Lang.t("Ton", "Sound"), {}) }
+        }
+
         // alerts (cameras, limits, hazards...): beside the turn card on wide screens, under it on tall ones
         val below = if (showTurn && turnH > 0) with(dens) { turnH.toDp() } + 10.dp else if (engine.route == null && topBlockH > 0) with(dens) { topBlockH.toDp() } + 10.dp else 0.dp
         val alertMod = if (portrait) Modifier.align(Alignment.TopStart).padding(start = left, end = rightTop + 64.dp, top = top + below)
