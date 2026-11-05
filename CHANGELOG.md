@@ -5,6 +5,9 @@ Add user-facing Horizon Nav changes under **Unreleased** before publishing each 
 ## Unreleased
 
 ### Verbessert
+- Akku bei Ankunft: wird nur noch alle 10 Sekunden oder 200 m neu gerechnet (und sofort bei neuem Akkustand, neuer Route oder anderen Ladestopps). Vorher rechnete die App jede Sekunde die ganze Restroute durch, auf Handy und Auto.
+- Akku-Schätzung auf der Route: Kälte und Heizung zählen mit der Temperatur des jeweiligen Abschnitts, nicht mit dem Durchschnitt der ganzen Strecke. Fahrten in die Berge oder in die Kälte werden dadurch genauer geschätzt.
+- Akku-Lernstand: wird mit Namen gespeichert. Ein späteres Update kann neue Werte ergänzen, ohne den gespeicherten Stand zu verwerfen.
 - Akku-Schätzung auf dem Handy: Die Anzeige zeigt jetzt dieselbe Schätzung wie im Auto (mit „ca.“, wenn der letzte Wert alt ist).
 - Akku-Schätzung: Die Rückgewinnung bergab wird nicht mehr angerechnet. Die Schätzung bleibt auch auf Bergstrecken vorsichtig. Die Anzeige „Rückgewinnung bergab“ bei den gelernten Werten entfällt.
 - Einstellungen, Fahrtenbuch: Der Bereich startet zugeklappt. Die Kopfzeile mit Anzahl und Strecke klappt die Liste auf und zu. „Löschen“ steht jetzt im aufgeklappten Bereich.

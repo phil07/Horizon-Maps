@@ -70,8 +70,11 @@ object EvModel {
     /** The kind of road by speed, for what's learned: 0 town (under 60 km/h), 1 country (to 100), 2 motorway. */
     fun bucket(kmh: Double): Int = if (kmh < 60.0) 0 else if (kmh < 100.0) 1 else 2
 
-    /** A stretch of road's weather for the estimate: where it applies (metres along the route), the wind and whether it's wet. */
-    class Wx(val off: Double, val windKmh: Double, val windFrom: Double, val wet: Boolean, val snow: Boolean)
+    /**
+     * A stretch of road's weather for the estimate: where it applies (metres along the route), the wind, whether it's wet, and the
+     * temperature there (null: unknown, the trip's own figure is used).
+     */
+    class Wx(val off: Double, val windKmh: Double, val windFrom: Double, val wet: Boolean, val snow: Boolean, val temp: Double? = null)
 
     /**
      * What the road and the weather add: the heights along the route ([elevOff] metres → [elevH] metres above sea level), the car's
@@ -162,7 +165,6 @@ object EvModel {
         var prevKmh: Double? = null
         var speedUp = 0.0
         var aux = 0.0
-        val auxP = auxKw(tempC)
         val dls = env.delays.sortedBy { it.off }
         while (at < to - 1e-6) {
             while (ci < cuts.size && cuts[ci] <= at + 1e-6) ci++
@@ -183,15 +185,19 @@ object EvModel {
             var secs = piece / (kmh.coerceAtLeast(5.0) / 3.6)
             dls.firstOrNull { mid >= it.off && mid < it.end && it.end > it.off }?.let { d -> secs += d.secs * piece / (d.end - d.off) }
             val v = (piece / secs * 3.6).coerceAtLeast(5.0)
-            aux += auxP * secs / 3600.0
+            // the temperature of this stretch (the forecast nearest to it), else the trip's own: a drive up into the mountains or
+            // into the cold is counted where it is cold, not with the average of the whole way
+            val w = if (env.wx.isEmpty()) null else env.wxAt(mid)
+            val tp = w?.temp ?: tempC
+            aux += auxKw(tp) * secs / 3600.0
             flat += part(piece, v, baseKwhPerKm, learned) * vehicleFactor(v, env.dragExtra, env.massKg, env.massRef) *
-                (if (env.wx.isEmpty()) 1.0 else wxFactor(env.wxAt(mid), v, env.bearing(mid)))
+                (if (w == null) 1.0 else wxFactor(w, v, env.bearing(mid))) * tempFactor(tp)
             val h = env.heightAt(b)
             if (h != null && prevH != null) grade += env.gradeKwh(h - prevH)
             prevH = h
             at = b
         }
-        return maxOf(0.0, flat * tempFactor(tempC) + aux + grade + speedUp * (accelF - 1.0)) * BUFFER
+        return maxOf(0.0, flat + aux + grade + speedUp * (accelF - 1.0)) * BUFFER
     }
 
     private const val STEP = 500.0
@@ -246,6 +252,27 @@ object EvModel {
         }
         if (at < to) sum += (to - at) / 100_000.0 * lPer100 * fuelSpeedFactor(fallbackKmh)
         return sum * FUEL_BUFFER
+    }
+
+    /**
+     * One learning step from two battery readings. [learned]: the corrections so far (town, country, motorway); [modelB]: the
+     * modelled road use per kind of road since the first reading (without corrections); [actualKwh]: what the battery really lost;
+     * [auxKwh], [upKwh], [downKwh]: heating, climbing and going down in that time. The estimate counts nothing back downhill, but
+     * the car did get some back: for learning the usual share ([regen]) is taken off, or the recovery would go into the factor
+     * per kind of road and make the estimate on the flat too hopeful. Each kind of road is corrected by its share of the stretch,
+     * half of the error at a time. Null: not learned from (mostly downhill, too uncertain; or too little modelled use).
+     */
+    fun learnStep(learned: DoubleArray, modelB: DoubleArray, actualKwh: Double, auxKwh: Double, upKwh: Double, downKwh: Double,
+                  regen: Double = DEFAULT_REGEN): DoubleArray? {
+        val modelL = (0 until 3).sumOf { modelB[it] * learned[it] }
+        if (downKwh * regen >= 0.3 * (modelL + upKwh)) return null
+        if (modelL <= 0.3) return null
+        val err = ((actualKwh - auxKwh - upKwh + regen * downKwh) / modelL).coerceIn(0.6, 1.8)
+        val tot = modelB.sum()
+        return DoubleArray(3) { b ->
+            val w = if (tot > 0) modelB[b] / tot else 0.0
+            (learned[b] * (1.0 + 0.5 * w * (err - 1.0))).coerceIn(0.6, 1.8)
+        }
     }
 
     /** The learned corrections from the settings ("1.05,1.12,1.2"), three numbers; 1.0 each when nothing is learned yet. */

@@ -1261,15 +1261,15 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         if (l.hasBearing() && l.hasSpeed() && l.speed > 1.0f) h = l.bearing.toDouble()
         else lastRaw?.let { if (Geo.dist(it, cur) > 6) h = Geo.bearing(it, cur) }
         val prev = lastRaw
-        if (prev == null || Geo.dist(prev, cur) > 6) lastRaw = cur
+        if (prev == null || Geo.dist(prev, cur) > TrackMath.ANCHOR_M) lastRaw = cur
         val speed = if (l.hasSpeed()) l.speed.toDouble() else 0.0
         if (prev != null && speed > 0.8) {
             val d = Geo.dist(prev, cur)
             // counted only when the anchor (lastRaw) moves on, that is past 6 m: a step of 3 to 6 m left the anchor where it was, and
             // the next step was measured from it again, so slow driving was counted up to half as much again
-            if (d > 6.0 && d <= 200.0) { tripDist += d; tripMoving += 1.0; try { evTrack(speed, d) } catch (e: Exception) { } }
+            if (TrackMath.countedStep(d)) { tripDist += d; tripMoving += 1.0; try { evTrack(speed, d) } catch (e: Exception) { } }
             // a gap in the GPS track (a tunnel, a lost signal): the distance along the route between the two fixes
-            else if (d > 200.0) try { if (!(d < 5000.0 && evGapOnRoute(speed, prev, cur, d))) evGapBad = true } catch (e: Exception) { evGapBad = true }
+            else if (d > TrackMath.MAX_STEP_M) try { if (!(d < 5000.0 && evGapOnRoute(speed, prev, cur, d))) evGapBad = true } catch (e: Exception) { evGapBad = true }
         } else if (speed <= 0.8) try { evIdle() } catch (e: Exception) { }
         if (speed > tripMax) tripMax = speed
         val firstFix = fix == null
@@ -5569,27 +5569,49 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
     /** True when a stretch of the drive since the reference reading could not be measured (a gap off the route): no learning from it. */
     private var evGapBad = false
 
-    /** The learning state as a list (see evLoad for the order). */
-    private fun evState(): List<Double> = listOf(evRefPct.toDouble(), evRefDist, evRefModel, evRefModelB[0], evRefModelB[1], evRefModelB[2],
-        evRefAux, evRefUp, evRefDown, evRefKm[0], evRefKm[1], evRefKm[2], evReadSeen.toDouble(), evSinceRead, evSinceNav, evSinceCharge,
-        evDriven, evChargeRefPct, evChargeRefAt.toDouble(), if (evGapBad) 1.0 else 0.0, evPrevPct.toDouble())
+    /**
+     * The learning state, by name (JSON): a field added later is simply missing in an older saved state and keeps its default,
+     * instead of the whole state being thrown away as with the plain list of numbers before.
+     */
+    private fun evState(): org.json.JSONObject = org.json.JSONObject().apply {
+        put("refPct", evRefPct); put("refDist", evRefDist); put("refModel", evRefModel)
+        put("refModelB", org.json.JSONArray(evRefModelB.toList())); put("refAux", evRefAux); put("refUp", evRefUp); put("refDown", evRefDown)
+        put("refKm", org.json.JSONArray(evRefKm.toList())); put("readSeen", evReadSeen); put("sinceRead", evSinceRead); put("sinceNav", evSinceNav)
+        put("sinceCharge", evSinceCharge); put("driven", evDriven); put("chargeRefPct", evChargeRefPct); put("chargeRefAt", evChargeRefAt)
+        put("gapBad", evGapBad); put("prevPct", evPrevPct)
+    }
 
     /** Saved to the settings, so the reference reading and the drive since it survive a restart of the app. */
     private fun evSave() {
         evSavedAt = System.currentTimeMillis()
-        try { prefs.put(PreferenceKeys.EV_STATE, evState().joinToString(",") { it.toString() }) } catch (e: Exception) { }
+        try { prefs.put(PreferenceKeys.EV_STATE, evState().toString()) } catch (e: Exception) { }
     }
 
-    /** Loaded once, on the first drive: the state of the last drive, if it is complete. */
+    /** Loaded once, before first use: the state of the last drive (also the older plain list of 21 numbers). */
     private fun evLoad() {
-        val v = prefs.s(PreferenceKeys.EV_STATE, "").split(",").mapNotNull { it.toDoubleOrNull() }
-        if (v.size != 21) return
-        evRefPct = v[0].toInt(); evRefDist = v[1]; evRefModel = v[2]
-        for (i in 0..2) evRefModelB[i] = v[3 + i]
-        evRefAux = v[6]; evRefUp = v[7]; evRefDown = v[8]
-        for (i in 0..2) evRefKm[i] = v[9 + i]
-        evReadSeen = v[12].toLong(); evSinceRead = v[13]; evSinceNav = v[14]; evSinceCharge = v[15]
-        evDriven = v[16]; evChargeRefPct = v[17]; evChargeRefAt = v[18].toLong(); evGapBad = v[19] > 0.5; evPrevPct = v[20].toInt()
+        val raw = prefs.s(PreferenceKeys.EV_STATE, "").trim()
+        if (raw.isEmpty()) return
+        try {
+            if (raw.startsWith("{")) {
+                val o = org.json.JSONObject(raw)
+                fun arr(k: String, into: DoubleArray) { o.optJSONArray(k)?.let { a -> for (i in into.indices) into[i] = a.optDouble(i, 0.0) } }
+                evRefPct = o.optInt("refPct", -1); evRefDist = o.optDouble("refDist", 0.0); evRefModel = o.optDouble("refModel", 0.0)
+                arr("refModelB", evRefModelB); evRefAux = o.optDouble("refAux", 0.0); evRefUp = o.optDouble("refUp", 0.0); evRefDown = o.optDouble("refDown", 0.0)
+                arr("refKm", evRefKm); evReadSeen = o.optLong("readSeen", 0L); evSinceRead = o.optDouble("sinceRead", 0.0); evSinceNav = o.optDouble("sinceNav", 0.0)
+                evSinceCharge = o.optDouble("sinceCharge", 0.0); evDriven = o.optDouble("driven", 0.0); evChargeRefPct = o.optDouble("chargeRefPct", -1.0)
+                evChargeRefAt = o.optLong("chargeRefAt", 0L); evGapBad = o.optBoolean("gapBad", false); evPrevPct = o.optInt("prevPct", -1)
+                return
+            }
+            // the older form: 21 numbers in a fixed order
+            val v = raw.split(",").mapNotNull { it.toDoubleOrNull() }
+            if (v.size != 21) return
+            evRefPct = v[0].toInt(); evRefDist = v[1]; evRefModel = v[2]
+            for (i in 0..2) evRefModelB[i] = v[3 + i]
+            evRefAux = v[6]; evRefUp = v[7]; evRefDown = v[8]
+            for (i in 0..2) evRefKm[i] = v[9 + i]
+            evReadSeen = v[12].toLong(); evSinceRead = v[13]; evSinceNav = v[14]; evSinceCharge = v[15]
+            evDriven = v[16]; evChargeRefPct = v[17]; evChargeRefAt = v[18].toLong(); evGapBad = v[19] > 0.5; evPrevPct = v[20].toInt()
+        } catch (e: Exception) { }
     }
     /** Charging at a charger: the last battery reading seen (its time and level), and whether the level rose while standing there. */
     private var evChargeReadAt = 0L
@@ -5689,6 +5711,12 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         else (prefs.s(PreferenceKeys.EV_FREE_KMH, "").toDoubleOrNull() ?: 140.0).coerceIn(100.0, 250.0)
 
     /** The outside temperature: the route's weather, else the weather here (fetched every 30 minutes while driving). */
+    /** The temperature where you are: on a route the forecast nearest to here, else the trip's own figure. */
+    private fun evTempHere(): Double? {
+        val w = routeWx.takeIf { it.isNotEmpty() && route != null && !previewing }?.minByOrNull { abs(it.off - curProgress) }
+        return w?.temp ?: evTemp()
+    }
+
     private fun evTemp(): Double? {
         routeWx.takeIf { it.isNotEmpty() }?.let { w -> return w.map { it.temp }.average() }
         weather?.let { return it.tempC }
@@ -5703,10 +5731,8 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         val r = route ?: return false
         if (previewing || r.pts.size < 2) return false
         val a = RouteMatcher.snap(r, prev, 0); val b = RouteMatcher.snap(r, cur, 0)
-        // both ends must be on the route: off it (a detour) the distance along the route says nothing about the drive
-        if (a.dist > 50.0 || b.dist > 50.0) return false
-        val along = b.progress - a.progress
-        if (along < 0.0 || along < straight * 0.5 - 200.0 || along > straight * 1.5 + 200.0) return false
+        // both ends on the route, forwards, and near what the straight line allows (see TrackMath.gapAlong)
+        val along = TrackMath.gapAlong(a.progress, a.dist, b.progress, b.dist, straight) ?: return false
         tripDist += along
         evTrack(speed, along)
         return true
@@ -5730,7 +5756,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         val now = System.currentTimeMillis()
         val dtS = if (evTrackAt > 0) ((now - evTrackAt) / 1000.0).coerceIn(0.0, 60.0) else 0.0
         evTrackAt = now
-        val aux = EvModel.auxKw(evTemp()) * dtS / 3600.0
+        val aux = EvModel.auxKw(evTempHere()) * dtS / 3600.0
         if (aux <= 0.0) return
         evSinceRead += aux; evSinceNav += aux; evSinceCharge += aux
         if (evRefPct >= 0) evRefAux += aux
@@ -5757,14 +5783,14 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         if (!isEv) return
         // the road's own use (speed, cold, wind, rain), then the hill climbed or gone down since the last point
         val wx = routeWx.takeIf { it.isNotEmpty() && route != null }?.minByOrNull { abs(it.off - curProgress) }
-        val flatK = d / 1000.0 * evBaseKwhPerKm() * EvModel.speedFactor(kmh) * EvModel.tempFactor(evTemp()) *
+        val flatK = d / 1000.0 * evBaseKwhPerKm() * EvModel.speedFactor(kmh) * EvModel.tempFactor(evTempHere()) *
             EvModel.vehicleFactor(kmh, evDragExtra(), evMass(), EvModel.massFor(evBatteryKwh())) *
             (if (wx != null) EvModel.wxFactor(EvModel.Wx(wx.off, wx.windKmh, wx.windFrom, wx.wet, wx.snow), kmh, fix?.heading?.toDouble()) else 1.0)
         // heating / air conditioning: by the time since the last point (also standing in a jam), at most a minute at a time
         val nowT = System.currentTimeMillis()
         val dtS = if (evTrackAt > 0) ((nowT - evTrackAt) / 1000.0).coerceIn(0.0, 60.0) else 0.0
         evTrackAt = nowT
-        val aux = EvModel.auxKw(evTemp()) * dtS / 3600.0
+        val aux = EvModel.auxKw(evTempHere()) * dtS / 3600.0
         val bk = EvModel.bucket(kmh)
         var up = 0.0; var down = 0.0
         val r = route; val prof = r?.elev
@@ -5823,26 +5849,8 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
             if (drop >= 5 && evDriven - evRefDist >= 10_000 && evRefModel > 0.5 && !evGapBad) {
                 // what the battery really lost against what the model said (without its buffer and corrections)
                 val actual = drop / 100.0 * evBatteryKwh()
-                val l = evLearned()
-                // the estimate counts nothing back downhill (on the safe side), but the car did get some back: for learning, the usual
-                // share is taken off what the battery lost. Without this the recovery went into the factor per kind of road, and the
-                // estimate on the flat became too hopeful after a hilly drive.
-                val regen = EvModel.DEFAULT_REGEN
-                // the model with what is learned so far, each kind of road with its own correction
-                val modelL = (0 until 3).sumOf { evRefModelB[it] * l[it] }
-                if (evRefDown * regen >= 0.3 * (modelL + evRefUp)) {
-                    // mostly downhill: how much really came back is too uncertain to learn the road from
-                } else if (modelL > 0.3) {
-                    // how far off the whole stretch was; each kind of road is corrected by its share of the stretch (not all of it put
-                    // on the one driven most)
-                    val err = ((actual - evRefAux - evRefUp + regen * evRefDown) / modelL).coerceIn(0.6, 1.8)
-                    val tot = evRefModelB.sum()
-                    for (b in 0 until 3) {
-                        val w = if (tot > 0) evRefModelB[b] / tot else 0.0
-                        l[b] = (l[b] * (1.0 + 0.5 * w * (err - 1.0))).coerceIn(0.6, 1.8)
-                    }
-                    prefs.put(PreferenceKeys.EV_LEARN, EvModel.formatLearned(l))
-                }
+                // one learning step (see EvModel.learnStep: the recovery downhill is taken off, a mostly downhill stretch isn't learned)
+                EvModel.learnStep(evLearned(), evRefModelB, actual, evRefAux, evRefUp, evRefDown)?.let { prefs.put(PreferenceKeys.EV_LEARN, EvModel.formatLearned(it)) }
                 evStartRef(pct)
             }
         }
@@ -5870,7 +5878,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
     private fun evEnv(r: Route): EvModel.Env {
         val prof = r.elev
         if (prof == null) evLoadElev(r)
-        val wx = (if (route === r || routes.getOrNull(0) === r) routeWx else emptyList()).map { EvModel.Wx(it.off, it.windKmh, it.windFrom, it.wet, it.snow) }
+        val wx = (if (route === r || routes.getOrNull(0) === r) routeWx else emptyList()).map { EvModel.Wx(it.off, it.windKmh, it.windFrom, it.wet, it.snow, it.temp) }
         return EvModel.Env(prof?.off ?: DoubleArray(0), prof?.h ?: DoubleArray(0), evMass(), evRegen(), wx, { off -> pointAt(r, off).second },
             evDragExtra(), EvModel.massFor(evBatteryKwh()), r.delays)
     }
@@ -5967,7 +5975,33 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
     private fun evRouteKwh(r: Route, from: Double, avgKmh: Double, to: Double = r.len): Double =
         EvModel.kwh(from, to, r.limits, avgKmh.coerceIn(20.0, 140.0), evStyle(), evFreeKmh(), evBaseKwhPerKm(), evTemp(), evLearned(), evEnv(r), evAccelF())
 
+    /** The last arrival estimate and what it was worked out from (see evArrivalPct). */
+    private var arrPct: Int? = null
+    private var arrAt = 0L
+    private var arrProg = 0.0
+    private var arrRoute: Route? = null
+    private var arrRead = 0L
+    private var arrChargeAt = 0L
+    private var arrPlanned: Any? = null
+
+    /**
+     * Roughly how much battery (%) you'll arrive with. The screens ask for it on every redraw (each second, on the phone and in the
+     * car), and it walks the whole rest of the route: it is worked out again only every 10 seconds or 200 m, or at once when the
+     * route, the charging stops, a battery reading or a charge stop change.
+     */
     fun evArrivalPct(): Int? {
+        if (!isEv) return null
+        val r = route ?: return null
+        val now = System.currentTimeMillis()
+        val readAt = EvWidget.readAt(prefs)
+        if (arrRoute === r && arrPlanned === evPlanned && arrRead == readAt && arrChargeAt == evChargeRefAt &&
+            now - arrAt < 10_000L && abs(curProgress - arrProg) < 200.0) return arrPct
+        val v = evArrivalPctNow()
+        arrPct = v; arrAt = now; arrProg = curProgress; arrRoute = r; arrRead = readAt; arrChargeAt = evChargeRefAt; arrPlanned = evPlanned
+        return v
+    }
+
+    private fun evArrivalPctNow(): Int? {
         if (!isEv) return null
         val e = eta ?: return null
         val r = route ?: return null

@@ -75,12 +75,15 @@ class NavigationPolicyTest {
 
     @Test fun roundaboutGuidanceDoesNotShowRawLeftTurnMessage() {
         val step = Step(300.0, "ROUNDABOUT_CROSS", "", "Turn left", 2)
-        assertEquals("at the roundabout, take the 2nd exit", Geo.guidanceLabel(step))
+        // the wording comes from the manoeuvre and the exit, never the provider's raw "Turn left"
+        assertEquals("im Kreisverkehr die zweite Ausfahrt nehmen", Geo.maneuverText(step.maneuver, step.roundExit))
+        assertEquals("2. Ausfahrt", Geo.stepTag(step))
     }
 
     @Test fun roundaboutKeepsRoadNameWhenAvailable() {
         val step = Step(300.0, "ROUNDABOUT_CROSS", "A3057", "Turn left", 2)
-        assertEquals("A3057", Geo.guidanceLabel(step))
+        assertEquals("A3057", step.street)
+        assertEquals("2. Ausfahrt", Geo.stepTag(step))
     }
 
     @Test fun zoomChangesAreDamped() {
