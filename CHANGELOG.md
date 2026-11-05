@@ -16,12 +16,19 @@ Add user-facing Horizon Nav changes under **Unreleased** before publishing each 
 - Akku nach Neustart beim Laden: Der geplante Ladestand und der Stand seit dem Ladestopp bleiben nach einem Neustart der App erhalten, auch wenn er während der Ladung passiert.
 - Laden erkennen: Steht das Auto im Stand nahe einer Ladesäule und ist der neue Akkustand höher als der vorige, zeigen Auto und Handy „lädt“. Die Schätzung folgt dann dem Widget. Die Anzeige endet, sobald das Auto losfährt.
 - Akku-Schätzung ohne Route: Höhenunterschiede des GPS zählen ab 5 m Änderung (bei guter Genauigkeit), auf Bergfahrten und Abfahrten wie mit Route.
-- Akku und Reichweite im Auto: Zwischen zwei Werten vom Widget rechnet die App den Verbrauch seit dem letzten Wert mit, jede Sekunde. Die Anzeige zeigt dann „ca.“, wenn der letzte echte Wert älter als 10 Minuten ist. Ein gleich gebliebener Widget-Wert gilt als veraltet, wenn das Auto seitdem mehr als 1 % verbraucht hat. Beim Stehen sinkt die Schätzung nicht.
+- Akku und Reichweite im Auto: Zwischen zwei Werten vom Widget rechnet die App den Verbrauch seit dem letzten Wert mit, jede Sekunde. Die Anzeige zeigt dann „ca.“, wenn der letzte echte Wert älter als 10 Minuten ist. Ein gleich gebliebener Widget-Wert gilt als veraltet, wenn das Auto seitdem mehr als 1 % verbraucht hat. Beim Stehen auf einer Route zählt nur Heizung oder Klimaanlage (nicht beim Laden), ohne Route sinkt die Schätzung im Stand nicht.
 - Akku bei Ankunft: vorsichtiger geschätzt (10 % mehr Verbrauch) und das Modell lernt schneller aus der Fahrt.
 - Parkplatz-Karte am Ziel: größere Schrift und ein größeres X zum Schließen.
 - Android Auto während der Fahrt: Beenden, Ladesäulen-Filter (bei Elektroautos), Ton und Melden stehen dauerhaft links auf der Karte. Die Leiste oben von Android Auto bleibt dafür leer.
 
 ### Behoben
+- Gefahrene Strecke bei langsamer Fahrt: Unter etwa 20 km/h wurde die Strecke bis zur Hälfte zu lang gezählt (Akku-Schätzung und Fahrtenbuch). Jetzt stimmt sie.
+- Akku-Lernen nach Bergfahrten: Die Rückgewinnung bergab ging als niedrigerer Verbrauch in die Werte je Straßenart ein. Die Schätzung in der Ebene wurde dadurch zu optimistisch. Jetzt wird sie beim Lernen herausgerechnet. Fahrten, die fast nur bergab gehen, werden nicht gelernt.
+- Neuberechnung: Tippst du während einer Neuberechnung auf Beenden oder wählst ein neues Ziel, kommt die alte Route nicht mehr zurück.
+- Akkustand nach Neustart der App: Der alte Wert aus dem Widget wird nicht mehr als neuer Wert übernommen. Vorher sprang die Schätzung zurück.
+- Akkustand im Stand: Ein neuer Wert wird sofort übernommen, nicht erst beim Losfahren.
+- Akkustand aus dem Widget: Ein Ladeziel („Ziel 80 %“) wird nie als Akkustand gelesen.
+- GPS-Lücke auf der Route: Sie zählt nur, wenn beide Punkte auf der Route liegen (nicht auf einem Umweg).
 - Akku-Schätzung: Jede gefahrene Strecke wurde doppelt abgezogen (einmal mit Temperatur, Wind und Höhe, einmal nur mit dem Grundverbrauch). Jetzt nur noch einmal.
 - Ortung beim Start einer Navigation: Der Pfeil springt nicht mehr von bis zu 30 m Entfernung auf die Route, sondern rastet erst ein, wenn du wirklich auf ihr bist (15 m).
 - Android Auto: Beenden, Ladesäulen-Filter und Ton stehen während der Fahrt als eigene Knopfspalte links auf der Karte und bleiben immer sichtbar. Melden bleibt in der Leiste oben.

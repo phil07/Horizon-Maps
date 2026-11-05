@@ -1265,10 +1265,12 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         val speed = if (l.hasSpeed()) l.speed.toDouble() else 0.0
         if (prev != null && speed > 0.8) {
             val d = Geo.dist(prev, cur)
-            if (d in 3.0..200.0) { tripDist += d; tripMoving += 1.0; try { evTrack(speed, d) } catch (e: Exception) { } }
+            // counted only when the anchor (lastRaw) moves on, that is past 6 m: a step of 3 to 6 m left the anchor where it was, and
+            // the next step was measured from it again, so slow driving was counted up to half as much again
+            if (d > 6.0 && d <= 200.0) { tripDist += d; tripMoving += 1.0; try { evTrack(speed, d) } catch (e: Exception) { } }
             // a gap in the GPS track (a tunnel, a lost signal): the distance along the route between the two fixes
             else if (d > 200.0) try { if (!(d < 5000.0 && evGapOnRoute(speed, prev, cur, d))) evGapBad = true } catch (e: Exception) { evGapBad = true }
-        }
+        } else if (speed <= 0.8) try { evIdle() } catch (e: Exception) { }
         if (speed > tripMax) tripMax = speed
         val firstFix = fix == null
         onPosition(Fix(cur, h, speed, if (l.hasAltitude()) l.altitude else 0.0, if (l.hasAccuracy()) l.accuracy.toDouble() else 0.0), firstFix || first)
@@ -2183,10 +2185,13 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
                                 if (haveOffline && NavigationFallbackPolicy.shouldUseOffline(e)) OfflineRouter.routes(ctx, f.pos, d.pos, via.map { it.pos }, hd) else throw e
                             }
                         }
+                        // the route was ended (or a new destination chosen) while this was worked out: the old route must not come back
+                        if (dest !== d || previewing) { err = null; break }
                         if (rs.isNotEmpty()) { routes = rs; active = rs.indices.minByOrNull { rs[it].time } ?: 0; said.clear(); offCount = 0; lastIdx = 0; trustProg = -1.0; clearLiveAlts(); drawRoutes(); cardsForStartAlts(); updateRouteZones(); evAfterReroute(); err = null; break }
                         err = "no route found"
                     } catch (e: Exception) { err = e.message ?: "unknown error" }
                     if (attempt < 3) delay(2500)
+                    if (dest !== d) { err = null; break }
                 }
             } finally { rerouting = false; lastReroute = System.currentTimeMillis() }
             // it keeps trying on its own while you are still off the route, so this is only a heads-up
@@ -5695,17 +5700,41 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
     private fun evGapOnRoute(speed: Double, prev: LL, cur: LL, straight: Double): Boolean {
         val r = route ?: return false
         if (previewing || r.pts.size < 2) return false
-        val along = RouteMatcher.snap(r, cur, 0).progress - RouteMatcher.snap(r, prev, 0).progress
+        val a = RouteMatcher.snap(r, prev, 0); val b = RouteMatcher.snap(r, cur, 0)
+        // both ends must be on the route: off it (a detour) the distance along the route says nothing about the drive
+        if (a.dist > 50.0 || b.dist > 50.0) return false
+        val along = b.progress - a.progress
         if (along < 0.0 || along < straight * 0.5 - 200.0 || along > straight * 1.5 + 200.0) return false
         tripDist += along
         evTrack(speed, along)
         return true
     }
 
-    /** Every few metres driven (electric): the modelled use, how you drive against the limit, and learning from the battery level. */
     /** The saved state is read before anything uses it: after a restart the estimate can be asked for before the first drive. */
     private fun evEnsureLoaded() { if (!evLoaded) { evLoaded = true; evLoad() } }
 
+    /**
+     * Standing still on a route (a jam, lights, a break with the car on): the heating or air conditioning still runs, by the time.
+     * Not while charging (the charger powers it) and not without a route (the car may be switched off).
+     */
+    private fun evIdle() {
+        if (!isEv) return
+        evEnsureLoaded()
+        // a new battery reading while standing: taken now (it used to wait for the next metres driven, and the estimate showed the
+        // new reading less the use counted since the old one)
+        if (EvWidget.readAt(prefs) != evReadSeen) { evTrack(0.0, 0.0); return }
+        if (route == null || previewing || evChargingNow) { evTrackAt = 0L; return }
+        evEnsureLoaded()
+        val now = System.currentTimeMillis()
+        val dtS = if (evTrackAt > 0) ((now - evTrackAt) / 1000.0).coerceIn(0.0, 60.0) else 0.0
+        evTrackAt = now
+        val aux = EvModel.auxKw(evTemp()) * dtS / 3600.0
+        if (aux <= 0.0) return
+        evSinceRead += aux; evSinceNav += aux; evSinceCharge += aux
+        if (evRefPct >= 0) evRefAux += aux
+    }
+
+    /** Every few metres driven (electric): the modelled use, how you drive against the limit, and learning from the battery level. */
     private fun evTrack(speedMs: Double, d: Double) {
         evEnsureLoaded()
         evDriven += d
@@ -5792,13 +5821,14 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
                 // what the battery really lost against what the model said (without its buffer and corrections)
                 val actual = drop / 100.0 * evBatteryKwh()
                 val l = evLearned()
-                val regen = evRegen()
+                // the estimate counts nothing back downhill (on the safe side), but the car did get some back: for learning, the usual
+                // share is taken off what the battery lost. Without this the recovery went into the factor per kind of road, and the
+                // estimate on the flat became too hopeful after a hilly drive.
+                val regen = EvModel.DEFAULT_REGEN
                 // the model with what is learned so far, each kind of road with its own correction
                 val modelL = (0 until 3).sumOf { evRefModelB[it] * l[it] }
-                if (evRefDown >= 0.5 && evRefDown * regen >= 0.15 * (modelL + evRefUp)) {
-                    // mostly downhill: what came back on the way down is what's learned
-                    val est = ((modelL + evRefAux + evRefUp - actual) / evRefDown).coerceIn(0.3, 0.85)
-                    prefs.put(PreferenceKeys.EV_REGEN, String.format(java.util.Locale.US, "%.3f", (regen * 0.7 + est * 0.3).coerceIn(0.3, 0.85)))
+                if (evRefDown * regen >= 0.3 * (modelL + evRefUp)) {
+                    // mostly downhill: how much really came back is too uncertain to learn the road from
                 } else if (modelL > 0.3) {
                     // how far off the whole stretch was; each kind of road is corrected by its share of the stretch (not all of it put
                     // on the one driven most)

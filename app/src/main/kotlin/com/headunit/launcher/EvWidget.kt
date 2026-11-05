@@ -119,6 +119,7 @@ object EvWidget {
                 val h = host(app)
                 val v = h.createView(app, id, info)
                 (v as? ReadingView)?.onRead = { pct, km -> onPct(p, pct, km) }
+                firstAfterStart = true
                 view = v
                 h.startListening()
             } catch (e: Exception) { }
@@ -255,11 +256,15 @@ object EvWidget {
         val now = System.currentTimeMillis()
         liveAt = now
         if (p.s(TAG_SRC, "widget") == "widget" && now - readAt(p) < 10 * 60_000L) return
-        if (pct == nowPct && staleCheck?.invoke() == true) return
+        if (pct == shownPct(p) && staleCheck?.invoke() == true) return
         publish(p, pct, km ?: fallbackKm(p, pct), "car", now)
     }
 
     private var liveAt = 0L
+    /** True from starting the widget until its first update has been read. */
+    private var firstAfterStart = false
+    /** The level shown now: this run's last reading, or after a restart the stored one. */
+    private fun shownPct(p: Prefs): Int? = nowPct ?: p.s(PreferenceKeys.EV_NOW_PCT, "").toIntOrNull()
 
     /** A battery level from the car maker's cloud (see [CarCloud]). */
     fun cloudReading(p: Prefs, pct: Int, km: Int?) = onPct(p, pct, km, "cloud")
@@ -267,7 +272,16 @@ object EvWidget {
     /** A reading from the widget (or the cloud). It replaces the car's value at once. */
     private fun onPct(p: Prefs, pct: Int?, km: Int?, src: String = "widget") {
         if (pct == null) return
-        if (pct == nowPct && staleCheck?.invoke() == true) return
+        val first = firstAfterStart && src == "widget"
+        if (src == "widget") firstAfterStart = false
+        val stored = shownPct(p)
+        // the widget's first update after it is started (also after a restart of the app) is the figure it already showed: the same
+        // level as stored is not a new reading, so its time is kept (it used to be stamped as fresh and the estimate jumped back)
+        if (first && pct == stored) {
+            if (nowPct == null) { nowPct = stored; nowKm = p.s(PreferenceKeys.EV_NOW_KM, "").toIntOrNull() }
+            return
+        }
+        if (pct == stored && staleCheck?.invoke() == true) return
         val now = System.currentTimeMillis()
         // no range in this reading: work it out from the level, rather than keep an older one
         publish(p, pct, km ?: fallbackKm(p, pct), src, now)
@@ -285,8 +299,10 @@ object EvWidget {
         val re = Regex("(?<![\\d.,])(\\d{1,3})(?:[.,]\\d)?\\s?%")
         // text that mentions the battery first, then any percentage
         // "Ladeziel 80 %" is a target, not the level: skip texts that say target or limit
-        val keyed = texts.filter { t -> val l = t.lowercase(); listOf("akku", "batter", "soc", "ladestand").any { l.contains(it) } && listOf("ziel", "limit", "target").none { l.contains(it) } }
-        for (t in keyed + texts) {
+        // a text naming a target or limit is never read as the level, also not in the search through all texts
+        val plain = texts.filter { t -> val l = t.lowercase(); listOf("ziel", "limit", "target").none { l.contains(it) } }
+        val keyed = plain.filter { t -> val l = t.lowercase(); listOf("akku", "batter", "soc", "ladestand").any { l.contains(it) } }
+        for (t in keyed + plain) {
             for (m in re.findAll(t)) { val v = m.groupValues[1].toIntOrNull() ?: continue; if (v in 0..100) return v }
         }
         return null
