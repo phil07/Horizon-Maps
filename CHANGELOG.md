@@ -22,6 +22,9 @@ Add user-facing Horizon Nav changes under **Unreleased** before publishing each 
 - Android Auto während der Fahrt: Beenden, Ladesäulen-Filter (bei Elektroautos), Ton und Melden stehen dauerhaft links auf der Karte. Die Leiste oben von Android Auto bleibt dafür leer.
 
 ### Behoben
+- Akkustand nach einer Stunde: Ist der letzte Wert älter als 60 Minuten, nimmt die Schätzung ihn weiter (bis 6 Stunden, mit „ca.“). Vorher sprang sie auf den Startwert vor der Fahrt (80 %), auch wenn der Akku viel leerer war.
+- Akku-Schätzung ohne Route: Die Temperatur wird jetzt auch ohne Route geholt. Kälte und Heizung zählen immer mit.
+- Nutzbare Batterie mit Komma: „64,5“ wurde als 645 gelesen (und auf 200 kWh begrenzt). Ein Komma gilt jetzt als Dezimalzeichen. Ein so falsch gespeicherter Wert muss einmal neu eingegeben werden.
 - Gefahrene Strecke bei langsamer Fahrt: Unter etwa 20 km/h wurde die Strecke bis zur Hälfte zu lang gezählt (Akku-Schätzung und Fahrtenbuch). Jetzt stimmt sie.
 - Akku-Lernen nach Bergfahrten: Die Rückgewinnung bergab ging als niedrigerer Verbrauch in die Werte je Straßenart ein. Die Schätzung in der Ebene wurde dadurch zu optimistisch. Jetzt wird sie beim Lernen herausgerechnet. Fahrten, die fast nur bergab gehen, werden nicht gelernt.
 - Neuberechnung: Tippst du während einer Neuberechnung auf Beenden oder wählst ein neues Ziel, kommt die alte Route nicht mehr zurück.

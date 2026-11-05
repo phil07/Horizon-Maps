@@ -125,7 +125,8 @@ jobs:
           echo "Reports server: ${REPORTS_URL:-none}"
           # the GitHub APK and the Google Play app bundle (the bundle is only signed, published and uploaded when the
           # Play upload key is there; built anyway, so a mistake in the Play build shows up right away)
-          gradle :app:assemblePublicRelease :app:bundlePlayRelease -PtomtomApiKey="$TOMTOM_API_KEY" -PreportsUrl="$REPORTS_URL"
+          # the unit tests run first: a failing test stops the build
+          gradle :app:testPublicReleaseUnitTest :app:assemblePublicRelease :app:bundlePlayRelease -PtomtomApiKey="$TOMTOM_API_KEY" -PreportsUrl="$REPORTS_URL"
 
       - uses: actions/upload-artifact@v4
         with:

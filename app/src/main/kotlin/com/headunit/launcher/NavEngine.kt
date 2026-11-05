@@ -5515,7 +5515,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
     // ---- electric cars: battery estimate ----
     val isEv: Boolean get() = prefs.s(PreferenceKeys.FUEL_TYPE, "E10") == "EV"
     /** Usable battery (kWh): the chosen car's, else from Settings > Fuel (60 if not set). */
-    private fun evBatteryKwh(): Double = EvCars.batteryKwh(prefs) ?: (prefs.s(PreferenceKeys.EV_BATTERY_KWH, "").toDoubleOrNull() ?: 60.0).coerceIn(10.0, 200.0)
+    private fun evBatteryKwh(): Double = EvCars.batteryKwh(prefs) ?: (prefs.s(PreferenceKeys.EV_BATTERY_KWH, "").replace(',', '.').toDoubleOrNull() ?: 60.0).coerceIn(10.0, 200.0)
     /** kWh used per km: from the efficiency in Settings > Fuel (miles per kWh), or a typical 0.18. */
     /** kWh per km from Settings > Effizienz, which is given in km per kWh (it was read as miles per kWh before: far too hopeful). */
     private fun evKwhPerKm(): Double = prefs.s(PreferenceKeys.EVMPK, "").replace(',', '.').toDoubleOrNull()?.takeIf { it in 2.0..15.0 }?.let { 1.0 / it } ?: 0.18
@@ -5612,7 +5612,9 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
     fun evNowEstimatePct(): Double {
         evEnsureLoaded()
         val batt = evBatteryKwh()
-        val nowPct = evNowPct()?.takeIf { (evNowAgeMin() ?: Long.MAX_VALUE) <= 60 }?.toDouble()
+        // the last level read, up to 6 hours old, less what was used since (shown with "ca."): after an hour it used to fall back
+        // to the charge set before the trip (80 %), even when the battery was much lower
+        val nowPct = evNowPct()?.toDouble()
         val nowKm = evNowKm()
         val readAt = EvWidget.readAt(prefs)
         val fromReading = nowPct ?: nowKm?.let { km -> km * evBaseKwhPerKm() / batt * 100.0 }
@@ -5792,7 +5794,8 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         evSinceRead += kwh; evSinceNav += kwh; evSinceCharge += kwh
         if (evRefPct >= 0) { evRefModel += flatK; evRefModelB[bk] += flatK; evRefAux += aux; evRefUp += up; evRefDown += down; evRefKm[bk] += d / 1000.0 }
         val now = System.currentTimeMillis()
-        if (evTemp() == null && now - evTempAt > 30 * 60_000L && route != null) {
+        // also without a route: the cold and the heating always count
+        if (evTemp() == null && now - evTempAt > 30 * 60_000L) {
             evTempAt = now
             val at = fix?.pos
             if (at != null) scope.launch { evTempC = withContext(Dispatchers.IO) { try { Weather.fetch(at)?.tempC } catch (e: Exception) { null } } ?: evTempC }
