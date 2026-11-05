@@ -3510,17 +3510,21 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         // in a tunnel the car's own speed (when it sends it) says how far you've really gone: braking in a jam inside is followed too
         val carV = if (dr) CarData.fresh() else null
         if (carV != null) { if (drRun < 0) drRun = gSpeed * age; drRun += carV * dt } else if (!dr) drRun = -1.0
-        gSpeed += ((carV ?: mSpeed) - gSpeed) * (1.0 - Math.exp(-dt / 1.2))
+        // braking is followed quickly (a soft 1.2 s lag let the arrow roll on into the junction while you stopped at the lights)
+        val vT = carV ?: mSpeed
+        gSpeed += (vT - gSpeed) * (1.0 - Math.exp(-dt / (if (vT < gSpeed) 0.35 else 1.2)))
         if (mSpeed < 0.2 && gSpeed < 0.15) gSpeed = 0.0
         val r = glideRoute
         var lookB = gHead
         if (glideOnRoute && r != null) {
             // distance along the route: run on at the current speed, nudge towards where the latest fix says we are, and never go backwards
-            val target = mProg + (if (dr && drRun >= 0) drRun else gSpeed * age)
+            // run-on past the last fix uses the slower of glided and measured speed, so a stop doesn't push the arrow ahead
+            val target = mProg + (if (dr && drRun >= 0) drRun else min(gSpeed, mSpeed) * age)
             var np = gProg + gSpeed * dt
             val err = target - np
             np = if (abs(err) > 60.0) target else np + (err * (1.0 - Math.exp(-dt / 2.5))).coerceIn(-(0.3 * gSpeed + 0.4) * dt, (0.3 * gSpeed + 0.4) * dt)
-            if (np < gProg && abs(err) <= 60.0) np = gProg
+            // never backwards while moving; standing still, an arrow that ran ahead slides back to where the fix puts you
+            if (np < gProg && abs(err) <= 60.0) np = if (mSpeed < 0.5 && err < -1.0) max(target, gProg - 4.0 * dt) else gProg
             gProg = min(np, r.len)
             val cur = pointAt(r, gProg).first
             val ahead = pointAt(r, gProg + 12.0).first
@@ -3535,8 +3539,9 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
             val mp = mPos ?: f.pos
             val rad = Math.toRadians(mHead)
             val kLon = 111320.0 * cos(Geo.rad(gp.lat))
-            val predLat = (mp.lat) + cos(rad) * gSpeed * age / 110574.0
-            val predLon = (mp.lon) + Math.sin(rad) * gSpeed * age / kLon
+            val run = min(gSpeed, mSpeed) * age
+            val predLat = (mp.lat) + cos(rad) * run / 110574.0
+            val predLon = (mp.lon) + Math.sin(rad) * run / kLon
             var nLat = gp.lat + cos(rad) * gSpeed * dt / 110574.0
             var nLon = gp.lon + Math.sin(rad) * gSpeed * dt / kLon
             val eN = (predLat - nLat) * 110574.0; val eE = (predLon - nLon) * kLon

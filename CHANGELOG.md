@@ -40,6 +40,7 @@ Add user-facing Horizon Nav changes under **Unreleased** before publishing each 
 - Ladeplanung: Kein versteckter Zuschlag von 10 % mehr. Die Sicherheit kommt aus deinen Reserven (an der Ladesäule und am Ziel), dadurch weniger unnötige Ladestopps.
 
 ### Behoben
+- Pfeil an der Ampel: Hältst du vor einer Kreuzung, bleibt der Standortpfeil jetzt an der Haltelinie stehen, statt schon in die Kreuzung hineinzurutschen.
 - Fußweg zum geparkten Auto: Er wurde als Autoroute über die Straßen geplant, weil Horizon Nav den eigenen Fußweg-Link selbst übernommen hat. Fußweg- und Fahrrad-Links anderer Apps gehen jetzt an Google Maps. Ohne Google Maps zeigt die App den Fußweg selbst.
 - Karte „Dein Auto“: „vor 3 Std.“ und „gestern“ auf Deutsch.
 - Android Auto, Liste in der Nähe: Spritpreise stehen wie auf dem Handy („1,789 €“) statt in Pence („178.9p“). Entfernungen ohne Verbindung zur Navigation in km statt Meilen.
