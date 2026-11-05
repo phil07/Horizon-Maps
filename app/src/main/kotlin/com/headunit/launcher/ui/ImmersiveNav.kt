@@ -268,6 +268,8 @@ private fun MapScreen(engine: NavEngine, onSettings: () -> Unit) {
             // every block slides and fades in and out instead of popping, so the screen changes feel like one piece
             AnimatedVisibility(!routing && !previewing, enter = fadeIn(tween(220)) + androidx.compose.animation.expandVertically(tween(260)), exit = fadeOut(tween(160)) + androidx.compose.animation.shrinkVertically(tween(220))) {
               Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                // on foot to the parked car: the next instruction and what is left, over the search bar
+                if (engine.walking) WalkCard(engine)
                 ImmSearch(engine, q, { q = it }, typingLocked, focus, voice)
                 engine.phoneDest?.let { pd -> PhoneDestCard(engine, pd) }
                 val showResults = engine.results.isNotEmpty()
@@ -1277,6 +1279,35 @@ private fun PhoneDestCard(engine: NavEngine, p: com.headunit.launcher.Place) {
     }
 }
 
+/** On foot to the parked car: the next turn, the distance to it, and what is left; sound on or off for the walk, and end it. */
+@Composable
+private fun WalkCard(engine: NavEngine) {
+    val c = LocalVw.current
+    val w = engine.walkInfo
+    Row(Modifier.fillMaxWidth().panel(10.dp, RoundedCornerShape(22.dp), c.surface).padding(start = 14.dp, end = 8.dp, top = 10.dp, bottom = 10.dp),
+        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+        Box(Modifier.size(42.dp).clip(CircleShape).background(c.accent.copy(alpha = 0.18f)), contentAlignment = Alignment.Center) {
+            Icon(Icons.Rounded.DirectionsWalk, null, tint = c.accent, modifier = Modifier.size(24.dp))
+        }
+        Column(Modifier.weight(1f)) {
+            if (w == null) Text(Lang.t("Fußweg wird berechnet …", "Working out the way on foot …"), color = c.text, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+            else {
+                val stepTxt = if (w.maneuver.uppercase().startsWith("ARRIVE")) "" else Geo.fmtDist(w.stepDist, engine.imperial) + " · "
+                Text(stepTxt + w.text, color = c.text, fontSize = 17.sp, fontWeight = FontWeight.Bold, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                Text(Lang.t("Noch ${Geo.fmtDist(w.leftM, engine.imperial)} · etwa ${w.leftMin} Min. zum Auto", "${Geo.fmtDist(w.leftM, engine.imperial)} · about ${w.leftMin} min to your car"),
+                    color = c.sub, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            }
+        }
+        // the walk's spoken directions: on at the start, off and on again here
+        ImmCircle({ engine.cycleSound() }, 40.dp) {
+            Icon(if (engine.walkMuted) Icons.Rounded.VolumeOff else Icons.Rounded.VolumeUp, Lang.t("Ton", "Sound"), tint = if (engine.walkMuted) Bad else c.text, modifier = Modifier.size(20.dp))
+        }
+        Box(Modifier.size(40.dp).clip(CircleShape).clickable { engine.endWalk() }, contentAlignment = Alignment.Center) {
+            Icon(Icons.Rounded.Close, Lang.t("Fußweg beenden", "End the walk"), tint = c.sub, modifier = Modifier.size(22.dp))
+        }
+    }
+}
+
 /** Where you parked (saved on the phone when Android Auto disconnects): walk there, or clear it. Shown for 2 days. */
 @Composable
 private fun ParkedCard(engine: NavEngine) {
@@ -1287,9 +1318,11 @@ private fun ParkedCard(engine: NavEngine) {
     val at = parts.getOrNull(2)?.toLongOrNull() ?: return
     val ageMin = ((System.currentTimeMillis() - at) / 60_000L).coerceAtLeast(0L)
     if (ageMin > 48 * 60) return
+    // (while walking there, the walk card shows the way instead)
+    if (engine.walking) return
     val ctx = androidx.compose.ui.platform.LocalContext.current
     val here = engine.fix?.pos
-    val ago = when { ageMin < 1 -> Lang.t("gerade eben", "just now"); ageMin < 60 -> Lang.t("vor $ageMin Min.", "$ageMin min ago"); ageMin < 24 * 60 -> "${ageMin / 60} h ago"; else -> "yesterday" }
+    val ago = when { ageMin < 1 -> Lang.t("gerade eben", "just now"); ageMin < 60 -> Lang.t("vor $ageMin Min.", "$ageMin min ago"); ageMin < 24 * 60 -> Lang.t("vor ${ageMin / 60} Std.", "${ageMin / 60} h ago"); else -> Lang.t("gestern", "yesterday") }
     Row(Modifier.fillMaxWidth().panel(10.dp, RoundedCornerShape(22.dp), c.surface).padding(start = 14.dp, end = 8.dp, top = 10.dp, bottom = 10.dp),
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
         Box(Modifier.size(38.dp).clip(CircleShape).background(c.accent.copy(alpha = 0.18f)), contentAlignment = Alignment.Center) {
@@ -1299,14 +1332,8 @@ private fun ParkedCard(engine: NavEngine) {
             Text(stringResource(R.string.ui_073), color = c.text, fontSize = 16.sp, fontWeight = FontWeight.Bold)
             Text(Lang.t("Geparkt $ago", "Parked $ago") + (if (here != null) " · " + Geo.fmtDist(Geo.dist(here, spot), engine.imperial) else ""), color = c.sub, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
-        // walking directions in the phone's maps app (Horizon Nav plans driving routes); just the spot if there's none
-        ImmPill(Lang.t("Zu Fuß", "Walk"), {
-            val walk = android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(String.format(java.util.Locale.US, "google.navigation:q=%.6f,%.6f&mode=w", spot.lat, spot.lon)))
-                .addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
-            val geo = android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(String.format(java.util.Locale.US, "geo:%.6f,%.6f?q=%.6f,%.6f(Your car)", spot.lat, spot.lon, spot.lat, spot.lon)))
-                .addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
-            try { ctx.startActivity(walk) } catch (e: Exception) { try { ctx.startActivity(geo) } catch (x: Exception) { engine.toast(engine.str(R.string.rest_1199), 3000) } }
-        }, filled = true)
+        // the way on foot, in the app (it used to hand a walking link to the phone, which this app took itself and planned on the roads)
+        ImmPill(Lang.t("Zu Fuß", "Walk"), { engine.startWalkToCar() }, filled = true)
         Box(Modifier.size(40.dp).clip(CircleShape).clickable { engine.prefs.put(PreferenceKeys.PARKED_SPOT, "") }, contentAlignment = Alignment.Center) {
             Icon(Icons.Rounded.Close, Lang.t("Parkplatz vergessen", "Forget where you parked"), tint = c.sub, modifier = Modifier.size(22.dp))
         }

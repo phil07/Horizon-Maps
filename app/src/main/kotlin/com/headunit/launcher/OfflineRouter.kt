@@ -806,10 +806,12 @@ object OfflineRouter {
 
     /** Routes on the device with no network. Blocking: call it off the main thread. */
     @Synchronized
-    fun routes(ctx: Context, from: LL, to: LL, via: List<LL> = emptyList(), headingDeg: Double = -1.0): List<Route> {
+    fun routes(ctx: Context, from: LL, to: LL, via: List<LL> = emptyList(), headingDeg: Double = -1.0, costing: String = "auto"): List<Route> {
         // the area that covers the whole trip (the start and the end): the normal case
         val whole = areaFor(ctx, *(listOf(from, to) + via).toTypedArray())
-        if (whole != null) return listOf(routeIn(packDir(ctx, whole), from, to, via, headingDeg))
+        if (whole != null) return listOf(routeIn(packDir(ctx, whole), from, to, via, headingDeg, costing))
+        // on foot ("pedestrian"): a walk doesn't cross from one downloaded area into another
+        if (costing != "auto") return listOf(routeIn((areaFor(ctx, from) ?: areaFor(ctx, to))?.let { packDir(ctx, it) } ?: dir(ctx), from, to, via, -1.0, costing))
         val a = areaFor(ctx, from); val b = areaFor(ctx, to)
         // the start and the end are in two different downloaded areas: a route in each, joined at the border
         if (a != null && b != null && a != b && via.isEmpty()) return listOf(acrossTwo(ctx, a, b, from, to, headingDeg))
@@ -884,13 +886,13 @@ object OfflineRouter {
     }
 
     /** A route inside one downloaded area (the folder [pd]). */
-    private fun routeIn(pd: File, from: LL, to: LL, via: List<LL>, headingDeg: Double): Route {
+    private fun routeIn(pd: File, from: LL, to: LL, via: List<LL>, headingDeg: Double, costing: String = "auto"): Route {
         if (!installedIn(pd)) throw IllegalStateException("No offline pack installed")
         val locs = org.json.JSONArray()
         locs.put(JSONObject().put("lat", from.lat).put("lon", from.lon).apply { if (headingDeg >= 0) { put("heading", headingDeg.toInt()); put("heading_tolerance", 60) } })
         for (v in via) locs.put(JSONObject().put("lat", v.lat).put("lon", v.lon).put("type", "through"))
         locs.put(JSONObject().put("lat", to.lat).put("lon", to.lon))
-        val req = JSONObject().put("locations", locs).put("costing", "auto")
+        val req = JSONObject().put("locations", locs).put("costing", costing)
             .put("directions_options", JSONObject().put("units", "kilometers").put("language", if (Lang.de) "de-DE" else "en-GB"))
         val ex = exclude
         if (ex.isNotEmpty()) {

@@ -307,6 +307,18 @@ object MapboxRest {
         return (0 until arr.length()).mapNotNull { try { parse(arr.getJSONObject(it), leftHand) } catch (e: Exception) { null } }
     }
 
+    /** A route on foot (Mapbox's walking profile): footpaths, crossings and pedestrian zones, turn by turn. */
+    fun walkRoutes(token: String, from: LL, to: LL): List<Route> {
+        val coords = listOf(from, to).joinToString(";") { String.format(java.util.Locale.US, "%.6f,%.6f", it.lon, it.lat) }
+        val lang = java.util.Locale.getDefault().language.ifBlank { "en" }
+        val u = "$API/directions/v5/mapbox/walking/$coords?geometries=geojson&overview=full&steps=true&annotations=duration,distance" +
+            "&language=$lang&alternatives=false&access_token=${enc(token)}"
+        val o = JSONObject(get(u, 8000, 15000))
+        if (o.optString("code") != "Ok") throw IOException(if (o.optString("code") == "NoRoute") "No route found" else o.optString("message").ifBlank { "Routing failed" })
+        val arr = o.optJSONArray("routes") ?: JSONArray()
+        return (0 until arr.length()).mapNotNull { try { parse(arr.getJSONObject(it), false) } catch (e: Exception) { null } }
+    }
+
     private fun maneuverOf(type: String, mod: String, leftHand: Boolean): String {
         val left = mod.contains("left"); val right = mod.contains("right")
         fun turn(): String = when {

@@ -13,6 +13,23 @@ class SharedTarget(val pos: LL?, val name: String, val query: String?)
  * (including short maps.app.goo.gl links, which are followed to the full address) and plain shared text.
  */
 object ExternalLinks {
+    /**
+     * A navigation link for walking or cycling ("google.navigation:q=…&mode=w", "…&mode=b", or a Google Maps directions link with
+     * travelmode=walking / bicycling): "w" or "b", else null (driving, or not such a link).
+     */
+    fun footMode(text: String): String? {
+        val t = text.trim().lowercase()
+        if (t.startsWith("google.navigation:")) {
+            val m = Regex("[?&]mode=([a-z])").find(t.replaceFirst(":", ":?"))?.groupValues?.get(1)
+            return if (m == "w" || m == "b") m else null
+        }
+        if (t.contains("google.") && t.contains("/maps/dir")) {
+            if (t.contains("travelmode=walking")) return "w"
+            if (t.contains("travelmode=bicycling")) return "b"
+        }
+        return null
+    }
+
     private val coordRe = Regex("(-?\\d{1,2}\\.\\d{3,})\\s*,\\s*(-?\\d{1,3}\\.\\d{3,})")
     private val placeRe = Regex("!3d(-?\\d+\\.\\d+)!4d(-?\\d+\\.\\d+)")
     private val atRe = Regex("@(-?\\d+\\.\\d+),(-?\\d+\\.\\d+)")
@@ -80,6 +97,7 @@ object ExternalLinks {
             return if (p != null) SharedTarget(p, "Shared location", null) else null
         }
         if (lower.startsWith("google.navigation:")) {
+            // (a walking or cycling link is handed on before this: see footMode)
             val q = param(text.replaceFirst(":", ":?"), "q") ?: text.substringAfter(':').substringAfter("q=").substringBefore('&').let { dec(it) }
             val p = ll(q)
             return if (p != null) SharedTarget(p, "Shared location", null) else if (q.isNotBlank()) SharedTarget(null, q, q) else null

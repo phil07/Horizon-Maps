@@ -184,7 +184,31 @@ class MainActivity : ComponentActivity() {
     private fun handleShared(i: android.content.Intent?) {
         // the way back from the car maker's sign-in page
         if (CarCloud.handle(applicationContext, Prefs(applicationContext), i)) return
+        // "Zum Auto" in the parking reminder: the way on foot to the car (once: the flag is taken off the intent)
+        if (i?.getBooleanExtra(ParkTimer.EXTRA_WALK_TO_CAR, false) == true) {
+            i.removeExtra(ParkTimer.EXTRA_WALK_TO_CAR)
+            lifecycleScope.launch {
+                var n = 0
+                while (engine.fix == null && n < 20) { kotlinx.coroutines.delay(500); n++ }
+                engine.startWalkToCar()
+            }
+            return
+        }
         val text = ExternalLinks.textOf(i) ?: return
+        // a link for walking or cycling (google.navigation:…&mode=w or b, from another app): this app plans drives, so it goes on to
+        // Google Maps; without Google Maps, a walk is shown in the app
+        ExternalLinks.footMode(text)?.let { mode ->
+            val go = android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(text)).setPackage("com.google.android.apps.maps")
+                .addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+            try { startActivity(go); return } catch (e: Exception) { }
+            if (mode == "w") {
+                lifecycleScope.launch {
+                    val t = try { kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { ExternalLinks.parse(text) } } catch (e: Exception) { null }
+                    t?.pos?.let { engine.startWalk(it) } ?: engine.toast(engine.str(R.string.rest_242), 3500)
+                }
+                return
+            }
+        }
         lifecycleScope.launch {
             val t = try { kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { ExternalLinks.parse(text) } } catch (e: Exception) { null }
             // wait (briefly) for a first position so the route can start from where you are

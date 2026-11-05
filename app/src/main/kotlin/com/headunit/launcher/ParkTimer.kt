@@ -62,6 +62,14 @@ object ParkTimer {
         PendingIntent.getBroadcast(ctx, action.hashCode(), Intent(ctx, ParkTimerReceiver::class.java).setAction(action),
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
 
+    /** Set on the app's start intent: open the walk to the parked car. */
+    const val EXTRA_WALK_TO_CAR = "walkToCar"
+
+    private fun walkToCar(ctx: Context): PendingIntent? = ctx.packageManager.getLaunchIntentForPackage(ctx.packageName)?.let {
+        it.putExtra(EXTRA_WALK_TO_CAR, true).addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP)
+        PendingIntent.getActivity(ctx, 7404, it, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
+    }
+
     private fun openApp(ctx: Context): PendingIntent? = ctx.packageManager.getLaunchIntentForPackage(ctx.packageName)?.let {
         PendingIntent.getActivity(ctx, 7403, it, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
     }
@@ -100,6 +108,8 @@ object ParkTimer {
             .setContentTitle(Lang.t("Parkzeit läuft bald ab", "Parking time ends soon"))
             .setContentText(text).setAutoCancel(true).setCategory(Notification.CATEGORY_REMINDER)
         openApp(ctx)?.let { b.setContentIntent(it) }
+        // "Zum Auto": opens the app with the way on foot to the car
+        if (car != null) walkToCar(ctx)?.let { b.addAction(Notification.Action.Builder(null, Lang.t("Zum Auto", "To the car"), it).build()) }
         try { ctx.getSystemService(NotificationManager::class.java).notify(ID_ALERT, b.build()) } catch (e: Exception) { }
     }
 

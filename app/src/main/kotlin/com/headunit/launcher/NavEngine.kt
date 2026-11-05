@@ -325,6 +325,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
     val soundMode: Int get() = prefs.i(PreferenceKeys.SOUND_MODE, if (prefs.b(PreferenceKeys.VOICE, true)) 0 else 2).coerceIn(0, 2)
     val voiceOn: Boolean get() = soundMode != 2
     fun cycleSound() {
+        if (walking) { toggleWalkSound(); return }
         val n = (soundMode + 1) % 3
         prefs.put(PreferenceKeys.SOUND_MODE, n)
         toast(str(listOf(R.string.toast_050, R.string.toast_051, R.string.toast_052)[n]), 1800)
@@ -1266,7 +1267,8 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         val prev = lastRaw
         if (prev == null || Geo.dist(prev, cur) > TrackMath.ANCHOR_M) lastRaw = cur
         val speed = if (l.hasSpeed()) l.speed.toDouble() else 0.0
-        if (prev != null && speed > 0.8) {
+        // on foot (walking to the car): no trip distance, no battery use or learning
+        if (prev != null && speed > 0.8 && !walking) {
             val d = Geo.dist(prev, cur)
             // counted only when the anchor (lastRaw) moves on, that is past 6 m: a step of 3 to 6 m left the anchor where it was, and
             // the next step was measured from it again, so slow driving was counted up to half as much again
@@ -1971,6 +1973,8 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
     }
 
     fun startRoute(to: Place, departInMin: Int = 0, keepVia: Boolean = false, startNow: Boolean = false) {
+        // a drive ends the walk to the car
+        if (walking) endWalk()
         syncRoutePrefs(fix?.pos ?: map.center(), to.pos)
         resume = null
         if (!keepVia) { via = emptyList(); evPlanned = emptyList(); evAutoDest = null; evPlanWarn = null }
@@ -3635,13 +3639,15 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
             lastMeasured = p
             posDt = if (lastPosAt == 0L) 1000L else (tNow - lastPosAt).coerceIn(500L, 2500L)
             lastPosAt = tNow
-            try { lookCamerasAround(p) } catch (e: Exception) { }
-            try { updateRoadInfo(p); trackParking(p) } catch (e: Exception) { android.util.Log.w("NavEngine", "road info failed", e) }
+            // on foot: the walk's directions, and no speed limit or cameras
+            if (walking) try { updateWalk(p) } catch (e: Exception) { android.util.Log.w("NavEngine", "walk failed", e) }
+            if (!walking) try { lookCamerasAround(p) } catch (e: Exception) { }
+            try { if (!walking) updateRoadInfo(p); trackParking(p) } catch (e: Exception) { android.util.Log.w("NavEngine", "road info failed", e) }
             try { checkArea(p.pos) } catch (e: Exception) { }
             try { checkWeatherWarnings(p) } catch (e: Exception) { }
             try { checkRescueLane(p) } catch (e: Exception) { }
             try { checkClearances(p) } catch (e: Exception) { }
-            try { checkCameras(p) } catch (e: Exception) { }
+            if (!walking) try { checkCameras(p) } catch (e: Exception) { }
             try { garagesAt(p.pos, true) } catch (e: Exception) { }
         }
         // the first position of this session: the zoom you left the map at last time comes back (not on a route)
@@ -6763,18 +6769,12 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         if (t == "3d" || t == "2d" || has("three d", "two d", "drei d", "zwei d")) { if ((t.contains("3") || t.contains("three") || t.contains("drei")) != tilt3d) toggleTilt(); return "" }
         // where you parked: "wo steht mein Auto", "zum Auto", "hier geparkt"
         if (has("where did i park", "where is my car", "where's my car", "back to the car", "wo steht mein auto", "wo ist mein auto", "wo hab ich geparkt", "wo habe ich geparkt", "zum auto", "zurück zum auto")) {
-            val ps = prefs.s(PreferenceKeys.PARKED_SPOT, "").split(',')
-            val la = ps.getOrNull(0)?.toDoubleOrNull(); val lo = ps.getOrNull(1)?.toDoubleOrNull()
-            if (la == null || lo == null) { say(Lang.t("Es ist kein Parkplatz gespeichert", "No parking spot is saved")); return "" }
-            val d = fix?.pos?.let { Geo.dist(it, LL(la, lo)) }
-            say(if (d != null) Lang.t("Dein Auto steht ${Geo.spokenPlain(d, imperial)} entfernt. Ich öffne den Fußweg.", "Your car is ${Geo.spoken(d, imperial)} away. Opening walking directions.")
-                else Lang.t("Ich öffne den Fußweg zu deinem Auto", "Opening walking directions to your car"))
-            try {
-                ctx.startActivity(android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(String.format(Locale.US, "google.navigation:q=%.6f,%.6f&mode=w", la, lo)))
-                    .addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK))
-            } catch (e: Exception) {
-                try { ctx.startActivity(android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(String.format(Locale.US, "geo:%.6f,%.6f?q=%.6f,%.6f", la, lo, la, lo))).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)) } catch (x: Exception) { }
-            }
+            val spot = parkedSpot()
+            if (spot == null) { say(Lang.t("Es ist kein Parkplatz gespeichert", "No parking spot is saved")); return "" }
+            val d = fix?.pos?.let { Geo.dist(it, spot) }
+            // the way on foot in the app (it used to open the phone's maps app, or this app's own driving route)
+            toast(if (d != null) Lang.t("Dein Auto steht ${Geo.fmtDist(d, imperial)} entfernt", "Your car is ${Geo.fmtDist(d, imperial)} away") else Lang.t("Fußweg zu deinem Auto", "Walking to your car"), 3500)
+            startWalk(spot)
             return ""
         }
         if (has("i parked here", "remember where i parked", "hier geparkt", "parkplatz merken", "merk dir den parkplatz", "ich parke hier")) {
@@ -7169,6 +7169,145 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         if (m == 2 || (m == 1 && !alert) || !ttsReady) return
         val u = Utt(text, if (turn) 2 else if (alert) 1 else 0, android.os.SystemClock.elapsedRealtime())
         if (android.os.Looper.myLooper() == android.os.Looper.getMainLooper()) enqueue(u) else speechMain.post { enqueue(u) }
+    }
+
+    // ---- on foot: back to the parked car ----
+    /** What the walk card shows: the next instruction, how far to it, and what is left to the car. */
+    class WalkInfo(val text: String, val stepDist: Double, val maneuver: String, val leftM: Double, val leftMin: Int)
+
+    /** Where the walk goes (your car), null when not walking. A walk is kept apart from a drive: no route, no cameras, no battery. */
+    var walkTo by mutableStateOf<LL?>(null); private set
+    var walkInfo by mutableStateOf<WalkInfo?>(null); private set
+    /** The walk's spoken directions: on at the start, the sound button on the map turns them off and on again. */
+    var walkMuted by mutableStateOf(false); private set
+    val walking: Boolean get() = walkTo != null
+    private var walkRoute: Route? = null
+    private var walkIdx = 0
+    private var walkOffCount = 0
+    private var walkBusy = false
+    private var walkAskedAt = 0L
+    private val walkSaid = HashSet<Int>()
+    private var walkStartSaid = false
+
+    /** Where you parked (saved when the car's connection ended, or by "hier geparkt"), for two days; null when none. */
+    fun parkedSpot(): LL? {
+        val ps = prefs.s(PreferenceKeys.PARKED_SPOT, "").split(',')
+        val la = ps.getOrNull(0)?.toDoubleOrNull() ?: return null
+        val lo = ps.getOrNull(1)?.toDoubleOrNull() ?: return null
+        val at = ps.getOrNull(2)?.toLongOrNull() ?: 0L
+        if (at > 0 && System.currentTimeMillis() - at > 48 * 3600_000L) return null
+        return LL(la, lo)
+    }
+
+    /** Walks you back to your parked car, in the app (a route on foot, not on the roads). False when no spot is saved. */
+    fun startWalkToCar(): Boolean {
+        val spot = parkedSpot() ?: run { toast(Lang.t("Es ist kein Parkplatz gespeichert", "No parking spot is saved"), 3000); return false }
+        startWalk(spot)
+        return true
+    }
+
+    /** Starts a walk to [to]. A drive on the screen (or a route choice) ends first: you are on foot now. */
+    fun startWalk(to: LL) {
+        if (route != null) endRoute()
+        walkTo = to; walkInfo = null; walkMuted = false; walkRoute = null; walkIdx = 0; walkOffCount = 0; walkSaid.clear(); walkStartSaid = false
+        // no speed limit or camera on foot
+        speedLimit = null; limitEstimated = false; noLimit = false
+        following = true
+        computeWalk()
+    }
+
+    fun endWalk() {
+        walkTo = null; walkInfo = null; walkRoute = null
+        map.setWalk(emptyList())
+    }
+
+    /** The sound button while walking: the walk's directions off or on again (the sound for driving stays as it is). */
+    private fun toggleWalkSound() {
+        walkMuted = !walkMuted
+        toast(if (walkMuted) Lang.t("Fußweg-Ansagen aus", "Walking directions muted") else Lang.t("Fußweg-Ansagen an", "Walking directions on"), 1800)
+    }
+
+    /** Spoken on the walk, unless muted with the sound button (the drive's sound setting doesn't apply on foot). */
+    private fun walkSpeak(text: String) {
+        if (walkMuted || !ttsReady) return
+        val u = Utt(text, 2, android.os.SystemClock.elapsedRealtime())
+        if (android.os.Looper.myLooper() == android.os.Looper.getMainLooper()) enqueue(u) else speechMain.post { enqueue(u) }
+    }
+
+    /** The way on foot: Mapbox's walking route online, the offline pack's footpaths without signal, else a straight line. */
+    private fun computeWalk() {
+        val to = walkTo ?: return
+        val from = fix?.pos ?: return   // the first position starts it (see updateWalk)
+        if (walkBusy) return
+        walkBusy = true; walkAskedAt = System.currentTimeMillis()
+        scope.launch {
+            val r = withContext(Dispatchers.IO) {
+                (if (hasMapbox && online()) try { MapboxRest.walkRoutes(mbToken, from, to).firstOrNull() } catch (e: Exception) { null } else null)
+                    ?: (if (OfflineRouter.installed(ctx)) try { OfflineRouter.routes(ctx, from, to, emptyList(), -1.0, "pedestrian").firstOrNull() } catch (e: Exception) { null } else null)
+                    ?: straightWalk(from, to)
+            }
+            walkBusy = false
+            if (walkTo != to) return@launch
+            walkRoute = r; walkIdx = 0; walkOffCount = 0; walkSaid.clear()
+            map.setWalk(r.pts)
+            fix?.let { updateWalk(it) }
+        }
+    }
+
+    /** No route on foot to be had: the straight line to the car, with its direction and distance. */
+    private fun straightWalk(from: LL, to: LL): Route {
+        val d = Geo.dist(from, to)
+        return Route(listOf(from, to), doubleArrayOf(0.0, d), listOf(Step(d, "ARRIVE", "", "")), d, d / 1.3, 0.0)
+    }
+
+    /** Each new position on the walk: the next instruction, the spoken call before it, a new way when you leave it, and arriving. */
+    private fun updateWalk(p: Fix) {
+        val to = walkTo ?: return
+        if (walkRoute == null) { computeWalk(); return }
+        val r = walkRoute ?: return
+        if (Geo.dist(p.pos, to) < 20.0) {
+            val msg = Lang.t("Du bist bei deinem Auto", "You're at your car")
+            toast(msg, 4000)
+            walkSpeak(msg)
+            endWalk()
+            return
+        }
+        if (r.pts.size < 2) return
+        val s = RouteMatcher.snap(r, p.pos, walkIdx)
+        walkIdx = s.segmentIndex
+        // gone another way (more than 40 m off, with a good fix, several times): the way from here is asked again
+        if (s.dist > 40.0 && p.acc in 0.1..30.0) {
+            if (++walkOffCount >= 4 && System.currentTimeMillis() - walkAskedAt > 15_000L) { walkOffCount = 0; walkRoute = null; computeWalk(); return }
+        } else walkOffCount = 0
+        val prog = s.progress
+        val total = r.cum.last()
+        val left = max(0.0, total - prog)
+        var k = r.steps.indexOfFirst { it.off > prog + 3.0 }
+        if (k < 0) k = r.steps.size - 1
+        val st = r.steps.getOrNull(k)
+        val arriving = st == null || st.maneuver.uppercase().startsWith("ARRIVE")
+        val stepD = if (st != null && !arriving) max(0.0, st.off - prog) else left
+        val word = if (arriving) "" else Geo.maneuverText(st!!.maneuver, st.roundExit)
+        val street = if (arriving || st!!.street.isBlank()) "" else Lang.t(" auf ${st.street}", " onto ${st.street}")
+        val text = if (arriving) Lang.t("Zu deinem Auto", "To your car") else word.replaceFirstChar { it.uppercase() } + street
+        val mins = maxOf(1, Math.ceil(left / 80.0).toInt())
+        walkInfo = WalkInfo(text, stepD, st?.maneuver ?: "ARRIVE", left, mins)
+        if (!walkStartSaid) {
+            walkStartSaid = true
+            walkSpeak(Lang.t("Fußweg zu deinem Auto, ${walkMetres(left)}, etwa $mins Minuten", "Walking to your car, ${walkMetres(left)}, about $mins minutes"))
+        }
+        // one call per turn, about 25 m before it ("In 20 Metern links abbiegen")
+        if (!arriving && stepD <= 25.0 && k !in walkSaid) {
+            walkSaid += k
+            walkSpeak(Lang.t("In ${walkMetres(stepD)} $word$street", "In ${walkMetres(stepD)}, $word$street"))
+        }
+    }
+
+    /** A walking distance to say: to 10 m, "Metern" in German after "in". */
+    private fun walkMetres(m: Double): String {
+        if (imperial) return Geo.spoken(m, true)
+        val r = maxOf(10, (Math.round(m / 10.0) * 10).toInt())
+        return if (r < 1000) Lang.t("$r Metern", "$r metres") else String.format(Locale.GERMANY, "%.1f Kilometern", r / 1000.0).let { Lang.t(it, String.format(Locale.US, "%.1f kilometres", r / 1000.0)) }
     }
 
     private fun enqueue(u: Utt) {

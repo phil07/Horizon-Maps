@@ -4,6 +4,9 @@ Add user-facing Horizon Nav changes under **Unreleased** before publishing each 
 
 ## Unreleased
 
+### Neu
+- Zu Fuß zum Auto: Der Knopf „Zu Fuß“ auf der Karte „Dein Auto“, der Sprachbefehl „Wo steht mein Auto“ und „Zum Auto“ in der Parkuhr-Erinnerung zeigen den Fußweg jetzt in der App. Er erscheint als gepunktete Linie, mit Abbiegehinweis, Entfernung und Gehzeit. Ansagen sind an, der Ton-Knopf auf der Fußweg-Karte schaltet sie stumm und wieder an. Am Auto meldet die App „Du bist bei deinem Auto“. Unterwegs gibt es keine Blitzer, kein Tempolimit, keine Akku-Rechnung und keinen Fahrtenbuch-Eintrag. Ohne Netz rechnet der Offline-Router den Fußweg, sonst zeigt die App eine gerade Linie.
+
 ### Verbessert
 - Akku bei Ankunft: wird nur noch alle 10 Sekunden oder 200 m neu gerechnet (und sofort bei neuem Akkustand, neuer Route oder anderen Ladestopps). Vorher rechnete die App jede Sekunde die ganze Restroute durch, auf Handy und Auto.
 - Akku-Schätzung auf der Route: Kälte und Heizung zählen mit der Temperatur des jeweiligen Abschnitts, nicht mit dem Durchschnitt der ganzen Strecke. Fahrten in die Berge oder in die Kälte werden dadurch genauer geschätzt.
@@ -37,6 +40,8 @@ Add user-facing Horizon Nav changes under **Unreleased** before publishing each 
 - Ladeplanung: Kein versteckter Zuschlag von 10 % mehr. Die Sicherheit kommt aus deinen Reserven (an der Ladesäule und am Ziel), dadurch weniger unnötige Ladestopps.
 
 ### Behoben
+- Fußweg zum geparkten Auto: Er wurde als Autoroute über die Straßen geplant, weil Horizon Nav den eigenen Fußweg-Link selbst übernommen hat. Fußweg- und Fahrrad-Links anderer Apps gehen jetzt an Google Maps. Ohne Google Maps zeigt die App den Fußweg selbst.
+- Karte „Dein Auto“: „vor 3 Std.“ und „gestern“ auf Deutsch.
 - Android Auto, Liste in der Nähe: Spritpreise stehen wie auf dem Handy („1,789 €“) statt in Pence („178.9p“). Entfernungen ohne Verbindung zur Navigation in km statt Meilen.
 - Ankunft planen: Wochentage auf Deutsch („Do 14:30“ statt „Thu 14:30“).
 - Akku-Lernstand: wird auch gespeichert, wenn die App in den Hintergrund geht oder Android Auto getrennt wird. Vorher konnte die letzte Minute der Fahrt verloren gehen.

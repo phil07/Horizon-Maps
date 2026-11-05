@@ -619,6 +619,16 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
     /** Where you parked, shown on the map (Lang.t("Dein Auto", "Your car")), or null for none. */
     @Volatile private var parkedAt: LL? = null
 
+    /** The way on foot (to your parked car), drawn as a dotted line; empty for none. */
+    @Volatile private var walkPts: List<LL> = emptyList()
+
+    fun setWalk(p: List<LL>) {
+        walkPts = p
+        main0.post {
+            try { src("dl-walk")?.featureCollection(if (p.size >= 2) FeatureCollection.fromFeatures(listOf(line(p))) else empty()) } catch (e: Throwable) { }
+        }
+    }
+
     fun setParked(p: LL?) {
         if (p == parkedAt || (p != null && parkedAt != null && Geo.dist(p, parkedAt!!) < 1.0)) return
         parkedAt = p
@@ -2193,6 +2203,10 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
         addL(st, SymbolLayer("dl-lanebubble-l", "dl-lanebubble").iconImage("dl-lanebubble").iconAnchor(IconAnchor.BOTTOM)
             .iconAllowOverlap(true).iconIgnorePlacement(true).iconPitchAlignment(IconPitchAlignment.VIEWPORT).iconEmissiveStrength(1.0)
             .iconSize(zoomed(1.0, 13 to 0.3, 16 to 0.46, 18 to 0.6)))
+        // the way on foot to the car: a dotted line under the car's pin
+        addS(st, GeoJsonSource.Builder("dl-walk").featureCollection(if (walkPts.size >= 2) FeatureCollection.fromFeatures(listOf(line(walkPts))) else empty()).build())
+        addL(st, LineLayer("dl-walk-l", "dl-walk").lineColor("#2F7BF6").lineEmissiveStrength(1.0).lineCap(LineCap.ROUND)
+            .lineWidth(zoomed(2.0, 12 to 2.5, 16 to 5.0, 20 to 9.0)).lineDasharray(listOf(0.1, 1.9)))
         addL(st, SymbolLayer("dl-parked-l", "dl-parked").iconImage("dl-car-pin").iconAllowOverlap(true).iconIgnorePlacement(true)
             .iconPitchAlignment(IconPitchAlignment.VIEWPORT).iconEmissiveStrength(1.0).iconSize(zoomed(1.0, 10 to 0.4, 15 to 0.55, 18 to 0.7)))
         // the stops on the way (under the destination, so the pin stays on top where they meet). Pictures in both looks:
