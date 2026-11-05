@@ -37,6 +37,9 @@ Add user-facing Horizon Nav changes under **Unreleased** before publishing each 
 - Ladeplanung: Kein versteckter Zuschlag von 10 % mehr. Die Sicherheit kommt aus deinen Reserven (an der Ladesäule und am Ziel), dadurch weniger unnötige Ladestopps.
 
 ### Behoben
+- Android Auto, Liste in der Nähe: Spritpreise stehen wie auf dem Handy („1,789 €“) statt in Pence („178.9p“). Entfernungen ohne Verbindung zur Navigation in km statt Meilen.
+- Ankunft planen: Wochentage auf Deutsch („Do 14:30“ statt „Thu 14:30“).
+- Akku-Lernstand: wird auch gespeichert, wenn die App in den Hintergrund geht oder Android Auto getrennt wird. Vorher konnte die letzte Minute der Fahrt verloren gehen.
 - Kreisverkehr ohne Netz (Offline-Route): Der Pfeil für die erste Ausfahrt zeigte nach links, wie im Linksverkehr. Jetzt zeigt er bei Rechtsverkehr nach rechts (und die dritte Ausfahrt nach links).
 - Absturz in Android Auto beim Start einer Navigation: Die Leiste oben war während der Fahrt leer, das lehnt Android Auto ab. Jetzt steht dort Melden, und jede abgelehnte Ansicht zeigt die Karte statt die App zu schließen.
 - Kosten der Fahrt in der Routenauswahl: wurden in Meilen, britischen Gallonen und Pfund gerechnet und waren dadurch weit daneben. Jetzt mit km, km pro kWh oder Liter pro 100 km, Cent und Euro.

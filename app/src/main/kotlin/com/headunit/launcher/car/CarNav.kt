@@ -1138,8 +1138,9 @@ class NearbyScreen(carContext: CarContext, private val holder: CarHolder, privat
         for (n in items.take(limit.coerceIn(1, 12))) {
             val r = Row.Builder().setTitle(n.place.name).setImage(rowIcon(carContext, iconRes, tint))
             val bits = ArrayList<String>()
-            bits += com.headunit.launcher.Geo.fmtDist(n.dist, e?.imperial ?: true)
-            n.price?.let { bits += String.format(java.util.Locale.UK, "%.1fp", it) }
+            bits += com.headunit.launcher.Geo.fmtDist(n.dist, e?.imperial ?: false)
+            // the price the local way ("1,789 €" in Germany), as on the phone: it was always shown in pence ("178.9p")
+            n.price?.let { bits += com.headunit.launcher.fmtFuelPrice(it, n.unit) }
             if (n.detourMin >= 0) bits += Lang.t("+${n.detourMin} Min.", "+${n.detourMin} min")
             if (n.extra.isNotBlank()) bits += n.extra
             r.addText(bits.joinToString(" · "))

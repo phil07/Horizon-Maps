@@ -1215,6 +1215,9 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
     }
 
     fun stopLocation() {
+        // the battery learning state is saved every minute while driving: the last stretch is saved here as well (the phone app going
+        // into the background, Android Auto unplugged), so it isn't lost when the app is closed after that
+        if (evLoaded) try { evSave() } catch (_: Exception) {}
         try { lm?.removeUpdates(this) } catch (_: Exception) {}
         lm = null
     }

@@ -234,7 +234,8 @@ object EvWidget {
 
     /** Range from the battery level, when the reading has none: level × battery size × km per kWh (Settings), or null if unknown. */
     private fun fallbackKm(p: Prefs, pct: Int): Int? {
-        val batt = p.s(PreferenceKeys.EV_BATTERY_KWH, "").replace(',', '.').toDoubleOrNull()?.takeIf { it > 5.0 } ?: return null
+        // the chosen car's battery first (as the estimate uses it), else the size typed in Settings
+        val batt = (EvCars.batteryKwh(p) ?: p.s(PreferenceKeys.EV_BATTERY_KWH, "").replace(',', '.').toDoubleOrNull())?.takeIf { it > 5.0 } ?: return null
         val kmPerKwh = p.s(PreferenceKeys.EVMPK, "").replace(',', '.').toDoubleOrNull()?.takeIf { it in 2.0..15.0 } ?: 5.5
         return Math.round(pct / 100.0 * batt * kmPerKwh).toInt().takeIf { it >= 1 }
     }

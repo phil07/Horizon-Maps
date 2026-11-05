@@ -514,7 +514,7 @@ fun ArriveByDialog(engine: NavEngine, onClose: () -> Unit) {
         }
     }
     var ms by remember { mutableStateOf(cal.timeInMillis) }
-    val f = java.text.SimpleDateFormat("EEE HH:mm", java.util.Locale.UK)
+    val f = java.text.SimpleDateFormat("EEE HH:mm", if (com.headunit.launcher.Lang.de) java.util.Locale.GERMANY else java.util.Locale.UK)  // "Do 14:30", not "Thu 14:30"
     Dialog(onDismissRequest = onClose) {
         Column(Modifier.widthIn(max = 460.dp).fillMaxWidth().clip(RoundedCornerShape(26.dp)).background(c.panel).padding(22.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
             Text(stringResource(R.string.ui_005), color = c.text, fontSize = 22.sp, fontWeight = FontWeight.Bold)
