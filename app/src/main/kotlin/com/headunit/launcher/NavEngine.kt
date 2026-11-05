@@ -4980,7 +4980,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
             fix?.let { f -> try { checkYieldSigns(f.pos, f.heading) } catch (e: Exception) { } }
             fix?.let { f -> if (via.isNotEmpty() && Geo.dist(f.pos, via[0].pos) < viaReachM()) { toast(str(R.string.rest_432, via[0].name), 3000); val reached = via[0].pos
                 // a charging stop reached: from here the battery counts from the charge planned there (until the car reports a newer level)
-                evPlanned.firstOrNull { Geo.dist(it.n.place.pos, reached) < 30.0 }?.let { st -> evChargeRefPct = st.toPct.toDouble(); evChargeRefAt = System.currentTimeMillis(); evSinceCharge = 0.0; evRefPct = -1 }
+                evPlanned.firstOrNull { Geo.dist(it.n.place.pos, reached) < 30.0 }?.let { st -> evChargeRefPct = st.toPct.toDouble(); evChargeRefAt = System.currentTimeMillis(); evSinceCharge = 0.0; evRefPct = -1; evSave() }
                 evPlanned = evPlanned.filter { Geo.dist(it.n.place.pos, reached) >= 30.0 }; via = via.drop(1); pushVia() } }
             if (via.isEmpty()) checkParking(r, rem)
             curProgress = progress
@@ -5605,6 +5605,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
      * trip less what has been driven since the start.
      */
     fun evNowEstimatePct(): Double {
+        evEnsureLoaded()
         val batt = evBatteryKwh()
         val nowPct = evNowPct()?.takeIf { (evNowAgeMin() ?: Long.MAX_VALUE) <= 60 }?.toDouble()
         val nowKm = evNowKm()
@@ -5702,8 +5703,11 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
     }
 
     /** Every few metres driven (electric): the modelled use, how you drive against the limit, and learning from the battery level. */
+    /** The saved state is read before anything uses it: after a restart the estimate can be asked for before the first drive. */
+    private fun evEnsureLoaded() { if (!evLoaded) { evLoaded = true; evLoad() } }
+
     private fun evTrack(speedMs: Double, d: Double) {
-        if (!evLoaded) { evLoaded = true; evLoad() }
+        evEnsureLoaded()
         evDriven += d
         if (System.currentTimeMillis() - evSavedAt > 60_000L) evSave()
         val kmh = speedMs * 3.6
@@ -5780,6 +5784,8 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
             val rose = evPrevPct >= 0 && pct > evPrevPct
             evPrevPct = pct
             if (rose) { evStartRef(pct); return }
+            // standing at a charger: nothing is learned while the car is charging, the reference is kept at the charge
+            if (evChargingNow) { evStartRef(pct); return }
             if (evRefPct < 0 || pct > evRefPct) { evStartRef(pct); return }   // first reading, or charged since
             val drop = evRefPct - pct
             if (drop >= 5 && evDriven - evRefDist >= 10_000 && evRefModel > 0.5 && !evGapBad) {
