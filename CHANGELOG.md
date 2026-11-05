@@ -23,8 +23,21 @@ Add user-facing Horizon Nav changes under **Unreleased** before publishing each 
 - Akku bei Ankunft: vorsichtiger geschätzt (10 % mehr Verbrauch) und das Modell lernt schneller aus der Fahrt.
 - Parkplatz-Karte am Ziel: größere Schrift und ein größeres X zum Schließen.
 - Android Auto während der Fahrt: Beenden, Ladesäulen-Filter (bei Elektroautos), Ton und Melden stehen dauerhaft links auf der Karte. Die Leiste oben von Android Auto bleibt dafür leer.
+- Ladesäulen-Filter während der Navigation: auf dem Handy in der Zoom-Spalte und in Android Auto in der Navigationsleiste. Eine Änderung plant die Ladestopps der Route neu.
+- Ladesäulen während der Fahrt: Sie werden alle 15 Sekunden für die Kartenansicht und die nächsten 30 km der Route neu geladen, auch in Android Auto (vorher nur, wenn die Karte stillstand).
+- Blitzer ohne Route: Warnung nur für Kameras, die voraus und höchstens 35 m seitlich der Fahrlinie liegen. Kameras auf anderen Straßen lösen keinen Alarm mehr aus.
+- Blitzer auf der Route: Der Suchstreifen ist 30 m breit (vorher 40 m).
+- Tag und Nacht: Die Systemeinstellung wird alle 1,5 Sekunden gelesen (vorher alle 4), dadurch schaltet die Karte schneller um.
+- Neigung der 3D-Karte: Einstellungen > Karte (Spuren und Kreuzungen) setzt die Neigung getrennt für breiten und hohen Bildschirm, auf Auto oder 30 bis 65 Grad. Im Auto stellst du sie unter Android Auto > Einstellungen ein.
+- Android Auto: Neue Zeile „Kartenrichtung“ in den Einstellungen. Nord oben oder mit der Fahrtrichtung, die Wahl wird für das Auto gemerkt.
+- Verbrauch mit Anhänger oder Wohnmobil (Einstellungen > Fahrzeug): mehr Gewicht und mehr Luftwiderstand werden eingerechnet.
+- Verbrauch: Heizung und Klimaanlage zählen nach Fahrzeit statt nach Strecke. Ein Stau im Winter kostet mehr Akku, eine flotte Fahrt weniger.
+- Verbrauch: Staus und stockender Verkehr auf der Route fließen ein (langsamer, dafür länger unterwegs).
+- Verbrauch: Ohne eingetragene Effizienz dient die Reichweitenanzeige des Autos als ruhige Grundlage, die sich nur langsam anpasst. Die gelernte Korrektur wird anteilig auf Stadt, Land und Autobahn verteilt.
+- Ladeplanung: Kein versteckter Zuschlag von 10 % mehr. Die Sicherheit kommt aus deinen Reserven (an der Ladesäule und am Ziel), dadurch weniger unnötige Ladestopps.
 
 ### Behoben
+- Anzeige „lädt“ nach Neustart: Startet die App während des Ladens neu, zeigt sie „lädt“ gleich wieder an (wenn das Laden in den letzten zwei Stunden erkannt wurde). Die Anzeige endet weiterhin, sobald das Auto losfährt.
 - Akkustand nach einer Stunde: Ist der letzte Wert älter als 60 Minuten, nimmt die Schätzung ihn weiter (bis 6 Stunden, mit „ca.“). Vorher sprang sie auf den Startwert vor der Fahrt (80 %), auch wenn der Akku viel leerer war.
 - Akku-Schätzung ohne Route: Die Temperatur wird jetzt auch ohne Route geholt. Kälte und Heizung zählen immer mit.
 - Nutzbare Batterie mit Komma: „64,5“ wurde als 645 gelesen (und auf 200 kWh begrenzt). Ein Komma gilt jetzt als Dezimalzeichen. Ein so falsch gespeicherter Wert muss einmal neu eingegeben werden.
@@ -45,20 +58,6 @@ Add user-facing Horizon Nav changes under **Unreleased** before publishing each 
 - Restkilometer: Fehlen sie im Widget, werden sie aus Akkustand, Akkugröße und Verbrauch errechnet.
 - Verbrauch: Die Einstellung „Effizienz (km pro kWh)“ wurde als Meilen pro kWh gelesen. Der Verbrauch war dadurch um rund ein Drittel zu niedrig geschätzt. Ein Komma wird jetzt auch angenommen (5,5).
 - Verbrauch: Der unterwegs mitgezählte Verbrauch berücksichtigt die gelernte Korrektur je Straßenart, wie die Planung.
-
-### Verbessert
-- Ladesäulen-Filter während der Navigation: auf dem Handy in der Zoom-Spalte und in Android Auto in der Navigationsleiste. Eine Änderung plant die Ladestopps der Route neu.
-- Ladesäulen während der Fahrt: Sie werden alle 15 Sekunden für die Kartenansicht und die nächsten 30 km der Route neu geladen, auch in Android Auto (vorher nur, wenn die Karte stillstand).
-- Blitzer ohne Route: Warnung nur für Kameras, die voraus und höchstens 35 m seitlich der Fahrlinie liegen. Kameras auf anderen Straßen lösen keinen Alarm mehr aus.
-- Blitzer auf der Route: Der Suchstreifen ist 30 m breit (vorher 40 m).
-- Tag und Nacht: Die Systemeinstellung wird alle 1,5 Sekunden gelesen (vorher alle 4), dadurch schaltet die Karte schneller um.
-- Neigung der 3D-Karte: Einstellungen > Karte (Spuren und Kreuzungen) setzt die Neigung getrennt für breiten und hohen Bildschirm, auf Auto oder 30 bis 65 Grad. Im Auto stellst du sie unter Android Auto > Einstellungen ein.
-- Android Auto: Neue Zeile „Kartenrichtung“ in den Einstellungen. Nord oben oder mit der Fahrtrichtung, die Wahl wird für das Auto gemerkt.
-- Verbrauch mit Anhänger oder Wohnmobil (Einstellungen > Fahrzeug): mehr Gewicht und mehr Luftwiderstand werden eingerechnet.
-- Verbrauch: Heizung und Klimaanlage zählen nach Fahrzeit statt nach Strecke. Ein Stau im Winter kostet mehr Akku, eine flotte Fahrt weniger.
-- Verbrauch: Staus und stockender Verkehr auf der Route fließen ein (langsamer, dafür länger unterwegs).
-- Verbrauch: Ohne eingetragene Effizienz dient die Reichweitenanzeige des Autos als ruhige Grundlage, die sich nur langsam anpasst. Die gelernte Korrektur wird anteilig auf Stadt, Land und Autobahn verteilt.
-- Ladeplanung: Kein versteckter Zuschlag von 10 % mehr. Die Sicherheit kommt aus deinen Reserven (an der Ladesäule und am Ziel), dadurch weniger unnötige Ladestopps.
 
 
 ## 1.0.246 — 2026-10-28

@@ -3036,16 +3036,19 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         // to be counted here again at the base use only, so each stretch was taken twice. Standing still adds nothing.
         // charging: standing at a known charger, and a new reading higher than the last one. It ends when the car moves off.
         if (isEv) {
+            evEnsureLoaded()
             val readAt = EvWidget.readAt(prefs)
             if (readAt != evChargeReadAt) {
                 evChargeReadAt = readAt
                 val pct = evNowPct()
                 if (pct != null) {
                     evChargingNow = evChargeLastPct >= 0 && pct > evChargeLastPct && p.speed < 1.0 && chgAll.any { Geo.dist(it.pos, p.pos) <= 50.0 }
+                    if (evChargingNow) evChargingAt = System.currentTimeMillis()
                     evChargeLastPct = pct.toDouble()
                 }
+                evSave()
             }
-            if (p.speed > 3.0) evChargingNow = false
+            if (p.speed > 3.0 && evChargingNow) { evChargingNow = false; evSave() }
         }
         // a reading that is the same as the last one, after the car has used more than 1 % since, is the widget's old figure: not believed
         EvWidget.staleCheck = { evSinceRead / evBatteryKwh() * 100.0 >= 1.0 }
@@ -5579,10 +5582,13 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         put("refKm", org.json.JSONArray(evRefKm.toList())); put("readSeen", evReadSeen); put("sinceRead", evSinceRead); put("sinceNav", evSinceNav)
         put("sinceCharge", evSinceCharge); put("driven", evDriven); put("chargeRefPct", evChargeRefPct); put("chargeRefAt", evChargeRefAt)
         put("gapBad", evGapBad); put("prevPct", evPrevPct)
+        put("chargeReadAt", evChargeReadAt); put("chargeLastPct", evChargeLastPct); put("charging", evChargingNow); put("chargingAt", evChargingAt)
     }
 
     /** Saved to the settings, so the reference reading and the drive since it survive a restart of the app. */
     private fun evSave() {
+        // never before the saved state is read: that would write over it with empty values
+        evEnsureLoaded()
         evSavedAt = System.currentTimeMillis()
         try { prefs.put(PreferenceKeys.EV_STATE, evState().toString()) } catch (e: Exception) { }
     }
@@ -5600,6 +5606,9 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
                 arr("refKm", evRefKm); evReadSeen = o.optLong("readSeen", 0L); evSinceRead = o.optDouble("sinceRead", 0.0); evSinceNav = o.optDouble("sinceNav", 0.0)
                 evSinceCharge = o.optDouble("sinceCharge", 0.0); evDriven = o.optDouble("driven", 0.0); evChargeRefPct = o.optDouble("chargeRefPct", -1.0)
                 evChargeRefAt = o.optLong("chargeRefAt", 0L); evGapBad = o.optBoolean("gapBad", false); evPrevPct = o.optInt("prevPct", -1)
+                evChargeReadAt = o.optLong("chargeReadAt", 0L); evChargeLastPct = o.optDouble("chargeLastPct", -1.0); evChargingAt = o.optLong("chargingAt", 0L)
+                // still charging after a restart: only when it was seen within the last two hours (it ends when the car moves off)
+                evChargingNow = o.optBoolean("charging", false) && System.currentTimeMillis() - evChargingAt in 0..2 * 3_600_000L
                 return
             }
             // the older form: 21 numbers in a fixed order
@@ -5617,8 +5626,10 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
     private var evChargeReadAt = 0L
     private var evChargeLastPct = -1.0
     private var evChargingNow = false
-    /** True while the car stands at a charger and the battery level has risen (until it moves off). */
-    fun evCharging(): Boolean = evChargingNow
+    /** When charging was last seen (a rise at a charger), to show it again after a restart of the app. */
+    private var evChargingAt = 0L
+    /** True while the car stands at a charger and the battery level has risen (until it moves off), also after a restart. */
+    fun evCharging(): Boolean { evEnsureLoaded(); return evChargingNow }
 
     /** The range now in km, from the same estimate (null when there is no reading yet). */
     fun evEstimateKm(): Int? = Math.round(evRangeKm().first).toInt().takeIf { it > 0 }

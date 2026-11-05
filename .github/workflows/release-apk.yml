@@ -64,7 +64,7 @@ jobs:
           echo "PLAY_BUILD=1" >> "$GITHUB_ENV"
           echo "Google Play upload key restored."
 
-      - uses: gradle/actions/setup-gradle@v4
+      - uses: gradle/actions/setup-gradle@v5
         with:
           # the project uses Android Gradle Plugin 9.x, which needs Gradle 9
           gradle-version: "9.8.2"
