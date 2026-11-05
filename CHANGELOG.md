@@ -22,7 +22,7 @@ Add user-facing Horizon Nav changes under **Unreleased** before publishing each 
 - Akku und Reichweite im Auto: Zwischen zwei Werten vom Widget rechnet die App den Verbrauch seit dem letzten Wert mit, jede Sekunde. Die Anzeige zeigt dann „ca.“, wenn der letzte echte Wert älter als 10 Minuten ist. Ein gleich gebliebener Widget-Wert gilt als veraltet, wenn das Auto seitdem mehr als 1 % verbraucht hat. Beim Stehen auf einer Route zählt nur Heizung oder Klimaanlage (nicht beim Laden), ohne Route sinkt die Schätzung im Stand nicht.
 - Akku bei Ankunft: vorsichtiger geschätzt (10 % mehr Verbrauch) und das Modell lernt schneller aus der Fahrt.
 - Parkplatz-Karte am Ziel: größere Schrift und ein größeres X zum Schließen.
-- Android Auto während der Fahrt: Beenden, Ladesäulen-Filter (bei Elektroautos), Ton und Melden stehen dauerhaft links auf der Karte. Die Leiste oben von Android Auto bleibt dafür leer.
+- Android Auto während der Fahrt: Beenden, Ladesäulen-Filter (bei Elektroautos) und Ton stehen dauerhaft links auf der Karte. Melden steht in der Leiste oben. Autos ohne Touch-Weitergabe haben Beenden und Ton zusätzlich oben.
 - Ladesäulen-Filter während der Navigation: auf dem Handy in der Zoom-Spalte und in Android Auto in der Navigationsleiste. Eine Änderung plant die Ladestopps der Route neu.
 - Ladesäulen während der Fahrt: Sie werden alle 15 Sekunden für die Kartenansicht und die nächsten 30 km der Route neu geladen, auch in Android Auto (vorher nur, wenn die Karte stillstand).
 - Blitzer ohne Route: Warnung nur für Kameras, die voraus und höchstens 35 m seitlich der Fahrlinie liegen. Kameras auf anderen Straßen lösen keinen Alarm mehr aus.
@@ -37,6 +37,11 @@ Add user-facing Horizon Nav changes under **Unreleased** before publishing each 
 - Ladeplanung: Kein versteckter Zuschlag von 10 % mehr. Die Sicherheit kommt aus deinen Reserven (an der Ladesäule und am Ziel), dadurch weniger unnötige Ladestopps.
 
 ### Behoben
+- Kreisverkehr ohne Netz (Offline-Route): Der Pfeil für die erste Ausfahrt zeigte nach links, wie im Linksverkehr. Jetzt zeigt er bei Rechtsverkehr nach rechts (und die dritte Ausfahrt nach links).
+- Absturz in Android Auto beim Start einer Navigation: Die Leiste oben war während der Fahrt leer, das lehnt Android Auto ab. Jetzt steht dort Melden, und jede abgelehnte Ansicht zeigt die Karte statt die App zu schließen.
+- Kosten der Fahrt in der Routenauswahl: wurden in Meilen, britischen Gallonen und Pfund gerechnet und waren dadurch weit daneben. Jetzt mit km, km pro kWh oder Liter pro 100 km, Cent und Euro.
+- Einstellungen: Strompreis, Verbrauch (Liter pro 100 km) und Kraftstoffpreis nehmen ein Komma an („6,5“). Vorher wurde daraus 65.
+- Akku-Lernen mit Android Auto: Folgt das Handy der Fahrt mit, lernte es zusätzlich zum Auto aus denselben Werten. Jetzt lernt nur das Auto, solange es verbunden ist.
 - Anzeige „lädt“ nach Neustart: Startet die App während des Ladens neu, zeigt sie „lädt“ gleich wieder an (wenn das Laden in den letzten zwei Stunden erkannt wurde). Die Anzeige endet weiterhin, sobald das Auto losfährt.
 - Akkustand nach einer Stunde: Ist der letzte Wert älter als 60 Minuten, nimmt die Schätzung ihn weiter (bis 6 Stunden, mit „ca.“). Vorher sprang sie auf den Startwert vor der Fahrt (80 %), auch wenn der Akku viel leerer war.
 - Akku-Schätzung ohne Route: Die Temperatur wird jetzt auch ohne Route geholt. Kälte und Heizung zählen immer mit.

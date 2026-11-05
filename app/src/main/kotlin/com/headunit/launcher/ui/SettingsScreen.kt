@@ -839,7 +839,7 @@ private fun FuelSection(prefs: Prefs, engine: NavEngine) {
         val carKwh = if (prefs.s(PreferenceKeys.EV_CAR, "").isNotBlank()) com.headunit.launcher.EvCars.batteryKwh(prefs) else null
         if (carKwh != null) SItem("Nutzbare Batterie", "${evNum(carKwh)} kWh aus den Fahrzeugdaten")
         else SFieldItem("Nutzbare Batterie (kWh)", prefs.s(PreferenceKeys.EV_BATTERY_KWH, ""), "Für Akkuschätzung und Ladestopps (Standard: 60 kWh)", placeholder = "z. B. 64", number = true) { s -> prefs.put(PreferenceKeys.EV_BATTERY_KWH, s.replace(',', '.').filter { it.isDigit() || it == '.' }.take(5)) }
-        SFieldItem("Strompreis (Cent pro kWh)", prefs.s(PreferenceKeys.EVPPK, ""), placeholder = "z. B. 38", number = true) { s -> prefs.put(PreferenceKeys.EVPPK, s.filter { it.isDigit() || it == '.' }.take(6)) }
+        SFieldItem("Strompreis (Cent pro kWh)", prefs.s(PreferenceKeys.EVPPK, ""), placeholder = "z. B. 38", number = true) { s -> prefs.put(PreferenceKeys.EVPPK, s.replace(',', '.').filter { it.isDigit() || it == '.' }.take(6)) }
         SFieldItem("Restreichweite am Ziel (km)", prefs.s(PreferenceKeys.EV_DEST_KM, ""), "Ladestopps werden so geplant, dass du mit mindestens so viel Reichweite ankommst (Standard: 50 km)", placeholder = "z. B. 50", number = true) { s -> prefs.put(PreferenceKeys.EV_DEST_KM, s.filter { it.isDigit() }.take(3).toIntOrNull()?.coerceAtMost(500)?.toString() ?: "") }
         SFieldItem("Restreichweite an der Ladesäule (km)", prefs.s(PreferenceKeys.EV_CHARGER_KM, ""), "Mindestens so viel Reichweite, wenn du an einer Ladesäule ankommst. So bleibt Puffer, falls sie belegt ist und du zur nächsten fährst (Standard: 30 km)", placeholder = "z. B. 30", number = true) { s -> prefs.put(PreferenceKeys.EV_CHARGER_KM, s.filter { it.isDigit() }.take(3).toIntOrNull()?.coerceAtMost(500)?.toString() ?: "") }
         SChoice("Ladesäulen für Ladestopps", listOf("0" to "Alle", "50" to "50 kW", "150" to "150 kW", "300" to "300 kW"), prefs.i(PreferenceKeys.EV_MIN_KW, 50).toString(),
@@ -850,8 +850,8 @@ private fun FuelSection(prefs: Prefs, engine: NavEngine) {
         SToggle(prefs, "Ladesäulen-Daten im Ausland laden", PreferenceKeys.FR_CHARGERS, false, "Ohne Einschalten lädt die App keine Ladesäulen-Dateien herunter. Eingeschaltet lädt sie bei Bedarf: Frankreich (einmal im Monat rund 127 MB, dazu rund 9 MB Verfügbarkeit), Niederlande (NDW) und Brüssel (jeweils wöchentlich, klein), nur wenn das Gebiet auf der Karte liegt. Quellen: transport.data.gouv.fr (Licence Ouverte 2.0, Beta), NDW (CC0), Brussels Mobility (CC BY 4.0).")
         EvWidgetItem(prefs)
     } else SGroup("Kraftstoffkosten auf der Route") {
-        SFieldItem("Verbrauch (Liter pro 100 km)", prefs.s(PreferenceKeys.FUELMPG, ""), placeholder = "z. B. 6.5", number = true) { s -> prefs.put(PreferenceKeys.FUELMPG, s.filter { it.isDigit() || it == '.' }.take(5)) }
-        SFieldItem("Kraftstoffpreis (Cent pro Liter)", prefs.s(PreferenceKeys.FUELPPL, ""), placeholder = "z. B. 175.9", number = true) { s -> prefs.put(PreferenceKeys.FUELPPL, s.filter { it.isDigit() || it == '.' }.take(6)) }
+        SFieldItem("Verbrauch (Liter pro 100 km)", prefs.s(PreferenceKeys.FUELMPG, ""), placeholder = "z. B. 6.5", number = true) { s -> prefs.put(PreferenceKeys.FUELMPG, s.replace(',', '.').filter { it.isDigit() || it == '.' }.take(5)) }
+        SFieldItem("Kraftstoffpreis (Cent pro Liter)", prefs.s(PreferenceKeys.FUELPPL, ""), placeholder = "z. B. 175.9", number = true) { s -> prefs.put(PreferenceKeys.FUELPPL, s.replace(',', '.').filter { it.isDigit() || it == '.' }.take(6)) }
         SFieldItem("Tankinhalt (Liter)", prefs.s(PreferenceKeys.FUEL_TANK_L, ""), "Für die Tank-Reichweite: wie viel in den vollen Tank passt", placeholder = "z. B. 50", number = true) { s -> prefs.put(PreferenceKeys.FUEL_TANK_L, s.filter { it.isDigit() }.take(3)) }
     }
     LearnedGroup(engine)

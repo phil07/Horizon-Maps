@@ -775,7 +775,10 @@ object OfflineRouter {
         return out
     }
 
-    private fun manText(type: Int, exits: Int): String? = when (type) {
+    /** Countries that drive on the left: there the first exit of a roundabout is a left turn, elsewhere a right turn. */
+    private val LEFT_HAND = setOf("GB", "IE", "MT", "CY")
+
+    private fun manText(type: Int, exits: Int, leftHand: Boolean): String? = when (type) {
         1, 2, 3 -> "DEPART"
         4 -> "ARRIVE"; 5 -> "ARRIVE_RIGHT"; 6 -> "ARRIVE_LEFT"
         7, 8 -> "FOLLOW"
@@ -786,7 +789,14 @@ object OfflineRouter {
         18, 20 -> "MOTORWAY_EXIT_RIGHT"; 19, 21 -> "MOTORWAY_EXIT_LEFT"
         23 -> "KEEP_RIGHT"; 24 -> "KEEP_LEFT"
         25, 37, 38 -> "FOLLOW"
-        26 -> when { exits <= 1 -> "ROUNDABOUT_LEFT"; exits == 2 -> "ROUNDABOUT_CROSS"; exits == 3 -> "ROUNDABOUT_RIGHT"; else -> "ROUNDABOUT_BACK" }
+        // the exit number tells roughly which way you leave: the first one is a turn to the near side (right in Germany; it was
+        // always taken as left, as in Britain, so the arrow pointed the wrong way), the third one to the far side
+        26 -> when {
+            exits <= 1 -> if (leftHand) "ROUNDABOUT_LEFT" else "ROUNDABOUT_RIGHT"
+            exits == 2 -> "ROUNDABOUT_CROSS"
+            exits == 3 -> if (leftHand) "ROUNDABOUT_RIGHT" else "ROUNDABOUT_LEFT"
+            else -> "ROUNDABOUT_BACK"
+        }
         28 -> "TAKE_FERRY"
         else -> null // 0 none and 27 roundabout exit (the roundabout step already says which exit)
     }
@@ -916,7 +926,7 @@ object OfflineRouter {
         val refCc = RoadRefs.countryFor(pts.firstOrNull())
         for ((base, m) in mans) {
             val exits = m.optInt("roundabout_exit_count", 0)
-            val man = manText(m.optInt("type", 0), exits) ?: continue
+            val man = manText(m.optInt("type", 0), exits, refCc in LEFT_HAND) ?: continue
             val gi = (base + m.optInt("begin_shape_index", 0)).coerceIn(0, pts.size - 1)
             val names = m.optJSONArray("street_names")
             val all = if (names != null) (0 until names.length()).map { names.optString(it) }.filter { it.isNotBlank() } else emptyList()

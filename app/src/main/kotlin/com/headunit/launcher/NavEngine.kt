@@ -5586,7 +5586,14 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
     }
 
     /** Saved to the settings, so the reference reading and the drive since it survive a restart of the app. */
+    /**
+     * Whether this engine learns and saves. With Android Auto two engines run (the car's and the phone's, which can follow the same
+     * trip): both saw the same readings, and each learning step was applied twice. Only the car's learns while it is connected.
+     */
+    private fun evLearner(): Boolean = isCar || !RouteSync.carConnected()
+
     private fun evSave() {
+        if (!evLearner()) return
         // never before the saved state is read: that would write over it with empty values
         evEnsureLoaded()
         evSavedAt = System.currentTimeMillis()
@@ -5844,7 +5851,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
             evSinceRead = 0.0
             evSave()
             // the car's own figure eases the steady base a little (a new car or season shows over time, one odd reading doesn't)
-            if (prefs.s(PreferenceKeys.EVMPK, "").isBlank()) evGomKwhPerKm()?.let { g ->
+            if (evLearner() && prefs.s(PreferenceKeys.EVMPK, "").isBlank()) evGomKwhPerKm()?.let { g ->
                 val old = prefs.s(PreferenceKeys.EV_BASE_GOM, "").toDoubleOrNull() ?: g
                 prefs.put(PreferenceKeys.EV_BASE_GOM, String.format(java.util.Locale.US, "%.4f", old * 0.8 + g * 0.2))
             }
@@ -5861,7 +5868,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
                 // what the battery really lost against what the model said (without its buffer and corrections)
                 val actual = drop / 100.0 * evBatteryKwh()
                 // one learning step (see EvModel.learnStep: the recovery downhill is taken off, a mostly downhill stretch isn't learned)
-                EvModel.learnStep(evLearned(), evRefModelB, actual, evRefAux, evRefUp, evRefDown)?.let { prefs.put(PreferenceKeys.EV_LEARN, EvModel.formatLearned(it)) }
+                if (evLearner()) EvModel.learnStep(evLearned(), evRefModelB, actual, evRefAux, evRefUp, evRefDown)?.let { prefs.put(PreferenceKeys.EV_LEARN, EvModel.formatLearned(it)) }
                 evStartRef(pct)
             }
         }
@@ -5962,6 +5969,8 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
 
     /** A route is over: how you drove against the limit is kept for the next trips (blended in). */
     private fun evTripDone() {
+        // with Android Auto the car's engine learns from the trip; the phone following it would count it a second time
+        if (!evLearner()) { paceReal = 0.0; pacePred = 0.0; paceRoute = null; evStyleSum = 0.0; evStyleM = 0.0; evFreeSum = 0.0; evFreeM = 0.0; evSinceNav = 0.0; evAccSum = 0.0; evAccT = 0.0; return }
         if (evStyleM > 5000) {
             val old = (prefs.s(PreferenceKeys.EV_STYLE, "").toDoubleOrNull() ?: 1.0)
             prefs.put(PreferenceKeys.EV_STYLE, String.format(java.util.Locale.US, "%.3f", (old * 0.6 + evStyleSum / evStyleM * 0.4).coerceIn(0.8, 1.3)))
@@ -6552,7 +6561,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         fuelCheckAt = now
         val at = prefs.s(PreferenceKeys.FUEL_NOW_AT, "").toLongOrNull() ?: 0L
         if (now - at > 15 * 60_000L) { fuelRangeKm = null; return }
-        val l100 = prefs.s(PreferenceKeys.FUELMPG, "").toDoubleOrNull()?.takeIf { it in 2.0..30.0 } ?: 7.0
+        val l100 = prefs.s(PreferenceKeys.FUELMPG, "").replace(',', '.').toDoubleOrNull()?.takeIf { it in 2.0..30.0 } ?: 7.0
         val pct = prefs.s(PreferenceKeys.FUEL_NOW_PCT, "").toIntOrNull()
         val carKm = prefs.s(PreferenceKeys.FUEL_NOW_KM, "").toIntOrNull()
         val tank = prefs.s(PreferenceKeys.FUEL_TANK_L, "").toDoubleOrNull()?.takeIf { it in 10.0..200.0 }

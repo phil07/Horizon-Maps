@@ -203,11 +203,17 @@ internal fun BoxScope.RoutePreview(engine: NavEngine) {
     val selRoute = rs.getOrNull(engine.active)
     // fuel estimate from the economy and pump price set in Settings > Driving (blank = not shown)
     val ev = engine.prefs.s(PreferenceKeys.FUEL_TYPE, "E10") == "EV"
-    val mpg = engine.prefs.s(if (ev) "evmpk" else "fuelmpg", "").toDoubleOrNull()?.takeIf { it > 0 }
-    val ppl = engine.prefs.s(if (ev) "evppk" else "fuelppl", "").toDoubleOrNull()?.takeIf { it > 0 }
-    val costText = if (mpg != null && ppl != null && selRoute != null)
-        (if (ev) Lang.t("Laden etwa ", "Charging about ") else Lang.t("Sprit etwa ", "Fuel about ")) + java.text.NumberFormat.getCurrencyInstance(java.util.Locale.UK).format(
-            if (ev) selRoute.len / 1609.344 / mpg * ppl / 100.0 else selRoute.len / 1609.344 / mpg * 4.54609 * ppl / 100.0) else null
+    // the settings are in km per kWh (electric) or litres per 100 km, and cents per kWh or per litre (a comma is taken too). It used to
+    // reckon in miles, UK gallons and pounds, so the figure was far off
+    fun num(k: String) = engine.prefs.s(k, "").replace(',', '.').toDoubleOrNull()?.takeIf { it > 0 }
+    val use = num(if (ev) PreferenceKeys.EVMPK else PreferenceKeys.FUELMPG)
+    val cents = num(if (ev) PreferenceKeys.EVPPK else PreferenceKeys.FUELPPL)
+    val costText = if (use != null && cents != null && selRoute != null) {
+        val km = selRoute.len / 1000.0
+        val amount = if (ev) km / use * cents / 100.0 else km * use / 100.0 * cents / 100.0
+        (if (ev) Lang.t("Laden etwa ", "Charging about ") else Lang.t("Sprit etwa ", "Fuel about ")) +
+            java.text.NumberFormat.getCurrencyInstance(java.util.Locale.GERMANY).format(amount)
+    } else null
     val eco = engine.prefs.b(PreferenceKeys.ROUTE_ECO, false)
     val evPlan = if (ev) engine.evPlanned else emptyList()
     ZonesRow(engine)

@@ -56,7 +56,8 @@ class EvModelTest {
         assertTrue(EvModel.wxFactor(against, 120.0, 0.0) > 1.15)
         // the same wind from behind helps, but only half counts
         val behind = EvModel.wxFactor(against, 120.0, 180.0)
-        assertTrue(behind < 1.0 && behind > 0.85)
+        // (held to at most 15 % less: wxFactor's lower limit is 0.85 itself)
+        assertTrue(behind < 1.0 && behind >= 0.85)
         assertEquals(1.07, EvModel.wxFactor(EvModel.Wx(0.0, 0.0, 0.0, true, false), 100.0, null), 1e-9)
     }
 

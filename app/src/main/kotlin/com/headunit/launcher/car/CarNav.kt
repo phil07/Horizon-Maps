@@ -589,8 +589,9 @@ class MapScreen(carContext: CarContext, private val holder: CarHolder) : Screen(
 
     override fun onGetTemplate(): Template = try {
         buildTemplate()
-    } catch (ex: IllegalArgumentException) {
-        // a template the car refuses (e.g. too many buttons) must not close the app: show the map with Melden only
+    } catch (ex: RuntimeException) {
+        // a template the car refuses (too many buttons: IllegalArgumentException; an empty strip: IllegalStateException) must not
+        // close the app: show the map with Melden only
         android.util.Log.w("HorizonCar", "Map template refused: ${ex.message}")
         NavigationTemplate.Builder()
             .setActionStrip(ActionStrip.Builder().addAction(reportAction()).build())
@@ -629,8 +630,13 @@ class MapScreen(carContext: CarContext, private val holder: CarHolder) : Screen(
             strip.addAction(Action.Builder().setTitle("Beenden").setOnClickListener { e?.endRoute(); invalidate() }.build())
             // the demo drive (for trying it out parked; only with Demo switched on in Settings, as in the app): starts it, speeds it
             // up, stops it. Otherwise that space is the 2D / 3D button
-            // the trip's buttons (end, charger filter, sound, Melden) are the app's own, on the left of the map and always there:
-            // Android Auto's bar stays empty during the trip, so nothing is shown twice
+            // the trip's buttons (end, charger filter, sound) are the app's own, on the left of the map and always there. Android Auto's
+            // bar can't be empty, though: its library refuses a strip without a button (IllegalStateException), which closed the app as
+            // soon as a trip started. Melden stays there, as before. Cars that don't pass taps on can't use the buttons on the map, so
+            // there Beenden and the sound are in the bar as well
+            if (!taps) strip.addAction(Action.Builder().setTitle("Beenden").setOnClickListener { e?.endRoute(); invalidate() }.build())
+            strip.addAction(reportAction())
+            if (!taps) strip.addAction(sound)
 
         } else if (taps) {
             // cars that pass taps on use the app's own search bar and chips on the map, so Melden has the Search button's place
