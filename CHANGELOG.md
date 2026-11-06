@@ -4,12 +4,8 @@ Add user-facing Horizon Nav changes under **Unreleased** before publishing each 
 
 ## Unreleased
 
-### Neu
-- Sperrungen umfahren: Liegt eine Straßensperrung auf der Route voraus, plant die App automatisch einen Weg drumherum und sagt „Straße gesperrt. Neue Route.“ Bekannte Sperrungen in der Nähe werden aus neuen Routen herausgehalten (TomTom, Mapbox und offline). Quellen: TomTom-Verkehr, Autobahn GmbH und gemeldete Sperrungen. Gibt es keinen Umweg (die einzige Straße zum Ziel), bleibt die Route und die App sagt „Sperrung auf der Route, kein Umweg gefunden“.
-- Sperrung melden: Unter „Hier melden“ (Handy und Android Auto) gibt es jetzt „Gesperrt“. Die Meldung gilt 3 Stunden und wird mit anderen Fahrern geteilt.
-
-### Verbessert
-- Live-Alternativen: werden jetzt alle 2 Minuten gesucht (statt 3), auch im Stau, bis 5 Minuten vor dem Ziel (statt 10), eine halbe Minute nach einer Neuberechnung und bei beiden Diensten, wenn Schlüssel für TomTom und Mapbox da sind.
+### Behoben
+- Stau und Sperrungen von TomTom: Die Verkehrsmeldungen von TomTom wurden falsch gelesen (die Art als Wort statt als Zahl, die Verzögerung unter falschem Namen). Staus färben die Route jetzt gelb oder rot, die Verzögerung wird angesagt, und TomTom-Sperrungen werden erkannt und umfahren, Baustellen auf der Karte gezeigt.
 
 ## 1.0.246 — 2026-10-28
 

@@ -4781,7 +4781,8 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         for ((inc, startOff, _) in found) {
             val level = when {
                 inc.cat.contains("close", true) || inc.delaySec >= 300 -> 2
-                inc.delaySec >= 90 || (inc.cat.contains("jam", true) && inc.delaySec >= 40) -> 1
+                // every jam ahead colours the route (amber; red above from 5 minutes, see above)
+                inc.delaySec >= 90 || inc.cat.contains("jam", true) -> 1
                 else -> 0
             }
             if (level == 0) continue

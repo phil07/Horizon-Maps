@@ -507,7 +507,7 @@ object TomTomRest {
         val c = URL(url).openConnection() as HttpURLConnection
         c.connectTimeout = 15000; c.readTimeout = 25000
         c.setRequestProperty("TomTom-Api-Key", key)
-        c.setRequestProperty("Attributes", "incidents(geometry(type,coordinates),properties(id,iconCategory,delayInSeconds,from,to,roadNumbers,events(description)))")
+        c.setRequestProperty("Attributes", "incidents(geometry(type,coordinates),properties(id,iconCategory,magnitudeOfDelay,delay,from,to,roadNumbers,events(description)))")
         c.setRequestProperty("User-Agent", "HorizonNav/1.0")
         val code = c.responseCode
         val body = (if (code in 200..299) c.inputStream else c.errorStream)?.bufferedReader()?.readText() ?: ""
@@ -526,7 +526,16 @@ object TomTomRest {
                 if (pts.isEmpty()) continue
                 val ev = pr.optJSONArray("events")?.optJSONObject(0)?.optString("description").orEmpty()
                 if (Regex("\\bfire\\b", RegexOption.IGNORE_CASE).containsMatchIn(ev)) continue
-                out += Incident(pr.optString("id"), pr.optString("iconCategory"), ev, pr.optInt("delayInSeconds", 0), pts)
+                // TomTom gives the kind as a number and the hold-up as "delay" (seconds): read as a word and as "delayInSeconds" before,
+                // so jams, closures and roadworks weren't known as such and every delay was 0
+                val cat = when (pr.optInt("iconCategory", -1)) {
+                    1 -> "accident"; 6 -> "jam"; 7 -> "laneClosed"; 8 -> "roadClosed"; 9 -> "roadWorks"
+                    2, 3, 4, 5, 10, 11, 14 -> "danger"; else -> pr.optString("iconCategory")
+                }
+                val mag = pr.optInt("magnitudeOfDelay", 0)
+                // a jam with no delay given: a rough one from how bad TomTom says it is (minor, moderate, major)
+                val delay = pr.optInt("delay", 0).takeIf { it > 0 } ?: if (cat == "jam") when (mag) { 1 -> 60; 2 -> 180; 3 -> 420; else -> 0 } else 0
+                out += Incident(pr.optString("id"), cat, ev, delay, pts)
             } catch (e: Exception) { /* skip bad entry */ }
         }
         return out
