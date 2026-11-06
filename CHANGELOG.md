@@ -5,6 +5,7 @@ Add user-facing Horizon Nav changes under **Unreleased** before publishing each 
 ## Unreleased
 
 ### Behoben
+- Doppelte Verkehrsabfragen: Mit Android Auto haben Handy und Auto die Verkehrsmeldungen beide alle 3 Minuten bei TomTom abgefragt. Jetzt fragt nur noch das Auto, solange die Handy-App im Hintergrund ist.
 - Sperrung ohne Antwort: Fand die Neuberechnung um eine Sperrung keine Route (kein Netz), wurde diese Sperrung nie wieder umfahren. Jetzt versucht es die App bei der nächsten Verkehrsprüfung erneut.
 - Live-Alternativen im Stand: Bei einer Pause mit laufender Route wird nur noch alle 6 Minuten gesucht, nicht alle 2 (spart Abfragen bei TomTom und Mapbox).
 - Umweltzonen: Eine leere Antwort des Kartenservers hat die bekannten Zonen für 30 Tage gelöscht. Jetzt bleiben sie und die App fragt am nächsten Tag erneut.

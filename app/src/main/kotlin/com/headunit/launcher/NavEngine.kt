@@ -4733,7 +4733,8 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         val ab = autobahnIncidents(r)
         if ((!hasKey && !fromRoute && ab.isEmpty()) || simMode != 0 || !prefs.b(PreferenceKeys.INCIDENTS, true)) { incidentAhead = null; return }
         val now = System.currentTimeMillis()
-        if (now - incAt > 180_000) {
+        // (the phone in the background while the car screen runs the trip: the car asks, not both)
+        if (now - incAt > 180_000 && !shadow()) {
             incAt = now
             scope.launch {
                 val found = withContext(Dispatchers.IO) {
