@@ -41,7 +41,22 @@ object ParkTimer {
         channels(ctx)
         showRunning(ctx, end)
         // the reminder 10 minutes before the end (a short time: half way)
-        val at = end - minOf(BEFORE_MIN * 60_000L, minutes * 30_000L)
+        schedule(ctx, end - minOf(BEFORE_MIN * 60_000L, minutes * 30_000L))
+    }
+
+    /**
+     * After the phone restarted: Android forgets every alarm then, so the countdown and the reminder are set up again from the
+     * saved end time. A reminder whose time went by while the phone was off comes straight away (if the time hasn't run out).
+     */
+    fun restore(ctx: Context, p: Prefs) {
+        val end = until(p)
+        if (end == 0L) { if (p.s(PreferenceKeys.PARK_UNTIL, "").isNotEmpty()) p.put(PreferenceKeys.PARK_UNTIL, ""); return }
+        channels(ctx)
+        showRunning(ctx, end)
+        schedule(ctx, maxOf(end - BEFORE_MIN * 60_000L, System.currentTimeMillis() + 5_000L))
+    }
+
+    private fun schedule(ctx: Context, at: Long) {
         val am = ctx.getSystemService(AlarmManager::class.java)
         val pi = pending(ctx, ACTION_REMIND)
         try {
@@ -127,6 +142,7 @@ class ParkTimerReceiver : BroadcastReceiver() {
         when (intent.action) {
             ParkTimer.ACTION_REMIND -> ParkTimer.remind(ctx, p)
             ParkTimer.ACTION_CANCEL -> ParkTimer.cancel(ctx, p)
+            Intent.ACTION_BOOT_COMPLETED -> ParkTimer.restore(ctx, p)
         }
     }
 }

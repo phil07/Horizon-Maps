@@ -10,6 +10,7 @@
     <!-- keeps an offline map download going while the app is in the background -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <!-- "where you parked" when the phone leaves the car's Bluetooth -->
     <uses-permission android:name="android.permission.BLUETOOTH" android:maxSdkVersion="30" />
     <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
@@ -118,7 +119,12 @@
         <!-- the parking time reminder (Parkuhr) and its "Aufheben" button -->
         <receiver
             android:name=".ParkTimerReceiver"
-            android:exported="false" />
+            android:exported="false">
+            <!-- the phone restarted: the parking reminder is set up again (Android drops all alarms then) -->
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+            </intent-filter>
+        </receiver>
 
         <receiver
             android:name=".CarBluetoothReceiver"
