@@ -2214,7 +2214,11 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
                     if (attempt < 3) delay(2500)
                     if (dest !== d) { err = null; break }
                 }
-            } finally { rerouting = false; lastReroute = System.currentTimeMillis() }
+            } finally {
+                rerouting = false; lastReroute = System.currentTimeMillis()
+                // a reroute round a closure that found no route at all: tried again at the next traffic check, not dropped for good
+                closurePending?.let { closureRerouted.remove(it.id); closurePending = null }
+            }
             // it keeps trying on its own while you are still off the route, so this is only a heads-up
             if (err != null) toast(if (err.contains("signal")) Lang.t("Neuberechnung: schwacher Empfang, wird weiter versucht…", "Rerouting: weak signal, still trying…") else Lang.t("Neuberechnung fehlgeschlagen ($err), neuer Versuch…", "Reroute failed ($err), trying again…"), 3500)
         }
@@ -4818,7 +4822,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         val live = prefs.b(PreferenceKeys.LIVE_ALTERNATIVES, true)
         if (previewing || simMode != 0 || faster != null || !prefs.b(PreferenceKeys.FASTER_ROUTE, true) || shadow()) return
         // live: every 2 minutes up to the last 5 minutes, in slow traffic too (a jam is when another way matters most)
-        if (remainingSecs < (if (live) 300 else 900) || now - lastFasterCheck < (if (live) 120_000L else 240_000L) || (!live && f.speed < 3.0)) return
+        if (remainingSecs < (if (live) 300 else 900) || now - lastFasterCheck < (if (!live) 240_000L else if (f.speed < 0.5) 360_000L else 120_000L) || (!live && f.speed < 3.0)) return
         lastFasterCheck = now
         val ahead = cur.pts.drop(lastIdx.coerceIn(0, max(0, cur.pts.size - 2))).filterIndexed { i, _ -> i % 3 == 0 }
         val viaPts = via.map { it.pos }

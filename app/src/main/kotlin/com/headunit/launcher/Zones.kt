@@ -200,6 +200,8 @@ object Zones {
                 out.put(JSONObject().put("n", name).put("c", countryOf(name, tags, mid(rings), reg)).put("r", ra))
                 n++
             }
+            // nothing found although zones were known before: a server's empty answer, not the zones gone (it would have stood for 30 days)
+            if (n == 0 && all(ctx).isNotEmpty()) { file(ctx, reg).setLastModified(System.currentTimeMillis() - 29L * 86_400_000L); return }
             file(ctx, reg).writeText(out.toString())
             cache = null
             all(ctx)

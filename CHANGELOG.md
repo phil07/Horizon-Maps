@@ -4,9 +4,10 @@ Add user-facing Horizon Nav changes under **Unreleased** before publishing each 
 
 ## Unreleased
 
-### Verbessert
-- Meldungen automatisch „Weg“: Fährst du mit mindestens 50 km/h durch einen gemeldeten Stau oder eine gemeldete Sperrung und beantwortest die Frage „Noch da?“ nicht, stimmt die App selbst mit „Weg“.
-- Höhenprofil genauer: Auf langen Routen werden steile Abschnitte (Pässe, lange Steigungen) etwa alle 250 m nachgemessen. Das verbessert die Akku-Schätzung am Berg.
+### Behoben
+- Sperrung ohne Antwort: Fand die Neuberechnung um eine Sperrung keine Route (kein Netz), wurde diese Sperrung nie wieder umfahren. Jetzt versucht es die App bei der nächsten Verkehrsprüfung erneut.
+- Live-Alternativen im Stand: Bei einer Pause mit laufender Route wird nur noch alle 6 Minuten gesucht, nicht alle 2 (spart Abfragen bei TomTom und Mapbox).
+- Umweltzonen: Eine leere Antwort des Kartenservers hat die bekannten Zonen für 30 Tage gelöscht. Jetzt bleiben sie und die App fragt am nächsten Tag erneut.
 
 ## 1.0.246 — 2026-10-28
 
