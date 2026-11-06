@@ -207,6 +207,8 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
                 val conn = url.openConnection() as java.net.HttpURLConnection
                 conn.requestMethod = "POST"
                 conn.doOutput = true
+                conn.connectTimeout = 10_000
+                conn.readTimeout = 10_000
                 conn.setRequestProperty("Content-Type", "application/json")
                 val payload = """{"kind":"$kind","lat":${pos.lat},"lon":${pos.lon},"ts":$now}"""
                 conn.outputStream.use { it.write(payload.toByteArray()) }
@@ -219,6 +221,9 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         }
     }
 
+    /** The last GPS heading is fresh enough to trust for direction filtering of reports. */
+    private fun hdUpToDate(): Boolean = fix?.let { f -> System.currentTimeMillis() - lastGpsTime < 30_000L && f.hasBearing() && f.speed > 1.0 } ?: false
+
     /** Send feedback for an existing report (still there / gone). */
     fun reportFeedback(reportId: String, stillThere: Boolean) {
         if (!prefs.b(PreferenceKeys.SHARE_REPORTS, false)) return
@@ -229,6 +234,8 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
                 val conn = url.openConnection() as java.net.HttpURLConnection
                 conn.requestMethod = "POST"
                 conn.doOutput = true
+                conn.connectTimeout = 10_000
+                conn.readTimeout = 10_000
                 conn.setRequestProperty("Content-Type", "application/json")
                 val payload = """{"id":"$reportId","stillThere":$stillThere}"""
                 conn.outputStream.use { it.write(payload.toByteArray()) }
@@ -244,12 +251,49 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
             val url = java.net.URL("$workerUrl/reports")
             val conn = url.openConnection() as java.net.HttpURLConnection
             conn.requestMethod = "GET"
+            conn.connectTimeout = 10_000
+            conn.readTimeout = 15_000
             if (conn.responseCode == 200) {
                 val json = conn.inputStream.bufferedReader().use { it.readText() }
-                // Parsing logic would go here - simplified for now
-                // crowdReportsUi = parsedReports.filter { ... }
+                val arr = org.json.JSONArray(json)
+                val now = System.currentTimeMillis()
+                val pos = fix?.pos
+                val heading = fix?.bearing ?: 0.0
+                val filtered = mutableListOf<CrowdReport>()
+                for (i in 0 until arr.length()) {
+                    val r = arr.optJSONObject(i) ?: continue
+                    val id = r.optString("id", "")
+                    val kind = r.optString("kind", "")
+                    val lat = r.optDouble("lat", Double.NaN)
+                    val lon = r.optDouble("lon", Double.NaN)
+                    val t = r.optLong("t", 0L)
+                    if (id.isBlank() || kind.isBlank() || lat.isNaN() || lon.isNaN()) continue
+                    val ll = LL(lat, lon)
+                    if (pos != null && Geo.dist(pos, ll) > 10_000.0) continue
+                    if (heading >= 0 && hdUpToDate()) {
+                        val dh = Geo.heading(pos, ll)
+                        val diff = Math.abs((dh - heading + 540.0) % 360.0 - 180.0)
+                        if (diff > 60.0) continue
+                    }
+                    filtered += CrowdReport(id, kind, ll, t)
+                }
+                crowdReportsUi = filtered
+                pendingFeedbackReport = null
             }
         } catch (e: Exception) { }
+    }
+
+    /** Driving past a reported incident: automatically report "weg" once we're within ~100 m. */
+    private fun enginePassedReport(cur: LL, heading: Double) {
+        if (!prefs.b(PreferenceKeys.SHARE_REPORTS, false)) return
+        if (pendingFeedbackReport != null) return
+        crowdReportsUi.filter { r ->
+            Geo.dist(cur, r.pos) < 100.0
+        }.forEach { r ->
+            reportFeedback(r.id, false)
+            crowdReportsUi = crowdReportsUi.filter { it.id != r.id }
+            pendingFeedbackReport = null
+        }
     }
     /** A quicker route than the one being followed, found while driving. */
     class FasterRoute(val route: Route, val savedMin: Int)
@@ -1363,6 +1407,8 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         } else if (speed <= 0.8) try { evIdle() } catch (e: Exception) { }
         if (speed > tripMax) tripMax = speed
         val firstFix = fix == null
+        // ---- crowd reports passed while driving: auto-report "weg" when we pass one within ~100 m
+        enginePassedReport(cur, h)
         onPosition(Fix(cur, h, speed, if (l.hasAltitude()) l.altitude else 0.0, if (l.hasAccuracy()) l.accuracy.toDouble() else 0.0), firstFix || first)
         if (firstFix) {
             map.cameraTo(cur, null, if (tilt3d) (chosenTilt() ?: 55.0) else 0.0, 15.5, 0, 0.0)
