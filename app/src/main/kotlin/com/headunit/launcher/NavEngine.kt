@@ -243,6 +243,25 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         }
     }
 
+    /** The last GPS heading is fresh enough to trust for direction filtering of reports. */
+    private fun hdUpToDate(): Boolean {
+        val f = fix ?: return false
+        return f.hasBearing() && f.speed > 1.0f && System.currentTimeMillis() - lastGpsTime < 30_000L
+    }
+
+    /** Driving past a reported incident: auto-report "weg" when we pass one within ~100 m. */
+    private fun enginePassedReport(cur: LL, heading: Double) {
+        if (!prefs.b(PreferenceKeys.SHARE_REPORTS, false)) return
+        if (pendingFeedbackReport != null) return
+        crowdReportsUi.filter { r ->
+            Geo.dist(cur, r.pos) < 100.0
+        }.forEach { r ->
+            reportFeedback(r.id, false)
+            crowdReportsUi = crowdReportsUi.filter { it.id != r.id }
+            pendingFeedbackReport = null
+        }
+    }
+
     /** Sync crowd reports from the worker and update the UI list. */
     suspend fun syncReports() {
         if (!prefs.b(PreferenceKeys.SHARE_REPORTS, false)) return
