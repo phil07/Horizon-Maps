@@ -30,7 +30,6 @@ import kotlin.math.hypot
 import kotlin.math.max
 import kotlin.math.min
 import androidx.compose.ui.res.stringResource
-import com.headunit.launcher.CrowdReport
 
 class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding) : LocationListener {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
@@ -192,120 +191,6 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         clearPick()
         if (route != null && !previewing && dest != null) addStop(p) else startRoute(p)
     }
-
-    /** Send a crowd report (traffic, camera, police) to the worker. */
-    fun reportTraffic(kind: String) {
-        if (!prefs.b(PreferenceKeys.SHARE_REPORTS, false)) return
-        val pos = fix?.pos ?: return
-        val now = System.currentTimeMillis()
-        if (now - lastReportSentAt < 5 * 60_000L) return
-        lastReportPos?.let { if (Geo.dist(it, pos) < 300) return }
-        val workerUrl = prefs.s(PreferenceKeys.WORKER_URL, "").ifBlank { return }
-        scope.launch(Dispatchers.IO) {
-            try {
-                val url = java.net.URL("$workerUrl/report")
-                val conn = url.openConnection() as java.net.HttpURLConnection
-                conn.requestMethod = "POST"
-                conn.doOutput = true
-                conn.connectTimeout = 10_000
-                conn.readTimeout = 10_000
-                conn.setRequestProperty("Content-Type", "application/json")
-                val payload = """{"kind":"$kind","lat":${pos.lat},"lon":${pos.lon},"ts":$now}"""
-                conn.outputStream.use { it.write(payload.toByteArray()) }
-                if (conn.responseCode == 200) {
-                    lastReportSentAt = now
-                    lastReportKind = kind
-                    lastReportPos = pos
-                }
-            } catch (e: Exception) { }
-        }
-    }
-
-    /** Send feedback for an existing report (still there / gone). */
-    fun reportFeedback(reportId: String, stillThere: Boolean) {
-        if (!prefs.b(PreferenceKeys.SHARE_REPORTS, false)) return
-        val workerUrl = prefs.s(PreferenceKeys.WORKER_URL, "").ifBlank { return }
-        scope.launch(Dispatchers.IO) {
-            try {
-                val url = java.net.URL("$workerUrl/feedback")
-                val conn = url.openConnection() as java.net.HttpURLConnection
-                conn.requestMethod = "POST"
-                conn.doOutput = true
-                conn.connectTimeout = 10_000
-                conn.readTimeout = 10_000
-                conn.setRequestProperty("Content-Type", "application/json")
-                val payload = """{"id":"$reportId","stillThere":$stillThere}"""
-                conn.outputStream.use { it.write(payload.toByteArray()) }
-            } catch (e: Exception) { }
-        }
-    }
-
-    /** Driving past a reported incident: auto-report "weg" when we pass one within ~100 m. */
-    private fun enginePassedReport(cur: LL) {
-        if (!prefs.b(PreferenceKeys.SHARE_REPORTS, false)) return
-        if (pendingFeedbackReport != null) return
-        val h = fix?.bearing ?: 0.0
-        crowdReportsUi.filter { r ->
-            Geo.dist(cur, r.pos) < 100.0
-        }.forEach { r ->
-            reportFeedback(r.id, false)
-            crowdReportsUi = crowdReportsUi.filter { it.id != r.id }
-            pendingFeedbackReport = null
-        }
-    }
-
-    /** Sync crowd reports from the worker and update the UI list. */
-    suspend fun syncReports() {
-        if (!prefs.b(PreferenceKeys.SHARE_REPORTS, false)) return
-        val workerUrl = prefs.s(PreferenceKeys.WORKER_URL, "").ifBlank { return }
-        try {
-            val url = java.net.URL("$workerUrl/reports")
-            val conn = url.openConnection() as java.net.HttpURLConnection
-            conn.requestMethod = "GET"
-            conn.connectTimeout = 10_000
-            conn.readTimeout = 15_000
-            if (conn.responseCode == 200) {
-                val json = conn.inputStream.bufferedReader().use { it.readText() }
-                val arr = org.json.JSONArray(json)
-                val now = System.currentTimeMillis()
-                val pos = fix?.pos
-                val heading = fix?.bearing ?: 0.0
-                val filtered = mutableListOf<CrowdReport>()
-                for (i in 0 until arr.length()) {
-                    val r = arr.optJSONObject(i) ?: continue
-                    val id = r.optString("id", "")
-                    val kind = r.optString("kind", "")
-                    val lat = r.optDouble("lat", Double.NaN)
-                    val lon = r.optDouble("lon", Double.NaN)
-                    val t = r.optLong("t", 0L)
-                    if (id.isBlank() || kind.isBlank() || lat.isNaN() || lon.isNaN()) continue
-                    val ll = LL(lat, lon)
-                    if (pos != null && Geo.dist(pos, ll) > 10_000.0) continue
-                    if (heading >= 0 && hdUpToDate()) {
-                        val dh = Geo.bearing(pos, ll)
-                        val diff = Math.abs((dh - heading + 540.0) % 360.0 - 180.0)
-                        if (diff > 60.0) continue
-                    }
-                    filtered += CrowdReport(id, kind, ll, t)
-                }
-                crowdReportsUi = filtered
-                pendingFeedbackReport = null
-            }
-        } catch (e: Exception) { }
-    }
-
-    /** Driving past a reported incident: automatically report "weg" once we're within ~100 m. */
-    private fun enginePassedReport(cur: LL, heading: Double) {
-        if (!prefs.b(PreferenceKeys.SHARE_REPORTS, false)) return
-        if (pendingFeedbackReport != null) return
-        crowdReportsUi.filter { r ->
-            Geo.dist(cur, r.pos) < 100.0
-        }.forEach { r ->
-            reportFeedback(r.id, false)
-            crowdReportsUi = crowdReportsUi.filter { it.id != r.id }
-            pendingFeedbackReport = null
-        }
-    }
     /** A quicker route than the one being followed, found while driving. */
     class FasterRoute(val route: Route, val savedMin: Int)
     var faster by mutableStateOf<FasterRoute?>(null)
@@ -423,14 +308,6 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
     private val zoneAlerted = HashSet<String>()
     private var barSig = 0
     private var servicesSig = 0
-
-    // crowd-sourced reports
-    @Volatile private var crowdReports: List<CrowdReport> = emptyList()
-    @Volatile private var lastReportSentAt = 0L
-    @Volatile private var lastReportKind = ""
-    @Volatile private var lastReportPos: LL? = null
-    var crowdReportsUi by mutableStateOf<List<CrowdReport>>(emptyList())
-    var pendingFeedbackReport by mutableStateOf<CrowdReport?>(null)
     /** Moving at speed on a route: the map UI simplifies itself. */
     val driving: Boolean get() = route != null && (fix?.speed ?: 0.0) > 8.0
     private var lastSpd = 0.0
@@ -948,19 +825,6 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
             delay(15_000)
             try { if (Zones.needsRefresh(ctx) && online()) { withContext(Dispatchers.IO) { Zones.fetch(ctx) }; zonesVersion++ } } catch (e: Exception) { }
         }
-        // crowd-sourced reports sync every minute
-        scope.launch {
-            while (true) {
-                delay(60_000)
-                try { syncReports() } catch (e: Exception) { }
-            }
-        }
-        // update map with crowd reports
-        scope.launch {
-            snapshotFlow { crowdReportsUi }.collect { reports ->
-                map.setCrowdReports(reports)
-            }
-        }
     }
 
     /** Which sound channel the voice uses: "nav" (navigation, the normal one) or "media" (Settings > Sound > Voice channel). Some
@@ -1418,8 +1282,6 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         } else if (speed <= 0.8) try { evIdle() } catch (e: Exception) { }
         if (speed > tripMax) tripMax = speed
         val firstFix = fix == null
-        // ---- crowd reports passed while driving: auto-report "weg" when we pass one within ~100 m
-        enginePassedReport(cur, h)
         onPosition(Fix(cur, h, speed, if (l.hasAltitude()) l.altitude else 0.0, if (l.hasAccuracy()) l.accuracy.toDouble() else 0.0), firstFix || first)
         if (firstFix) {
             map.cameraTo(cur, null, if (tilt3d) (chosenTilt() ?: 55.0) else 0.0, 15.5, 0, 0.0)
@@ -4654,7 +4516,14 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
                 votePrompted.add(hit.sid)
                 val vp = VotePrompt(hit.sid, hit.kind, reportName(hit.kind))
                 votePrompt = vp
-                scope.launch { delay(12_000); if (votePrompt === vp) votePrompt = null }
+                // a jam or a closure driven through at 50 km/h or more is gone: left unanswered, it is voted "weg" by itself
+                val fast = p.speed >= 14.0 && hit.kind in setOf("jam", "closed")
+                scope.launch {
+                    delay(12_000)
+                    if (votePrompt === vp) {
+                        if (fast && (fix?.speed ?: 0.0) >= 11.0) answerVote(false) else votePrompt = null
+                    }
+                }
             }
         }
         if (!prefs.b(PreferenceKeys.POLICEALERTS, true) || p.speed < 4.0) return

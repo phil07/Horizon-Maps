@@ -76,5 +76,3 @@ class VehicleDimensions(
     val hasLimits: Boolean get() = heightM > 0 || widthM > 0 || lengthM > 0 || weightTons > 0 || axleWeightTons > 0
 }
 
-/** A crowd-sourced traffic report: type, position, time, id for deduplication. */
-data class CrowdReport(val id: String, val kind: String, val pos: LL, val ts: Long, val ttl: Long = 30 * 60_000L)

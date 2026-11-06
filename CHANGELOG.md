@@ -4,8 +4,9 @@ Add user-facing Horizon Nav changes under **Unreleased** before publishing each 
 
 ## Unreleased
 
-### Behoben
-- Stau und Sperrungen von TomTom: Die Verkehrsmeldungen von TomTom wurden falsch gelesen (die Art als Wort statt als Zahl, die Verzögerung unter falschem Namen). Staus färben die Route jetzt gelb oder rot, die Verzögerung wird angesagt, und TomTom-Sperrungen werden erkannt und umfahren, Baustellen auf der Karte gezeigt.
+### Verbessert
+- Meldungen automatisch „Weg“: Fährst du mit mindestens 50 km/h durch einen gemeldeten Stau oder eine gemeldete Sperrung und beantwortest die Frage „Noch da?“ nicht, stimmt die App selbst mit „Weg“.
+- Höhenprofil genauer: Auf langen Routen werden steile Abschnitte (Pässe, lange Steigungen) etwa alle 250 m nachgemessen. Das verbessert die Akku-Schätzung am Berg.
 
 ## 1.0.246 — 2026-10-28
 
