@@ -2,6 +2,7 @@ package com.headunit.launcher.ui
 
 import com.headunit.launcher.R
 import com.headunit.launcher.Lang
+import com.headunit.launcher.CrowdReport
 import androidx.compose.ui.res.stringResource
 
 import androidx.activity.compose.BackHandler
@@ -326,6 +327,9 @@ private fun MapScreen(engine: NavEngine, onSettings: () -> Unit) {
                 }
             }
             if (engine.nearbyKind != null && (!previewing || engine.stopMode)) NearbyCard(engine)
+            engine.pendingFeedbackReport?.let { report ->
+                FeedbackCard(engine, report)
+            }
         }
 
         // ---- right side: the map buttons grouped in one panel at the top, zoom under it, and Settings beside it
@@ -335,6 +339,7 @@ private fun MapScreen(engine: NavEngine, onSettings: () -> Unit) {
             // are on the trip card while navigating, Settings is beside these when you're not (and in map options' header when you are)
             val railItems = ArrayList<@Composable () -> Unit>()
             railItems.add(@Composable { ImmCompass(engine) })
+            railItems.add(@Composable { ReportCard(engine) })
             railItems.add(@Composable { ImmIcon(Icons.Rounded.Layers, { sheet = !sheet }, active = sheet, desc = Lang.t("Kartenoptionen", "Map options")) })
             if (!simple && (engine.prefs.b(PreferenceKeys.DEMO, false) || engine.simMode != 0)) railItems.add(@Composable { ImmIcon(Icons.Rounded.PlayArrow, { engine.cycleSim() }, active = engine.simMode != 0, desc = Lang.t("Demofahrt", "Demo drive")) })
             // zoom: hidden while the map is following you on the move (it zooms itself); back as soon as you touch or zoom the map, or
@@ -1431,6 +1436,45 @@ private fun ImmQuick(engine: NavEngine, showSaved: Boolean = true) {
                 }
             }
         }
+        }
+    }
+}
+
+@Composable
+fun ReportCard(engine: NavEngine) {
+    val context = LocalContext.current
+    Box(Modifier.fillMaxWidth().padding(8.dp), contentAlignment = Alignment.CenterEnd) {
+        Pill(
+            text = stringResource(R.string.ui_103),
+            selected = false,
+            onClick = {
+                engine.reportTraffic("traffic")
+                android.widget.Toast.makeText(context, "Meldung gesendet", android.widget.Toast.LENGTH_SHORT).show()
+            }
+        )
+    }
+}
+
+@Composable
+fun FeedbackCard(engine: NavEngine, report: CrowdReport) {
+    Box(Modifier.fillMaxWidth().padding(8.dp), contentAlignment = Alignment.Center) {
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Pill(
+                text = "Noch da",
+                selected = false,
+                onClick = {
+                    engine.reportFeedback(report.id, true)
+                    engine.pendingFeedbackReport = null
+                }
+            )
+            Pill(
+                text = "Weg",
+                selected = false,
+                onClick = {
+                    engine.reportFeedback(report.id, false)
+                    engine.pendingFeedbackReport = null
+                }
+            )
         }
     }
 }

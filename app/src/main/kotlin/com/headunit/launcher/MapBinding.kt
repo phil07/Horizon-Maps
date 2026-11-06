@@ -583,6 +583,20 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
         for (l in st.styleLayers.map { it.id }.filter { it.startsWith("dl-sat") }) try { st.removeStyleLayer(l) } catch (e: Throwable) { }
         for (src in st.styleSources.map { it.id }.filter { it.startsWith("dl-sat") }) try { st.removeStyleSource(src) } catch (e: Throwable) { }
     }
+
+    /** Crowd-sourced reports shown on the map as warning icons. */
+    fun setCrowdReports(reports: List<CrowdReport>) {
+        main0.post {
+            try {
+                val src = src("dl-crowd") ?: return@post
+                val features = reports.map { r ->
+                    Feature.fromGeometry(Point.fromLngLat(r.pos.lon, r.pos.lat))
+                        .withProperty("kind", r.kind)
+                }
+                src.featureCollection(FeatureCollection.fromFeatures(features))
+            } catch (e: Throwable) { }
+        }
+    }
     private fun addS(st: Style, s: com.mapbox.maps.extension.style.StyleContract.StyleSourceExtension) {
         try { st.addSource(s) } catch (e: Throwable) { android.util.Log.w("MapBinding", "source: ${e.message}") }
     }
