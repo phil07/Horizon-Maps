@@ -1268,7 +1268,11 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         if (prev == null || Geo.dist(prev, cur) > TrackMath.ANCHOR_M) lastRaw = cur
         val speed = if (l.hasSpeed()) l.speed.toDouble() else 0.0
         // on foot (walking to the car): no trip distance, no battery use or learning
-        if (prev != null && speed > 0.8 && !walking) {
+        // parked, the GPS wanders (worst in a garage or between buildings) and sometimes reports a little speed: with a poor fix or
+        // a crawl under 1.5 m/s nothing counts as driven, or a car that stood still lost battery and range
+        val goodFix = !l.hasAccuracy() || l.accuracy <= 25f
+        if (prev != null && speed > 0.8 && !walking && !(goodFix && speed >= 1.5)) { /* drift, not driving */ }
+        else if (prev != null && speed > 0.8 && !walking) {
             val d = Geo.dist(prev, cur)
             // counted only when the anchor (lastRaw) moves on, that is past 6 m: a step of 3 to 6 m left the anchor where it was, and
             // the next step was measured from it again, so slow driving was counted up to half as much again
@@ -5542,7 +5546,18 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         if (!isEv) return null
         val v = prefs.s(PreferenceKeys.EV_NOW_PCT, "").toIntOrNull() ?: return null
         val age = evNowAgeMin() ?: return null
-        return if (age <= 360) v.coerceIn(0, 100) else null
+        return if (age <= 360 || evParkedSinceRead(age)) v.coerceIn(0, 100) else null
+    }
+
+    /**
+     * Not driven since the last reading (the car simply stood): the reading stays true for up to a week. After 1 or 6 hours it
+     * used to give way to an estimate (the range from the battery and the set efficiency, or the charge set before the trip),
+     * and a parked car showed a clearly lower battery or range without moving.
+     */
+    private fun evParkedSinceRead(ageMin: Long): Boolean {
+        if (ageMin > 7 * 24 * 60L) return false
+        evEnsureLoaded()
+        return evSinceRead / evBatteryKwh() * 100.0 < 0.5
     }
 
     /** Minutes since the battery level was last read, or null. */
@@ -5553,12 +5568,13 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         if (!isEv) return null
         val v = prefs.s(PreferenceKeys.EV_NOW_KM, "").toIntOrNull() ?: return null
         // a range under 5 km is no real reading (the car or widget sent 0 or nothing usable): treat it as unknown
-        return if ((evNowAgeMin() ?: Long.MAX_VALUE) <= 60 && v >= 5) v.coerceAtMost(1500) else null
+        val age = evNowAgeMin() ?: return null
+        return if ((age <= 60 || evParkedSinceRead(age)) && v >= 5) v.coerceAtMost(1500) else null
     }
 
     /** The range now and the full range, in km: the widget's own figures when they're fresh, else from the battery and efficiency. */
     private fun evRangeKm(): Pair<Double, Double> {
-        val nowKm = evNowKm(); val nowPct = evNowPct()?.takeIf { (evNowAgeMin() ?: Long.MAX_VALUE) <= 60 }
+        val nowKm = evNowKm(); val nowPct = evNowPct()?.takeIf { evNowAgeMin()?.let { a -> a <= 60 || evParkedSinceRead(a) } == true }
         val full = if (nowKm != null && nowPct != null && nowPct > 0 && nowKm > 0) nowKm * 100.0 / nowPct else evBatteryKwh() / evKwhPerKm()
         // where the battery is now (the car's reading less what has been driven since, the charge at the last charging stop, or
         // the charge set before the trip less what has been driven on it): a plan made mid-trip starts from here, not from the start
