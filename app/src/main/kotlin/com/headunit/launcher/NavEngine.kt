@@ -221,9 +221,6 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         }
     }
 
-    /** The last GPS heading is fresh enough to trust for direction filtering of reports. */
-    private fun hdUpToDate(): Boolean = fix?.let { f -> System.currentTimeMillis() - lastGpsTime < 30_000L && f.hasBearing() && f.speed > 1.0 } ?: false
-
     /** Send feedback for an existing report (still there / gone). */
     fun reportFeedback(reportId: String, stillThere: Boolean) {
         if (!prefs.b(PreferenceKeys.SHARE_REPORTS, false)) return
@@ -243,16 +240,11 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         }
     }
 
-    /** The last GPS heading is fresh enough to trust for direction filtering of reports. */
-    private fun hdUpToDate(): Boolean {
-        val f = fix ?: return false
-        return f.hasBearing() && f.speed > 1.0f && System.currentTimeMillis() - lastGpsTime < 30_000L
-    }
-
     /** Driving past a reported incident: auto-report "weg" when we pass one within ~100 m. */
-    private fun enginePassedReport(cur: LL, heading: Double) {
+    private fun enginePassedReport(cur: LL) {
         if (!prefs.b(PreferenceKeys.SHARE_REPORTS, false)) return
         if (pendingFeedbackReport != null) return
+        val h = fix?.bearing ?: 0.0
         crowdReportsUi.filter { r ->
             Geo.dist(cur, r.pos) < 100.0
         }.forEach { r ->
@@ -290,7 +282,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
                     val ll = LL(lat, lon)
                     if (pos != null && Geo.dist(pos, ll) > 10_000.0) continue
                     if (heading >= 0 && hdUpToDate()) {
-                        val dh = Geo.heading(pos, ll)
+                        val dh = Geo.bearing(pos, ll)
                         val diff = Math.abs((dh - heading + 540.0) % 360.0 - 180.0)
                         if (diff > 60.0) continue
                     }
