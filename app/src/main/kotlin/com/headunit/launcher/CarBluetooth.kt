@@ -28,7 +28,7 @@ object CarBluetooth {
         val at = raw.getOrNull(1)?.toLongOrNull() ?: return
         if (addr.isBlank() || System.currentTimeMillis() - at > 180_000L) return
         val k = known(prefs)
-        if (addr !in k) prefs.put(PreferenceKeys.CAR_BT_DEVICES, (k + addr).take(8).joinToString(","))
+        if (addr !in k) prefs.put(PreferenceKeys.CAR_BT_DEVICES, (listOf(addr) + k).take(8).joinToString(","))
     }
 
     internal fun isCarClass(major: Int, device: Int): Boolean =

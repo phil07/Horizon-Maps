@@ -37,7 +37,8 @@ class MainActivity : ComponentActivity() {
         ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
 
     /** A route is being followed (not just previewed) or the demo drive is on, so guidance should carry on when another app is in front. */
-    private fun guiding() = (engine.route != null && !engine.previewing) || engine.simMode != 0
+    // (the walk to the parked car too: with the phone in the pocket and the screen off, its GPS and directions must carry on)
+    private fun guiding() = (engine.route != null && !engine.previewing) || engine.simMode != 0 || engine.walking
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -129,10 +130,10 @@ class MainActivity : ComponentActivity() {
 
         // while a route runs, a foreground service keeps GPS and voice going in the background; it stops when the route ends
         lifecycleScope.launch {
-            snapshotFlow { if (guiding()) (engine.dest?.name ?: Lang.t("dein Ziel", "your destination")) else null }
+            snapshotFlow { if (engine.walking && engine.route == null) Lang.t("Fußweg zum Auto", "Walk to the car") else if (guiding()) Lang.t("Navigation nach ", "Navigating to ") + (engine.dest?.name ?: Lang.t("dein Ziel", "your destination")) else null }
                 .distinctUntilChanged()
                 .collect { to ->
-                    if (to != null && hasLocation()) NavService.start(applicationContext, Lang.t("Navigation nach $to", "Navigating to $to"))
+                    if (to != null && hasLocation()) NavService.start(applicationContext, to)
                     else if (to == null) {
                         NavService.stop(applicationContext)
                         // the route ended (arrived or cancelled) while another app was in front: GPS can rest too

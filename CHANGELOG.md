@@ -5,7 +5,8 @@ Add user-facing Horizon Nav changes under **Unreleased** before publishing each 
 ## Unreleased
 
 ### Behoben
-- Parkuhr nach Neustart: Startet das Handy während der Parkzeit neu, laufen Countdown und Erinnerung jetzt weiter. Vorher gingen sie verloren. Fiel die Erinnerung in die Zeit, in der das Handy aus war, kommt sie sofort nach dem Start.
+- Fußweg zum Auto mit gesperrtem Handy: Ging der Bildschirm aus oder das Handy in die Tasche, stoppte die App das GPS, und Ansagen und Ankunft beim Auto blieben aus. Jetzt läuft der Fußweg im Hintergrund weiter (mit Benachrichtigung „Fußweg zum Auto“).
+- Parkplatz per Bluetooth: Ab dem neunten Auto bzw. der neunten Freisprechanlage wurde ein neues Auto nie mehr gelernt. Jetzt ersetzt das neue das älteste.
 
 ## 1.0.246 — 2026-10-28
 
