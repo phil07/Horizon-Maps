@@ -287,6 +287,10 @@ internal object PreferenceKeys {
     /** The system speech voice chosen in Settings (its name); empty = the best installed one. */
     const val TTS_VOICE = "ttsvoice"
     const val TANKERKOENIG_KEY = "tkkey"
+const val REPORTS_URL = "reports_url"
+const val REPORTS_SHARE = "reports_share"
+const val REPORTS_DEVICE = "reports_device"
+const val REPORTS_STATUS = "reports_status"
     const val VOICE_ROADS = "voiceroads"
     const val AVOID_TOLL_COUNTRIES = "avoid_toll_cc"
     const val ROAD_NAME_SIZE = "roadnamesize"

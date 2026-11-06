@@ -1,0 +1,8 @@
+name = "horizon-nav-reports"
+main = "worker.js"
+compatibility_date = "2024-01-01"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "horizon_nav_reports"
+database_id = "ed82acae-d906-40f3-b311-6fbcd79841f5"

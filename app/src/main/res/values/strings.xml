@@ -195,5 +195,7 @@
     <string name="ui_100">Zuhause</string>
     <string name="ui_101">Arbeit</string>
     <string name="ui_102">Du bist hier</string>
-    <string name="ui_103">Stau</string>
+    <string name="ui_103">Meldungen teilen</string>
+    <string name="ui_104">Server-Adresse</string>
+    <string name="ui_105">Meldungen: %s</string>
 </resources>

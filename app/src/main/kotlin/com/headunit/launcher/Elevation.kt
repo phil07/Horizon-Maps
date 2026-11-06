@@ -35,10 +35,10 @@ object Elevation {
      * heights are smoothed over about 1.5 km, so the grid's bumps (a bridge, a cutting) are not taken for hills.
      */
     fun along(r: Route, mapboxToken: String?, at: (Double) -> LL): Profile? {
-        val offs = sampleOffsets(r.len, 400)
+        var offs = sampleOffsets(r.len, 400)
         if (offs.size < 2) return null
         val pts = offs.map(at)
-        val h = try { openMeteo(pts) } catch (e: Exception) { null }
+        var h = try { openMeteo(pts) } catch (e: Exception) { null }
             ?: mapboxToken?.takeIf { it.isNotBlank() }?.let { tok ->
                 // Mapbox answers one point per request: a coarser profile (at most 60 points)
                 val o2 = sampleOffsets(r.len, 60)
@@ -46,6 +46,18 @@ object Elevation {
                 if (hs != null) return Profile(o2, smooth(hs, o2)) else null
             }
             ?: return null
+
+        // Dynamic refinement: if a steep change is found, sample more points in that area
+        for (i in 0 until h.size - 1) {
+            if (Math.abs(h[i+1] - h[i]) > 50.0) {
+                val mid = (offs[i] + offs[i+1]) / 2.0
+                val newOffs = offs.toMutableList()
+                newOffs.add(i + 1, mid)
+                offs = newOffs.toDoubleArray()
+                h = try { openMeteo(offs.map(at)) } catch (e: Exception) { h }
+                break
+            }
+        }
         return Profile(offs, smooth(h, offs))
     }
 
