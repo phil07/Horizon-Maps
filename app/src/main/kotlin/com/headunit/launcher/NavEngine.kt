@@ -1952,6 +1952,12 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
                 rings.addAll(z.rings)
             }
         }
+        // known road closures (traffic feeds and drivers' reports): small boxes on the closed road, all but one at the start or the
+        // end of the trip (the only road there: still used). Behind the areas you set yourself, as TomTom takes 10 at most.
+        val cl = closureBoxes(from, to)
+        rects.addAll(cl.take(max(0, 10 - rects.size)))
+        for ((sw, ne) in cl) rings += listOf(sw, LL(sw.lat, ne.lon), ne, LL(ne.lat, sw.lon), sw)
+        MapboxRest.excludePts = closurePts(from, to).take(40)
         TomTomRest.avoidRects = rects.take(10)
         OfflineRouter.exclude = rings
         TomTomRest.avoid = listOfNotNull(
@@ -2198,7 +2204,11 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
                         }
                         // the route was ended (or a new destination chosen) while this was worked out: the old route must not come back
                         if (dest !== d || previewing) { err = null; break }
-                        if (rs.isNotEmpty()) { routes = rs; active = rs.indices.minByOrNull { rs[it].time } ?: 0; said.clear(); offCount = 0; lastIdx = 0; trustProg = -1.0; clearLiveAlts(); drawRoutes(); cardsForStartAlts(); updateRouteZones(); evAfterReroute(); err = null; break }
+                        if (rs.isNotEmpty()) { routes = rs; active = rs.indices.minByOrNull { rs[it].time } ?: 0; said.clear(); offCount = 0; lastIdx = 0; trustProg = -1.0; clearLiveAlts(); drawRoutes(); cardsForStartAlts(); updateRouteZones(); evAfterReroute()
+                            // live alternatives looked for again half a minute after a reroute
+                            if (prefs.b(PreferenceKeys.LIVE_ALTERNATIVES, true)) lastFasterCheck = System.currentTimeMillis() - 90_000L
+                            try { closureAfterReroute(rs[active]) } catch (e: Exception) { }
+                            err = null; break }
                         err = "no route found"
                     } catch (e: Exception) { err = e.message ?: "unknown error" }
                     if (attempt < 3) delay(2500)
@@ -4285,11 +4295,11 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
     class Report(val kind: String, val pos: LL, val t: Long, val sid: Long = 0L, val shared: Boolean = false)
 
     /** How long each kind of report lasts, its map icon, and what is said when you come up to it. */
-    private fun reportLife(k: String) = when (k) { "roadworks" -> 12 * 3_600_000L; "jam" -> 1_800_000L; "hazard" -> 3_600_000L; "accident", "breakdown" -> 2 * 3_600_000L; "mobilecam" -> 4 * 3_600_000L; else -> 3 * 3_600_000L }
-    private fun reportIcon(k: String) = when (k) { "roadworks" -> 1; "accident" -> 4; "hazard" -> 5; "breakdown" -> 6; "mobilecam" -> 7; "jam" -> 8; else -> 3 }
-    fun reportName(k: String) = when (k) { "roadworks" -> Lang.t("Baustelle", "Roadworks"); "accident" -> str(R.string.ui_077); "hazard" -> str(R.string.ui_076); "breakdown" -> str(R.string.ui_078); "mobilecam" -> str(R.string.ui_079); "jam" -> str(R.string.ui_103); else -> str(R.string.ui_075) }
+    private fun reportLife(k: String) = when (k) { "roadworks" -> 12 * 3_600_000L; "closed" -> 3 * 3_600_000L; "jam" -> 1_800_000L; "hazard" -> 3_600_000L; "accident", "breakdown" -> 2 * 3_600_000L; "mobilecam" -> 4 * 3_600_000L; else -> 3 * 3_600_000L }
+    private fun reportIcon(k: String) = when (k) { "roadworks" -> 1; "closed" -> 2; "accident" -> 4; "hazard" -> 5; "breakdown" -> 6; "mobilecam" -> 7; "jam" -> 8; else -> 3 }
+    fun reportName(k: String) = when (k) { "roadworks" -> Lang.t("Baustelle", "Roadworks"); "closed" -> Lang.t("Straße gesperrt", "Road closed"); "accident" -> str(R.string.ui_077); "hazard" -> str(R.string.ui_076); "breakdown" -> str(R.string.ui_078); "mobilecam" -> str(R.string.ui_079); "jam" -> str(R.string.ui_103); else -> str(R.string.ui_075) }
     /** The kinds this version knows (a shared report of a kind added later is left out rather than shown as police). */
-    private val reportKinds = setOf("police", "accident", "hazard", "breakdown", "mobilecam", "jam", "roadworks")
+    private val reportKinds = setOf("police", "accident", "hazard", "breakdown", "mobilecam", "jam", "roadworks", "closed")
 
     /** Your own reports still in force (older police-only reports are read too). Stored as "kind,lat,lon,time[,server id]". */
     fun reportsActive(): List<Report> {
@@ -4482,6 +4492,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
             "roadworks" -> c.contains("work", true) || c.contains("laneclosed", true)
             "accident" -> c.contains("accident", true)
             "hazard" -> c.contains("danger", true)
+            "closed" -> isClosure(c)
             else -> false
         }
         var n = 1
@@ -4636,6 +4647,73 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         }
     }
 
+    // ---- road closures: routes find a way round them ----
+    /** Closures known from the traffic feeds (TomTom, Mapbox, Autobahn GmbH): their points and until when they're kept (by id). */
+    private val closures = java.util.concurrent.ConcurrentHashMap<String, Pair<List<LL>, Long>>()
+    /** Closures a reroute was already asked for (each once), and one waiting to be said once the new route is in. */
+    private val closureRerouted = HashSet<String>()
+    private var closurePending: Incident? = null
+
+    private fun isClosure(cat: String) = cat.equals("roadClosed", true) || cat == "8"
+
+    private fun noteClosures(list: List<Incident>) {
+        val now = System.currentTimeMillis()
+        closures.entries.removeIf { it.value.second < now }
+        for (inc in list) if (isClosure(inc.cat) && inc.pts.isNotEmpty()) closures[inc.id.ifBlank { "${inc.pts.first().lat},${inc.pts.first().lon}" }] = inc.pts to now + 30 * 60_000L
+    }
+
+    /** Points on closed roads: from the feeds (start, middle and end of each), and drivers' "Straße gesperrt" reports. */
+    private fun closurePts(from: LL?, to: LL?): List<LL> {
+        val now = System.currentTimeMillis()
+        val pts = ArrayList<LL>()
+        for ((ps, until) in closures.values) if (until >= now) pts.addAll(listOf(ps.first(), ps[ps.size / 2], ps.last()).distinct())
+        try { for (rp in allReports()) if (rp.kind == "closed") pts += rp.pos } catch (e: Exception) { }
+        // the start or the end of the trip: the only way there or away, so it is not avoided
+        val ok = pts.filter { p -> (from == null || Geo.dist(p, from) > 300.0) && (to == null || Geo.dist(p, to) > 300.0) }
+        val here = from ?: fix?.pos
+        return if (here != null) ok.sortedBy { Geo.dist(it, here) } else ok
+    }
+
+    /** About 40 m round each closure point, for TomTom and the offline router. */
+    private fun closureBoxes(from: LL?, to: LL?): List<Pair<LL, LL>> = closurePts(from, to).take(20).map { p ->
+        val dLat = 40.0 / 110574.0; val dLon = 40.0 / (111320.0 * cos(Geo.rad(p.lat)))
+        LL(p.lat - dLat, p.lon - dLon) to LL(p.lat + dLat, p.lon + dLon)
+    }
+
+    /** True when [r] runs within 30 m of a point of [pts] ahead of [from] metres along it. */
+    private fun passes(r: Route, pts: List<LL>, from: Double): Boolean {
+        for (q in pts) for (n in r.pts.indices) { if (r.cum[n] < from) continue; if (Geo.dist(r.pts[n], q) < 30.0) return true }
+        return false
+    }
+
+    /** A closure on the route ahead: a new route round it (once per closure). */
+    private fun closureAhead(r: Route) {
+        if (previewing || simMode != 0 || rerouting || route !== r) return
+        val prog = curProgress
+        val feed = incMatches.filter { (inc, off, _) -> isClosure(inc.cat) && off > prog + 50 && off < prog + 40_000 }.map { it.first }
+        val own = try { allReports().filter { it.kind == "closed" }.map { Incident("rep${it.t}", "roadClosed", "", 0, listOf(it.pos)) } } catch (e: Exception) { emptyList() }
+        val d = dest?.pos
+        val hit = (feed + own).firstOrNull { inc -> inc.id !in closureRerouted && (d == null || inc.pts.none { Geo.dist(it, d) < 300.0 }) && passes(r, inc.pts.take(30), prog + 50) } ?: return
+        closureRerouted += hit.id
+        if (hit.id.startsWith("rep")) noteClosures(emptyList()) else closures[hit.id] = hit.pts to System.currentTimeMillis() + 30 * 60_000L
+        closurePending = hit
+        lastReroute = 0L
+        reroute()
+    }
+
+    /** After a reroute for a closure: says the new way round, or that there is none (the route still goes through). */
+    private fun closureAfterReroute(r: Route) {
+        val c = closurePending ?: return
+        closurePending = null
+        if (passes(r, c.pts.take(30), 0.0)) {
+            speak(Lang.t("Sperrung auf der Route, kein Umweg gefunden.", "Road closed on the route, no way round found."), true)
+            showNotice(Notice("closure", Lang.t("Straße gesperrt", "Road closed"), Lang.t("Kein Umweg gefunden", "No way round found"), 2), 15_000L)
+        } else {
+            speak(Lang.t("Straße gesperrt. Neue Route.", "Road closed. New route."), true)
+            showNotice(Notice("closure", Lang.t("Straße gesperrt", "Road closed"), Lang.t("Neue Route um die Sperrung", "New route round the closure"), 2), 10_000L)
+        }
+    }
+
     private fun checkIncidents(r: Route, progress: Double) {
         try { checkWrongWay(r, progress) } catch (e: Exception) { }
         try { if (camerasOnMap()) updateRouteCams(r, progress); pushHazards(progress) } catch (e: Exception) { }
@@ -4658,6 +4736,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
                         }
                         if (!any) emptyList() else {
                             val list = (if (fromRoute) r.incidents else if (hasKey) TomTomRest.incidents(apiKey, minLon - 0.01, minLat - 0.01, maxLon + 0.01, maxLat + 0.01) else emptyList<Incident>()) + ab
+                            noteClosures(list)
                             val out = ArrayList<Triple<Incident, Double, String>>()
                             for (inc in list) {
                                 var bestOff = -1.0; var bestD = 70.0
@@ -4673,7 +4752,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
                         }
                     } catch (e: Exception) { null }
                 }
-                if (found != null) { incMatches = found; try { applyIncidentSev(r, found) } catch (e: Exception) { } }
+                if (found != null) { incMatches = found; try { applyIncidentSev(r, found) } catch (e: Exception) { }; try { closureAhead(r) } catch (e: Exception) { } }
             }
         }
         // (wrong-way drivers have their own, louder warning: checkWrongWay)
@@ -4730,14 +4809,16 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         val d = dest ?: return
         val live = prefs.b(PreferenceKeys.LIVE_ALTERNATIVES, true)
         if (previewing || simMode != 0 || faster != null || !prefs.b(PreferenceKeys.FASTER_ROUTE, true) || shadow()) return
-        if (remainingSecs < (if (live) 600 else 900) || now - lastFasterCheck < (if (live) 180_000L else 240_000L) || f.speed < 3.0) return
+        // live: every 2 minutes up to the last 5 minutes, in slow traffic too (a jam is when another way matters most)
+        if (remainingSecs < (if (live) 300 else 900) || now - lastFasterCheck < (if (live) 120_000L else 240_000L) || (!live && f.speed < 3.0)) return
         lastFasterCheck = now
         val ahead = cur.pts.drop(lastIdx.coerceIn(0, max(0, cur.pts.size - 2))).filterIndexed { i, _ -> i % 3 == 0 }
         val viaPts = via.map { it.pos }
         scope.launch {
             try {
                 syncRoutePrefs(f.pos, d.pos)
-                val rs = withContext(Dispatchers.IO) { netRoutes(f.pos, d.pos, true, 0L, viaPts, driveHeading(f.pos)) }
+                // live: from both route services when there are keys for both (each finds ways the other misses)
+                val rs = withContext(Dispatchers.IO) { netRoutes(f.pos, d.pos, true, 0L, viaPts, driveHeading(f.pos), askBoth = live) }
                 if (rs.size < 2 || route !== cur) return@launch
                 // how much of each candidate runs along the road we are already following
                 fun overlap(r: Route): Double {

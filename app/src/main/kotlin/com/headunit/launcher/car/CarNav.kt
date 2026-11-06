@@ -929,6 +929,7 @@ class ReportScreen(carContext: CarContext, private val holder: CarHolder) : Scre
             Triple("mobilecam", Lang.t("Mobiler Blitzer", "Mobile camera"), R.drawable.ic_car_mobilecam to 0xFF8AB4F8.toInt()),
             Triple("jam", Lang.t("Stau", "Traffic jam"), R.drawable.ic_car_jam to 0xFFFF8A65.toInt()),
             Triple("roadworks", Lang.t("Baustelle", "Roadworks"), R.drawable.ic_roadworks_sign to 0xFFFBC02D.toInt()),
+            Triple("closed", Lang.t("Gesperrt", "Road closed"), R.drawable.ic_car_report to 0xFFF28B82.toInt()),
         )
         val list = ItemList.Builder()
         // a car that shows only 6 tiles: the speed limit takes the place of "Panne" (the least used), so it isn't cut off

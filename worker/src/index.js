@@ -17,6 +17,7 @@ const LIFETIME = {
   mobilecam: 4 * HOUR,
   jam: 30 * MIN,
   roadworks: 12 * HOUR,
+  closed: 3 * HOUR,
 };
 
 const MERGE_RADIUS_M = 300;

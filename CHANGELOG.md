@@ -4,8 +4,12 @@ Add user-facing Horizon Nav changes under **Unreleased** before publishing each 
 
 ## Unreleased
 
-### Behoben
-- Akku beim geparkten Auto: Steht das Auto nur, bleiben Akkustand und Reichweite beim letzten Wert des Autos (bis zu einer Woche). Vorher sank die Anzeige nach 1 bzw. 6 Stunden auf eine Schätzung, und GPS-Sprünge im Stand zählten als gefahrene Strecke.
+### Neu
+- Sperrungen umfahren: Liegt eine Straßensperrung auf der Route voraus, plant die App automatisch einen Weg drumherum und sagt „Straße gesperrt. Neue Route.“ Bekannte Sperrungen in der Nähe werden aus neuen Routen herausgehalten (TomTom, Mapbox und offline). Quellen: TomTom-Verkehr, Autobahn GmbH und gemeldete Sperrungen. Gibt es keinen Umweg (die einzige Straße zum Ziel), bleibt die Route und die App sagt „Sperrung auf der Route, kein Umweg gefunden“.
+- Sperrung melden: Unter „Hier melden“ (Handy und Android Auto) gibt es jetzt „Gesperrt“. Die Meldung gilt 3 Stunden und wird mit anderen Fahrern geteilt.
+
+### Verbessert
+- Live-Alternativen: werden jetzt alle 2 Minuten gesucht (statt 3), auch im Stau, bis 5 Minuten vor dem Ziel (statt 10), eine halbe Minute nach einer Neuberechnung und bei beiden Diensten, wenn Schlüssel für TomTom und Mapbox da sind.
 
 ## 1.0.246 — 2026-10-28
 

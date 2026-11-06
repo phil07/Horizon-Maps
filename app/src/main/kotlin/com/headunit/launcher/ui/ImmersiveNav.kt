@@ -50,6 +50,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.PropaneTank
 import androidx.compose.material.icons.rounded.RvHookup
 import androidx.compose.material.icons.rounded.Park
+import androidx.compose.material.icons.rounded.Block
 import androidx.compose.material.icons.rounded.NorthEast
 import androidx.compose.material.icons.rounded.NorthWest
 import androidx.compose.material.icons.rounded.DirectionsWalk
@@ -625,6 +626,7 @@ private fun OptionsSheet(engine: NavEngine, shareEta: () -> Unit, wide: Boolean 
                     TileSpec(Icons.Rounded.CameraAlt, Lang.t("Mobiler Blitzer", "Mobile cam"), Color(0xFF1E66F5), { engine.report("mobilecam"); close() }),
                     TileSpec(Icons.Rounded.DirectionsCar, Lang.t("Stau", "Traffic jam"), Color(0xFFF4511E), { engine.report("jam"); close() }),
                     TileSpec(Icons.Rounded.Build, Lang.t("Baustelle", "Roadworks"), Color(0xFFFBC02D), { engine.report("roadworks"); close() }, picture = R.drawable.ic_roadworks_sign),
+                    TileSpec(Icons.Rounded.Block, Lang.t("Gesperrt", "Road closed"), Bad, { engine.report("closed"); close() }),
                 ), compact = true)
                 // with no route the map page already has fuel, charging, food, coffee and parking, so only the rest are here
                 fun find(kind: String): () -> Unit = { engine.loadNearby(kind, false); close() }

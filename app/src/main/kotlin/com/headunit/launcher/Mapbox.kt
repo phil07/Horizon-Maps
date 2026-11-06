@@ -255,9 +255,12 @@ object MapboxRest {
     }
 
     /** Turns TomTom-style route preferences (avoid tollRoads, motorways, ferries, unpavedRoads) into Mapbox's. */
-    private fun excludes(avoid: List<String>): String = avoid.mapNotNull {
+    /** Points the route must not pass (road closures): sent as exclude=point(lon lat). */
+    @Volatile var excludePts: List<LL> = emptyList()
+
+    private fun excludes(avoid: List<String>): String = (avoid.mapNotNull {
         when (it) { "tollRoads" -> "toll"; "motorways" -> "motorway"; "ferries" -> "ferry"; "unpavedRoads" -> "unpaved"; else -> null }
-    }.joinToString(",")
+    } + excludePts.map { String.format(java.util.Locale.US, "point(%.6f%%20%.6f)", it.lon, it.lat) }).joinToString(",")
 
     /**
      * Driving routes with live traffic (Mapbox's driving-traffic profile): the line, turn by turn (roundabout exits, motorway exits,
@@ -292,6 +295,11 @@ object MapboxRest {
         }
         if (body == null) throw last ?: IOException("Routing failed")
         var o = JSONObject(body)
+        // no way round a closure (the only road there): asked again without the closures, so it is still used
+        if (o.optString("code") == "NoRoute" && ex.contains("point(")) {
+            val ex0 = ex.split(',').filter { it.isNotBlank() && !it.startsWith("point(") }.joinToString(",")
+            try { o = JSONObject(get(if (ex0.isNotEmpty()) "$base&exclude=$ex0" else base, if (quick) 8000 else 12000, if (quick) 12000 else 25000)) } catch (e: IOException) { }
+        }
         if (o.optString("code") != "Ok") throw IOException(if (o.optString("code") == "NoRoute") "No route found" else o.optString("message").ifBlank { "Routing failed" })
         // tolls avoided in chosen countries only (Settings > Routes): Mapbox can only leave out toll roads everywhere, so when the
         // best route would pay a toll in one of those countries it's asked again without toll roads
