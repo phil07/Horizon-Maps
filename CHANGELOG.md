@@ -4,12 +4,9 @@ Add user-facing Horizon Nav changes under **Unreleased** before publishing each 
 
 ## Unreleased
 
-### Verbessert
-- Ansagen früher und kürzer: Die Hauptansage kommt etwa 30 Sekunden vor dem Abbiegen (in der Stadt rund 400 bis 500 m statt 250 bis 300 m). Sie nennt nur noch einen Ort vom Schild („links halten Richtung Frankfurt“), an der Kreuzung selbst kommt nur die Richtung („Links halten“). Eine neue Ansage unterbricht die vorige nicht mehr, sie wartet, bis diese zu Ende ist.
-- Pfeil bei schmaler Karte: Teilt sich Android Auto den Bildschirm (z. B. mit Musik), sitzt der Standortpfeil jetzt über der Fahrtleiste statt dahinter.
-
 ### Behoben
-- Gewählte Route bleibt: Hast du nicht die schnellste Route gewählt, hat Android Auto die Route neu berechnet und dich doch die schnellste fahren lassen. Jetzt übernimmt es genau die gewählte Route. Findet die App unterwegs eine schnellere, erscheint oben eine Karte zum Wechseln oder Behalten (handy und Android Auto), die nach 7 Sekunden verschwindet. Gewechselt wird nie von selbst.
+- Route startet nicht mehr grundlos neu: Während der Fahrt hat die App die ganze Route neu berechnet, sobald die Restreichweite 5 km gefallen war (sie fällt ja beim Fahren). Das wiederholte Ansagen, setzte die Position zurück und verwarf die Akku-Schätzung. Jetzt prüft die App alle 3 Minuten, ob der Plan noch passt, und startet die Route nur neu, wenn sich die Ladestopps wirklich ändern.
+- Ladestopp bei zu wenig Reichweite: Reicht die Reichweite (Auto-Wert oder Schätzung) nicht für Ziel plus eingestellte „Restreichweite am Ziel“, plant die App jetzt auch unterwegs einen Ladestopp ein (einmal pro Fahrt, mit Ansage). Vorher kam das nur beim Start der Route.
 
 ## 1.0.246 — 2026-10-28
 

@@ -2135,6 +2135,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         if (!continuing) {
             navStartMs = System.currentTimeMillis(); navStartDist = tripDist; evSinceNav = 0.0; evChargeRefPct = -1.0; evChargeRefAt = 0L; evSinceCharge = 0.0
             navTripDest = dest?.pos
+            evKmAtPlan = null
         }
         lastFasterCheck = System.currentTimeMillis(); faster = null; lastTrafficAt = 0L; undoRoute = null; if (notice?.kind == "reroute") notice = null
         dest?.let { d -> prefs.put(PreferenceKeys.RESUME, org.json.JSONObject().put("n", d.name).put("s", d.sub).put("la", d.pos.lat).put("lo", d.pos.lon).put("t", System.currentTimeMillis()).toString()) }
@@ -6213,26 +6214,62 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         fuelSuggestion = null; suggestFuel(r)
     }
 
-    private var evKmAtPlan: Int? = null
+    private var evKmAtPlan: Double? = null
+    private var evDrivenAtPlan = 0.0
     private var evKmCheckAt = 0L
+    private var evCheckBusy = false
+    /** The destination a charging stop was added late for (the battery was lower than first thought): once per trip, so it can't fight your own changes. */
+    private var evLateAddFor: LL? = null
 
     /**
-     * Electric, while driving: when the range the car reports changes by 5 km or more, the automatic charging stops are planned
-     * again (at most every 3 minutes). Your own stops stay where they are.
+     * Electric, while driving, every 3 minutes at most: is the plan still right? The range counts as the car's own reading or, when
+     * that is old, the estimate from the last reading. Planned again when it differs clearly from what the drive since the last
+     * plan explains (a charge, a wrong first reading), or when no stop is planned although the range falls short of the
+     * destination's reserve (Settings). The route is only started afresh when the stops really change: it used to restart each time
+     * the range counter had dropped 5 km (it drops as you drive), repeating announcements and losing the position on the route.
      */
     private fun checkEvRange() {
-        if (!isEv || route == null || previewing || packBusy) return
-        val km = evNowKm() ?: return
-        val base = evKmAtPlan
-        if (base == null) { evKmAtPlan = km; return }
+        if (!isEv || route == null || previewing || packBusy || evCheckBusy || !prefs.b(PreferenceKeys.SMARTFUEL, true)) return
         val now = System.currentTimeMillis()
-        if (abs(km - base) < 5 || now - evKmCheckAt < 180_000L) return
+        if (now - evKmCheckAt < 180_000L) return
+        val r = route ?: return
         val d = dest ?: return
-        evKmCheckAt = now; evKmAtPlan = km
-        // take the automatic stops off (your own stay), then plan again with the new range
-        via = via.filterNot { p -> evPlanned.any { Geo.dist(it.n.place.pos, p.pos) < 30.0 } }
-        evPlanned = emptyList(); evAutoDest = null; evPlanWarn = null
-        startRoute(d, departMin, true, startNow = !previewing)
+        evEnsureLoaded()
+        val km = evNowKm()?.toDouble() ?: evRangeKm().first
+        val drivenKm = (evDriven - evDrivenAtPlan) / 1000.0
+        val base = evKmAtPlan
+        if (base == null) { evKmAtPlan = km; evDrivenAtPlan = evDriven; return }
+        val expected = base - drivenKm
+        val changed = abs(km - expected) >= max(8.0, 0.2 * drivenKm)
+        val destKm = prefs.i(PreferenceKeys.EV_DEST_KM, 50).coerceIn(0, 500).toDouble()
+        val remKm = max(0.0, r.len - curProgress) / 1000.0
+        val short = evPlanned.isEmpty() && km - remKm < destKm && evLateAddFor?.let { Geo.dist(it, d.pos) < 50.0 } != true
+        if (!changed && !short) return
+        evKmCheckAt = now; evKmAtPlan = km; evDrivenAtPlan = evDriven
+        evCheckBusy = true
+        scope.launch {
+            try {
+                evPlanJobs.remove(r)
+                val (stops, warning) = computeEvPlan(r) ?: return@launch
+                if (route !== r || previewing) return@launch
+                val have = evPlanned
+                if (have.isEmpty()) {
+                    evWarning = warning
+                    if (stops.isNotEmpty() && short) {
+                        evLateAddFor = d.pos; evAutoDest = d.pos
+                        speak(Lang.t("Der Akku reicht nicht bis zum Ziel. Ein Ladestopp wird eingeplant.", "The battery won't reach the destination. A charging stop is being added."), true)
+                        addStops(stops, auto = true)
+                    }
+                    return@launch
+                }
+                // the stops it would pick now against the planned ones: the same, then nothing changes
+                val same = stops.size == have.size && stops.all { n -> have.any { Geo.dist(it.n.place.pos, n.n.place.pos) < 300.0 } }
+                if (same) return@launch
+                via = via.filterNot { p -> have.any { Geo.dist(it.n.place.pos, p.pos) < 30.0 } }
+                evPlanned = emptyList(); evAutoDest = null; evPlanWarn = null
+                startRoute(d, departMin, true, startNow = !previewing)
+            } finally { evCheckBusy = false }
+        }
     }
 
     /**
