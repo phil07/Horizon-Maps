@@ -74,6 +74,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.headunit.launcher.Geo
@@ -543,14 +544,27 @@ private fun TripCard(engine: NavEngine, fill: Boolean) {
             if (fill) engine.evNowKm()?.let { k -> CarStat("$k km", "Reichweite", c.text) }
             engine.evArrivalPct()?.let { p -> CarStat("$p%", "Akku Ankunft", if (p < 10) Bad else if (p < 20) Warn else Good) }
         }
+        // the two text buttons: the whole route at a glance, and the other routes (grey lines) on or off, as in the app
+        val pill: @Composable (String, Dp, () -> Unit) -> Unit = { label, h, action ->
+            Box(Modifier.height(h).clip(androidx.compose.foundation.shape.CircleShape).background(c.line).carTap("trip-$label") { action() }
+                .padding(horizontal = 16.dp), contentAlignment = Alignment.Center) {
+                Text(label, color = c.text, fontSize = 20.sp, fontWeight = FontWeight.Medium, maxLines = 1)
+            }
+        }
+        val overviewBtn: @Composable (Dp) -> Unit = { h -> pill(Lang.t("Übersicht", "Overview"), h) { engine.overview() } }
+        val otherBtn: @Composable (Dp) -> Unit = { h ->
+            pill(if (engine.prefs.b(PreferenceKeys.LIVE_ALTERNATIVES, true)) Lang.t("Andere aus", "Hide others") else Lang.t("Andere an", "Show others"), h) { engine.toggleOtherRoutes() }
+        }
         if (fill) Row(Modifier.fillMaxWidth().padding(start = 16.dp, end = 10.dp, top = 4.dp, bottom = 10.dp), verticalAlignment = Alignment.CenterVertically) {
             Row(Modifier.weight(1f), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) { stats() }
+            Box(Modifier.padding(start = 8.dp)) { overviewBtn(46.dp) }
+            Box(Modifier.padding(start = 8.dp)) { otherBtn(46.dp) }
             Box(Modifier.padding(start = 12.dp)) { sound(46.dp) }
             Box(Modifier.padding(start = 8.dp)) { end(46.dp) }
         } else Row(Modifier.widthIn(min = 460.dp).onSizeChanged { if (it.width != rowW) rowW = it.width }.padding(start = 16.dp, end = 10.dp, top = 4.dp, bottom = 10.dp),
             horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
             Row(horizontalArrangement = Arrangement.spacedBy(26.dp), verticalAlignment = Alignment.CenterVertically) { stats() }
-            Row(Modifier.padding(start = 16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) { sound(54.dp); end(54.dp) }
+            Row(Modifier.padding(start = 16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) { overviewBtn(54.dp); otherBtn(54.dp); sound(54.dp); end(54.dp) }
         }
     }
 }

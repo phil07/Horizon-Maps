@@ -2349,6 +2349,10 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
     }
 
     /** Shows the rest of the route on screen, then goes back to following the car after a few seconds. */
+    /** "Andere Routen" on the trip card (or in the car's settings): the grey lines with +/- minutes on or off. */
+    fun toggleOtherRoutes() { prefs.put(PreferenceKeys.LIVE_ALTERNATIVES, !prefs.b(PreferenceKeys.LIVE_ALTERNATIVES, true)); otherRoutesChanged() }
+    fun otherRoutesChanged() { if (!prefs.b(PreferenceKeys.LIVE_ALTERNATIVES, true)) clearLiveAlts() }
+
     fun overview() {
         val r = route ?: return
         val pts = listOfNotNull(fix?.pos) + r.pts.drop(lastIdx.coerceIn(0, max(0, r.pts.size - 2))).filterIndexed { n, _ -> n % 6 == 0 } + r.pts.last()
