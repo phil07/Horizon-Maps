@@ -307,6 +307,11 @@ private fun CarScreen(engine: NavEngine, a: android.graphics.Rect?, actions: Car
             else Modifier.align(Alignment.TopCenter).padding(top = top, start = if (guiding) maxWidth * 0.42f else left, end = maxOf(rightTop, maxWidth * 0.30f))
         AnimatedVisibility(alert != null, modifier = alertMod, enter = fadeIn(), exit = fadeOut()) { alert?.let { AlertBanner(it) } }
 
+        // a quicker way: a card at the top to take or leave (it goes again by itself)
+        if (guiding && engine.faster != null) Box(Modifier.align(Alignment.TopCenter).padding(top = top + below, start = left, end = rightTop)) {
+            CompositionLocalProvider(LocalDensity provides Density(dens.density * cardScale, dens.fontScale)) { FasterCard(engine, Modifier.widthIn(max = 560.dp)) }
+        }
+
         // the compass, top right (below the sound button when the screen is tall), as on the phone: a tap turns north up or back
         if (!previewing) CompositionLocalProvider(LocalDensity provides Density(dens.density * buttonScale, dens.fontScale)) {
             ImmCompass(engine, Modifier.align(Alignment.TopEnd).padding(end = rightTop, top = top + below + if (portrait) 84.dp else 0.dp))
@@ -336,7 +341,6 @@ private fun CarScreen(engine: NavEngine, a: android.graphics.Rect?, actions: Car
                         .onGloballyPositioned { engine.bottomCover = ((vT + vH - it.boundsInRoot().top) / vH).coerceIn(0f, 0.6f).toDouble() },
                     verticalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
-                    if (guiding) CompositionLocalProvider(LocalDensity provides Density(dens.density * cardScale, dens.fontScale)) { FasterCard(engine, Modifier.fillMaxWidth()) }
                     // (the row keeps the speed's height, so the hazards line up with it)
                     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.Bottom) {
                         Box(Modifier.weight(1f)) { hazards() }
@@ -353,7 +357,6 @@ private fun CarScreen(engine: NavEngine, a: android.graphics.Rect?, actions: Car
                         .onGloballyPositioned { report(1, it.boundsInRoot()) },
                     verticalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
-                    if (guiding) CompositionLocalProvider(LocalDensity provides Density(dens.density * cardScale, dens.fontScale)) { FasterCard(engine, Modifier.widthIn(max = 520.dp)) }
                     // (while guiding, the sound button is on the trip card instead of a pill of its own)
                     if (!guiding) CompositionLocalProvider(LocalDensity provides Density(dens.density * buttonScale, dens.fontScale)) { SoundPill(engine) }
                     hazards()

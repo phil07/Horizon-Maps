@@ -24,6 +24,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
@@ -489,7 +490,8 @@ private fun MapScreen(engine: NavEngine, onSettings: () -> Unit) {
 
         engine.faster?.let { fr ->
             Row(
-                Modifier.align(Alignment.BottomCenter).padding(start = 16.dp, end = 16.dp, bottom = if (narrow) tripH + 10.dp else 84.dp).widthIn(max = 540.dp).panel(10.dp, RoundedCornerShape(24.dp), c.surface).padding(horizontal = 18.dp, vertical = 14.dp),
+                // at the top, under the turn card, where it's seen at a glance
+                Modifier.align(Alignment.TopCenter).statusBarsPadding().padding(start = 16.dp, end = 16.dp, top = 150.dp).widthIn(max = 540.dp).panel(10.dp, RoundedCornerShape(24.dp), c.surface).padding(horizontal = 18.dp, vertical = 14.dp),
                 verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp),
             ) {
                 Box(Modifier.size(44.dp).clip(CircleShape).background(Good.copy(alpha = 0.18f)), contentAlignment = Alignment.Center) { Icon(Icons.Rounded.Route, null, tint = Good, modifier = Modifier.size(24.dp)) }
@@ -506,7 +508,7 @@ private fun MapScreen(engine: NavEngine, onSettings: () -> Unit) {
         // route card when that is up too)
         engine.votePrompt?.takeIf { !previewing && engine.arrival == null }?.let { vp ->
             Row(
-                Modifier.align(Alignment.BottomCenter).padding(start = 16.dp, end = 16.dp, bottom = (if (narrow) tripH + 10.dp else 84.dp) + (if (engine.faster != null) 92.dp else 0.dp))
+                Modifier.align(Alignment.BottomCenter).padding(start = 16.dp, end = 16.dp, bottom = (if (narrow) tripH + 10.dp else 84.dp))
                     .widthIn(max = 540.dp).panel(10.dp, RoundedCornerShape(24.dp), c.surface).padding(horizontal = 18.dp, vertical = 12.dp),
                 verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {

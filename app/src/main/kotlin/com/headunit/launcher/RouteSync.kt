@@ -28,11 +28,14 @@ object RouteSync {
         android.os.Handler(android.os.Looper.getMainLooper()).post { carOn = on }
     }
 
+    /** The route the trip was started with (the one picked, which need not be the fastest). */
+    @Volatile var currentRoute: Route? = null
+
     fun register(e: NavEngine) {
         synchronized(engines) { engines.add(e) }
         noteCar()
         val cur = current
-        if (cur != null && e.route == null) apply { e.followRoute(cur.first, cur.second, currentEv) }
+        if (cur != null && e.route == null) apply { e.followRoute(cur.first, cur.second, currentEv, currentRoute) }
     }
 
     fun unregister(e: NavEngine) {
@@ -63,8 +66,9 @@ object RouteSync {
     /** [from] has started guidance to [dest]: the others follow. */
     fun started(from: NavEngine, dest: Place, via: List<Place>) {
         if (applying) return
-        current = dest to via; currentEv = from.evPlanned
-        for (e in others(from)) apply { e.followRoute(dest, via, currentEv) }
+        // the way chosen goes along: the other screen used to work the route out again and took the fastest, not the one you picked
+        current = dest to via; currentEv = from.evPlanned; currentRoute = from.route
+        for (e in others(from)) apply { e.followRoute(dest, via, currentEv, currentRoute) }
     }
 
     /** True when some engine still connected is guiding (so the background GPS service must stay on). */
@@ -74,7 +78,7 @@ object RouteSync {
     fun ended(from: NavEngine) {
         // an engine that has already left (the car screen being unplugged) doesn't end the phone's trip
         if (applying || synchronized(engines) { from !in engines }) return
-        current = null; currentEv = emptyList()
+        current = null; currentEv = emptyList(); currentRoute = null
         for (e in others(from)) if (e.route != null) apply { e.endRoute() }
     }
 

@@ -5,8 +5,11 @@ Add user-facing Horizon Nav changes under **Unreleased** before publishing each 
 ## Unreleased
 
 ### Verbessert
+- Ansagen früher und kürzer: Die Hauptansage kommt etwa 30 Sekunden vor dem Abbiegen (in der Stadt rund 400 bis 500 m statt 250 bis 300 m). Sie nennt nur noch einen Ort vom Schild („links halten Richtung Frankfurt“), an der Kreuzung selbst kommt nur die Richtung („Links halten“). Eine neue Ansage unterbricht die vorige nicht mehr, sie wartet, bis diese zu Ende ist.
 - Pfeil bei schmaler Karte: Teilt sich Android Auto den Bildschirm (z. B. mit Musik), sitzt der Standortpfeil jetzt über der Fahrtleiste statt dahinter.
-- Android Auto während der Fahrt: Die zusätzlichen Knöpfe Beenden und Ton auf der Karte sind weg (Beenden steht schon oben links, Ton auf der Fahrtleiste). Der Filter-Knopf für Ladesäulen sitzt jetzt direkt unter „Melden“, genauso groß und mit gleicher Schrift.
+
+### Behoben
+- Gewählte Route bleibt: Hast du nicht die schnellste Route gewählt, hat Android Auto die Route neu berechnet und dich doch die schnellste fahren lassen. Jetzt übernimmt es genau die gewählte Route. Findet die App unterwegs eine schnellere, erscheint oben eine Karte zum Wechseln oder Behalten (handy und Android Auto), die nach 7 Sekunden verschwindet. Gewechselt wird nie von selbst.
 
 ## 1.0.246 — 2026-10-28
 

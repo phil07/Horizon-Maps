@@ -2006,14 +2006,17 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
                     }
                 }
                 if (rs0.isEmpty()) throw IllegalStateException("No route found")
-                val rs = if (usedOffline) rs0 else avoidVignette(rs0, from, to.pos, departMs)
+                var rs = if (usedOffline) rs0 else avoidVignette(rs0, from, to.pos, departMs)
                 if (usedOffline) toast(ctx.getString(R.string.toast_030), 4000)
                 // the fastest route is the one chosen first: everything planned for the trip (rain, weather, charging stops) is for it
                 // except when the charging stops went onto the trip as it started: then the way that follows the route you chose
                 // (fastest, shortest or an alternative) most closely, not simply the quickest one through the stops
                 val prefer = evPreferRoute; evPreferRoute = null
+                // none of the new ways follows the one picked on the other screen: that one itself is taken
+                if (prefer != null && keepVia && rs.none { routeOverlap(it, prefer) > 0.8 }) rs = listOf(prefer) + rs
                 val pick = (if (prefer != null && keepVia && rs.size > 1) rs.indices.maxByOrNull { routeOverlap(rs[it], prefer) } else null)
                     ?: rs.indices.minByOrNull { rs[it].time } ?: 0
+                pickedSlower = rs.size > 1 && rs[pick].time > rs.minOf { it.time } + 60.0
                 if (rs[pick].steps.isEmpty()) toast(if (lastRouteProvider == "mapbox") Lang.t("Mapbox hat für diese Route keine Abbiegehinweise geliefert", "Mapbox returned no turn instructions for this route") else Lang.t("Dieser Schlüssel liefert keine Abbiegehinweise. Prüfe, ob er Zugriff auf die TomTom Routing API hat", "This key returned no turn instructions. Check it has TomTom Routing API access"), 6000)
                 if (departInMin > 0 && !usedOffline && !departApplied) toast(ctx.getString(R.string.toast_007), 4000)
                 departMin = departInMin
@@ -2083,6 +2086,8 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
 
     /** The route chosen on the cards, while the trip is worked out again through its charging stops (see startRoute). */
     private var evPreferRoute: Route? = null
+    /** The route being driven was picked over a quicker one: faster ways are only offered (a card for 7 s), never switched to. */
+    private var pickedSlower = false
     /** Starting was asked for while the charging was still being planned: it starts as soon as the plan is in. */
     private var evStartPending = false
 
@@ -2116,6 +2121,8 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
             return
         }
         map.stopFly()
+        // a slower way picked from the choice: kept, faster ones are only offered
+        if (routes.size > 1) pickedSlower = route?.let { r -> r.time > routes.minOf { it.time } + 60.0 } == true
         previewing = false
         // where this trip started, for "Route back" when you arrive
         tripFrom = fix?.pos
@@ -2239,7 +2246,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         routeCams = emptyList(); camsRoute = null; camsAt = 0L; camsCount = -1; hazardSig = 0; policeSig = 0; map.setHazards(emptyList())
         via = emptyList(); evPlanned = emptyList(); evAutoDest = null; evStops = emptyList(); evWarning = null; stopMode = false; destRain = null; routeWx = emptyList()
         routes = emptyList(); active = 0; dest = null; turn = null; eta = null; lastIdx = 0; previewing = false; routeFrac = 0f; onRoad = ""
-        departMin = 0; departAtMs = 0L; navStartMs = 0L; navTripDest = null; evStartPending = false; evPreferRoute = null
+        departMin = 0; departAtMs = 0L; navStartMs = 0L; navTripDest = null; evStartPending = false; evPreferRoute = null; pickedSlower = false
         fuelSuggestion = null; parkingNear = emptyList(); parkingFor = null
         turnArrowKey = -1; map.setTurnArrow(emptyList())
         clearLiveAlts(); liveSaid.clear(); radar = emptyList(); radarSig = 0; bendsFor = null; bends = emptyList()
@@ -4854,6 +4861,11 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
                     liveAlts = list
                     map.setLiveAlts(list.map { it.line() }, list.map { it.bubble }, list.map { it.diffMin }, list.map { it.traffic })
                     val best = list.minByOrNull { it.diffMin }
+                    // a slower way you picked yourself: a quicker one only as a card to take or leave (7 s), never switched to or said
+                    if (pickedSlower) {
+                        if (best != null && best.diffMin <= -3 && liveSaid.add(best.diffMin / 2)) offerFaster(best.route, -best.diffMin)
+                        return@launch
+                    }
                     if (best != null && autoOn() && -best.diffMin >= autoMin()) {
                         switchToAlt(list.indexOf(best), auto = true)
                         announceAuto(cur, -best.diffMin)
@@ -4864,6 +4876,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
                 }
                 val best = rs.filter { it !== same && overlap(it) < 0.8 }.minByOrNull { it.time } ?: return@launch
                 val saved = ((same.time - best.time) / 60.0).toInt()
+                if (pickedSlower) { if (saved >= 3 && best.time < same.time * 0.95) offerFaster(best, saved); return@launch }
                 if (autoOn() && saved >= autoMin()) {
                     routes = listOf(best); active = 0
                     said.clear(); offCount = 0; lastIdx = 0; trustProg = -1.0
@@ -4935,6 +4948,13 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         System.arraycopy(base, 0, cur.sev, 0, base.size)
         try { applyIncidentSev(cur, incMatches) } catch (e: Exception) { }
         lastDraw = 0L
+    }
+
+    /** The quicker way as a card at the top (phone and car) to take or leave; it goes again by itself after 7 seconds. */
+    private fun offerFaster(r: Route, saved: Int) {
+        val fr = FasterRoute(r, saved)
+        faster = fr
+        scope.launch { delay(7_000); if (faster === fr) { faster = null; lastFasterCheck = System.currentTimeMillis() } }
     }
 
     fun acceptFaster() {
@@ -5203,14 +5223,16 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
             // each kept within sensible distances
             val v = max(p0Speed(), 8.0)
             val nAt = (v * 4.0).coerceIn(60.0, 200.0)
-            val fAt = (v * (if (familiar) 11.0 else 15.0)).coerceIn(if (familiar) 180.0 else 250.0, 800.0)
+            // (the main call about 30 s out: some 400 to 500 m in town; it used to come at 250 to 300 m, too late to get in lane)
+            val fAt = (v * (if (familiar) 20.0 else 30.0)).coerceIn(if (familiar) 300.0 else 400.0, 1000.0)
             val eAt = (v * 45.0).coerceIn(900.0, 2200.0)
             if (!familiar && d <= eAt && d > fAt + 400.0 && p0Speed() > 18.0 && !arriving && said.add("${k}e"))
                 speak("In ${Geo.spoken(d, imperial)}, $phrase", turn = true)
             if (d <= fAt && d > nAt + 60.0 && said.add("${k}f"))
                 speak(if (arriving) "In ${Geo.spoken(d, imperial)} erreichen Sie Ihr Ziel" + (if (side.isNotEmpty()) ". Das Ziel liegt $side" else "") else "In ${Geo.spoken(d, imperial)}, $phrase$lane", turn = true)
             if (d <= nAt && said.add("${k}n"))
-                speak(if (arriving) (if (side.isNotEmpty()) "Das Ziel liegt $side" else "Sie haben Ihr Ziel erreicht") else phrase.replaceFirstChar { it.uppercase() }, turn = true)
+                // at the junction itself only the direction ("Links halten"): the names were said before, and a long call ran into the next
+                speak(if (arriving) (if (side.isNotEmpty()) "Das Ziel liegt $side" else "Sie haben Ihr Ziel erreicht") else word.replaceFirstChar { it.uppercase() }, turn = true)
         }
         // arrived: at the end of the route and really there (not just level with the end of the route on another road)
         val atEnd = rem < 25 && fix.let { f -> f == null || Geo.dist(f.pos, dest?.pos ?: r.pts.last()) < 120.0 || Geo.dist(f.pos, r.pts.last()) < 120.0 }
@@ -5475,12 +5497,13 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         val refs = signRefs(cur.sign)
         main += when {
             !sayRoads -> tail
-            dests.isNotEmpty() -> (if (refs.isNotEmpty() && (cur.exitNo.isNotBlank() || inter)) " auf die ${refs[0]}" else "") + " in Richtung " + dests.take(2).joinToString(Lang.t(" und ", " and "))
+            // one place from the sign is enough to find it ("links halten Richtung Frankfurt"); two and the road number made it long
+            dests.isNotEmpty() -> " Richtung " + dests[0]
             // (onto the road: "rechts halten auf die A 3", not "auf der", which means staying on it)
             refs.isNotEmpty() && exitLike -> " auf die ${refs[0]}"
             else -> tail
         }
-        if (nxt != null && nxt.off - cur.off in 1.0..450.0 && !nxt.maneuver.uppercase().startsWith("ARRIVE")) {
+        if (nxt != null && nxt.off - cur.off in 1.0..250.0 && !nxt.maneuver.uppercase().startsWith("ARRIVE")) {
             val target = signRefs(nxt.sign).firstOrNull() ?: nxt.street
             val forWhat = when {
                 target.isBlank() || !sayRoads -> ""
@@ -7242,7 +7265,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
     private fun shadow() = quiet() && !showingMap
 
     /** Joins a trip started on the other screen (the phone or the car): the same destination and stops, straight into guidance. */
-    fun followRoute(to: Place, stops: List<Place>, ev: List<EvStop> = emptyList()) {
+    fun followRoute(to: Place, stops: List<Place>, ev: List<EvStop> = emptyList(), chosen: Route? = null) {
         val d = dest
         if (d != null && Geo.dist(d.pos, to.pos) < 30.0 && route != null) {
             val sameStops = via.size == stops.size && via.zip(stops).all { (a, b) -> Geo.dist(a.pos, b.pos) < 30.0 }
@@ -7254,6 +7277,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
             // same trip, but the other screen changed its stops (e.g. charging stops added once the chargers were found mid-drive)
             via = stops
             evPlanned = ev; evAutoDest = to.pos
+            evPreferRoute = chosen
             startRoute(to, departMin, keepVia = true, startNow = true)
             return
         }
@@ -7264,6 +7288,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
             via = stops
             // the screen that started the trip planned its charging stops: this one takes them over and doesn't add its own
             evPlanned = ev; evAutoDest = to.pos
+            evPreferRoute = chosen
             startRoute(to, keepVia = true, startNow = true)
         }
     }
@@ -7436,8 +7461,9 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
             speechQ.removeAll { it.kind != 1 }
             speechQ.addFirst(u)
             val p = playing
-            // a note (or an older turn call) being read out is cut short; a warning is finished first
-            if (p != null && p.kind != 1) { playing = null; playingId = ""; try { tts?.stop() } catch (e: Exception) { } }
+            // a plain note being read out is cut short; a warning or a turn call is finished first (cutting a turn call off mid
+            // sentence left half a direction)
+            if (p != null && p.kind == 0) { playing = null; playingId = ""; try { tts?.stop() } catch (e: Exception) { } }
         } else speechQ.addLast(u)
         playNext()
     }
