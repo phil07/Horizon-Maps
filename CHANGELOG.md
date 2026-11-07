@@ -5,6 +5,7 @@ Add user-facing Horizon Nav changes under **Unreleased** before publishing each 
 ## Unreleased
 
 ### Behoben
+- Blitzer aus in Android Auto: Der Schalter „Blitzer“ in den Auto-Einstellungen blendet jetzt auch die schon geladenen Blitzer auf der Karte aus (und beim Einschalten wieder ein). Vorher stoppte er nur die Warnungen.
 - Kreisverkehr im Head-up-Display: Android Auto bekommt jetzt zusätzlich zur Ausfahrtsnummer den Ausfahrtswinkel. Das Head-up-Display im Auto zeigt dadurch geradeaus, erste, zweite oder dritte Ausfahrt im Kreisel an statt eines normalen Abbiegens.
 - Ladestopps ohne Neustart: Werden unterwegs Ladestopps oder Stopps geplant, hinzugefügt oder entfernt, wird die Route von deiner Position aus geändert und die Navigation läuft weiter. Vorher begann sie von vorn mit Routenübersicht und wiederholten Ansagen. Android Auto und Handy ändern sie gleichzeitig. Findet die App keinen Weg über den Stopp, bleibt die Route, wie sie war.
 - Route startet nicht mehr grundlos neu: Während der Fahrt hat die App die ganze Route neu berechnet, sobald die Restreichweite 5 km gefallen war (sie fällt ja beim Fahren). Das wiederholte Ansagen, setzte die Position zurück und verwarf die Akku-Schätzung. Jetzt prüft die App alle 3 Minuten, ob der Plan noch passt, und startet die Route nur neu, wenn sich die Ladestopps wirklich ändern.

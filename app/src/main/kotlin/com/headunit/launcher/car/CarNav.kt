@@ -1267,7 +1267,11 @@ class CarSettingsScreen(carContext: CarContext, private val holder: CarHolder, p
         val reroute: (Boolean) -> Unit = { holder.engine?.rerouteForSettings() }
         rows += toggleRow(Lang.t("Autobahnen meiden", "Avoid motorways"), "avoid_motorway", false, null, reroute)
         rows += toggleRow(Lang.t("Mautstraßen meiden", "Avoid toll roads"), "avoid_toll", false, null, reroute)
-        rows += toggleRow(Lang.t("Blitzer", "Speed cameras"), "cameras", false, Lang.t("Anzeigen und warnen", "Show and warn"))
+        rows += toggleRow(Lang.t("Blitzer", "Speed cameras"), "cameras", false, Lang.t("Anzeigen und warnen", "Show and warn")) { on ->
+            // the sub-line promises both: the cameras on the map go with the warnings (and come back with them)
+            prefs.put(PreferenceKeys.CAMERA_MAP, on)
+            try { holder.engine?.applyLayer(PreferenceKeys.CAMERA_MAP) } catch (x: Exception) { }
+        }
         rows += toggleRow(Lang.t("Ampeln", "Traffic lights"), "signals", true, Lang.t("Auf deiner Route", "On your route")) { on -> try { holder.map?.signalsEnabled(on) } catch (x: Exception) { } }
         rows += toggleRow(Lang.t("Fähren meiden", "Avoid ferries"), "avoid_ferry", false, null, reroute)
         val list = ItemList.Builder()
