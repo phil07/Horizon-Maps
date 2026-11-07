@@ -4071,10 +4071,10 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
         if (!prefs.b(PreferenceKeys.FLAGS_3D, true)) return emptyList()
         val out = ArrayList<Feature>()
         fun box(p: LL, half: Double, base: Double, top: Double, colour: String) {
-            val ne = MapExtras.offset(MapExtras.offset(p, 0.0, half), 90.0, half)
-            val nw = MapExtras.offset(MapExtras.offset(p, 0.0, half), 270.0, half)
-            val sw = MapExtras.offset(MapExtras.offset(p, 180.0, half), 270.0, half)
-            val se = MapExtras.offset(MapExtras.offset(p, 180.0, half), 90.0, half)
+            val ne = Furniture.offset(Furniture.offset(p, 0.0, half), 90.0, half)
+            val nw = Furniture.offset(Furniture.offset(p, 0.0, half), 270.0, half)
+            val sw = Furniture.offset(Furniture.offset(p, 180.0, half), 270.0, half)
+            val se = Furniture.offset(Furniture.offset(p, 180.0, half), 90.0, half)
             val ring = listOf(ne, nw, sw, se, ne).map { Point.fromLngLat(it.lon, it.lat) }
             out += Feature.fromGeometry(Polygon.fromLngLats(listOf(ring))).also {
                 it.addNumberProperty("b", base); it.addNumberProperty("h", top); it.addStringProperty("c", colour)
