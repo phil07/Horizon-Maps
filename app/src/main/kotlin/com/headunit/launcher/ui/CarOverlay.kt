@@ -291,7 +291,7 @@ private fun CarScreen(engine: NavEngine, a: android.graphics.Rect?, actions: Car
             val colW = 156.dp
             val x = if (!portrait && insL > colW) (insL - colW) / 2 else left
             // Android Auto's buttons: about 80 dp tall, 21 dp apart, the first about 27 dp from the top: this is the third place
-            val y = if (!portrait && insL > colW) 27.dp + 2 * (80.dp + 21.dp) else top
+            val y = if (!portrait && insL > colW) 27.dp + (80.dp + 21.dp) * 2 else top
             Box(Modifier.padding(start = x, top = y).width(colW).height(80.dp)
                 .panel(10.dp, RoundedCornerShape(40.dp), if (engine.chargerMinKw > 0) c.accent else c.surface)
                 .carTap("trip-filter") { engine.chargerFilterOpen = !engine.chargerFilterOpen }, contentAlignment = Alignment.Center) {
