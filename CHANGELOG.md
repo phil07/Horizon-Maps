@@ -4,9 +4,8 @@ Add user-facing Horizon Nav changes under **Unreleased** before publishing each 
 
 ## Unreleased
 
-### Behoben
-- Fußweg zum Auto mit gesperrtem Handy: Ging der Bildschirm aus oder das Handy in die Tasche, stoppte die App das GPS, und Ansagen und Ankunft beim Auto blieben aus. Jetzt läuft der Fußweg im Hintergrund weiter (mit Benachrichtigung „Fußweg zum Auto“).
-- Parkplatz per Bluetooth: Ab dem neunten Auto bzw. der neunten Freisprechanlage wurde ein neues Auto nie mehr gelernt. Jetzt ersetzt das neue das älteste.
+### Verbessert
+- Android Auto während der Fahrt: Die zusätzlichen Knöpfe Beenden und Ton auf der Karte sind weg (Beenden steht schon oben links, Ton auf der Fahrtleiste). Der Filter-Knopf für Ladesäulen sitzt jetzt direkt unter „Melden“, genauso groß und mit gleicher Schrift.
 
 ## 1.0.246 — 2026-10-28
 

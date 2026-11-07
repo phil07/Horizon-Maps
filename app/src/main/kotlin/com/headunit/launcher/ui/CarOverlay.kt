@@ -284,12 +284,19 @@ private fun CarScreen(engine: NavEngine, a: android.graphics.Rect?, actions: Car
             enter = androidx.compose.animation.slideInHorizontally(tween(220)) { -it } + fadeIn(tween(200)),
             exit = androidx.compose.animation.slideOutHorizontally(tween(200)) { -it } + fadeOut(tween(180))) { CarChargerFilter(engine) }
 
-        // the trip's own buttons, always on screen on the left (Android Auto's bar at the top can hide itself): end, charger filter, sound
-        if (guiding && !previewing && !arriving) Column(Modifier.align(Alignment.CenterStart).padding(start = left), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Box(Modifier.carTap("trip-end") { engine.endRoute() }) { ImmPill(Lang.t("Beenden", "End"), {}) }
-            if (engine.isEv) Box(Modifier.carTap("trip-filter") { engine.chargerFilterOpen = !engine.chargerFilterOpen }) { ImmPill(Lang.t("Filter", "Filter"), {}, filled = engine.chargerMinKw > 0) }
-            Box(Modifier.carTap("trip-sound") { engine.cycleSound() }) { ImmPill(Lang.t("Ton", "Sound"), {}) }
-            // (Melden is in Android Auto's bar at the top: the bar can't be empty)
+        // the charger filter while driving: under Android Auto's own Melden button, in the same column and the same size (Beenden
+        // and Melden are Android Auto's buttons, top left; ending the trip and the sound are there or on the trip bar already).
+        // Android Auto's column is the strip left of the stable area; where it's too narrow, the filter sits at the left edge.
+        if (guiding && !previewing && !arriving && engine.isEv) {
+            val colW = 156.dp
+            val x = if (!portrait && insL > colW) (insL - colW) / 2 else left
+            // Android Auto's buttons: about 80 dp tall, 21 dp apart, the first about 27 dp from the top: this is the third place
+            val y = if (!portrait && insL > colW) 27.dp + 2 * (80.dp + 21.dp) else top
+            Box(Modifier.padding(start = x, top = y).width(colW).height(80.dp)
+                .panel(10.dp, RoundedCornerShape(40.dp), if (engine.chargerMinKw > 0) c.accent else c.surface)
+                .carTap("trip-filter") { engine.chargerFilterOpen = !engine.chargerFilterOpen }, contentAlignment = Alignment.Center) {
+                Text(Lang.t("Filter", "Filter"), color = if (engine.chargerMinKw > 0) Color.White else c.text, fontSize = 28.sp, fontWeight = FontWeight.Medium, maxLines = 1)
+            }
         }
 
         // alerts (cameras, limits, hazards...): beside the turn card on wide screens, under it on tall ones
