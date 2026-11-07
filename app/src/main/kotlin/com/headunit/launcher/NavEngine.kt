@@ -3932,6 +3932,11 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         }
         // portrait: keep the locator clear of the trip card (its centre sits at (1 + pad) / 2 of the height)
         if (bottomCover > 0.0) pad = minOf(pad, 2.0 * (1.0 - bottomCover - 0.09) - 1.0).coerceAtLeast(0.0)
+        // a narrow map (Android Auto split beside music): the trip card along the bottom reaches across most of the width, so
+        // moving the arrow sideways can't clear it; the arrow goes up to sit just above the card instead
+        else for (pn in panels) {
+            if (pn[2] - pn[0] > 0.55f && pn[3] > 0.85f && pn[1] > 0.3f) pad = minOf(pad, 2.0 * (pn[1] - 0.08) - 1.0).coerceAtLeast(0.0)
+        }
         tBMode = if (northUp) 0 else if (navigating || sp > 2.0) 1 else 2
         // stopped for 30 s (lights, a queue): a flat top-down view of the traffic round you, back to normal as soon as you move.
         // Not when you've moved the map yourself, nor in the last 400 m of a route

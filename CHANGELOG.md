@@ -5,6 +5,7 @@ Add user-facing Horizon Nav changes under **Unreleased** before publishing each 
 ## Unreleased
 
 ### Verbessert
+- Pfeil bei schmaler Karte: Teilt sich Android Auto den Bildschirm (z. B. mit Musik), sitzt der Standortpfeil jetzt über der Fahrtleiste statt dahinter.
 - Android Auto während der Fahrt: Die zusätzlichen Knöpfe Beenden und Ton auf der Karte sind weg (Beenden steht schon oben links, Ton auf der Fahrtleiste). Der Filter-Knopf für Ladesäulen sitzt jetzt direkt unter „Melden“, genauso groß und mit gleicher Schrift.
 
 ## 1.0.246 — 2026-10-28
