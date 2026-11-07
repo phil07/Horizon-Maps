@@ -2071,6 +2071,11 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
             .iconOpacity(0.92).iconEmissiveStrength(0.8).minZoom(16.0))
         // stop signs on the route: a small badge that stands up at the junction (from zoom 14)
         addImg(st, "dl-stop", stopBitmap())
+        // 3D flags at the destination and the stops (see flagFeats)
+        addS(st, GeoJsonSource.Builder("dl-flags").featureCollection(FeatureCollection.fromFeatures(flagFeats())).build())
+        addL(st, FillExtrusionLayer("dl-flag", "dl-flags").inSlot("middle").minZoom(12.0)
+            .fillExtrusionColor(Expression.fromRaw("[\"get\",\"c\"]")).fillExtrusionBase(Expression.fromRaw("[\"get\",\"b\"]"))
+            .fillExtrusionHeight(Expression.fromRaw("[\"get\",\"h\"]")).fillExtrusionOpacity(0.95).fillExtrusionEmissiveStrength(1.0))
         addS(st, GeoJsonSource.Builder("dl-stops").featureCollection(FeatureCollection.fromFeatures(stopFeats())).build())
         addL(st, SymbolLayer("dl-stop", "dl-stops").inSlot(TOP).iconImage("dl-stop").iconAllowOverlap(true).iconIgnorePlacement(true)
             .iconAnchor(IconAnchor.BOTTOM).iconPitchAlignment(IconPitchAlignment.VIEWPORT)
@@ -3981,7 +3986,7 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
         // they were for the first stretch, so lights further along never appeared)
         pushSignals()
     }
-    fun setDest(p: LL?) { dest = p; pushDest() }
+    fun setDest(p: LL?) { dest = p; pushDest(); pushFlags() }
     /** The stops on the way, in order; true = a charging stop. Kept, so they're drawn again after a style change. */
     /** [labels] (same order as [stops]) name a charging stop's power on the map: "150 kW", or "?" when it isn't known. */
     fun setVia(stops: List<Pair<LL, Boolean>>, labels: List<String?> = emptyList()) { via = stops; viaLabels = labels; pushVia() }
@@ -4061,6 +4066,26 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
         } catch (e: Throwable) { answer(ll, null) }
     }
 
+    /** The 3D flags: a thin white pole with a block for the flag on top, red at the destination and amber at each stop. */
+    private fun flagFeats(): List<Feature> {
+        if (!prefs.b(PreferenceKeys.FLAGS_3D, true)) return emptyList()
+        val out = ArrayList<Feature>()
+        fun box(p: LL, half: Double, base: Double, top: Double, colour: String) {
+            val ne = MapExtras.offset(MapExtras.offset(p, 0.0, half), 90.0, half)
+            val nw = MapExtras.offset(MapExtras.offset(p, 0.0, half), 270.0, half)
+            val sw = MapExtras.offset(MapExtras.offset(p, 180.0, half), 270.0, half)
+            val se = MapExtras.offset(MapExtras.offset(p, 180.0, half), 90.0, half)
+            val ring = listOf(ne, nw, sw, se, ne).map { Point.fromLngLat(it.lon, it.lat) }
+            out += Feature.fromGeometry(Polygon.fromLngLats(listOf(ring))).also {
+                it.addNumberProperty("b", base); it.addNumberProperty("h", top); it.addStringProperty("c", colour)
+            }
+        }
+        dest?.let { d -> box(d, 0.3, 0.0, 22.0, "#F5F5F5"); box(d, 1.6, 18.0, 25.0, "#E0142B") }
+        for ((p, _) in via) { box(p, 0.25, 0.0, 14.0, "#F5F5F5"); box(p, 1.2, 10.0, 13.0, "#FFB300") }
+        return out
+    }
+    private fun pushFlags() { try { src("dl-flags")?.featureCollection(FeatureCollection.fromFeatures(flagFeats())) } catch (e: Throwable) { } }
+
     private fun pushVia() {
         val s = src("dl-via") ?: return
         val st = style
@@ -4073,6 +4098,7 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
             }
             Feature.fromGeometry(Point.fromLngLat(p.lon, p.lat)).also { it.addStringProperty("img", img) }
         }))
+        pushFlags()
     }
 
     /** The charge points in view: [sites] are drawn with their power ("150 kW", or "?") and their free count ("2/5", or "5"). */

@@ -6,6 +6,7 @@ Add user-facing Horizon Nav changes under **Unreleased** before publishing each 
 
 ### Neu
 - Nächstes Tempolimit: Kommt auf der Route ein anderes Tempolimit, zeigt ein kleines Schild neben dem Limit, welches es ist und wie weit es noch ist (ab etwa 800 m).
+- 3D-Fahnen: Eine hohe rote Fahne am Ziel und kleinere gelbe an deinen Stopps, über den Gebäuden, damit du sie aus der Ferne siehst. Ein/aus unter Einstellungen > Dein Pfeil & Routenlinie > Routenlinie.
 
 ### Behoben
 - Blitzer aus in Android Auto: Der Schalter „Blitzer“ in den Auto-Einstellungen blendet jetzt auch die schon geladenen Blitzer auf der Karte aus (und beim Einschalten wieder ein). Vorher stoppte er nur die Warnungen.

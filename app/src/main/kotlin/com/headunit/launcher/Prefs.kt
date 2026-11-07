@@ -30,6 +30,8 @@ internal object PreferenceKeys {
     const val BUILDINGS_3D = "buildings3d"
     const val SIGNALS = "signals"
     const val HAZARD_ICONS = "hazardicons"
+    /** 3D flags on the map: a tall red one at the destination, amber ones at the stops. */
+    const val FLAGS_3D = "flags3d"
     const val LAMPS = "lamps"
     const val TREES = "trees"
     const val PATHS = "paths"
