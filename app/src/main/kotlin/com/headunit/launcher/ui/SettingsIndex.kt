@@ -49,6 +49,7 @@ internal val settingsIndex = listOf(
     SettingRef("Pfeilfarbe", "", "Dein Pfeil", 2),
     SettingRef("Abbiegepfeil auf der Route", "Weißer Pfeil durch die nächste Kreuzung", "Routenlinie", 2),
     SettingRef("Pfeile entlang der Route", "Kleine Pfeile auf der Linie beim Zoom", "Routenlinie", 2),
+    SettingRef("Auf der Bordsteinseite ankommen", "Route bringt dich zur Seite des Ziels", "Routenauswahl", 3),
     SettingRef("3D-Fahnen", "Rote Fahne am Ziel, gelbe an den Stopps", "Routenlinie", 2),
     SettingRef("Routenschattenband", "Schatten unter der Route und Transparenz", "Routenlinie", 2),
     SettingRef("Fließendes Licht auf der Route", "", "Routenlinie", 2),

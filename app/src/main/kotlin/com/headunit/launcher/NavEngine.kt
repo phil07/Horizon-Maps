@@ -458,7 +458,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
 
     /** Routes from one service ("mapbox" or "tomtom"). */
     private fun routesFrom(p: String, from: LL, to: LL, alternatives: Boolean, departAtMs: Long, via: List<LL>, headingDeg: Double, quick: Boolean): List<Route> =
-        if (p == "mapbox") try { MapboxRest.routes(mbToken, from, to, alternatives, departAtMs, via, headingDeg, quick, leftTraffic) } catch (e: Exception) { noteMbRefused(e); throw e }
+        if (p == "mapbox") try { MapboxRest.curbArrival = prefs.b(PreferenceKeys.CURB_ARRIVAL, true); MapboxRest.routes(mbToken, from, to, alternatives, departAtMs, via, headingDeg, quick, leftTraffic) } catch (e: Exception) { noteMbRefused(e); throw e }
         else TomTomRest.routes(apiKey, from, to, alternatives, departAtMs, via, headingDeg, quick)
 
     /**
@@ -546,6 +546,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         if (!hasMapbox || !prefs.b(PreferenceKeys.LANES_MAPBOX, true) || !online()) return
         searchScope.launch {
             try {
+                MapboxRest.curbArrival = prefs.b(PreferenceKeys.CURB_ARRIVAL, true)
                 val mb = MapboxRest.routes(mbToken, from, to, false, 0L, via, headingDeg, true, leftTraffic).firstOrNull() ?: return@launch
                 if (mb.lanes.isEmpty()) return@launch
                 var matched = 0

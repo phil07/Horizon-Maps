@@ -429,6 +429,7 @@ private fun RoutesSection(prefs: Prefs) {
     SGroup("Routenauswahl") {
         SToggle(prefs, "Öko-Routen", "route_eco", false, "Kraftstoffsparend statt am schnellsten")
         SToggle(prefs, "Schnellere Routen anbieten", "fasterroute", true)
+        SToggle(prefs, "Auf der Bordsteinseite ankommen", "curbarrival", true, "Die Route bringt dich zur Seite des Ziels, auf der du aussteigst (Mapbox)")
         if (prefs.b(PreferenceKeys.FASTER_ROUTE, true)) {
             SToggle(prefs, "Automatisch umleiten", "autoreroute", true, "Wechselt selbst auf eine schnellere Route, mit Ansage und „Alte Route“ zum Zurückwechseln")
             if (prefs.b(PreferenceKeys.AUTO_REROUTE, true)) {

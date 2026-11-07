@@ -266,6 +266,9 @@ object MapboxRest {
      * Driving routes with live traffic (Mapbox's driving-traffic profile): the line, turn by turn (roundabout exits, motorway exits,
      * lanes), traffic along it, the speed limit of each stretch, and incidents on it. [leftHand]: driving on the left (for U-turn lanes).
      */
+    /** Arrive on the kerb side of the destination (the setting; read when a route is asked for). */
+    @Volatile var curbArrival = true
+
     fun routes(token: String, from: LL, to: LL, alternatives: Boolean, departAtMs: Long = 0L, via: List<LL> = emptyList(),
                headingDeg: Double = -1.0, quick: Boolean = false, leftHand: Boolean = false): List<Route> {
         val pts = listOf(from) + via + listOf(to)
@@ -274,6 +277,8 @@ object MapboxRest {
         val lang = java.util.Locale.getDefault().language.ifBlank { "en" }
         var base = "$API/directions/v5/mapbox/driving-traffic/$coords?geometries=geojson&overview=full&steps=true" +
             "&annotations=maxspeed,congestion,duration,distance&language=$lang&alternatives=${alternatives && via.isEmpty()}&access_token=${enc(token)}" + Vehicle.mapboxParams()
+        // arriving at the destination on the kerb side (the side you drive on): only the last point, the others are skipped
+        if (curbArrival) base += "&approaches=" + enc(List(pts.size) { i -> if (i == pts.size - 1) "curb" else "" }.joinToString(";"))
         // the way you're facing, so a reroute doesn't send you the wrong way down the road you're on
         if (headingDeg >= 0) base += "&bearings=" + enc((listOf("${headingDeg.toInt() % 360},45") + List(pts.size - 1) { "" }).joinToString(";"))
         val dep = if (departAtMs > 0) "&depart_at=" + enc(java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm", java.util.Locale.US).format(java.util.Date(departAtMs))) else ""
