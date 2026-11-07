@@ -2414,6 +2414,9 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
 
     /** The route's own limit where you are now (m/s), while navigating; it votes with the other sources. */
     @Volatile private var routeLimitNow: Double? = null
+    /** The next different posted limit on the route ahead (m/s) and how far off it is, for the small sign beside the speed sign. */
+    var nextLimitMs by mutableStateOf<Double?>(null)
+    var nextLimitM by mutableStateOf(0.0)
     /** The route's limit that the other sources outvoted, so it isn't put back on the sign with every GPS fix. */
     @Volatile private var routeOverruled: Double? = null
 
@@ -2954,15 +2957,19 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
     /** While navigating a TomTom route: the posted limit for exactly where you are on it, updated with every GPS fix. */
     private fun applyRouteLimit(r: Route, prog: Double, p: Fix) {
         val secs = r.limits
-        if (secs.isEmpty()) { routeLimitNow = null; return }
+        if (secs.isEmpty()) { routeLimitNow = null; nextLimitMs = null; return }
         // a few metres ahead, to make up for the GPS being about a second behind
         val at = prog + min(max(p.speed, 0.0) * 0.8, 20.0)
         var lo = 0; var hi = secs.size - 1; var hit: LimitSec? = null
+        var hitIdx = -1
         while (lo <= hi) {
             val m = (lo + hi) ushr 1
             val sc = secs[m]
-            if (at < sc.off) hi = m - 1 else if (at >= sc.end) lo = m + 1 else { hit = sc; break }
+            if (at < sc.off) hi = m - 1 else if (at >= sc.end) lo = m + 1 else { hit = sc; hitIdx = m; break }
         }
+        // the next posted limit that differs from this one, along the route
+        nextLimitMs = null
+        if (hit != null) for (j in hitIdx + 1 until secs.size) if (secs[j].ms != hit.ms) { nextLimitMs = secs[j].ms; nextLimitM = secs[j].off - at; break }
         if (hit == null) { routeLimitNow = null; return }      // no posted limit known for this stretch: the map data takes over
         routeLimitNow = hit.ms
         routeLimitAt = System.currentTimeMillis()
@@ -7451,7 +7458,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         if (route != null) endRoute()
         walkTo = to; walkInfo = null; walkMuted = false; walkRoute = null; walkIdx = 0; walkOffCount = 0; walkSaid.clear(); walkStartSaid = false
         // no speed limit or camera on foot
-        speedLimit = null; limitEstimated = false; noLimit = false
+        speedLimit = null; limitEstimated = false; noLimit = false; nextLimitMs = null
         following = true
         computeWalk()
     }

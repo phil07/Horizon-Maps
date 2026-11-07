@@ -4,6 +4,9 @@ Add user-facing Horizon Nav changes under **Unreleased** before publishing each 
 
 ## Unreleased
 
+### Neu
+- Nächstes Tempolimit: Kommt auf der Route ein anderes Tempolimit, zeigt ein kleines Schild neben dem Limit, welches es ist und wie weit es noch ist (ab etwa 800 m).
+
 ### Behoben
 - Blitzer aus in Android Auto: Der Schalter „Blitzer“ in den Auto-Einstellungen blendet jetzt auch die schon geladenen Blitzer auf der Karte aus (und beim Einschalten wieder ein). Vorher stoppte er nur die Warnungen.
 - Kreisverkehr im Head-up-Display: Android Auto bekommt jetzt zusätzlich zur Ausfahrtsnummer den Ausfahrtswinkel. Das Head-up-Display im Auto zeigt dadurch geradeaus, erste, zweite oder dritte Ausfahrt im Kreisel an statt eines normalen Abbiegens.
