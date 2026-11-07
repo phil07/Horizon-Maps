@@ -1358,23 +1358,75 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         val d = dest ?: return
         val all = via + list.map { it.n.place }
         // in route order, so a stop before a later one on the route comes first
-        via = route?.let { r -> all.sortedBy { RouteExtras.project(r, it.pos, 5000.0)?.first ?: Double.MAX_VALUE } } ?: all
+        val sorted = route?.let { r -> all.sortedBy { RouteExtras.project(r, it.pos, 5000.0)?.first ?: Double.MAX_VALUE } } ?: all
         stopMode = false
         clearNearby()
         evPlanWarn = evWarning
         evStops = emptyList()
-        evPlanned = evPlanned + list
         toast(if (auto) Lang.t("${list.size} Ladestopp(s) automatisch eingeplant", "${list.size} charging stop(s) added automatically")
             else Lang.t("${list.size} Ladestopp(s) eingeplant", "${list.size} charging stop(s) added"), 2500)
+        // while driving the route is changed on the go, not started afresh
+        if (route != null && !previewing && startNow) { changeViaLive(sorted, evPlanned + list); return }
+        via = sorted
+        evPlanned = evPlanned + list
         startRoute(d, departMin, true, startNow = startNow)
+    }
+
+    /**
+     * Stops changed while driving (a charging stop planned, one of yours added or taken off): the way through them is worked out
+     * from where you are and swapped in, with the guidance carrying on. No route options in between, no new overview, no
+     * weather and offline-map announcements again, no restart on the other screen. When no way is found the trip stays as it was.
+     * [sync] false: the other screen did it first and this one only follows. [after] runs once the new route is in.
+     */
+    private fun changeViaLive(newVia: List<Place>, ev: List<EvStop>, sync: Boolean = true, after: (() -> Unit)? = null) {
+        val d = dest ?: return
+        val f = fix
+        if (f == null || route == null || previewing) { via = newVia; evPlanned = ev; startRoute(d, departMin, true, startNow = route != null && !previewing); return }
+        if (rerouting) { via = newVia; evPlanned = ev; startRoute(d, departMin, true, startNow = true); return }
+        rerouting = true
+        scope.launch {
+            try {
+                syncRoutePrefs(f.pos, d.pos); faster = null
+                val vp = newVia.map { it.pos }
+                val hd = if (f.speed > 2.0) f.heading else -1.0
+                val rs = withContext(Dispatchers.IO) {
+                    val haveOffline = OfflineRouter.installed(ctx)
+                    if (haveOffline && (!hasOnline || !online())) OfflineRouter.routes(ctx, f.pos, d.pos, vp, hd)
+                    else try { netRoutes(f.pos, d.pos, false, 0L, vp, hd, true) }
+                    catch (e: Exception) { if (haveOffline && NavigationFallbackPolicy.shouldUseOffline(e)) OfflineRouter.routes(ctx, f.pos, d.pos, vp, hd) else throw e }
+                }
+                // ended, or another trip chosen, meanwhile
+                if (dest !== d || previewing || route == null) return@launch
+                if (rs.isEmpty()) { toast(Lang.t("Kein Weg über die Stopps gefunden, die Route bleibt", "No way through the stops found, the route stays"), 4000); return@launch }
+                via = newVia; evPlanned = ev
+                routes = rs; active = rs.indices.minByOrNull { rs[it].time } ?: 0
+                said.clear(); offCount = 0; lastIdx = 0; trustProg = -1.0
+                clearLiveAlts(); drawRoutes(); updateRouteZones(); pushVia()
+                try { loadRouteWeather(rs[active]) } catch (e: Exception) { }
+                if (prefs.b(PreferenceKeys.LIVE_ALTERNATIVES, true)) lastFasterCheck = System.currentTimeMillis() - 90_000L
+                if (sync) try { RouteSync.stopsChanged(this@NavEngine, d, newVia) } catch (e: Exception) { }
+                after?.invoke()
+            } catch (e: Exception) {
+                if (e is kotlinx.coroutines.CancellationException) throw e
+                toast(Lang.t("Route konnte nicht geändert werden, sie bleibt", "Couldn't change the route, it stays"), 4000)
+            } finally { rerouting = false; lastReroute = System.currentTimeMillis() }
+        }
+    }
+
+    /** The other screen changed the stops of this trip: the same here, on the go when the trip is under way. */
+    fun followStops(to: Place, stops: List<Place>, ev: List<EvStop>) {
+        val d = dest
+        if (d != null && Geo.dist(d.pos, to.pos) < 30.0 && route != null && !previewing) changeViaLive(stops, ev, sync = false)
+        else followRoute(to, stops, ev, RouteSync.currentRoute)
     }
 
     fun addStop(p: Place) {
         val d = dest ?: return
-        via = via + p
         stopMode = false
         clearNearby()
         toast(str(R.string.rest_433, p.name), 2500)
+        if (route != null && !previewing) { changeViaLive(via + p, evPlanned); return }
+        via = via + p
         startRoute(d, departMin, true, startNow = route != null && !previewing)
     }
 
@@ -1387,9 +1439,11 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
     /** Replaces the stops on the way (in order) and works the route out again. */
     fun setStops(stops: List<Place>) {
         val d = dest ?: return
-        via = stops
         // a charging stop taken off in the stops editor is no longer part of the plan
-        evPlanned = evPlanned.filter { e -> stops.any { Geo.dist(it.pos, e.n.place.pos) < 30.0 } }
+        val keepEv = evPlanned.filter { e -> stops.any { Geo.dist(it.pos, e.n.place.pos) < 30.0 } }
+        if (route != null && !previewing) { changeViaLive(stops, keepEv); return }
+        evPlanned = keepEv
+        via = stops
         startRoute(d, departMin, true, startNow = route != null && !previewing)
     }
 
@@ -6206,8 +6260,10 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         // plans while there are no stops, and adds the new ones once more)
         if (evPlanned.isNotEmpty() && d != null && prefs.b(PreferenceKeys.SMARTFUEL, true)) {
             val old = evPlanned
-            via = via.filterNot { p -> old.any { Geo.dist(it.n.place.pos, p.pos) < 30.0 } }
-            evPlanned = emptyList(); evAutoDest = null; evPlanWarn = null
+            val rest = via.filterNot { p -> old.any { Geo.dist(it.n.place.pos, p.pos) < 30.0 } }
+            evAutoDest = null; evPlanWarn = null
+            if (!previewing) { changeViaLive(rest, emptyList()) { route?.let { planEv(it) } }; return }
+            via = rest; evPlanned = emptyList()
             startRoute(d, departMin, true, startNow = !previewing)
             return
         }
@@ -6265,9 +6321,11 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
                 // the stops it would pick now against the planned ones: the same, then nothing changes
                 val same = stops.size == have.size && stops.all { n -> have.any { Geo.dist(it.n.place.pos, n.n.place.pos) < 300.0 } }
                 if (same) return@launch
-                via = via.filterNot { p -> have.any { Geo.dist(it.n.place.pos, p.pos) < 30.0 } }
-                evPlanned = emptyList(); evAutoDest = null; evPlanWarn = null
-                startRoute(d, departMin, true, startNow = !previewing)
+                // the new set of stops goes onto the route on the go (the guidance carries on)
+                val rest = via.filterNot { p -> have.any { Geo.dist(it.n.place.pos, p.pos) < 30.0 } }
+                val sorted = (rest + stops.map { it.n.place }).sortedBy { RouteExtras.project(r, it.pos, 5000.0)?.first ?: Double.MAX_VALUE }
+                evAutoDest = d.pos; evPlanWarn = warning
+                changeViaLive(sorted, stops)
             } finally { evCheckBusy = false }
         }
     }

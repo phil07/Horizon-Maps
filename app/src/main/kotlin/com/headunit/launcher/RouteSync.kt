@@ -71,6 +71,13 @@ object RouteSync {
         for (e in others(from)) apply { e.followRoute(dest, via, currentEv, currentRoute) }
     }
 
+    /** [from] changed the stops of the trip under way: the others change theirs on the go too (no restart). */
+    fun stopsChanged(from: NavEngine, dest: Place, via: List<Place>) {
+        if (applying) return
+        current = dest to via; currentEv = from.evPlanned; currentRoute = from.route
+        for (e in others(from)) apply { e.followStops(dest, via, currentEv) }
+    }
+
     /** True when some engine still connected is guiding (so the background GPS service must stay on). */
     fun anyGuiding(): Boolean = synchronized(engines) { engines.any { it.route != null && !it.previewing } }
 
