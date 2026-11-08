@@ -9,6 +9,7 @@ Add user-facing Horizon Nav changes under **Unreleased** before publishing each 
 - 3D-Fahnen: Eine hohe rote Fahne am Ziel und kleinere gelbe an deinen Stopps, über den Gebäuden, damit du sie aus der Ferne siehst. Ein/aus unter Einstellungen > Dein Pfeil & Routenlinie > Routenlinie.
 
 ### Behoben
+- Verpasste Abbiegung: Der Pfeil folgt dir sofort, sobald du von der Route abweichst (vorher erst ab 40 m). Die neue Route kommt nach etwa 5 Sekunden.
 - Einfachere Routen: Beim Planen wird eine Route mit deutlich weniger Abbiegungen gewählt, wenn die schnellste höchstens 1,5 Minuten schneller ist. Die schnellere bleibt als Option.
 - Verkehr aus zwei Quellen: Auf einer Mapbox-Route mit TomTom-Schlüssel zählt jeder Abschnitt mit der stärkeren Verzögerung beider Dienste.
 - Stau: Im Kriechen wird der Verkehr alle 2 Minuten statt 3 neu geholt, damit die Ankunftszeit schneller auf einen Stau reagiert.

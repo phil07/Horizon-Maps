@@ -669,6 +669,8 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
 
     private var lastIdx = 0
     private var offCount = 0
+    /** When the car first left the route in the current stretch of being off it (0 when it's on the route). */
+    private var offSince = 0L
     /** Off-route strikes before the route is recalculated: 2 (was 3) so a wrong turn is caught sooner. */
     private val REROUTE_STRIKES = 2
     /** Since when (elapsed ms, 0 none) you've been going the wrong way along the route, and how far along it you were then. */
@@ -2646,7 +2648,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
             else -> { toast(Lang.t("Kein Tempolimit angezeigt", "No limit shown"), 2500); return }
         }
         val hd = if (f.speed > 2.0) f.heading else -1.0
-        val pos = (if (glideOnRoute) gPos else mPos)?.takeIf { Geo.dist(it, f.pos) < 40.0 } ?: f.pos
+        val pos = (if (glideOnRoute) gPos else mPos)?.takeIf { Geo.dist(it, f.pos) < 10.0 } ?: f.pos
         scope.launch {
             val ok = withContext(Dispatchers.IO) { SpeedReports.send(prefs, pos, hd, v) }
             val what = if (v == 0) Lang.t("kein Limit", "no limit") else "$v km/h"
@@ -3100,7 +3102,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         if (!limitBusy && now - limitAt > (if (moving) 3000L else 12000L) && (lp == null || Geo.dist(lp, p.pos) > 25) && (moving || lp == null)) {
             limitAt = now; limitPos = p.pos; limitBusy = true
             // where the car really is: on the route line while navigating, or snapped to the road the map shows
-            val look = (if (glideOnRoute) gPos else mPos)?.takeIf { Geo.dist(it, p.pos) < 40.0 } ?: p.pos
+            val look = (if (glideOnRoute) gPos else mPos)?.takeIf { Geo.dist(it, p.pos) < 10.0 } ?: p.pos
             val routeMs = if (routeLimitLive()) routeLimitNow else null
             scope.launch {
                 try {
@@ -3877,9 +3879,9 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
             // (the road next to the route, not believed yet: no strike towards a reroute)
         } else if (gpsReliableForReroute && (s.dist > (if (netGrace) maxOf(offLim, 80.0) else offLim) || (jump && !netGrace))) {
             if (newFix) {
-                // well off the route counts double, so a wrong turn is noticed in about two seconds instead of four or more
-                offCount += NavigationPolicy.offRouteStrikeCount(jump, s.dist, offLim)
-                if (offCount >= REROUTE_STRIKES) reroute()
+                // off the route for about 5 seconds in a row: a new route is asked for (the arrow has followed you already)
+                if (offSince == 0L) offSince = nowT
+                if (nowT - offSince >= 5000L) { offSince = 0L; offCount = 0; reroute(); return }
             }
         } else if (gpsReliableForReroute && newFix && !netGrace) {
             // Still close to the route, but a vehicle moving away from its direction can indicate a wrong turn.
@@ -3893,7 +3895,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
             if (NavigationPolicy.shouldCountHeadingAwayStrike(s.dist, p.speed, angDiff(seg, p.heading))) {
                 if (++offCount >= REROUTE_STRIKES) reroute()
             } else offCount = 0
-        } else if (newFix) offCount = 0
+        } else if (newFix) { offCount = 0; offSince = 0L }
         try { if (newFix) checkEvRange() } catch (e: Exception) { }
         try { if (newFix) checkFuelRange() } catch (e: Exception) { }
         val now = System.currentTimeMillis()
