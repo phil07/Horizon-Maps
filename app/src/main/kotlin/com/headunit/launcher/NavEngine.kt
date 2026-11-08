@@ -456,6 +456,27 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         }
     }
 
+    /** The number of real turns on a route (not the start, the arrival or going straight on). */
+    private fun turnCount(r: Route): Int = r.steps.count { st ->
+        val m = st.maneuver.uppercase()
+        m != "DEPART" && !m.startsWith("ARRIVE") && m != "STRAIGHT" && m != "FOLLOW" && m != "CONTINUE"
+    }
+
+    /**
+     * The route to start with: the quickest, unless one with clearly fewer turns (at least two fewer) is at most 90 seconds slower. Such
+     * a route keeps to the main roads instead of cutting through back streets. The quicker one is still offered to pick.
+     */
+    private fun simplerPick(rs: List<Route>): Int {
+        if (rs.isEmpty()) return 0
+        val f = rs.indices.minByOrNull { rs[it].time } ?: 0
+        val fastT = rs[f].time
+        val fastTurns = turnCount(rs[f])
+        return rs.indices
+            .filter { rs[it].time <= fastT + 90.0 && turnCount(rs[it]) <= fastTurns - 2 }
+            .minWithOrNull(compareBy<Int>({ turnCount(rs[it]) }, { rs[it].time }))
+            ?: f
+    }
+
     /** Routes from one service ("mapbox" or "tomtom"). */
     private fun routesFrom(p: String, from: LL, to: LL, alternatives: Boolean, departAtMs: Long, via: List<LL>, headingDeg: Double, quick: Boolean): List<Route> =
         if (p == "mapbox") try { MapboxRest.curbArrival = prefs.b(PreferenceKeys.CURB_ARRIVAL, true); MapboxRest.routes(mbToken, from, to, alternatives, departAtMs, via, headingDeg, quick, leftTraffic) } catch (e: Exception) { noteMbRefused(e); throw e }
@@ -2095,7 +2116,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
                 // none of the new ways follows the one picked on the other screen: that one itself is taken
                 if (prefer != null && keepVia && rs.none { routeOverlap(it, prefer) > 0.8 }) rs = listOf(prefer) + rs
                 val pick = (if (prefer != null && keepVia && rs.size > 1) rs.indices.maxByOrNull { routeOverlap(rs[it], prefer) } else null)
-                    ?: rs.indices.minByOrNull { rs[it].time } ?: 0
+                    ?: simplerPick(rs)
                 pickedSlower = rs.size > 1 && rs[pick].time > rs.minOf { it.time } + 60.0
                 if (rs[pick].steps.isEmpty()) toast(if (lastRouteProvider == "mapbox") Lang.t("Mapbox hat für diese Route keine Abbiegehinweise geliefert", "Mapbox returned no turn instructions for this route") else Lang.t("Dieser Schlüssel liefert keine Abbiegehinweise. Prüfe, ob er Zugriff auf die TomTom Routing API hat", "This key returned no turn instructions. Check it has TomTom Routing API access"), 6000)
                 if (departInMin > 0 && !usedOffline && !departApplied) toast(ctx.getString(R.string.toast_007), 4000)
@@ -5000,7 +5021,9 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         val d = dest ?: return
         if (previewing || simMode != 0 || trafficBusy || !hasOnline || shadow()) return
         if (lastTrafficAt == 0L) { lastTrafficAt = now - 120_000L }   // first refresh about a minute after setting off
-        if (now - lastTrafficAt < 180_000L) return
+        // in a queue (crawling, under about 20 km/h) the traffic is asked for every 2 minutes, so the arrival time catches up with a jam sooner
+        val crawling = (fix?.speed ?: 99.0) < 5.5
+        if (now - lastTrafficAt < (if (crawling) 120_000L else 180_000L)) return
         lastTrafficAt = now
         trafficBusy = true
         val viaPts = via.map { it.pos }
@@ -5011,14 +5034,20 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
                 val rs = withContext(Dispatchers.IO) { netRoutes(f.pos, d.pos, false, 0L, viaPts, driveHeading(f.pos), true) }
                 val fresh = rs.firstOrNull() ?: return@launch
                 if (route !== cur) return@launch
-                refreshTraffic(cur, fresh, at)
+                // on a Mapbox route with a TomTom key, TomTom times the same road too: each stretch keeps the worse of the two
+                val others = ArrayList<Route>()
+                if (provider == "mapbox" && apiKey.isNotBlank() && !prefs.b(PreferenceKeys.ROUTE_ECO, false)) {
+                    val tt: Route? = try { withContext(Dispatchers.IO) { routesFrom("tomtom", f.pos, d.pos, false, 0L, viaPts, driveHeading(f.pos), true).firstOrNull() } } catch (e: Exception) { null }
+                    tt?.let { others += it }
+                }
+                refreshTraffic(cur, fresh, at, others)
             } catch (e: Exception) { }
             finally { trafficBusy = false }
         }
     }
 
     /** Copies the latest traffic colouring from a fresh request for the same road onto the route being driven, so amber and red stay current. */
-    private fun refreshTraffic(cur: Route, fresh: Route, at: Double = curProgress) {
+    private fun refreshTraffic(cur: Route, fresh: Route, at: Double = curProgress, others: List<Route> = emptyList()) {
         if (fresh.sev.isEmpty() || cur.sev.isEmpty()) return
         fun key(p: LL) = Math.round(p.lat * 1e4) * 1000003L + Math.round(p.lon * 1e4)
         val m = HashMap<Long, Int>(fresh.sev.size * 2)
@@ -5026,6 +5055,13 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         var hit = 0
         val base = IntArray(cur.sev.size)
         for (i in cur.sev.indices) { val v = m[key(cur.pts[i])]; if (v != null) { base[i] = v; hit++ } else base[i] = cur.sev[i] }
+        // the other service's view of the same stretch: the worse of the two counts
+        for (o in others) {
+            if (o.sev.isEmpty()) continue
+            val mo = HashMap<Long, Int>(o.sev.size * 2)
+            for (i in o.sev.indices) mo[key(o.pts[i])] = o.sev[i]
+            for (i in cur.sev.indices) { val v = mo[key(cur.pts[i])]; if (v != null) base[i] = max(base[i], v) }
+        }
         // only trust it when it is the same road: a good share of the points still ahead must line up with the fresh route
         val firstAhead = max(0, idxAt(cur, at))
         var ahead = 0; var match = 0
