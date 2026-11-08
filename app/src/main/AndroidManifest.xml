@@ -160,18 +160,9 @@
                 <data android:scheme="geo" />
             </intent-filter>
         </service>
-        <!-- Android Auto's app launcher lists only apps with a CAR_LAUNCHER activity -->
-        <activity
-            android:name=".car.CarLaunchActivity"
-            android:exported="true"
-            android:label="@string/app_name"
-            android:icon="@mipmap/ic_launcher">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.CAR_LAUNCHER" />
-                <category android:name="androidx.car.app.category.NAVIGATION" />
-            </intent-filter>
-        </activity>
+        <meta-data
+            android:name="com.google.android.gms.car.application"
+            android:resource="@xml/automotive_app_desc" />
         <meta-data
             android:name="androidx.car.app.minCarApiLevel"
             android:value="1" />
