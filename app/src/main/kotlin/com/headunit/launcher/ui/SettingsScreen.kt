@@ -1168,12 +1168,58 @@ private fun AboutSection(prefs: Prefs, engine: NavEngine) {
             android.widget.Toast.makeText(ctx, msg, android.widget.Toast.LENGTH_LONG).show()
         }
     }
+    // the API keys: their own file, protected by a password the driver chooses (the normal backup never holds them)
+    var keyDlg by remember { mutableStateOf("") }   // "", "export" or "import": the password dialog is open
+    var keyPw by remember { mutableStateOf("") }
+    fun keyToast(m: String) = android.widget.Toast.makeText(ctx, m, android.widget.Toast.LENGTH_LONG).show()
+    val keySaver = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { uri ->
+        if (uri != null) {
+            val pw = keyPw
+            keyToast(try {
+                ctx.contentResolver.openOutputStream(uri)?.use { it.write(KeyBackup.export(prefs, pw).toByteArray()) }
+                "Schlüssel gesichert"
+            } catch (e: Exception) { e.message ?: "Schlüssel konnten nicht gesichert werden" })
+        }
+        keyPw = ""
+    }
+    val keyOpener = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        if (uri != null) {
+            val pw = keyPw
+            keyToast(try {
+                val text = ctx.contentResolver.openInputStream(uri)?.bufferedReader()?.use { it.readText() }.orEmpty()
+                "${KeyBackup.import(prefs, text, pw)} Schlüssel wiederhergestellt"
+            } catch (e: Exception) { e.message ?: "Schlüssel konnten nicht wiederhergestellt werden" })
+        }
+        keyPw = ""
+    }
+    if (keyDlg.isNotEmpty()) androidx.compose.material3.AlertDialog(
+        onDismissRequest = { keyDlg = ""; keyPw = "" },
+        title = { Text(if (keyDlg == "export") "Passwort für die Schlüssel-Sicherung" else "Passwort der Schlüssel-Sicherung") },
+        text = {
+            androidx.compose.material3.OutlinedTextField(value = keyPw, onValueChange = { keyPw = it }, singleLine = true,
+                label = { Text("Passwort (mind. 6 Zeichen)") },
+                visualTransformation = androidx.compose.ui.text.input.PasswordVisualTransformation())
+        },
+        confirmButton = {
+            androidx.compose.material3.TextButton(enabled = keyPw.length >= 6, onClick = {
+                val mode = keyDlg
+                keyDlg = ""
+                if (mode == "export") keySaver.launch("horizon-nav-keys.json") else keyOpener.launch(arrayOf("application/json", "text/plain", "*/*"))
+            }) { Text("Weiter") }
+        },
+        dismissButton = { androidx.compose.material3.TextButton(onClick = { keyDlg = ""; keyPw = "" }) { Text("Abbrechen") } },
+    )
     SGroup("Sicherung") {
         // the buttons sit under the title: beside it they squeezed the title into a narrow column
         SItem("Einstellungen und gespeicherte Orte")
         Row(Modifier.fillMaxWidth().padding(bottom = 8.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             SButton("Sichern") { exporter.launch("horizon-nav-backup.json") }
             SButton("Wiederherstellen") { importer.launch(arrayOf("application/json", "text/plain", "*/*")) }
+        }
+        SItem("API-Schlüssel", "Eigene Datei, mit Passwort geschützt")
+        Row(Modifier.fillMaxWidth().padding(bottom = 8.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            SButton("Schlüssel sichern") { keyDlg = "export" }
+            SButton("Schlüssel wiederherstellen") { keyDlg = "import" }
         }
     }
     val cf = java.io.File(ctx.filesDir, "lastcrash.txt")

@@ -8,6 +8,9 @@ Add user-facing Horizon Nav changes under **Unreleased** before publishing each 
 - Nächstes Tempolimit: Kommt auf der Route ein anderes Tempolimit, zeigt ein kleines Schild neben dem Limit, welches es ist und wie weit es noch ist (ab etwa 800 m).
 - 3D-Fahnen: Eine hohe rote Fahne am Ziel und kleinere gelbe an deinen Stopps, über den Gebäuden, damit du sie aus der Ferne siehst. Ein/aus unter Einstellungen > Dein Pfeil & Routenlinie > Routenlinie.
 
+### Neu
+- API-Schlüssel sichern: Unter Einstellungen > Sicherung kannst du deine Schlüssel in eine eigene Datei sichern und wieder einlesen. Die Datei ist mit einem Passwort geschützt, das du selbst wählst. Die normale Sicherung enthält die Schlüssel weiterhin nicht.
+
 ### Behoben
 - Verpasste Abbiegung: Der Pfeil folgt dir, sobald du mehr als 15 m von der Route abweichst (vorher erst ab 40 m). Die neue Route kommt nach etwa 5 Sekunden.
 - Einfachere Routen: Beim Planen wird eine Route mit deutlich weniger Abbiegungen gewählt, wenn die schnellste höchstens 1,5 Minuten schneller ist. Die schnellere bleibt als Option.

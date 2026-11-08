@@ -448,6 +448,9 @@ class Prefs(ctx: Context) {
         return pending.size
     }
 
+    /** The names of the API keys and account secrets (for the password-protected key backup, see KeyBackup). */
+    fun secretKeys(): Set<String> = SECRET_KEYS
+
     fun put(k: String, v: Any) {
         val s = v.toString()
         // nothing changed: no disk write and nothing on screen is redrawn
