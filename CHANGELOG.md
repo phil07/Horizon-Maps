@@ -9,6 +9,7 @@ Add user-facing Horizon Nav changes under **Unreleased** before publishing each 
 - 3D-Fahnen: Eine hohe rote Fahne am Ziel und kleinere gelbe an deinen Stopps, über den Gebäuden, damit du sie aus der Ferne siehst. Ein/aus unter Einstellungen > Dein Pfeil & Routenlinie > Routenlinie.
 
 ### Behoben
+- Suche beim Fahren: Die Tastatur ist standardmäßig nicht mehr gesperrt. Wer die Sperre will, schaltet „Tastatur beim Fahren sperren“ in den Einstellungen wieder ein.
 - Spuren bei zwei Ausfahrten dicht hintereinander: Die Spur leuchtet nur noch für die Abzweigung, an der die Route wirklich abbiegt, nicht schon für die erste.
 - Spurhinweis an Kreiseln: Ohne Mapbox-Spurdaten gibt die App an Kreiseln keinen Spurhinweis mehr, statt einen falschen zu geben.
 - Bordsteinseite: Mapbox-Routen bringen dich zur Seite des Ziels, auf der du aussteigst, statt über die Fahrbahn zu müssen. Ein/aus unter Einstellungen > Routen > Routenauswahl. Offline-Routen folgen noch nicht.

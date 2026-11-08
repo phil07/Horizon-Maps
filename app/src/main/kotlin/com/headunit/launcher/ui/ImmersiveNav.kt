@@ -223,7 +223,7 @@ private fun MapScreen(engine: NavEngine, onSettings: () -> Unit) {
             else -> if (r.startsWith("search:")) { val w = r.removePrefix("search:"); q = w; engine.search(w) }
         }
     }
-    val typingLocked by remember { derivedStateOf { (engine.fix?.speed ?: 0.0) > 3.0 && engine.prefs.b(PreferenceKeys.DRIVELOCK, true) } }
+    val typingLocked by remember { derivedStateOf { (engine.fix?.speed ?: 0.0) > 3.0 && engine.prefs.b(PreferenceKeys.DRIVELOCK, false) } }
     val focus = remember { FocusRequester() }
     LaunchedEffect(q) {
         if (q.trim().length >= 2) { delay(500); engine.search(q) } else if (q.isEmpty()) engine.results = emptyList()

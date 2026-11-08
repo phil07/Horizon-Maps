@@ -947,7 +947,7 @@ private fun ScreenSection(prefs: Prefs, engine: NavEngine) {
         SToggle(prefs, "Pfeil ohne Route auf der Straße halten", "snaproad", true)
         SToggle(prefs, "Karte in Tunnels dimmen", "tunneldim", true)
         SToggle(prefs, "Weniger Buttons beim Fahren", "drivesimple", true)
-        SToggle(prefs, "Tastatur beim Fahren sperren", "drivelock", true, "Sprachsuche funktioniert weiterhin")
+        SToggle(prefs, "Tastatur beim Fahren sperren", "drivelock", false, "Sprachsuche funktioniert weiterhin")
     }
     SGroup("Einheiten") {
         SChoice("Entfernung und Tempo", listOf("km" to "Kilometer", "mi" to "Meilen"), if (engine.imperial) "mi" else "km") { prefs.put(PreferenceKeys.DISTANCE_UNIT, it) }
