@@ -1339,9 +1339,15 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
             val rate = 22050
             val n = rate * 250 / 1000
             // a sine with a short fade in and out, so it doesn't click
+            // two pitches: the one for a warning (speeding, a camera) is lower, the prompts higher, so they can be told apart by ear
+            val hz = when (tone) {
+                android.media.ToneGenerator.TONE_PROP_BEEP2 -> 660.0
+                android.media.ToneGenerator.TONE_PROP_PROMPT -> 1100.0
+                else -> 880.0
+            }
             val buf = ShortArray(n) { i ->
                 val fade = minOf(1.0, minOf(i, n - i) / (rate * 0.01))
-                (Math.sin(2 * Math.PI * 880.0 * i / rate) * fade * 0.5 * Short.MAX_VALUE).toInt().toShort()
+                (Math.sin(2 * Math.PI * hz * i / rate) * fade * 0.5 * Short.MAX_VALUE).toInt().toShort()
             }
             val track = android.media.AudioTrack.Builder()
                 .setAudioAttributes(android.media.AudioAttributes.Builder()
