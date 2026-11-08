@@ -1,5 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<!-- Horizon Nav on Android Auto: "media" is the only type Android Auto accepts together with the CAR_LAUNCHER activity; the navigation itself runs through CarAppService -->
-<automotiveApp>
-    <uses name="media" />
-</automotiveApp>
