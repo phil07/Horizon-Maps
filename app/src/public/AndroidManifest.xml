@@ -1,9 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- GitHub build only: the whole phone app also on the Android Auto screen (Android 15+, "Unbekannte Quellen" on),
-     the way AABrowser does it. Google Play rejects CAR_LAUNCHER next to the car app metadata, so the play flavor leaves it out.
-     The template navigation (CarNavService, head-up display arrows) stays as it is. -->
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<!-- GitHub build only: the whole phone app on the Android Auto screen (Android 15+, "Unbekannte Quellen" on), the way AABrowser
+     does it. Android Auto hides sideloaded template navigation apps (only Play installs since June 2026) and with them the whole
+     package, so this build leaves out the template navigation service; it stays in the play flavor (head-up display arrows).
+     Google Play rejects CAR_LAUNCHER next to the car app metadata, so the play flavor has no CAR_LAUNCHER. -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+    <uses-permission android:name="androidx.car.app.NAVIGATION_TEMPLATES" tools:node="remove" />
     <application>
+        <service android:name="com.headunit.launcher.car.CarNavService" tools:node="remove" />
         <activity android:name="com.headunit.launcher.MainActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />

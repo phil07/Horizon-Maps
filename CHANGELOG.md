@@ -5,7 +5,7 @@ Add user-facing Horizon Nav changes under **Unreleased** before publishing each 
 ## Unreleased
 
 ### Neu
-- Ganze App in Android Auto: Mit eingeschalteten „Unbekannten Quellen“ (Android Auto > Entwicklereinstellungen) erscheint Horizon Nav ab Android 15 zusätzlich als komplette App auf dem Autobildschirm, mit Karte, Suche und Einstellungen. Die bisherige Android-Auto-Navigation mit den Pfeilen im Head-up-Display bleibt daneben erhalten. Nur in der GitHub-Version.
+- Ganze App in Android Auto: Mit eingeschalteten „Unbekannten Quellen“ (Android Auto > Entwicklereinstellungen) erscheint Horizon Nav ab Android 15 zusätzlich als komplette App auf dem Autobildschirm, mit Karte, Suche und Einstellungen. Nur in der GitHub-Version. Die Android-Auto-Navigation mit den Pfeilen im Head-up-Display gibt es nur in der Play-Version, weil Android Auto selbst installierte Navigations-Apps nicht mehr anzeigt.
 
 ## 1.0.246 — 2026-10-28
 

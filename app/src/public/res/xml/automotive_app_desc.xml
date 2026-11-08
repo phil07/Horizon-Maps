@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- GitHub build: listed like AABrowser ("media" plus the CAR_LAUNCHER activity). Android Auto hides sideloaded template
+     navigation apps (only Play installs since June 2026), so the template navigation lives in the play flavor only. -->
+<automotiveApp>
+    <uses name="media" />
+</automotiveApp>
