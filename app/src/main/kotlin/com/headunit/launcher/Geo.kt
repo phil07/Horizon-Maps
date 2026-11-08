@@ -173,6 +173,8 @@ object Geo {
         val n = sec.lanes.size
         if (n < 2) return null
         val anyFollow = sec.lanes.any { it.follow != null }
+        // a roundabout without Mapbox's own lane marks is not guessed at: the lanes' directions don't say which exit they lead to
+        if (!anyFollow && maneuver.uppercase().startsWith("ROUNDABOUT")) return null
         val act = sec.lanes.indices.filter { i -> if (anyFollow) sec.lanes[i].follow != null else sec.lanes[i].dirs.any { laneFits(it, maneuver) } }
         if (act.isEmpty() || act.size == n) return null
         val cnt = act.size

@@ -9,6 +9,8 @@ Add user-facing Horizon Nav changes under **Unreleased** before publishing each 
 - 3D-Fahnen: Eine hohe rote Fahne am Ziel und kleinere gelbe an deinen Stopps, über den Gebäuden, damit du sie aus der Ferne siehst. Ein/aus unter Einstellungen > Dein Pfeil & Routenlinie > Routenlinie.
 
 ### Behoben
+- Spuren bei zwei Ausfahrten dicht hintereinander: Die Spur leuchtet nur noch für die Abzweigung, an der die Route wirklich abbiegt, nicht schon für die erste.
+- Spurhinweis an Kreiseln: Ohne Mapbox-Spurdaten gibt die App an Kreiseln keinen Spurhinweis mehr, statt einen falschen zu geben.
 - Bordsteinseite: Mapbox-Routen bringen dich zur Seite des Ziels, auf der du aussteigst, statt über die Fahrbahn zu müssen. Ein/aus unter Einstellungen > Routen > Routenauswahl. Offline-Routen folgen noch nicht.
 - Android Auto: Auf der Fahrtkarte gibt es jetzt die Knöpfe Übersicht (ganze Route) und Andere aus/an (die grauen Alternativrouten). Die Pfeilgröße im Auto geht bis 30 % statt 60 %, für kleine Displays.
 - Blitzer aus in Android Auto: Der Schalter „Blitzer“ in den Auto-Einstellungen blendet jetzt auch die schon geladenen Blitzer auf der Karte aus (und beim Einschalten wieder ein). Vorher stoppte er nur die Warnungen.

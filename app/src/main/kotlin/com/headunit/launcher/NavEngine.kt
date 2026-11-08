@@ -5236,11 +5236,11 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
             // only sections that belong to this junction: with a second turn close behind (right, then left 80 m on), that turn's
             // lane section also ends within 200 m and often has more lanes, so it was shown too early (the left lane lit up where the right
             // one is needed). A section belongs to the step its end is nearest to.
-            val prevOff = ins.getOrNull(k - 1)?.off
-            val nextOff = nxt?.off
             val realSec = if (d < (if (fastRoad) 1900 else 1000) && !arriving) r.lanes.filter {
                 val dc = abs(it.end - cur.off)
-                progress < it.end + 5 && dc < 200 && (nextOff == null || dc <= abs(it.end - nextOff)) && (prevOff == null || dc <= abs(it.end - prevOff))
+                // only the lanes of this very junction: the section must end within 30 m of it, and no other junction on the route is nearer to
+                // its end (two slip roads close together used to light the first one's lanes while the route took the second)
+                progress < it.end + 5 && abs(it.end - cur.off) < 30.0 && ins.minByOrNull { st -> abs(st.off - it.end) }?.off == cur.off
             }.sortedWith(compareByDescending<LaneSec> { it.lanes.size }.thenBy { abs(it.end - cur.off) }).firstOrNull() else null
             val laneSec = realSec
             val laneAdv = laneSec?.let { Geo.laneAdvice(it, cur.maneuver) }
