@@ -2648,7 +2648,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
             else -> { toast(Lang.t("Kein Tempolimit angezeigt", "No limit shown"), 2500); return }
         }
         val hd = if (f.speed > 2.0) f.heading else -1.0
-        val pos = (if (glideOnRoute) gPos else mPos)?.takeIf { Geo.dist(it, f.pos) < 10.0 } ?: f.pos
+        val pos = (if (glideOnRoute) gPos else mPos)?.takeIf { Geo.dist(it, f.pos) < 15.0 } ?: f.pos
         scope.launch {
             val ok = withContext(Dispatchers.IO) { SpeedReports.send(prefs, pos, hd, v) }
             val what = if (v == 0) Lang.t("kein Limit", "no limit") else "$v km/h"
@@ -3102,7 +3102,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         if (!limitBusy && now - limitAt > (if (moving) 3000L else 12000L) && (lp == null || Geo.dist(lp, p.pos) > 25) && (moving || lp == null)) {
             limitAt = now; limitPos = p.pos; limitBusy = true
             // where the car really is: on the route line while navigating, or snapped to the road the map shows
-            val look = (if (glideOnRoute) gPos else mPos)?.takeIf { Geo.dist(it, p.pos) < 10.0 } ?: p.pos
+            val look = (if (glideOnRoute) gPos else mPos)?.takeIf { Geo.dist(it, p.pos) < 15.0 } ?: p.pos
             val routeMs = if (routeLimitLive()) routeLimitNow else null
             scope.launch {
                 try {
