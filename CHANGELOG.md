@@ -9,6 +9,7 @@ Add user-facing Horizon Nav changes under **Unreleased** before publishing each 
 - 3D-Fahnen: Eine hohe rote Fahne am Ziel und kleinere gelbe an deinen Stopps, über den Gebäuden, damit du sie aus der Ferne siehst. Ein/aus unter Einstellungen > Dein Pfeil & Routenlinie > Routenlinie.
 
 ### Behoben
+- Tonsignal im Auto: Der kurze Warnton (Tempo, Blitzer voraus, Abbiegen) läuft jetzt auf dem Navigationskanal wie die Ansagen, also auch über Radio oder die Musik des Autos.
 - Suche beim Fahren: Die Tastatur ist standardmäßig nicht mehr gesperrt. Wer die Sperre will, schaltet „Tastatur beim Fahren sperren“ in den Einstellungen wieder ein.
 - Spuren bei zwei Ausfahrten dicht hintereinander: Die Spur leuchtet nur noch für die Abzweigung, an der die Route wirklich abbiegt, nicht schon für die erste.
 - Spurhinweis an Kreiseln: Ohne Mapbox-Spurdaten gibt die App an Kreiseln keinen Spurhinweis mehr, statt einen falschen zu geben.

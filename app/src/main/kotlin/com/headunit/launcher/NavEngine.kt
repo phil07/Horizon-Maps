@@ -1329,12 +1329,31 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
 
     // one tone generator, kept and reused: making a new one for every beep leaked audio resources and caused hiccups over time
     private var toneGen: android.media.ToneGenerator? = null
+    /**
+     * The short beep (speeding, camera ahead, turn prompts). It plays on the navigation channel, as the spoken directions do, so it is
+     * heard over the radio or the car's own music too (a ToneGenerator on the music stream was drowned out or silent in the car).
+     */
     private fun chime(tone: Int = android.media.ToneGenerator.TONE_PROP_ACK) {
         if (soundMode == 2 || quiet()) return
         try {
-            val g = toneGen ?: android.media.ToneGenerator(android.media.AudioManager.STREAM_MUSIC, 100).also { toneGen = it }
-            g.startTone(tone, 250)
-        } catch (e: Exception) { toneGen = null }
+            val rate = 22050
+            val n = rate * 250 / 1000
+            // a sine with a short fade in and out, so it doesn't click
+            val buf = ShortArray(n) { i ->
+                val fade = minOf(1.0, minOf(i, n - i) / (rate * 0.01))
+                (Math.sin(2 * Math.PI * 880.0 * i / rate) * fade * 0.5 * Short.MAX_VALUE).toInt().toShort()
+            }
+            val track = android.media.AudioTrack.Builder()
+                .setAudioAttributes(android.media.AudioAttributes.Builder()
+                    .setUsage(android.media.AudioAttributes.USAGE_ASSISTANCE_NAVIGATION_GUIDANCE)
+                    .setContentType(android.media.AudioAttributes.CONTENT_TYPE_SONIFICATION).build())
+                .setAudioFormat(android.media.AudioFormat.Builder().setSampleRate(rate)
+                    .setEncoding(android.media.AudioFormat.ENCODING_PCM_16BIT).setChannelMask(android.media.AudioFormat.CHANNEL_OUT_MONO).build())
+                .setBufferSizeInBytes(n * 2).setTransferMode(android.media.AudioTrack.MODE_STATIC).build()
+            track.write(buf, 0, n)
+            track.play()
+            scope.launch { delay(400); try { track.release() } catch (e: Exception) { } }
+        } catch (e: Exception) { }
     }
 
     private fun checkLimitChange(newMs: Double, estimated: Boolean) {
