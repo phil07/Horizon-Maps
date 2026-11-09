@@ -18,11 +18,12 @@ Die Entwicklung hier ist eine Weiterentwicklung dieses Originals. Vielen Dank an
 - **Spritpreise** live für Deutschland (Tankerkönig), Österreich, Frankreich und Großbritannien
 - **Sprachbefehle**, z. B. „Bring mich nach Hause“
 - **Ziele vom Handy ans Radio senden**, Parkplatz merken, Wetter und Regenradar
-- **Suche mit Logos**: Geschäfte zeigen ihr Logo; bei Ketten zeigt „Alle Standorte“ jede Filiale in der Nähe mit Fahrzeit, sortiert nach Schnellste, Nächste oder Auf meiner Route
+- **Ort antippen**: Ein Ort auf der Karte zeigt eine Karte mit Name, Adresse, „Los“ und „Als Stopp“; langes Drücken fährt direkt hin
+- **Suche mit Logos**: Geschäfte zeigen ihr Logo; bei Ketten zeigt „Alle Standorte“ jede Filiale in der Nähe mit Fahrzeit (Mapbox, ersatzweise TomTom), sortiert nach Schnellste, Nächste oder Auf meiner Route
 - **Routenvergleich** mit Fahrzeit, Stau, Maut/Vignette und Ladestopps; eine gewählte Alternative bleibt auch bei Neuberechnung erhalten
 - **Kreisverkehre** seitenrichtig in Abbiegebox, Karte und Head-up-Display
 - **Eigenes Design**: Routen-, Pfeil- und Akzentfarbe sowie Kartenhelligkeit mit Live-Vorschau; wehende 3D-Zielfahnen
-- **Deutsch und Englisch**, umschaltbar in den Einstellungen (ab Android 13)
+- **Deutsch und Englisch**: Deutsch auf deutsch eingestellten Geräten, sonst Englisch; umschaltbar in den Einstellungen (ab Android 13)
 
 Alle Änderungen stehen in [CHANGELOG.md](CHANGELOG.md).
 
