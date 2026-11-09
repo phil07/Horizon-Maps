@@ -16,8 +16,13 @@ Die Entwicklung hier ist eine Weiterentwicklung dieses Originals. Vielen Dank an
 - **Meldungen** (Polizei, Unfall, Gefahr, Panne, mobiler Blitzer, Stau), anonym mit anderen Fahrern geteilt, mit „Noch da?“-Abstimmung
 - **Elektroauto**: Akkustand vom Auto oder aus dem Widget der Hersteller-App, automatische Ladestopps, Ladekurven aus Open EV Data, bevorzugte Ladeanbieter
 - **Spritpreise** live für Deutschland (Tankerkönig), Österreich, Frankreich und Großbritannien
-- **Deutsche Sprachbefehle**, z. B. „Bring mich nach Hause“
+- **Sprachbefehle**, z. B. „Bring mich nach Hause“
 - **Ziele vom Handy ans Radio senden**, Parkplatz merken, Wetter und Regenradar
+- **Suche mit Logos**: Geschäfte zeigen ihr Logo; bei Ketten zeigt „Alle Standorte“ jede Filiale in der Nähe mit Fahrzeit, sortiert nach Schnellste, Nächste oder Auf meiner Route
+- **Routenvergleich** mit Fahrzeit, Stau, Maut/Vignette und Ladestopps; eine gewählte Alternative bleibt auch bei Neuberechnung erhalten
+- **Kreisverkehre** seitenrichtig in Abbiegebox, Karte und Head-up-Display
+- **Eigenes Design**: Routen-, Pfeil- und Akzentfarbe sowie Kartenhelligkeit mit Live-Vorschau; wehende 3D-Zielfahnen
+- **Deutsch und Englisch**, umschaltbar in den Einstellungen (ab Android 13)
 
 Alle Änderungen stehen in [CHANGELOG.md](CHANGELOG.md).
 
@@ -40,7 +45,10 @@ Mehr zur Code-Struktur: [ARCHITECTURE.md](ARCHITECTURE.md), Pläne: [ROADMAP.md]
 
 ## Bauen
 
-Die App wird über GitHub Actions gebaut (`release-apk.yml`). Jeder Push auf `main` erzeugt ein Release mit APK und, wenn der Upload-Schlüssel hinterlegt ist, dem Play-Bundle (`HorizonNav-play.aab`). API-Schlüssel und Signaturschlüssel liegen nur als GitHub-Secrets vor und gehören nie ins Repository.
+Änderungen für die „Was ist neu“-Karte kommen in den Abschnitt *Unreleased* von [CHANGELOG.md](CHANGELOG.md), mit einer eingerückten `EN:`-Zeile für die englische Fassung.
+
+
+Die App wird über GitHub Actions gebaut (`release-apk.yml`). Vor jedem Build laufen die Unit-Tests. Jeder Push auf `main` erzeugt ein Release mit APK und, wenn der Upload-Schlüssel hinterlegt ist, dem Play-Bundle (`HorizonNav-play.aab`). API-Schlüssel und Signaturschlüssel liegen nur als GitHub-Secrets vor und gehören nie ins Repository.
 
 ## Datenschutz
 
