@@ -5,6 +5,8 @@ Add user-facing Horizon Nav changes under **Unreleased** before publishing each 
 ## Unreleased
 
 ### Verbessert
+- Quellen-Button: Der (i)-Button von Mapbox passt sich der Karte an, hell mit dunklem „i“ bei heller Karte, dunkel mit hellem „i“ bei dunkler Karte. In Android Auto war er nur ein schwarzer Kreis.
+  EN: Credits button: Mapbox's (i) button now follows the map, light with a dark "i" on a light map, dark with a light "i" on a dark map. In Android Auto it was a plain black circle.
 - Tempolimit: Das kleine „Danach …“-Schild neben dem Tempolimit ist entfernt.
   EN: Speed limit: The small "Then …" sign next to the speed limit is gone.
 

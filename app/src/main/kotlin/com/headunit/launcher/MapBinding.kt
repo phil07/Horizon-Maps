@@ -187,6 +187,7 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
         try { mapView.compass.enabled = false } catch (e: Throwable) { }
         // Mapbox's logo and credits must stay visible: top right, clear of the app's own cards
         placeBranding(null)
+        mapView.post { styleAttribution() }
         try { mbMap.setBounds(CameraBoundsOptions.Builder().maxPitch(75.0).build()) } catch (e: Throwable) { }
         try {
             mapView.gestures.rotateEnabled = true
@@ -954,8 +955,48 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
         set(v) {
             if (field == v) return
             field = v
-            main0.post { reinstall() }
+            main0.post { reinstall(); styleAttribution() }
         }
+
+    /**
+     * Mapbox's (i) credits button in the map's light: a light button with a dark "i" on a light map, a dark one with a light "i" on a
+     * dark map (in the car it showed as a plain black circle on the dark map).
+     */
+    fun styleAttribution() {
+        val dark = nightStyle || neonMap
+        val bg = if (dark) 0xE61C2030.toInt() else 0xF2FFFFFF.toInt()
+        val fg = if (dark) 0xFFF1F3FA.toInt() else 0xFF1C2130.toInt()
+        val d = ctx.resources.displayMetrics.density
+        fun find(v: android.view.View): android.widget.ImageView? {
+            if (v is android.widget.ImageView && v.javaClass.name.contains("ttribution")) return v
+            if (v is android.view.ViewGroup) for (i in 0 until v.childCount) find(v.getChildAt(i))?.let { return it }
+            return null
+        }
+        try {
+            val iv = find(mapView) ?: return
+            iv.clearColorFilter()
+            iv.imageTintList = null
+            iv.setImageDrawable(object : android.graphics.drawable.Drawable() {
+                private val circle = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply { color = bg }
+                private val edge = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply { color = fg; alpha = 70; style = android.graphics.Paint.Style.STROKE; strokeWidth = 1f * d }
+                private val text = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
+                    color = fg; textAlign = android.graphics.Paint.Align.CENTER; typeface = android.graphics.Typeface.create(android.graphics.Typeface.SERIF, android.graphics.Typeface.BOLD_ITALIC)
+                }
+                override fun draw(c: android.graphics.Canvas) {
+                    val b = bounds; val r = minOf(b.width(), b.height()) / 2f - 1f * d
+                    c.drawCircle(b.exactCenterX(), b.exactCenterY(), r, circle)
+                    c.drawCircle(b.exactCenterX(), b.exactCenterY(), r, edge)
+                    text.textSize = r * 1.35f
+                    c.drawText("i", b.exactCenterX(), b.exactCenterY() - (text.ascent() + text.descent()) / 2f, text)
+                }
+                override fun getIntrinsicWidth() = (20 * d).toInt()
+                override fun getIntrinsicHeight() = (20 * d).toInt()
+                override fun setAlpha(a: Int) {}
+                override fun setColorFilter(cf: android.graphics.ColorFilter?) {}
+                @Deprecated("Deprecated in Java") override fun getOpacity() = android.graphics.PixelFormat.TRANSLUCENT
+            })
+        } catch (e: Throwable) { }
+    }
 
 
     // ---- extra 3D features (Settings > Map), see MapExtras.kt ----
