@@ -255,16 +255,6 @@ fun SpeedLimitSign(engine: NavEngine, size: Dp, modifier: Modifier = Modifier, o
     val tap: (() -> Unit)? = onClick ?: if (!engine.isCar) ({ panel = !panel }) else null
     Box(modifier) {
         SpeedLimitFace(engine, size, Modifier, tap)
-        // the next different limit on the route, as a small sign beside the roundel, from about half a mile (800 m) out
-        val nl = engine.nextLimitMs
-        if (nl != null && engine.nextLimitM in 0.0..800.0 && engine.speedLimit != null) {
-            val k = if (engine.imperial) 2.23694 else 3.6
-            val nn = (Math.round(nl * k / 5.0) * 5).toInt()
-            Box(Modifier.align(Alignment.CenterEnd).offset(x = size + 6.dp).clip(RoundedCornerShape(6.dp))
-                .background(Color.White).border(1.dp, Color(0xFF8E9096), RoundedCornerShape(6.dp)).padding(horizontal = 6.dp, vertical = 2.dp)) {
-                Text(Lang.t("Danach $nn", "Then $nn"), color = Color(0xFF111111), fontSize = 12.sp, fontWeight = FontWeight.Bold, maxLines = 1)
-            }
-        }
         if (panel) androidx.compose.ui.window.Popup(alignment = Alignment.TopCenter, offset = androidx.compose.ui.unit.IntOffset(0, -20),
             onDismissRequest = { panel = false }, properties = androidx.compose.ui.window.PopupProperties(focusable = true)) {
             LimitPanel(engine) { panel = false }

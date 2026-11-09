@@ -4,17 +4,9 @@ Add user-facing Horizon Nav changes under **Unreleased** before publishing each 
 
 ## Unreleased
 
-### Neu
-- Eigenes Design: Unter Einstellungen > Karte > Eigenes Design lassen sich Routen-, Pfeil- und Akzentfarbe wählen und die Karte heller oder dunkler stellen, mit Live-Vorschau.
-  EN: Own design: Settings > Map > Own design sets the route, arrow and accent colour and makes the map lighter or darker, with a live preview.
-
 ### Verbessert
-- Akku: Regenradar und Leistungsanzeige laufen nicht mehr weiter, wenn die App im Hintergrund ist.
-  EN: Battery: Rain radar and the performance meter no longer run while the app is in the background.
-- Routenvergleich: Jede Routenkarte zeigt jetzt auch Maut und Vignette, neben Stauminuten und Ladestopps.
-  EN: Route comparison: Each route card now also shows tolls and vignettes, next to traffic minutes and charging stops.
-- Englisch: Einrichtung, „Was ist neu“ und alle Einstellungstexte gibt es jetzt vollständig auf Englisch.
-  EN: English: Setup, What's new and all settings texts are now fully in English.
+- Tempolimit: Das kleine „Danach …“-Schild neben dem Tempolimit ist entfernt.
+  EN: Speed limit: The small "Then …" sign next to the speed limit is gone.
 
 ## 1.0.246 — 2026-10-28
 
