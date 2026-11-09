@@ -9,6 +9,8 @@ Add user-facing Horizon Nav changes under **Unreleased** before publishing each 
   EN: Own design: Settings > Map > Own design sets the route, arrow and accent colour and makes the map lighter or darker, with a live preview.
 
 ### Verbessert
+- Akku: Regenradar und Leistungsanzeige laufen nicht mehr weiter, wenn die App im Hintergrund ist.
+  EN: Battery: Rain radar and the performance meter no longer run while the app is in the background.
 - Routenvergleich: Jede Routenkarte zeigt jetzt auch Maut und Vignette, neben Stauminuten und Ladestopps.
   EN: Route comparison: Each route card now also shows tolls and vignettes, next to traffic minutes and charging stops.
 - Englisch: Einrichtung, „Was ist neu“ und alle Einstellungstexte gibt es jetzt vollständig auf Englisch.

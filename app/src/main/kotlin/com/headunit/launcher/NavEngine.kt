@@ -743,6 +743,8 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         scope.launch {
             while (true) {
                 delay(1000)
+                // (nothing to show while the phone app is in the background)
+                if (!isCar && !appVisible) continue
                 PerfStats.on = prefs.b(PreferenceKeys.PERFORMANCE_METER, false)
                 if (PerfStats.on) perfSample() else if (perfLine.isNotEmpty()) perfLine = ""
                 // (the traffic view when stopped shouldn't depend on the GPS still sending positions while you're stationary)
@@ -5436,6 +5438,8 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         radarJob = scope.launch {
             var warned = false
             while (true) {
+                // the phone app in the background shows no map: the radar is fetched again once it is back in front
+                if (!isCar && !appVisible) { delay(30_000L); continue }
                 val url = withContext(Dispatchers.IO) {
                     try {
                         val c = java.net.URL("https://api.rainviewer.com/public/weather-maps.json").openConnection() as java.net.HttpURLConnection
