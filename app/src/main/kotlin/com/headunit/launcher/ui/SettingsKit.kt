@@ -54,10 +54,10 @@ import kotlin.math.roundToInt
 internal fun SGroup(title: String? = null, footer: String? = null, content: @Composable ColumnScope.() -> Unit) {
     val c = LocalVw.current
     Column(Modifier.fillMaxWidth().padding(bottom = 14.dp)) {
-        if (title != null) Text(title.uppercase(), color = c.sub, fontSize = 11.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.2.sp, modifier = Modifier.padding(start = 6.dp, bottom = 6.dp))
+        if (title != null) Text(tr(title).uppercase(), color = c.sub, fontSize = 11.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.2.sp, modifier = Modifier.padding(start = 6.dp, bottom = 6.dp))
         // the same card look as the map screen: soft surface with a hairline edge
         Column(Modifier.fillMaxWidth().then(if (Neon.on) Modifier.neonBrackets(c.accent, 12.dp, 2.dp) else Modifier).clip(RoundedCornerShape(22.dp)).background(c.panel).border(1.dp, c.line, RoundedCornerShape(22.dp)).padding(horizontal = 18.dp, vertical = 6.dp).animateContentSize(), content = content)
-        if (footer != null) Text(footer, color = c.sub, fontSize = 12.sp, modifier = Modifier.padding(start = 8.dp, end = 8.dp, top = 6.dp))
+        if (footer != null) Text(tr(footer), color = c.sub, fontSize = 12.sp, modifier = Modifier.padding(start = 8.dp, end = 8.dp, top = 6.dp))
     }
 }
 
@@ -88,8 +88,8 @@ internal fun SItem(title: String, sub: String? = null, onClick: (() -> Unit)? = 
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Column(Modifier.weight(1f).padding(end = 14.dp)) {
-            Text(title, color = c.text, fontSize = 16.sp, fontWeight = FontWeight.Medium)
-            if (!sub.isNullOrBlank()) Text(sub, color = c.sub, fontSize = 12.sp, modifier = Modifier.padding(top = 2.dp))
+            Text(tr(title), color = c.text, fontSize = 16.sp, fontWeight = FontWeight.Medium)
+            if (!sub.isNullOrBlank()) Text(tr(sub), color = c.sub, fontSize = 12.sp, modifier = Modifier.padding(top = 2.dp))
         }
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) { trailing() }
     }
@@ -115,7 +115,7 @@ internal fun Segmented(options: List<Pair<String, String>>, value: String, onPic
                 Modifier.clip(RoundedCornerShape(50)).background(bg).clickable { onPick(k) }.padding(horizontal = 14.dp, vertical = 8.dp),
                 contentAlignment = Alignment.Center,
             ) {
-                Text(label, color = fg, fontSize = 14.sp, fontWeight = if (sel) FontWeight.SemiBold else FontWeight.Medium, maxLines = 1)
+                Text(tr(label), color = fg, fontSize = 14.sp, fontWeight = if (sel) FontWeight.SemiBold else FontWeight.Medium, maxLines = 1)
             }
         }
     }
@@ -158,7 +158,7 @@ internal fun SButton(text: String, primary: Boolean = false, danger: Boolean = f
     val bg = if (danger) Bad.copy(alpha = 0.16f) else if (primary) c.accent else c.tile
     val fg = if (danger) Bad else if (primary) (if (c.accent.luminance() > 0.6f) Color(0xFF10131C) else Color.White) else c.text
     Box(Modifier.clip(RoundedCornerShape(50)).background(bg).pressClick(onClick).padding(horizontal = 16.dp, vertical = 9.dp), contentAlignment = Alignment.Center) {
-        Text(text, color = fg, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
+        Text(tr(text), color = fg, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
     }
 }
 
@@ -168,7 +168,7 @@ internal fun SField(value: String, onChange: (String) -> Unit, placeholder: Stri
     val c = LocalVw.current
     TextField(
         value = value, onValueChange = onChange, singleLine = true,
-        placeholder = { Text(placeholder, color = c.sub) },
+        placeholder = { Text(tr(placeholder), color = c.sub) },
         visualTransformation = if (password) PasswordVisualTransformation() else VisualTransformation.None,
         keyboardOptions = if (number) KeyboardOptions(keyboardType = KeyboardType.Decimal) else KeyboardOptions.Default,
         shape = RoundedCornerShape(16.dp),
@@ -195,7 +195,7 @@ internal fun SFieldItem(title: String, value: String, sub: String? = null, place
 /** A line of explanation inside a group. */
 @Composable
 internal fun SNote(text: String) {
-    Text(text, color = LocalVw.current.sub, fontSize = 12.sp, modifier = Modifier.padding(vertical = 6.dp))
+    Text(tr(text), color = LocalVw.current.sub, fontSize = 12.sp, modifier = Modifier.padding(vertical = 6.dp))
 }
 
 

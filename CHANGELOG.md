@@ -6,6 +6,7 @@ Add user-facing Horizon Nav changes under **Unreleased** before publishing each 
 
 ### Neu
 - Sprache wählen: Unter Einstellungen > Ton & Stimme > Sprache stellst du die App auf Deutsch oder Englisch, unabhängig von der Telefonsprache (ab Android 13). Das gilt für Bildschirme, Android Auto, Ansagen, Routenanweisungen und Suchergebnisse.
+- Einstellungen auf Englisch: Alle Einstellungsseiten, Optionen, Beschreibungen und Buttons gibt es jetzt auch auf Englisch. Die Einstellungssuche findet Begriffe in beiden Sprachen.
 
 ### Behoben
 - Verkehrsfarben: Ein Stau oder Unfall auf der Routenlinie bleibt nicht mehr rot, wenn er sich aufgelöst hat. Jede Aktualisierung beginnt beim Verkehr des Routendienstes und legt TomTom und Meldungen darüber.

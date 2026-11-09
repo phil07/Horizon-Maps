@@ -132,7 +132,7 @@ private fun SettingsBody(prefs: Prefs, engine: NavEngine, onClose: () -> Unit) {
     val words = query.trim().lowercase().split(Regex("\\s+")).filter { it.isNotBlank() }
     val matches = remember(query) {
         if (words.isEmpty()) emptyList() else settingsIndex.filter { r ->
-            val hay = (r.title + " " + r.sub + " " + r.group + " " + sections[r.section].title).lowercase()
+            val hay = (r.title + " " + r.sub + " " + r.group + " " + sections[r.section].title + " " + tr(r.title) + " " + tr(r.sub) + " " + tr(r.group) + " " + tr(sections[r.section].title)).lowercase()
             words.all { hay.contains(it) }
         }.sortedBy { if (it.title.lowercase().startsWith(words[0])) 0 else if (it.title.lowercase().contains(words[0])) 1 else 2 }.take(40)
     }
@@ -176,13 +176,13 @@ private fun SettingsBody(prefs: Prefs, engine: NavEngine, onClose: () -> Unit) {
                             cat = r.section; highlight = r.title; query = ""; focus.clearFocus(); showList = false
                         }.padding(horizontal = 12.dp, vertical = 9.dp),
                     ) {
-                        Text(r.title, color = c.text, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, maxLines = 2, overflow = TextOverflow.Ellipsis)
-                        Text(sections[r.section].title + (if (r.group.isNotBlank()) " · " + r.group else ""), color = c.sub, fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        Text(tr(r.title), color = c.text, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                        Text(tr(sections[r.section].title) + (if (r.group.isNotBlank()) " · " + tr(r.group) else ""), color = c.sub, fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     }
                 }
             } else sections.forEachIndexed { i, s ->
                 // the small group headings in the list: Map, Driving, You, Device
-                if (s.heading != null) Text(s.heading, color = c.sub, fontSize = 11.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.4.sp,
+                if (s.heading != null) Text(tr(s.heading), color = c.sub, fontSize = 11.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.4.sp,
                     modifier = Modifier.padding(start = 14.dp, top = if (i == 0) 2.dp else 12.dp, bottom = 2.dp))
                 val on = i == cat
                 val rowBg by androidx.compose.animation.animateColorAsState(if (on) c.accent.copy(alpha = 0.16f) else Color.Transparent, androidx.compose.animation.core.tween(200), label = "secBg")
@@ -195,8 +195,8 @@ private fun SettingsBody(prefs: Prefs, engine: NavEngine, onClose: () -> Unit) {
                         Icon(s.icon, null, tint = s.tint, modifier = Modifier.size(21.dp))
                     }
                     Column(Modifier.padding(start = 12.dp)) {
-                        Text(if (Neon.on) s.title.uppercase() else s.title, color = if (on) c.accent else c.text, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, letterSpacing = if (Neon.on) 1.sp else 0.sp)
-                        Text(s.sub, color = c.sub, fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        Text(if (Neon.on) tr(s.title).uppercase() else tr(s.title), color = if (on) c.accent else c.text, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, letterSpacing = if (Neon.on) 1.sp else 0.sp)
+                        Text(tr(s.sub), color = c.sub, fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     }
                 }
             }
@@ -204,7 +204,7 @@ private fun SettingsBody(prefs: Prefs, engine: NavEngine, onClose: () -> Unit) {
         // the chosen section (each opens at the top), sliding up gently into place
         if (!narrowS || !showList) Column(Modifier.weight(1f).fillMaxHeight()) {
         // the neon look: the sections as a bar of tabs at the top
-        if (Neon.on) NeonTabs(sections.map { it.title }, cat, { cat = it; highlight = null })
+        if (Neon.on) NeonTabs(sections.map { tr(it.title) }, cat, { cat = it; highlight = null })
         androidx.compose.animation.AnimatedContent(
             targetState = cat,
             modifier = Modifier.weight(1f).fillMaxWidth(),
@@ -223,8 +223,8 @@ private fun SettingsBody(prefs: Prefs, engine: NavEngine, onClose: () -> Unit) {
                     }
                     Text(stringResource(R.string.ui_048), color = c.sub, fontSize = 15.sp, modifier = Modifier.padding(start = 10.dp))
                 }
-                Text(sections[cat].title, color = c.text, fontSize = 28.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(start = 6.dp, top = 6.dp))
-                Text(sections[cat].sub, color = c.sub, fontSize = 13.sp, modifier = Modifier.padding(start = 6.dp, bottom = 16.dp))
+                Text(tr(sections[cat].title), color = c.text, fontSize = 28.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(start = 6.dp, top = 6.dp))
+                Text(tr(sections[cat].sub), color = c.sub, fontSize = 13.sp, modifier = Modifier.padding(start = 6.dp, bottom = 16.dp))
                 Column(Modifier.widthIn(max = 820.dp)) {
                     when (cat) {
                         0 -> MapLookSection(prefs, engine)
@@ -336,9 +336,9 @@ private fun ArrowSection(prefs: Prefs, engine: NavEngine) {
         val hasPic = prefs.s(PreferenceKeys.LOCATOR_IMAGE, "").isNotBlank() && java.io.File(ctx.filesDir, "locator.png").exists()
         val pickPic = rememberLocatorImagePicker { ok ->
             if (ok) { prefs.put(PreferenceKeys.LOCATOR_IMAGE, System.currentTimeMillis().toString()); prefs.put(PreferenceKeys.LOCATOR, "custom") }
-            else android.widget.Toast.makeText(ctx, "Bild konnte nicht gelesen werden (versuche PNG oder JPG)", android.widget.Toast.LENGTH_SHORT).show()
+            else android.widget.Toast.makeText(ctx, tr("Bild konnte nicht gelesen werden (versuche PNG oder JPG)"), android.widget.Toast.LENGTH_SHORT).show()
         }
-        fun choosePic() { if (!pickPic()) android.widget.Toast.makeText(ctx, "Keine App auf diesem Gerät kann ein Bild auswählen", android.widget.Toast.LENGTH_LONG).show() }
+        fun choosePic() { if (!pickPic()) android.widget.Toast.makeText(ctx, tr("Keine App auf diesem Gerät kann ein Bild auswählen"), android.widget.Toast.LENGTH_LONG).show() }
         SChoice("Positionsanzeige", listOf("arrow" to "3D-Pfeil", "car" to "Auto", "model" to "Echtes 3D-Modell", "flat" to "Flacher Pfeil", "custom" to "Eigenes Bild"), loc) {
             if (it == "custom" && !hasPic) choosePic() else prefs.put(PreferenceKeys.LOCATOR, it)
         }
@@ -1168,7 +1168,7 @@ private fun AboutSection(prefs: Prefs, engine: NavEngine) {
                 ctx.contentResolver.openOutputStream(uri)?.use { it.write(prefs.exportJson().toByteArray()) }
                 true
             } catch (e: Exception) { false }
-            android.widget.Toast.makeText(ctx, if (ok) "Sicherung gespeichert" else "Sicherung konnte nicht gespeichert werden", android.widget.Toast.LENGTH_SHORT).show()
+            android.widget.Toast.makeText(ctx, if (ok) tr("Sicherung gespeichert") else tr("Sicherung konnte nicht gespeichert werden"), android.widget.Toast.LENGTH_SHORT).show()
         }
     }
     val importer = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
@@ -1206,10 +1206,10 @@ private fun AboutSection(prefs: Prefs, engine: NavEngine) {
     }
     if (keyDlg.isNotEmpty()) androidx.compose.material3.AlertDialog(
         onDismissRequest = { keyDlg = ""; keyPw = "" },
-        title = { Text(if (keyDlg == "export") "Passwort für die Schlüssel-Sicherung" else "Passwort der Schlüssel-Sicherung") },
+        title = { Text(if (keyDlg == "export") tr("Passwort für die Schlüssel-Sicherung") else tr("Passwort der Schlüssel-Sicherung")) },
         text = {
             androidx.compose.material3.OutlinedTextField(value = keyPw, onValueChange = { keyPw = it }, singleLine = true,
-                label = { Text("Passwort (mind. 6 Zeichen)") },
+                label = { Text(tr("Passwort (mind. 6 Zeichen)")) },
                 visualTransformation = androidx.compose.ui.text.input.PasswordVisualTransformation())
         },
         confirmButton = {
@@ -1217,9 +1217,9 @@ private fun AboutSection(prefs: Prefs, engine: NavEngine) {
                 val mode = keyDlg
                 keyDlg = ""
                 if (mode == "export") keySaver.launch("horizon-nav-keys.json") else keyOpener.launch(arrayOf("application/json", "text/plain", "*/*"))
-            }) { Text("Weiter") }
+            }) { Text(tr("Weiter")) }
         },
-        dismissButton = { androidx.compose.material3.TextButton(onClick = { keyDlg = ""; keyPw = "" }) { Text("Abbrechen") } },
+        dismissButton = { androidx.compose.material3.TextButton(onClick = { keyDlg = ""; keyPw = "" }) { Text(tr("Abbrechen")) } },
     )
     SGroup("Sicherung") {
         // the buttons sit under the title: beside it they squeezed the title into a narrow column
@@ -1333,7 +1333,7 @@ private fun EvWidgetItem(prefs: Prefs) {
         // short labels, so all three fit on one line on a phone
         if (id >= 0) SButton("App öffnen") {
             if (!com.headunit.launcher.EvWidget.openProvider(ctx, prefs))
-                android.widget.Toast.makeText(ctx, "Die Auto-App lässt sich nicht öffnen.", android.widget.Toast.LENGTH_LONG).show()
+                android.widget.Toast.makeText(ctx, tr("Die Auto-App lässt sich nicht öffnen."), android.widget.Toast.LENGTH_LONG).show()
         }
         SButton(if (id >= 0) "Ändern" else "Widget wählen", primary = id < 0) { picking = true }
         if (id >= 0) SButton("Entfernen", danger = true) { com.headunit.launcher.EvWidget.remove(ctx, prefs) }
@@ -1359,10 +1359,10 @@ private fun EvWidgetItem(prefs: Prefs) {
         val list = remember { com.headunit.launcher.EvWidget.providers(ctx) }
         androidx.compose.ui.window.Dialog(onDismissRequest = { picking = false }) {
             Column(Modifier.widthIn(max = 560.dp).fillMaxWidth().clip(RoundedCornerShape(26.dp)).background(c.panel).padding(22.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                Text("Widget mit dem Ladestand", color = c.text, fontSize = 22.sp, fontWeight = FontWeight.Bold)
-                Text("Wähle das Widget deiner Auto-App. Horizon Nav liest daraus den Prozentwert, wenn es sich aktualisiert.", color = c.sub, fontSize = 14.sp)
+                Text(tr("Widget mit dem Ladestand"), color = c.text, fontSize = 22.sp, fontWeight = FontWeight.Bold)
+                Text(tr("Wähle das Widget deiner Auto-App. Horizon Nav liest daraus den Prozentwert, wenn es sich aktualisiert."), color = c.sub, fontSize = 14.sp)
                 Column(Modifier.heightIn(max = 420.dp).verticalScroll(rememberScrollState())) {
-                    if (list.isEmpty()) Text("Keine Widgets gefunden", color = c.sub, fontSize = 15.sp)
+                    if (list.isEmpty()) Text(tr("Keine Widgets gefunden"), color = c.sub, fontSize = 15.sp)
                     for (info in list) {
                         val label = remember(info) { com.headunit.launcher.EvWidget.label(ctx, info) }
                         Text(label, color = c.text, fontSize = 16.sp, modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).clickable {
@@ -1415,7 +1415,7 @@ private fun EvOperatorsItem(prefs: Prefs) {
             containerColor = c.panel,
         ) {
             if (sel.isNotEmpty()) androidx.compose.material3.DropdownMenuItem(
-                text = { Text("Alle abwählen", color = c.accent, fontSize = 15.sp, fontWeight = FontWeight.SemiBold) },
+                text = { Text(tr("Alle abwählen"), color = c.accent, fontSize = 15.sp, fontWeight = FontWeight.SemiBold) },
                 onClick = { com.headunit.launcher.ChargeOperators.setSelected(prefs, emptySet()) },
             )
             for (o in ops) {
@@ -1486,28 +1486,28 @@ private fun EvCarDialog(prefs: Prefs, onClose: () -> Unit) {
     fun pick(car: com.headunit.launcher.EvCar) { com.headunit.launcher.EvCars.select(prefs, car); onClose() }
     androidx.compose.ui.window.Dialog(onDismissRequest = onClose) {
         Column(Modifier.widthIn(max = 560.dp).fillMaxWidth().clip(RoundedCornerShape(26.dp)).background(c.panel).padding(22.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Text("Dein Fahrzeug", color = c.text, fontSize = 22.sp, fontWeight = FontWeight.Bold)
+            Text(tr("Dein Fahrzeug"), color = c.text, fontSize = 22.sp, fontWeight = FontWeight.Bold)
             when {
                 failed -> {
-                    Text("Die Fahrzeugdaten ließen sich nicht laden. Prüfe die Internetverbindung.", color = c.sub, fontSize = 15.sp)
+                    Text(tr("Die Fahrzeugdaten ließen sich nicht laden. Prüfe die Internetverbindung."), color = c.sub, fontSize = 15.sp)
                     SButton("Erneut versuchen", primary = true) { attempt++ }
                 }
-                cars == null -> Text("Fahrzeugdaten werden geladen …", color = c.sub, fontSize = 15.sp)
+                cars == null -> Text(tr("Fahrzeugdaten werden geladen …"), color = c.sub, fontSize = 15.sp)
                 else -> {
                     if (suggested.isNotEmpty()) {
-                        Text("Vorschlag aus dem Widget", color = c.sub, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                        Text(tr("Vorschlag aus dem Widget"), color = c.sub, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
                         Column(Modifier.heightIn(max = 160.dp).verticalScroll(rememberScrollState())) {
                             for (car in suggested) EvCarRow(car) { pick(car) }
                         }
                     }
                     SField(query, { query = it.take(60) }, placeholder = "Suchen, z. B. ID.7 Pro", width = 516.dp, fill = true)
                     androidx.compose.foundation.lazy.LazyColumn(Modifier.weight(1f, fill = false).fillMaxWidth().heightIn(max = 360.dp)) {
-                        if (shown.isEmpty()) item { Text("Kein Fahrzeug gefunden", color = c.sub, fontSize = 15.sp, modifier = Modifier.padding(vertical = 12.dp)) }
+                        if (shown.isEmpty()) item { Text(tr("Kein Fahrzeug gefunden"), color = c.sub, fontSize = 15.sp, modifier = Modifier.padding(vertical = 12.dp)) }
                         items(shown.size) { i -> val car = shown[i]; EvCarRow(car) { pick(car) } }
                     }
                 }
             }
-            Text("Fahrzeugdaten: " + com.headunit.launcher.EvCars.SOURCE, color = c.sub, fontSize = 12.sp)
+            Text(tr("Fahrzeugdaten: ") + com.headunit.launcher.EvCars.SOURCE, color = c.sub, fontSize = 12.sp)
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) { SButton("Abbrechen") { onClose() } }
         }
     }
