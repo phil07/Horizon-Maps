@@ -842,7 +842,11 @@ class MapScreen(carContext: CarContext, private val holder: CarHolder) : Screen(
                     }
                 }
                 if (ang == 0) ang = 360
-                mb.setRoundaboutExitAngle(ang.coerceIn(1, 360))
+                // the car's head-up display draws the angle the other way round from how it is worked out above (the third exit,
+                // a left turn, showed pointing right like the first): so it gets the mirrored angle. Straight on (180) and back
+                // (360) stay the same; the exit number below still uses the angle as worked out
+                val hudAng = if (ang in 1..359) 360 - ang else ang
+                mb.setRoundaboutExitAngle(hudAng.coerceIn(1, 360))
                 // no exit number from the route data: counted from the angle (about a quarter turn per exit) rather than left out,
                 // which Android Auto refuses
                 if (rbExit <= 0) rbExit = (Math.round(ang / 90.0).toInt()).coerceIn(1, 4)
