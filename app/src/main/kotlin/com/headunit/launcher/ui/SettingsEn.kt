@@ -10,6 +10,8 @@ import com.headunit.launcher.Lang
 internal object SettingsEn {
     private val m: Map<String, String> = hashMapOf(
         "Kartenansicht" to "Map view",
+        "Fahnen wehen" to "Waving flags",
+        "Fahnen bewegen sich im Wind" to "Flags move in the wind",
         "Eigenes Design" to "Own design",
         "Wirkt sofort. Standard stellt die übliche Farbe wieder her." to "Applies right away. Standard restores the usual colour.",
         "Routenfarbe" to "Route colour",
@@ -668,7 +670,7 @@ internal object SettingsEn {
         "Limousine, Schrägheck, Kombi, SUV, Pickup, Van oder Sportwagen" to "Saloon, hatchback, estate, SUV, pickup, van or sports car",
         "Weißer Pfeil durch die nächste Kreuzung" to "White arrow through the next junction",
         "Kleine Pfeile auf der Linie beim Zoom" to "Small arrows on the line when zoomed",
-        "Rote Fahne am Ziel, gelbe an den Stopps" to "Red flag at the destination, yellow at stops",
+        "Karierte Fahne am Ziel, gelbe an den Stopps" to "Chequered flag at the destination, yellow at stops",
         "Schatten unter der Route und Transparenz" to "Shadow under the route and see-through",
         "Länder für Mautvermeidung wählen" to "Choose countries to avoid tolls in",
         "Start- oder Zielzonen können nicht vermieden werden" to "Zones at the start or destination can't be avoided",

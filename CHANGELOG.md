@@ -7,6 +7,8 @@ Add user-facing Horizon Nav changes under **Unreleased** before publishing each 
 ### Neu
 - Wehende Fahnen: Die Zielflagge ist jetzt schwarz-weiß kariert und weht wie die gelben Zwischenzielfahnen im Wind, auf dem Handy und in Android Auto. Die Animation läuft nur, wenn die Karte nah herangezoomt ist.
   EN: Waving flags: The destination flag is now a chequered finish flag and waves in the wind like the yellow stop flags, on the phone and in Android Auto. It only animates when zoomed in close.
+- Fahnen-Schalter: „Fahnen wehen“ schaltet die Bewegung ab. „3D-Fahnen“ wirkt jetzt sofort.
+  EN: Flag switches: "Waving flags" turns the movement off. "3D flags" now applies right away.
 
 ## 1.0.246 — 2026-10-28
 

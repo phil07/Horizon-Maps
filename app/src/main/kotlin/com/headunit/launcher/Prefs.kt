@@ -36,6 +36,7 @@ internal object PreferenceKeys {
     const val HAZARD_ICONS = "hazardicons"
     /** 3D flags on the map: a tall red one at the destination, amber ones at the stops. */
     const val FLAGS_3D = "flags3d"
+    const val FLAGS_WAVE = "flagswave"
     /** Routes bring you to the kerb side of the destination (Mapbox approaches=curb). */
     const val CURB_ARRIVAL = "curbarrival"
     const val LAMPS = "lamps"

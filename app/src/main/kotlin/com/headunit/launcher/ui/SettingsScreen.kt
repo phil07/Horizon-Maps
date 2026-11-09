@@ -433,6 +433,7 @@ private fun ArrowSection(prefs: Prefs, engine: NavEngine) {
         SToggle(prefs, "Pfeile entlang der Route", "routechevrons", true, "Kleine Pfeile entlang der Routenlinie beim Zoomen")
         SToggle(prefs, "Routenschattenband", "ribbon", true, "Ein weicher Schatten unter der Route")
         SToggle(prefs, "3D-Fahnen", "flags3d", true, "Fahnen an Ziel und Stopps")
+        if (prefs.b(PreferenceKeys.FLAGS_3D, true)) SToggle(prefs, "Fahnen wehen", PreferenceKeys.FLAGS_WAVE, true, "Fahnen bewegen sich im Wind")
         SToggle(prefs, "Fließendes Licht auf der Route", "routeflow", true)
         SColours("Farbe alternativer Routen", listOf(
             "#C4D9E6" to "Hellblau-Grau (Standard)", "#A9D4F0" to "Hellblau", "#5AB7F5" to "Blau", "#315CBA" to "Dunkelblau",

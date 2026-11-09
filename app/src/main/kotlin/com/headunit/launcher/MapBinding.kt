@@ -4166,7 +4166,7 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
     private var flagWaving = false
     private val flagTick = object : Runnable {
         override fun run() {
-            if (destroyed || (dest == null && via.isEmpty()) || !prefs.b(PreferenceKeys.FLAGS_3D, true)) { flagWaving = false; return }
+            if (destroyed || (dest == null && via.isEmpty()) || !prefs.b(PreferenceKeys.FLAGS_3D, true) || !prefs.b(PreferenceKeys.FLAGS_WAVE, true)) { flagWaving = false; return }
             if (zoomNow() >= 14.0) {
                 flagPhase = (flagPhase + 0.45) % (2 * Math.PI * 1000)
                 try { src("dl-flags")?.featureCollection(FeatureCollection.fromFeatures(flagFeats())) } catch (e: Throwable) { }
@@ -4174,6 +4174,9 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
             main0.postDelayed(this, if (zoomNow() >= 14.0) 160L else 1000L)
         }
     }
+    /** Settings > 3D flags or Waving flags changed: drawn again straight away. */
+    fun refreshFlags() { main0.post { pushFlags() } }
+
     private fun startFlagWave() {
         if (flagWaving || (dest == null && via.isEmpty())) return
         flagWaving = true
