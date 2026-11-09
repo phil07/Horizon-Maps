@@ -4248,6 +4248,8 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
     private val flagTick = object : Runnable {
         override fun run() {
             if (destroyed || (dest == null && via.isEmpty()) || !prefs.b(PreferenceKeys.FLAGS_3D, true) || !prefs.b(PreferenceKeys.FLAGS_WAVE, true)) { flagWaving = false; return }
+            // (the phone's map hidden behind another app or the settings: nothing to animate; the car's map is never "shown" as a view)
+            if (!flushBranding && !mapView.isShown) { main0.postDelayed(this, 1000L); return }
             if (zoomNow() >= 14.0) {
                 flagPhase = (flagPhase + 0.45) % (2 * Math.PI * 1000)
                 try { src("dl-flags")?.featureCollection(FeatureCollection.fromFeatures(flagFeats())) } catch (e: Throwable) { }

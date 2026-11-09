@@ -2045,7 +2045,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
             val shown = results
             val found = withContext(Dispatchers.IO) {
                 val more = if (online()) try { nearbyMatches(name, center, 40) } catch (e: Exception) { emptyList() } else emptyList()
-                (shown + more).filter { BrandLogos.key(it.brand ?: it.name) == k || BrandLogos.key(it.name).startsWith(k) }
+                (shown + more).filter { val n = BrandLogos.key(it.name); BrandLogos.key(it.brand ?: it.name) == k || n == k || n.startsWith("$k ") }
                     .filter { Geo.dist(center, it.pos) <= 25_000 }
             }
             val uniq = PoiSearch.distinct(found).onEach { if (it.web == null && web != null) it.web = web }
@@ -2242,7 +2242,8 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
                 if (prefer != null && keepVia && rs.none { routeOverlap(it, prefer) > 0.8 }) rs = listOf(prefer) + rs
                 val pick = (if (prefer != null && keepVia && rs.size > 1) rs.indices.maxByOrNull { routeOverlap(rs[it], prefer) } else null)
                     ?: simplerPick(rs)
-                pickedSlower = rs.size > 1 && rs[pick] !== rs.minByOrNull { it.time }
+                // (a way taken over from the other screen counts as picked by hand; the app's own pick only when clearly slower)
+                pickedSlower = rs.size > 1 && (if (prefer != null && keepVia) rs[pick] !== rs.minByOrNull { it.time } else rs[pick].time > rs.minOf { it.time } + 60.0)
                 if (rs[pick].steps.isEmpty()) toast(if (lastRouteProvider == "mapbox") Lang.t("Mapbox hat für diese Route keine Abbiegehinweise geliefert", "Mapbox returned no turn instructions for this route") else Lang.t("Dieser Schlüssel liefert keine Abbiegehinweise. Prüfe, ob er Zugriff auf die TomTom Routing API hat", "This key returned no turn instructions. Check it has TomTom Routing API access"), 6000)
                 if (departInMin > 0 && !usedOffline && !departApplied) toast(ctx.getString(R.string.toast_007), 4000)
                 departMin = departInMin
@@ -2259,7 +2260,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
                 results = emptyList()
                 stopSim()
                 if (TomTomRest.avoidDropped && !usedOffline) toast(ctx.getString(R.string.toast_005), 5000)
-                dest = to; routes = rs; active = pick
+                dest = to; routes = rs; active = pick; userPicked = false
                 if (isEv && via.isEmpty() && prefs.b(PreferenceKeys.SMARTFUEL, true)) planEvAllRoutes()
                 prediction = null; predictionAt = 0L
                 updateRouteZones()
@@ -2291,8 +2292,12 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         }
     }
 
-    fun selectRoute(i: Int) {
+    /** True once a way was picked by hand from the choice (not the app's own pick): then it is kept, see [pickedSlower]. */
+    private var userPicked = false
+
+    fun selectRoute(i: Int, byUser: Boolean = true) {
         if (i !in routes.indices) return
+        if (byUser) userPicked = true
         map.stopFly()
         active = i; lastIdx = 0
         updateRouteZones()
@@ -2361,7 +2366,9 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         map.stopFly()
         // a slower way picked from the choice: kept, faster ones are only offered
         // (any way that isn't the quickest: also one only seconds slower, else a reroute or a quicker way found later took it away)
-        if (routes.size > 1) pickedSlower = route?.let { r -> r !== routes.minByOrNull { it.time } } == true
+        // The app's own pick (a simpler way up to 90 s slower, or the best one counting charging) is not a pick by hand: it still gives
+        // way to a quicker route later, unless it is over a minute slower as before.
+        if (routes.size > 1) pickedSlower = route?.let { r -> if (userPicked) r !== routes.minByOrNull { it.time } else r.time > routes.minOf { it.time } + 60.0 } == true
         previewing = false
         // where this trip started, for "Route back" when you arrive
         tripFrom = fix?.pos
@@ -2411,6 +2418,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
 
     fun cycleRoute() {
         if (routes.size < 2) { toast(ctx.getString(R.string.toast_016)); return }
+        userPicked = true
         active = (active + 1) % routes.size
         said.clear(); lastIdx = 0
         drawRoutes()
@@ -6790,7 +6798,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
                 // the routes are offered only now: pre-select the quickest one counting its charging time
                 if (routes === rs && previewing) {
                     val best = rs.indices.minByOrNull { rs[it].time + (evRoutePlans[rs[it]]?.minutes ?: 0) * 60.0 }
-                    if (best != null && best != active) selectRoute(best)
+                    if (best != null && best != active) selectRoute(best, byUser = false)
                 }
             } finally {
                 if (routes === rs) evPlansPending = false

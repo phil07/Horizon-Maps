@@ -4,6 +4,16 @@ Add user-facing Horizon Nav changes under **Unreleased** before publishing each 
 
 ## Unreleased
 
+### Behoben
+- Schnellere Route: Die App wechselt wieder von selbst auf eine deutlich schnellere Route, solange die Route nicht von Hand gewählt wurde. Eine von Hand gewählte Alternative bleibt weiterhin erhalten.
+  EN: Faster route: The app again switches to a clearly faster route by itself unless the route was picked by hand. A route picked by hand is still kept.
+- Alle Standorte: Zeigt nur noch Filialen der gesuchten Kette, keine Orte mit ähnlich beginnendem Namen.
+  EN: See all locations: Only shows branches of the chain searched for, not places whose names merely start alike.
+
+### Verbessert
+- Akku: Die wehenden Fahnen pausieren, wenn die Karte auf dem Handy nicht zu sehen ist.
+  EN: Battery: The waving flags pause when the phone's map is not visible.
+
 ## 1.0.246 — 2026-10-28
 
 ### Improved in-app updates

@@ -27,6 +27,7 @@ Horizon Nav ist eine Navigations-App ohne eigenes Benutzerkonto, ohne Werbung un
 | TomTom (nur mit eigenem Schlüssel) | Routen, Verkehr, Blitzer, Ladesäulen | Start, Ziel, Route, Position |
 | OpenStreetMap-Dienste: Overpass-Server (overpass-api.de, overpass.kumi.systems, overpass.private.coffee), Nominatim, Photon (komoot) | Tempolimits, Orte in der Nähe, Adresssuche | Position oder Kartenausschnitt, Suchbegriffe |
 | Bundesnetzagentur (Ladesäulenregister, über ArcGIS von Esri) | Leistung und Betreiber von Ladesäulen | Route bzw. Bereich entlang der Route |
+| Google (Favicon-Dienst), ersatzweise DuckDuckGo | Logos von Geschäften und Marken in der Suche | Die Website-Adresse der Marke (z. B. lidl.de), einmal je Marke; danach liegt das Logo auf dem Gerät |
 | Open Charge Map (nur mit eigenem Schlüssel) | Ladesäulen weltweit | Route bzw. Bereich entlang der Route |
 | Rijkswaterstaat über PDOK (nur in den Niederlanden) | Tempolimits auf niederländischen Straßen | Ungefähre Position (ein kleines Kartenfeld um dich) |
 | NDW (Niederlande, opendata.ndw.nu) | Ladepunkte in den Niederlanden | Nur der wöchentliche Abruf der Datei, ohne deine Position und ohne Suchbegriff. Nur bei Routen durch die Niederlande |
