@@ -454,7 +454,11 @@ object MapboxRest {
                         val outI = x.optInt("out", -1); val inI = x.optInt("in", -1)
                         if (b != null && outI in 0 until b.length()) {
                             for (bi in 0 until b.length()) if (bi != outI && bi != inI) rbOthers += b.getDouble(bi)
-                            steps[rbIdx] = steps[rbIdx].copy(rbOut = b.getDouble(outI), rbExits = rbOthers.toList())
+                            // mirrored about the way in: read as they come, every roundabout showed the wrong way round (the third
+                            // exit, a left, pointed right like the first) on the turn card, the map and the car's head-up display
+                            val inB = steps[rbIdx].rbIn
+                            fun mirror(x: Double) = if (inB < 0) x else ((2 * inB - x) % 360.0 + 360.0) % 360.0
+                            steps[rbIdx] = steps[rbIdx].copy(rbOut = mirror(b.getDouble(outI)), rbExits = rbOthers.map { mirror(it) })
                         }
                         rbIdx = -1
                     }

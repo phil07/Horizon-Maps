@@ -5,6 +5,8 @@ Add user-facing Horizon Nav changes under **Unreleased** before publishing each 
 ## Unreleased
 
 ### Behoben
+- Kreisverkehr seitenrichtig: Abbiegebox, Kartenbild und Head-up-Display zeigen die Ausfahrt jetzt auf der richtigen Seite. Die dritte Ausfahrt zeigte nach rechts wie die erste.
+  EN: Roundabouts the right way round: The turn card, the map and the head-up display now show the exit on the correct side. The third exit pointed right like the first.
 - Gewählte Route bleibt: Eine Alternative statt der schnellsten Route wird jetzt auch nach dem Start beibehalten. Bei einer Neuberechnung (z. B. nach kurzer GPS-Abweichung) und wenn Android Auto die Fahrt übernimmt, wechselt die App nicht mehr auf die schnellste. Schnellere Wege werden nur noch angeboten.
   EN: Chosen route kept: An alternative picked instead of the fastest route is now kept after starting. A reroute (e.g. after brief GPS drift) or Android Auto taking over the trip no longer switches to the fastest. Faster ways are only offered.
 
