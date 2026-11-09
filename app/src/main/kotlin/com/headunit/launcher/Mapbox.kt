@@ -233,6 +233,27 @@ object MapboxRest {
     /** Countries (two-letter codes) where toll roads are avoided even though Lang.t("Mautstraßen meiden", "Avoid toll roads") is off. */
     @Volatile var tollCountries: Set<String> = emptySet()
 
+    /** The countries where the route uses a toll road (Mapbox marks those junctions "toll"). */
+    internal fun tollCountries(route: JSONObject): Set<String> {
+        val out = LinkedHashSet<String>()
+        val legs = route.optJSONArray("legs") ?: return out
+        for (li in 0 until legs.length()) {
+            val leg = legs.optJSONObject(li) ?: continue
+            val admins = leg.optJSONArray("admins")
+            val steps = leg.optJSONArray("steps") ?: continue
+            for (si in 0 until steps.length()) {
+                val ints = steps.optJSONObject(si)?.optJSONArray("intersections") ?: continue
+                for (ii in 0 until ints.length()) {
+                    val x = ints.optJSONObject(ii) ?: continue
+                    val cl = x.optJSONArray("classes") ?: continue
+                    if ((0 until cl.length()).none { cl.optString(it) == "toll" }) continue
+                    out += admins?.optJSONObject(x.optInt("admin_index", 0))?.optString("iso_3166_1")?.uppercase()?.takeIf { it.length == 2 } ?: "?"
+                }
+            }
+        }
+        return out
+    }
+
     /** The route pays a toll in one of [countries]: a toll stretch (Mapbox marks its junctions "toll") in that country. */
     private fun tollIn(route: JSONObject, countries: Set<String>): Boolean {
         val legs = route.optJSONArray("legs") ?: return false
@@ -548,7 +569,7 @@ object MapboxRest {
                 if (s1 > s0 + 5.0) tun += s0 to s1
             }
         } catch (e: Exception) { }
-        return Route(pts, cum, steps, total, time, delay, laneSecs, sev).also { it.delays = delays; it.limits = limits; it.incidents = incidents; it.tunnels = tun; it.source = "mapbox" }
+        return Route(pts, cum, steps, total, time, delay, laneSecs, sev).also { it.delays = delays; it.limits = limits; it.incidents = incidents; it.tunnels = tun; it.source = "mapbox"; it.tollCc = tollCountries(r) }
     }
 
     // ------------------------------------------------------------------ search

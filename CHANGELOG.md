@@ -9,6 +9,8 @@ Add user-facing Horizon Nav changes under **Unreleased** before publishing each 
   EN: Own design: Settings > Map > Own design sets the route, arrow and accent colour and makes the map lighter or darker, with a live preview.
 
 ### Verbessert
+- Routenvergleich: Jede Routenkarte zeigt jetzt auch Maut und Vignette, neben Stauminuten und Ladestopps.
+  EN: Route comparison: Each route card now also shows tolls and vignettes, next to traffic minutes and charging stops.
 - Englisch: Einrichtung, „Was ist neu“ und alle Einstellungstexte gibt es jetzt vollständig auf Englisch.
   EN: English: Setup, What's new and all settings texts are now fully in English.
 

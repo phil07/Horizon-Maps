@@ -53,6 +53,8 @@ class Route(
     @Volatile var source: String = ""
     /** The heights along the route (loaded after it, for the battery estimate), or null. */
     @Volatile var elev: Elevation.Profile? = null
+    /** Countries (two-letter codes) where the route uses a toll road, as far as the routing service tells (Mapbox does). */
+    @Volatile var tollCc: Set<String> = emptySet()
 }
 
 /** The posted limit [ms] (m/s) from [off] to [end] metres along a route. */

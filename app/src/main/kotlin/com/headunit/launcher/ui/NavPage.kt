@@ -337,6 +337,17 @@ internal fun BoxScope.RoutePreview(engine: NavEngine) {
                     if (delayMin >= 1) Lang.t("+$delayMin Min. Verkehr", "+$delayMin min traffic") else if (via.isNotEmpty()) Lang.t("über $via", "via $via") else Lang.t("Keine Verzögerungen", "No delays"),
                     color = if (delayMin >= 10) Bad else if (delayMin >= 1) Warn else c.sub, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis,
                 )
+                // tolls and vignettes, so the routes can be compared before one is chosen
+                val pay = remember(r) {
+                    val vig = try { com.headunit.launcher.Vignette.along(r).map { it.cc } } catch (e: Exception) { emptyList() }
+                    val toll = r.tollCc.filter { it != "?" && it !in vig }
+                    listOfNotNull(
+                        if (vig.isNotEmpty()) Lang.t("Vignette ", "Vignette ") + vig.distinct().joinToString(", ") else null,
+                        if (toll.isNotEmpty()) Lang.t("Maut ", "Toll ") + toll.joinToString(", ") else if (r.tollCc.contains("?")) Lang.t("Maut", "Toll") else null,
+                    ).joinToString(" · ")
+                }
+                // (only Mapbox says where the tolls are: other routes show nothing rather than a "no toll" that may be wrong)
+                if (pay.isNotEmpty() || r.source == "mapbox") Text(if (pay.isNotEmpty()) pay else Lang.t("Keine Maut", "No toll"), color = if (pay.isNotEmpty()) Warn else c.sub, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 // electric: what this route needs in charging, so the routes can be compared before one is chosen
                 if (ev) {
                     val ps = engine.evPlanShown(r)
