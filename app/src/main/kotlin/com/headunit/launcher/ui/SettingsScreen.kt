@@ -271,11 +271,10 @@ private fun OwnDesignGroup(prefs: Prefs) {
         androidx.compose.foundation.Canvas(Modifier.fillMaxWidth().padding(vertical = 8.dp).height(150.dp).clip(RoundedCornerShape(18.dp))) {
             val w = size.width; val h = size.height
             drawRect(mapBg)
-            val st = androidx.compose.ui.graphics.drawscope.Stroke(width = 14f, cap = androidx.compose.ui.graphics.StrokeCap.Round)
             drawLine(road, androidx.compose.ui.geometry.Offset(0f, h * 0.3f), androidx.compose.ui.geometry.Offset(w, h * 0.42f), 14f)
             drawLine(road, androidx.compose.ui.geometry.Offset(w * 0.75f, 0f), androidx.compose.ui.geometry.Offset(w * 0.62f, h), 12f)
             val p = androidx.compose.ui.graphics.Path().apply { moveTo(w * 0.12f, h * 1.0f); cubicTo(w * 0.2f, h * 0.55f, w * 0.45f, h * 0.7f, w * 0.68f, h * 0.38f); lineTo(w * 0.73f, 0f) }
-            drawPath(p, routeCol, style = st.copy(width = 22f))
+            drawPath(p, routeCol, style = androidx.compose.ui.graphics.drawscope.Stroke(width = 22f, cap = androidx.compose.ui.graphics.StrokeCap.Round))
             val ax = w * 0.17f; val ay = h * 0.78f
             val tri = androidx.compose.ui.graphics.Path().apply { moveTo(ax, ay - 26f); lineTo(ax + 18f, ay + 18f); lineTo(ax, ay + 8f); lineTo(ax - 18f, ay + 18f); close() }
             drawPath(tri, arrowCol); drawPath(tri, Color.Black.copy(alpha = 0.5f), style = androidx.compose.ui.graphics.drawscope.Stroke(3f))
