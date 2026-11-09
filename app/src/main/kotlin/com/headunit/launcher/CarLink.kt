@@ -54,9 +54,17 @@ object CarLink {
         String(c.doFinal(all.copyOfRange(12, all.size)))
     } catch (e: Exception) { null }
 
-    /** Sends [p] to the car paired with [code]. Throws when it can't. */
-    fun send(code: String, p: Place) {
-        val body = JSONObject().put("n", p.name).put("s", p.sub).put("la", p.pos.lat).put("lo", p.pos.lon).put("t", System.currentTimeMillis()).toString()
+    private fun r5(v: Double) = Math.round(v * 100000.0) / 100000.0
+
+    /**
+     * Sends [p] to the car paired with [code], with the [stops] on the way and a rough [track] of the way picked (points along
+     * it), so the car plans the same trip. Throws when it can't.
+     */
+    fun send(code: String, p: Place, stops: List<Place> = emptyList(), track: List<LL> = emptyList()) {
+        val o = JSONObject().put("n", p.name).put("s", p.sub).put("la", p.pos.lat).put("lo", p.pos.lon).put("t", System.currentTimeMillis())
+        if (stops.isNotEmpty()) o.put("v", org.json.JSONArray().also { a -> stops.take(8).forEach { s -> a.put(JSONObject().put("n", s.name.take(60)).put("la", r5(s.pos.lat)).put("lo", r5(s.pos.lon))) } })
+        if (track.isNotEmpty()) o.put("k", org.json.JSONArray().also { a -> track.forEach { a.put(r5(it.lat)); a.put(r5(it.lon)) } })
+        val body = o.toString()
         val c = URL(HOST + topic(code)).openConnection() as HttpURLConnection
         c.connectTimeout = 8000; c.readTimeout = 10000
         c.requestMethod = "POST"; c.doOutput = true
@@ -67,7 +75,7 @@ object CarLink {
         } finally { c.disconnect() }
     }
 
-    class Sent(val id: String, val place: Place, val at: Long)
+    class Sent(val id: String, val place: Place, val at: Long, val stops: List<Place> = emptyList(), val track: List<LL> = emptyList())
 
     /** The newest place sent since [lastId] (or in the last 12 hours), or null. */
     fun latest(code: String, lastId: String): Sent? {
@@ -88,7 +96,13 @@ object CarLink {
                     if (System.currentTimeMillis() - at > 12 * 3600_000L) continue
                     val pl = Place(j.optString("n").ifBlank { Lang.t("Ziel", "Destination") }, j.optString("s"), LL(j.optDouble("la"), j.optDouble("lo")))
                     if (pl.pos.lat.isNaN() || pl.pos.lon.isNaN()) continue
-                    if (best == null || at >= best!!.at) best = Sent(o.optString("id"), pl, at)
+                    val stops = ArrayList<Place>(); val track = ArrayList<LL>()
+                    j.optJSONArray("v")?.let { a -> for (i in 0 until a.length()) { val s = a.optJSONObject(i) ?: continue
+                        val la = s.optDouble("la"); val lo = s.optDouble("lo")
+                        if (!la.isNaN() && !lo.isNaN()) stops += Place(s.optString("n").ifBlank { Lang.t("Stopp", "Stop") }, "", LL(la, lo)) } }
+                    j.optJSONArray("k")?.let { a -> var i = 0; while (i + 1 < a.length()) { val la = a.optDouble(i); val lo = a.optDouble(i + 1)
+                        if (!la.isNaN() && !lo.isNaN()) track += LL(la, lo); i += 2 } }
+                    if (best == null || at >= best!!.at) best = Sent(o.optString("id"), pl, at, stops, track)
                 }
             }
             return best

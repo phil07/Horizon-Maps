@@ -66,6 +66,12 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
     private var stoppedSince = 0L
     /** A place sent from your phone, waiting to be started (head unit). */
     var phoneDest by mutableStateOf<Place?>(null)
+    /** The stops sent along with [phoneDest], and points along the way picked on the phone. */
+    var phoneStops: List<Place> = emptyList()
+        private set
+    private var phoneTrack: List<LL> = emptyList()
+    /** Points along a way picked elsewhere: the next route choice takes the way that follows them most closely (see startRoute). */
+    private var preferTrack: List<LL> = emptyList()
     /** Additional auto-zoom adjustment for Android Auto's usable viewport. Negative values zoom out
      * on compact or narrow displays, where the same camera zoom shows too little road ahead. */
     @Volatile private var carViewportZoomOffset = 0.0
@@ -757,7 +763,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
                     if (!isCar && code.isNotBlank() && prefs.s(PreferenceKeys.LINK_ROLE, "") == "car" && appVisible && route == null && phoneDest == null && online()) {
                         val last = prefs.s(PreferenceKeys.LINK_LAST, "")
                         val got = withContext(Dispatchers.IO) { try { CarLink.latest(code, last) } catch (e: Exception) { null } }
-                        if (got != null && got.id != last) { prefs.put(PreferenceKeys.LINK_LAST, got.id); if (route == null) phoneDest = got.place }
+                        if (got != null && got.id != last) { prefs.put(PreferenceKeys.LINK_LAST, got.id); if (route == null) { phoneStops = got.stops; phoneTrack = got.track; phoneDest = got.place } }
                     }
                 } catch (e: Exception) { }
                 delay(60_000)
@@ -2269,8 +2275,11 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
                 val prefer = evPreferRoute; evPreferRoute = null
                 // none of the new ways follows the one picked on the other screen: that one itself is taken
                 if (prefer != null && keepVia && rs.none { routeOverlap(it, prefer) > 0.8 }) rs = listOf(prefer) + rs
+                // a trip sent from the phone: the way that follows the one picked there most closely
+                val track = preferTrack; preferTrack = emptyList()
+                val sent = if (track.isNotEmpty() && rs.size > 1) rs.indices.maxByOrNull { i -> track.count { RouteExtras.project(rs[i], it, 300.0) != null } } else null
                 val pick = (if (prefer != null && keepVia && rs.size > 1) rs.indices.maxByOrNull { routeOverlap(rs[it], prefer) } else null)
-                    ?: simplerPick(rs)
+                    ?: sent ?: simplerPick(rs)
                 // (a way taken over from the other screen counts as picked by hand; the app's own pick only when clearly slower)
                 pickedSlower = rs.size > 1 && (if (prefer != null && keepVia) rs[pick] !== rs.minByOrNull { it.time } else rs[pick].time > rs.minOf { it.time } + 60.0)
                 if (rs[pick].steps.isEmpty()) toast(if (lastRouteProvider == "mapbox") Lang.t("Mapbox hat für diese Route keine Abbiegehinweise geliefert", "Mapbox returned no turn instructions for this route") else Lang.t("Dieser Schlüssel liefert keine Abbiegehinweise. Prüfe, ob er Zugriff auf die TomTom Routing API hat", "This key returned no turn instructions. Check it has TomTom Routing API access"), 6000)
@@ -2289,7 +2298,8 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
                 results = emptyList()
                 stopSim()
                 if (TomTomRest.avoidDropped && !usedOffline) toast(ctx.getString(R.string.toast_005), 5000)
-                dest = to; routes = rs; active = pick; userPicked = false
+                // (the way sent from the phone was picked by hand there: it is kept like one picked here)
+                dest = to; routes = rs; active = pick; userPicked = sent != null && prefer == null
                 if (isEv && via.isEmpty() && prefs.b(PreferenceKeys.SMARTFUEL, true)) planEvAllRoutes()
                 prediction = null; predictionAt = 0L
                 updateRouteZones()
@@ -3618,8 +3628,13 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         if (code.isBlank()) { toast(ctx.getString(R.string.toast_031), 4000); return }
         scope.launch {
             try {
-                withContext(Dispatchers.IO) { CarLink.send(code, p) }
-                toast(str(R.string.rest_434, p.name), 3500)
+                // from the route options: the whole trip goes, with its stops and the way picked there
+                val whole = previewing && dest?.let { Geo.dist(it.pos, p.pos) < 30.0 } == true
+                val stops = if (whole) via else emptyList()
+                val r = if (whole && routes.size > 1) routes.getOrNull(active) else null
+                val track = r?.pts?.let { pts -> if (pts.size < 3) emptyList() else (1..24).map { pts[(it * (pts.size - 1L) / 25).toInt()] } } ?: emptyList()
+                withContext(Dispatchers.IO) { CarLink.send(code, p, stops, track) }
+                toast(str(R.string.rest_434, p.name) + (if (stops.isNotEmpty()) Lang.t(" (mit ${stops.size} ${if (stops.size == 1) "Stopp" else "Stopps"})", " (with ${stops.size} ${if (stops.size == 1) "stop" else "stops"})") else ""), 3500)
                 if (previewing) endRoute()
             } catch (e: Exception) { toast(str(R.string.toast_057, e.message ?: str(R.string.toast_058)), 4500) }
         }
@@ -3629,7 +3644,12 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
     fun takePhoneDest(go: Boolean) {
         val p = phoneDest ?: return
         phoneDest = null
-        if (go) startRoute(p)
+        val stops = phoneStops; val track = phoneTrack
+        phoneStops = emptyList(); phoneTrack = emptyList()
+        if (!go) return
+        preferTrack = track
+        if (stops.isEmpty()) startRoute(p)
+        else { via = stops; evPlanned = emptyList(); evAutoDest = null; evPlanWarn = null; startRoute(p, keepVia = true) }
     }
 
     /** A search failure in plain words (it used to show the servers' own errors, like "HTTP 429" or "HTTP 502"). */

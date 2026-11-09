@@ -1400,7 +1400,8 @@ private fun PhoneDestCard(engine: NavEngine, p: com.headunit.launcher.Place) {
         }
         Column(Modifier.weight(1f)) {
             Text(Lang.t("Vom Handy: ${p.name}", "From your phone: ${p.name}"), color = c.text, fontSize = 16.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            Text(Lang.t("Start in $left s", "Starting in $left s"), color = c.sub, fontSize = 13.sp)
+            val n = engine.phoneStops.size
+            Text((if (n > 0) Lang.t(if (n == 1) "1 Stopp · " else "$n Stopps · ", if (n == 1) "1 stop · " else "$n stops · ") else "") + Lang.t("Start in $left s", "Starting in $left s"), color = c.sub, fontSize = 13.sp)
         }
         ImmPill(Lang.t("Los", "Go"), { engine.takePhoneDest(true) }, filled = true)
         ImmPill(Lang.t("Nicht jetzt", "Not now"), { engine.takePhoneDest(false) })
