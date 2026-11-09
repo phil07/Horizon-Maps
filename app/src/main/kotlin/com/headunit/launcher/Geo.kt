@@ -609,6 +609,10 @@ object TomTomRest {
                 man, street,
                 i.optString("message").ifBlank { i.optString("instructionMessage") },
                 rx, i.optString("exitNumber"), i.optString("signpostText"),
+                // TomTom gives no bearings, only the angle from the way in to the exit (right positive): kept as a way in of 0 and an
+                // exit at that angle, so the turn card and the car's head-up display show a half-left exit as half-left
+                rbIn = if (man.startsWith("ROUNDABOUT") && i.has("turnAngleInDecimalDegrees")) 0.0 else -1.0,
+                rbOut = if (man.startsWith("ROUNDABOUT") && i.has("turnAngleInDecimalDegrees")) ((i.optDouble("turnAngleInDecimalDegrees", 0.0) % 360.0) + 360.0) % 360.0 else -1.0,
             )
         }
         val laneSecs = ArrayList<LaneSec>()

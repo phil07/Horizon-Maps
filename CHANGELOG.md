@@ -4,6 +4,10 @@ Add user-facing Horizon Nav changes under **Unreleased** before publishing each 
 
 ## Unreleased
 
+### Verbessert
+- Kreisverkehr bei TomTom-Routen: Abbiegebox und Head-up-Display zeigen die Ausfahrt im genauen Winkel (z. B. halblinks) statt nur links, geradeaus oder rechts.
+  EN: Roundabouts on TomTom routes: The turn card and head-up display show the exit at its real angle (e.g. half left) instead of just left, straight or right.
+
 ### Behoben
 - Kreisverkehr seitenrichtig: Abbiegebox, Kartenbild und Head-up-Display zeigen die Ausfahrt jetzt auf der richtigen Seite. Die dritte Ausfahrt zeigte nach rechts wie die erste.
   EN: Roundabouts the right way round: The turn card, the map and the head-up display now show the exit on the correct side. The third exit pointed right like the first.
