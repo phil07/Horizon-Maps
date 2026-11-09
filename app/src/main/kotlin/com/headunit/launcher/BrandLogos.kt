@@ -71,10 +71,8 @@ object BrandLogos {
         synchronized(mem) { if (domain in failed) return null }
         val b = fetch("https://www.google.com/s2/favicons?domain=$domain&sz=128")?.takeIf { it.width >= 32 }
             ?: fetch("https://icons.duckduckgo.com/ip3/$domain.ico")
-        synchronized(mem) {
-            if (b == null) { failed += domain; return null }
-            mem[domain] = b
-        }
+        if (b == null) { synchronized(mem) { failed += domain }; return null }
+        synchronized(mem) { mem[domain] = b }
         try { file(ctx, domain).outputStream().use { b.compress(Bitmap.CompressFormat.PNG, 100, it) } } catch (_: Exception) { }
         return b
     }
