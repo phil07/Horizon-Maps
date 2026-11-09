@@ -803,7 +803,6 @@ internal object SettingsEn {
     )
 
     fun tr(s: String): String = if (Lang.de) s else m[s] ?: s
-    fun tr(s: String?): String? = if (s == null) null else tr(s)
 }
 
 internal fun tr(s: String): String = SettingsEn.tr(s)
