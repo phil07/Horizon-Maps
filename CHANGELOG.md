@@ -4,17 +4,9 @@ Add user-facing Horizon Nav changes under **Unreleased** before publishing each 
 
 ## Unreleased
 
-### Behoben
-- Widget aktualisieren: Findet jetzt auch den Aktualisieren-Knopf von Widgets ohne Beschriftung, z. B. beim VW-Widget.
-  EN: Widget refresh: Now also finds the refresh button of widgets without labels, such as VW's.
-- Kreisverkehr im Head-up-Display: In Android Auto zeigt der Pfeil die richtige Seite. Die dritte Ausfahrt zeigte nach rechts wie die erste.
-  EN: Roundabout on the head-up display: In Android Auto the arrow now points the right way. The third exit pointed right like the first.
-
-### Verbessert
-- Quellen-Button: Der (i)-Button von Mapbox passt sich der Karte an, hell mit dunklem „i“ bei heller Karte, dunkel mit hellem „i“ bei dunkler Karte. In Android Auto war er nur ein schwarzer Kreis.
-  EN: Credits button: Mapbox's (i) button now follows the map, light with a dark "i" on a light map, dark with a light "i" on a dark map. In Android Auto it was a plain black circle.
-- Tempolimit: Das kleine „Danach …“-Schild neben dem Tempolimit ist entfernt.
-  EN: Speed limit: The small "Then …" sign next to the speed limit is gone.
+### Neu
+- Wehende Fahnen: Die Zielflagge ist jetzt schwarz-weiß kariert und weht wie die gelben Zwischenzielfahnen im Wind, auf dem Handy und in Android Auto. Die Animation läuft nur, wenn die Karte nah herangezoomt ist.
+  EN: Waving flags: The destination flag is now a chequered finish flag and waves in the wind like the yellow stop flags, on the phone and in Android Auto. It only animates when zoomed in close.
 
 ## 1.0.246 — 2026-10-28
 

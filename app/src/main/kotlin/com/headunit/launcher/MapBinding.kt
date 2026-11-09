@@ -4122,24 +4122,63 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
     }
 
     /** The 3D flags: a thin white pole with a block for the flag on top, red at the destination and amber at each stop. */
-    private fun flagFeats(): List<Feature> {
+    private fun flagFeats(t: Double = flagPhase): List<Feature> {
         if (!prefs.b(PreferenceKeys.FLAGS_3D, true)) return emptyList()
         val out = ArrayList<Feature>()
-        fun box(p: LL, half: Double, base: Double, top: Double, colour: String) {
-            val ne = Furniture.offset(Furniture.offset(p, 0.0, half), 90.0, half)
-            val nw = Furniture.offset(Furniture.offset(p, 0.0, half), 270.0, half)
-            val sw = Furniture.offset(Furniture.offset(p, 180.0, half), 270.0, half)
-            val se = Furniture.offset(Furniture.offset(p, 180.0, half), 90.0, half)
-            val ring = listOf(ne, nw, sw, se, ne).map { Point.fromLngLat(it.lon, it.lat) }
+        fun poly(pts: List<LL>, base: Double, top: Double, colour: String) {
+            val ring = (pts + pts.first()).map { Point.fromLngLat(it.lon, it.lat) }
             out += Feature.fromGeometry(Polygon.fromLngLats(listOf(ring))).also {
                 it.addNumberProperty("b", base); it.addNumberProperty("h", top); it.addStringProperty("c", colour)
             }
         }
-        dest?.let { d -> box(d, 0.3, 0.0, 22.0, "#F5F5F5"); box(d, 1.6, 18.0, 25.0, "#E0142B") }
-        for ((p, _) in via) { box(p, 0.25, 0.0, 14.0, "#F5F5F5"); box(p, 1.2, 10.0, 13.0, "#FFB300") }
+        fun at(p: LL, east: Double, north: Double) = Furniture.offset(Furniture.offset(p, 90.0, east), 0.0, north)
+        fun pole(p: LL, half: Double, top: Double) = poly(listOf(at(p, half, half), at(p, -half, half), at(p, -half, -half), at(p, half, -half)), 0.0, top, "#F5F5F5")
+        /**
+         * The cloth as a grid of thin cells off the pole, each column pushed sideways by a wave that runs out along the flag and grows
+         * towards its free end, so it waves in the wind ([t] moves the wave on). [colour] picks each cell's colour by column and row.
+         */
+        fun cloth(p: LL, len: Double, base: Double, top: Double, cols: Int, rows: Int, phase: Double, colour: (Int, Int) -> String) {
+            val dx = len / cols; val dz = (top - base) / rows; val th = 0.12
+            for (ci in 0 until cols) {
+                val x0 = 0.25 + ci * dx; val x1 = x0 + dx
+                val amp = 0.55 * (ci + 0.5) / cols
+                val y0 = amp * Math.sin(t - ci * 0.9 + phase); val y1 = 0.55 * (ci + 1.5) / cols * Math.sin(t - (ci + 1) * 0.9 + phase)
+                val quad = listOf(at(p, x0, y0 + th), at(p, x1, y1 + th), at(p, x1, y1 - th), at(p, x0, y0 - th))
+                for (ri in 0 until rows) {
+                    // the free end also droops a little as it swings
+                    val sag = 0.25 * (ci + 0.5) / cols * (1 + Math.cos(t - ci * 0.9 + phase)) * 0.5
+                    poly(quad, base + ri * dz - sag, base + (ri + 1) * dz - sag, colour(ci, ri))
+                }
+            }
+        }
+        // the destination: a chequered finish flag; the stops: yellow
+        dest?.let { d -> pole(d, 0.3, 26.0); cloth(d, 4.2, 19.0, 25.5, 6, 4, 0.0) { c, r -> if ((c + r) % 2 == 0) "#111111" else "#F5F5F5" } }
+        via.forEachIndexed { k, (p, _) -> pole(p, 0.25, 15.0); cloth(p, 2.8, 10.5, 14.5, 4, 1, k * 1.3) { _, _ -> "#FFB300" } }
         return out
     }
-    private fun pushFlags() { try { src("dl-flags")?.featureCollection(FeatureCollection.fromFeatures(flagFeats())) } catch (e: Throwable) { } }
+    private fun pushFlags() {
+        try { src("dl-flags")?.featureCollection(FeatureCollection.fromFeatures(flagFeats())) } catch (e: Throwable) { }
+        startFlagWave()
+    }
+
+    // ---- the flags wave: moved on a few times a second, only while one is on the map and the map is zoomed in close (14+) ----
+    private var flagPhase = 0.0
+    private var flagWaving = false
+    private val flagTick = object : Runnable {
+        override fun run() {
+            if (destroyed || (dest == null && via.isEmpty()) || !prefs.b(PreferenceKeys.FLAGS_3D, true)) { flagWaving = false; return }
+            if (zoomNow() >= 14.0) {
+                flagPhase = (flagPhase + 0.45) % (2 * Math.PI * 1000)
+                try { src("dl-flags")?.featureCollection(FeatureCollection.fromFeatures(flagFeats())) } catch (e: Throwable) { }
+            }
+            main0.postDelayed(this, if (zoomNow() >= 14.0) 160L else 1000L)
+        }
+    }
+    private fun startFlagWave() {
+        if (flagWaving || (dest == null && via.isEmpty())) return
+        flagWaving = true
+        main0.postDelayed(flagTick, 160L)
+    }
 
     private fun pushVia() {
         val s = src("dl-via") ?: return
