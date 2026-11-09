@@ -95,7 +95,7 @@ private class Section(val title: String, val sub: String, val icon: ImageVector,
 private val sections = listOf(
     Section("Kartenansicht", "Tag und Nacht, Details, 3D, Satellit", Icons.Rounded.Map, Color(0xFF4C8DFF), "KARTE"),
     Section("Auf der Karte", "Verkehr, Ampeln, Kameras, Schilder, Wetter", Icons.Rounded.Traffic, Color(0xFF4C8DFF)),
-    Section("Dein Pfeil & Routenlinie", "Pfeil oder Auto, Farben, Routendesign", Icons.Rounded.Navigation, Color(0xFF4C8DFF)),
+    Section("Pfeil & Routenlinie", "Pfeil oder Auto, Farben, Routendesign", Icons.Rounded.Navigation, Color(0xFF4C8DFF)),
     Section("Routen", "Vermeiden, Öko, schnellere Routen, Start", Icons.Rounded.Route, Color(0xFF12A4B4), "FAHREN"),
     Section("Abbiegekarte & Spuren", "Schilder, Spuren, Fahrtenkarte, Ankunft", Icons.Rounded.TurnRight, Color(0xFF12A4B4)),
     Section("Warnungen", "Tempo, Blitzer, Gefahren, Meldungen", Icons.Rounded.NotificationsActive, Color(0xFFEA4335)),
@@ -255,16 +255,16 @@ private fun SettingsBody(prefs: Prefs, engine: NavEngine, onClose: () -> Unit) {
 
 @Composable
 private fun MapLookSection(prefs: Prefs, engine: NavEngine) {
-    SGroup("Design", footer = if (prefs.s(PreferenceKeys.LOOK, "standard") == "neon") "Neon ist immer ein Nachtdesign: rote Gebäude, cyanfarbene Straßen, gelbe Route, abgeschrägte Ecken, Reiter oben in Großbuchstaben. Es ändert nur das Aussehen, nicht die Funktionen. Schrift: Rajdhani (SIL Open Font License)." else null) {
+    SGroup("Design", footer = if (prefs.s(PreferenceKeys.LOOK, "standard") == "neon") "Neon ist immer ein Nachtdesign und ändert nur das Aussehen. Schrift: Rajdhani (SIL Open Font License)." else null) {
         SChoice("Aussehen", listOf("standard" to "Standard", "neon" to "Neon"), prefs.s(PreferenceKeys.LOOK, "standard"),
-            "Neon: dunkle Stadt mit roten 3D-Gebäuden und cyanfarbenen Straßen, gelber Route, abgeschrägten Ecken und technischer Schrift. Gilt auf der Karte, in der Navigation, in den Einstellungen und in Android Auto.") { prefs.put(PreferenceKeys.LOOK, it) }
+            "Neon: dunkle Karte mit leuchtenden Linien, überall in der App") { prefs.put(PreferenceKeys.LOOK, it) }
         if (prefs.s(PreferenceKeys.LOOK, "standard") == "neon")
             SChoice("Neonfarbe", listOf("yellow" to "Gelb", "cyan" to "Cyan", "magenta" to "Magenta"), prefs.s(PreferenceKeys.NEON_ACCENT, "yellow"),
-                "Farbe der Menüs, Linien und Hervorhebungen. Die Karte bleibt rot und cyan mit gelber Route.") { prefs.put(PreferenceKeys.NEON_ACCENT, it) }
+                "Farbe von Menüs und Hervorhebungen") { prefs.put(PreferenceKeys.NEON_ACCENT, it) }
     }
     SGroup("Tag und Nacht") {
         SChoice("Tag und Nacht", listOf("auto" to "Auto", "lights" to "Scheinwerfer", "sun" to "Sonnenstand", "times" to "Feste Zeiten", "day" to "Tag", "night" to "Nacht"), prefs.s(PreferenceKeys.THEME, "auto"),
-            "Auto folgt dem Nachtmodus des Geräts. Scheinwerfer schaltet mit dem Licht. Sonnenstand schaltet bei Sonnenauf- und -untergang. Feste Zeiten schaltet zu den festgelegten Uhrzeiten.") { prefs.put(PreferenceKeys.THEME, it) }
+            "Auto folgt dem Nachtmodus des Geräts") { prefs.put(PreferenceKeys.THEME, it) }
         if (prefs.s(PreferenceKeys.THEME, "auto") == "times") {
             SFieldItem("Nacht beginnt um", prefs.s(PreferenceKeys.NIGHT_FROM, "19:00"), "24-Stunden-Format, z. B. 19:30", placeholder = "19:00") { prefs.put(PreferenceKeys.NIGHT_FROM, it.trim()) }
             SFieldItem("Tag beginnt um", prefs.s(PreferenceKeys.DAY_FROM, "07:00"), "24-Stunden-Format, z. B. 06:45", placeholder = "07:00") { prefs.put(PreferenceKeys.DAY_FROM, it.trim()) }
@@ -272,15 +272,15 @@ private fun MapLookSection(prefs: Prefs, engine: NavEngine) {
     }
     SGroup("Karte") {
         SChoice("Kartenquelle", listOf("mapbox" to "Mapbox", "tomtom" to "TomTom", "osm" to "OpenStreetMap"), prefs.mapSource(),
-            "Mapbox: 3D-Karte. TomTom: TomTom-Karte im Horizon-Design. Benötigt das Mapbox-Token.") { prefs.put(PreferenceKeys.MAP_STYLE, it) }
+            "Mapbox: 3D-Karte. Benötigt das Mapbox-Token.") { prefs.put(PreferenceKeys.MAP_STYLE, it) }
         if (prefs.mapSource() == "mapbox") {
             SChoice("Kartendetails", listOf("full" to "Vollständiges 3D", "lite" to "Lite", "lightest" to "Einfachst"), prefs.mapDetail(),
-                "Vollständiges 3D: Gebäude, Wahrzeichen, Bäume und Schatten. Lite: Flache Gebäude. Einfachst: 2D-Karte.") { prefs.put(PreferenceKeys.MAP_DETAIL, it) }
+                "Lite: flache Gebäude. Einfachst: 2D-Karte.") { prefs.put(PreferenceKeys.MAP_DETAIL, it) }
             MapColoursPicker(prefs.s(PreferenceKeys.MAP_COLOURS, "mapbox")) { prefs.put(PreferenceKeys.MAP_COLOURS, it) }
         }
         DefaultZoomRow(prefs)
         SToggle(prefs, "Fußwege und Pfade", "paths", true, "Ausschalten für eine übersichtlichere Fahrkarte")
-        SToggle(prefs, "Glaskarten", "glass", true, "Transparente, leicht getönte Karten. Aus zeigt feste Karten")
+        SToggle(prefs, "Glaskarten", "glass", true, "Halbtransparente Karten")
         SChoice("Mapbox-Logo-Position", listOf("tl" to "Oben links", "tr" to "Oben rechts", "bl" to "Unten links", "br" to "Unten rechts"), prefs.s(PreferenceKeys.MAPBOX_LOGO, "tr"),
             "Ecke für das geforderte Mapbox-Logo wählen") { prefs.put(PreferenceKeys.MAPBOX_LOGO, it) }
     }
@@ -291,9 +291,9 @@ private fun MapLookSection(prefs: Prefs, engine: NavEngine) {
         SToggle(prefs, "3D-Sehenswürdigkeiten", "landmarks3d", true, "Detaillierte Modelle bekannter Gebäude und Stadien")
         SToggle(prefs, "3D-Berge und Täler", "terrain", false, "Echtes Gelände")
         SToggle(prefs, "Nebel und Himmel", "skyweather", true, "Dunst am Horizont passend zum Wetter")
-        SToggle(prefs, "Nachtsternenhimmel in 3D", "nightsky", true, "Funkelnde Sterne über dem Horizont nach Einbruch der Dunkelheit")
+        SToggle(prefs, "Nachtsternenhimmel in 3D", "nightsky", true, "Sterne über dem Horizont bei Nacht")
         SToggle(prefs, "Bäume in Parks", "trees", true, "3D-Bäume in Parks und an Straßen")
-        SToggle(prefs, "Freie Sicht auf die Straße voraus", "clearview", true, "Bäume und Wahrzeichen verbergen nicht die Straße direkt vor dir")
+        SToggle(prefs, "Freie Sicht auf die Straße voraus", "clearview", true, "Bäume und Gebäude verdecken die Straße nicht")
         SToggle(prefs, "Tippen zum Hervorheben", "tapselect", true, "Tippe auf ein Gebäude oder einen Ort zum Auswählen")
     }
 }
@@ -304,16 +304,16 @@ private fun MapLookSection(prefs: Prefs, engine: NavEngine) {
 private fun OnTheMapSection(prefs: Prefs, engine: NavEngine) {
     SGroup("Verkehr") {
         SToggle(prefs, "Live-Verkehr", "traffic", true)
-        SToggle(prefs, "Verkehrsübersicht beim Halt", PreferenceKeys.STOPPED_OVERVIEW, true, "Nach 30 Sekunden Stillstand herauszoomen zur Verkehrsübersicht")
+        SToggle(prefs, "Verkehrsübersicht beim Halt", PreferenceKeys.STOPPED_OVERVIEW, true, "Zoomt nach 30 s Stillstand heraus")
         SToggle(prefs, "Verkehr nur auf der Route anzeigen", "routetrafficonly", false, "Aus zeigt auch Verkehr auf umliegenden Straßen")
         SToggle(prefs, "Grüner Verkehr bei freier Fahrt", PreferenceKeys.TRAFFIC_GREEN, false, "Frei fließende Hauptstraßen grün anzeigen")
     }
-    SGroup("Auf deiner Route") {
+    SGroup("Auf der Route") {
         SToggle(prefs, "Ampeln", "signals", true, if (prefs.b(PreferenceKeys.SIGNALS, true)) "Nur Ampeln auf deiner Route. Aktuell: " + engine.map.signalInfo() else null)
         SToggle(prefs, "Blitzer und Baustellen", "hazardicons", true)
-        SToggle(prefs, "Zebrastreifen", "zebras", true, "Zebrastreifen auf deiner Route auf der Straße gezeichnet")
-        SToggle(prefs, "Stoppschilder", PreferenceKeys.STOP_SIGNS, false, "Stoppschilder auf deiner Route mit kurzem Ton")
-        SToggle(prefs, "Hinweis „Vorfahrt gewähren“", PreferenceKeys.GIVE_WAY, false, "Warnt vor Schildern „Vorfahrt gewähren“. Standardmäßig aus")
+        SToggle(prefs, "Zebrastreifen", "zebras", true, "Auf der Straße gezeichnet")
+        SToggle(prefs, "Stoppschilder", PreferenceKeys.STOP_SIGNS, false, "Mit kurzem Ton")
+        SToggle(prefs, "Hinweis „Vorfahrt gewähren“", PreferenceKeys.GIVE_WAY, false, "Standardmäßig aus")
     }
     SGroup("3D-Straßenausstattung") {
         SToggle(prefs, "3D-Straßenlaternen, Ampeln und Kameras", "furniture3d", true, "3D-Modelle in echter Größe")
@@ -330,13 +330,13 @@ private fun OnTheMapSection(prefs: Prefs, engine: NavEngine) {
 
 @Composable
 private fun ArrowSection(prefs: Prefs, engine: NavEngine) {
-    SGroup("Dein Pfeil", footer = "Echtes 3D-Modell: Wird in die Karte gezeichnet. Der flache Pfeil ist am leichtesten für langsamere Geräte.") {
+    SGroup("Pfeil", footer = "Flacher Pfeil: am schonendsten für langsame Geräte") {
         val loc = prefs.s(PreferenceKeys.LOCATOR, "arrow")
         val ctx = LocalContext.current
         val hasPic = prefs.s(PreferenceKeys.LOCATOR_IMAGE, "").isNotBlank() && java.io.File(ctx.filesDir, "locator.png").exists()
         val pickPic = rememberLocatorImagePicker { ok ->
             if (ok) { prefs.put(PreferenceKeys.LOCATOR_IMAGE, System.currentTimeMillis().toString()); prefs.put(PreferenceKeys.LOCATOR, "custom") }
-            else android.widget.Toast.makeText(ctx, tr("Bild konnte nicht gelesen werden (versuche PNG oder JPG)"), android.widget.Toast.LENGTH_SHORT).show()
+            else android.widget.Toast.makeText(ctx, tr("Bild nicht lesbar (PNG oder JPG verwenden)"), android.widget.Toast.LENGTH_SHORT).show()
         }
         fun choosePic() { if (!pickPic()) android.widget.Toast.makeText(ctx, tr("Keine App auf diesem Gerät kann ein Bild auswählen"), android.widget.Toast.LENGTH_LONG).show() }
         SChoice("Positionsanzeige", listOf("arrow" to "3D-Pfeil", "car" to "Auto", "model" to "Echtes 3D-Modell", "flat" to "Flacher Pfeil", "custom" to "Eigenes Bild"), loc) {
@@ -345,12 +345,12 @@ private fun ArrowSection(prefs: Prefs, engine: NavEngine) {
         if (loc == "model") {
             SChoice("Modellform", listOf("arrow" to "Pfeil", "car" to "Auto"), prefs.s(PreferenceKeys.MODEL_SHAPE, "arrow")) { prefs.put(PreferenceKeys.MODEL_SHAPE, it) }
             SToggle(prefs, "Leuchten", PreferenceKeys.MODEL_GLOW, true, "Weiches blaues Leuchten um das Modell")
-            if (prefs.mapDetail() != "full") SNote("Das echte 3D-Modell wird bei Kartendetails: Vollständiges 3D angezeigt.")
+            if (prefs.mapDetail() != "full") SNote("Nur mit Kartendetails „Vollständiges 3D“")
         }
         val shapeCar = loc == "car" || (loc == "model" && prefs.s(PreferenceKeys.MODEL_SHAPE, "arrow") == "car")
         val shapeArrow = loc == "arrow" || (loc == "model" && !shapeCar)
         if (loc == "custom") {
-            SItem("Bild", "Ein PNG mit transparentem Hintergrund sieht am besten aus.") { SButton(if (hasPic) "Ändern" else "Wählen") { choosePic() } }
+            SItem("Bild", "Am besten PNG mit transparentem Hintergrund") { SButton(if (hasPic) "Ändern" else "Wählen") { choosePic() } }
             SToggle(prefs, "Dreht sich mit", PreferenceKeys.LOCATOR_IMAGE_TURNS, true, "Dreht sich beim Fahren wie der Pfeil")
             SToggle(prefs, "Rund zugeschnitten", PreferenceKeys.LOCATOR_IMAGE_CIRCLE, false, "Schneidet das Bild kreisförmig zu")
         }
@@ -392,7 +392,7 @@ private fun ArrowSection(prefs: Prefs, engine: NavEngine) {
         SToggle(prefs, "Abbiegepfeil auf der Route", "turnarrows", true, "Ein weißer Pfeil durch die nächste Kreuzung")
         SToggle(prefs, "Pfeile entlang der Route", "routechevrons", true, "Kleine Pfeile entlang der Routenlinie beim Zoomen")
         SToggle(prefs, "Routenschattenband", "ribbon", true, "Ein weicher Schatten unter der Route")
-        SToggle(prefs, "3D-Fahnen", "flags3d", true, "Rote Fahne am Ziel, gelbe an deinen Stopps, über den Gebäuden")
+        SToggle(prefs, "3D-Fahnen", "flags3d", true, "Fahnen an Ziel und Stopps")
         SToggle(prefs, "Fließendes Licht auf der Route", "routeflow", true)
         SColours("Farbe alternativer Routen", listOf(
             "#C4D9E6" to "Hellblau-Grau (Standard)", "#A9D4F0" to "Hellblau", "#5AB7F5" to "Blau", "#315CBA" to "Dunkelblau",
@@ -411,7 +411,7 @@ private fun RoutesSection(prefs: Prefs) {
         SToggle(prefs, "Mautstraßen vermeiden", "avoid_toll", false, if (prefs.b(PreferenceKeys.AVOID_TOLL, false)) "Überall" else null)
         if (!prefs.b(PreferenceKeys.AVOID_TOLL, false)) {
             val chosen = prefs.s(PreferenceKeys.AVOID_TOLL_COUNTRIES, "").split(',').filter { it.isNotBlank() }.toSet()
-            SItem("Maut vermeiden nur in", if (chosen.isEmpty()) "Länder wählen: Routen mit Mautstraßen in diesen Ländern werden ohne Maut geplant" else "Routen mit Maut in diesen Ländern werden ohne Maut geplant")
+            SItem("Maut vermeiden nur in", if (chosen.isEmpty()) "Maut nur in diesen Ländern vermeiden" else "In diesen Ländern ohne Maut planen")
             androidx.compose.foundation.layout.Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(bottom = 8.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 for ((cc, name) in listOf("FR" to "Frankreich", "IT" to "Italien", "ES" to "Spanien", "PT" to "Portugal", "AT" to "Österreich", "CH" to "Schweiz",
@@ -420,7 +420,7 @@ private fun RoutesSection(prefs: Prefs) {
                 }
             }
         }
-        if (!prefs.b(PreferenceKeys.AVOID_TOLL, false)) SToggle(prefs, "Vignettenpflichtige Straßen meiden", PreferenceKeys.AVOID_VIGNETTE, false, "In Österreich, der Schweiz, Slowenien, Tschechien, der Slowakei, Ungarn, Bulgarien und Rumänien, wenn du nur durchfährst (liegt Start oder Ziel dort, bleibt es bei der Vignette für dieses Land)")
+        if (!prefs.b(PreferenceKeys.AVOID_TOLL, false)) SToggle(prefs, "Vignettenpflichtige Straßen meiden", PreferenceKeys.AVOID_VIGNETTE, false, "Nur bei Durchfahrt (AT, CH, SI, CZ, SK, HU, BG, RO)")
         SToggle(prefs, "Autobahnen vermeiden", "avoid_motorway", false)
         SToggle(prefs, "Fähren vermeiden", "avoid_ferry", false)
         SToggle(prefs, "Unbefestigte Straßen vermeiden", "avoid_unpaved", true)
@@ -430,12 +430,12 @@ private fun RoutesSection(prefs: Prefs) {
     SGroup("Routenauswahl") {
         SToggle(prefs, "Öko-Routen", "route_eco", false, "Kraftstoffsparend statt am schnellsten")
         SToggle(prefs, "Schnellere Routen anbieten", "fasterroute", true)
-        SToggle(prefs, "Auf der Bordsteinseite ankommen", "curbarrival", true, "Die Route bringt dich zur Seite des Ziels, auf der du aussteigst (Mapbox)")
+        SToggle(prefs, "Auf der Bordsteinseite ankommen", "curbarrival", true, "Ankunft auf der Straßenseite des Ziels (Mapbox)")
         if (prefs.b(PreferenceKeys.FASTER_ROUTE, true)) {
-            SToggle(prefs, "Automatisch umleiten", "autoreroute", true, "Wechselt selbst auf eine schnellere Route, mit Ansage und „Alte Route“ zum Zurückwechseln")
+            SToggle(prefs, "Automatisch umleiten", "autoreroute", true, "Wechselt mit Ansage auf eine schnellere Route")
             if (prefs.b(PreferenceKeys.AUTO_REROUTE, true)) {
                 val m = prefs.i(PreferenceKeys.AUTO_REROUTE_MIN, 5)
-                SItem("Umleiten ab Ersparnis von", "So viele Minuten muss die neue Route mindestens schneller sein")
+                SItem("Umleiten ab Ersparnis von", "Mindestersparnis der neuen Route")
                 androidx.compose.foundation.layout.Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(bottom = 8.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     for (v in listOf(3, 5, 10, 15)) Pill("$v Min", m == v, { prefs.put(PreferenceKeys.AUTO_REROUTE_MIN, v) })
@@ -447,7 +447,7 @@ private fun RoutesSection(prefs: Prefs) {
         SToggle(prefs, "Wetter auf der Route", "routewx", true)
     }
     SGroup("Routenstart") {
-        SToggle(prefs, "Auto-Start-Countdown", PreferenceKeys.AUTO_START_ROUTE, true, "Startet die Navigation automatisch nach Ablauf des Countdowns")
+        SToggle(prefs, "Auto-Start-Countdown", PreferenceKeys.AUTO_START_ROUTE, true, "Startet die Navigation nach dem Countdown")
         SSlider("Auto-Start-Countdown", prefs.i(PreferenceKeys.AUTO_START_SECONDS, 10).coerceIn(3, 30).toFloat(), 3f..30f, " s", sub = "Dauer bis zum Start der Navigation", steps = 26, reset = 10f) { prefs.put(PreferenceKeys.AUTO_START_SECONDS, it.coerceIn(3, 30)) }
         SToggle(prefs, "3D-Flug entlang neuer Route", "cinematic", true, "Ein 3-Sekunden-3D-Flug vor der Übersicht")
         SToggle(prefs, "Routenflug-Button", "flyover", true, "3D-Flug über die gesamte Strecke vor der Abfahrt")
@@ -481,13 +481,13 @@ private fun GuidanceSection(prefs: Prefs) {
     SGroup("Fahrtenkarte") {
         SToggle(prefs, "Routenleiste auf der Fahrtenkarte", "routebar", true, "Verkehr, Kameras, Raststätten und Fortschritt")
         SToggle(prefs, "Nächste Raststätten-Karte", "servicescard", true)
-        SToggle(prefs, "Gefahrenradar", "hazardradar", false, "Nächste 2 Kilometer: Kurven, Schulen, Schwellen, Blitzer")
+        SToggle(prefs, "Gefahrenradar", "hazardradar", false, "Kurven, Schulen, Schwellen, Blitzer (2 km)")
     }
     SGroup("Ankunft") {
         SToggle(prefs, "Ankunftsmoment", "arrivalfx", true, "Kamera schwenkt zum Ziel und zeigt Parkplätze")
         SToggle(prefs, "Parkplätze nahe dem Ziel", "parkprompt", true, "Parkplatzvorschläge vor der Ankunft")
         SToggle(prefs, "Rückroute", "routeback", true, "Ein Tipp für den Weg zurück zum Startort")
-        SToggle(prefs, "Parkplatz über Bluetooth merken", "parkbt", true, "Wenn sich das Handy vom Auto-Bluetooth trennt, wird der Standort als Parkplatz gespeichert (auch ohne Android Auto)")
+        SToggle(prefs, "Parkplatz über Bluetooth merken", "parkbt", true, "Speichert den Standort beim Trennen vom Auto-Bluetooth")
     }
 }
 
@@ -538,30 +538,30 @@ private fun AlertsSection(prefs: Prefs, engine: NavEngine) {
         val banned = com.headunit.launcher.CAMERA_BANNED[engine.detectedCountry]
         val camOff = banned != null && prefs.b(PreferenceKeys.CAMERA_WARNINGS, false) && prefs.b(PreferenceKeys.CAMBANOBEY, true)
         SToggle(prefs, "Blitzer", "cameras", false, if (camOff) "Gerade aus: in $banned nicht erlaubt (siehe „Aus, wo verboten“)"
-            else if (prefs.b(PreferenceKeys.CAMERA_WARNINGS, false)) engine.camNote.ifBlank { "Noch nicht gesucht: die Suche startet mit dem nächsten GPS-Signal" } else null)
-        if (prefs.b(PreferenceKeys.CAMERA_WARNINGS, false)) SToggle(prefs, "Aus, wo verboten", "cambanobey", true, "Schaltet sich in Ländern wie Deutschland, Frankreich und der Schweiz automatisch aus")
-        SToggle(prefs, "Blitzer auf der Karte zeigen", "cameramap", true, "Zeigt die Blitzer auf der Karte, auch in Ländern wo Warnungen verboten sind. Gewarnt wird dort nur, wenn du „Blitzer“ oben selbst einschaltest")
-        SToggle(prefs, "Parkhäuser auf der Karte", "garagesmap", true, "Blaues P mit freien Plätzen (grün, gelb, rot) ab Stadtzoom; grau mit Platzzahl, wo es keine Live-Belegung gibt. Daten: MobiData BW, ParkenDD")
-        SToggle(prefs, "Sektionskontrollen (Abschnittskontrolle)", "avgzones", true, "Zeigt dein Durchschnittstempo im Vergleich zum Limit")
+            else if (prefs.b(PreferenceKeys.CAMERA_WARNINGS, false)) engine.camNote.ifBlank { "Suche startet mit dem nächsten GPS-Signal" } else null)
+        if (prefs.b(PreferenceKeys.CAMERA_WARNINGS, false)) SToggle(prefs, "Aus, wo verboten", "cambanobey", true, "Automatisch aus z. B. in DE, FR und CH")
+        SToggle(prefs, "Blitzer auf der Karte zeigen", "cameramap", true, "Nur Anzeige; Warnungen dort nur mit „Blitzer“ an")
+        SToggle(prefs, "Parkhäuser auf der Karte", "garagesmap", true, "Freie Plätze live, wo verfügbar. Daten: MobiData BW, ParkenDD")
+        SToggle(prefs, "Sektionskontrollen (Abschnittskontrolle)", "avgzones", true, "Durchschnittstempo im Vergleich zum Limit")
     }
     SGroup("Unterwegs", footer = "Informationen stammen aus OpenStreetMap.") {
-        SToggle(prefs, "Baustellen und Ereignisse", "incidents", true, "Auf Autobahnen mit Baustellen, Sperrungen und Warnungen von Autobahn GmbH (Daten: Autobahn GmbH, ohne Schlüssel). Auf Karte, Route und als Ansage.")
-        SToggle(prefs, "Einbahnstraßen-Warnung", "wrongway", false, "Warnt, wenn du möglicherweise falsch herum in eine Einbahnstraße fährst. Kann bei ungenauen Kartendaten fälschlich anschlagen")
+        SToggle(prefs, "Baustellen und Ereignisse", "incidents", true, "Baustellen und Sperrungen auf Autobahnen. Daten: Autobahn GmbH")
+        SToggle(prefs, "Einbahnstraßen-Warnung", "wrongway", false, "Bei falscher Fahrtrichtung; Fehlalarme möglich")
         SToggle(prefs, "Bremsschwellen", "bumps", false)
         SToggle(prefs, "Schulen zu Schulzeiten", "schools", false)
         SToggle(prefs, "Umweltzonen", "zonewarn", true)
         SToggle(prefs, "Pausenerinnerung nach 2 Stunden", "breakremind", false)
         SToggle(prefs, "Bahnübergänge und Furten", "railford", false, "Warnschild und Sprachwarnung")
         SToggle(prefs, "Wetterhinweise", "wxadvice", true, "Hinweis bei Regen, Schnee, Nebel oder Glätte")
-        SToggle(prefs, "Unwetterwarnungen (DWD)", "dwdwarn", true, "Amtliche Warnungen vor Glätte, Sturm, Starkregen und Nebel auf der Strecke der nächsten Stunde (Deutschland)")
-        SToggle(prefs, "Falschfahrer-Meldungen", PreferenceKeys.WRONGWAY_REPORTS, true, "Alarm, wenn auf deiner Autobahn bis 30 km voraus ein Falschfahrer gemeldet ist (Autobahn GmbH und Verkehrsmeldungen)")
-        SToggle(prefs, "Vignetten-Hinweis", PreferenceKeys.VIGNETTE_WARN, true, "Etwa 30 km vor einem Land mit Vignettenpflicht oder Streckenmaut (Brenner, Tauern …) eine Ansage")
-        SToggle(prefs, "Rettungsgasse", "rescuelane", true, "Hinweis im Stau auf der Autobahn, wie die Rettungsgasse gebildet wird")
+        SToggle(prefs, "Unwetterwarnungen (DWD)", "dwdwarn", true, "Amtliche Warnungen auf der Strecke (Deutschland)")
+        SToggle(prefs, "Falschfahrer-Meldungen", PreferenceKeys.WRONGWAY_REPORTS, true, "Alarm bei Meldung bis 30 km voraus")
+        SToggle(prefs, "Vignetten-Hinweis", PreferenceKeys.VIGNETTE_WARN, true, "Ansage ca. 30 km vor Vignetten- oder Mautland")
+        SToggle(prefs, "Rettungsgasse", "rescuelane", true, "Hinweis im Autobahnstau")
     }
-    SGroup(Lang.t("Deine Meldungen", "Your reports"), footer = Lang.t("Meldungen über die Optionen-Taste auf der Karte erstellen.", "Create reports with the options button on the map.")) {
+    SGroup(Lang.t("Meldungen", "Your reports"), footer = Lang.t("Meldungen über „Optionen“ auf der Karte erstellen.", "Create reports with the options button on the map.")) {
         SToggle(prefs, Lang.t("Vor Meldungen voraus warnen", "Warn before reports ahead"), "policealerts", true)
         SItem(Lang.t("Aktive Meldungen", "Active reports"), "${engine.reportsActive().size}") { SButton(Lang.t("Löschen", "Delete"), danger = true) { engine.clearReports() } }
-        SToggle(prefs, Lang.t("Meldungen teilen", "Share reports"), PreferenceKeys.REPORTS_SHARE, true, Lang.t("Meldungen teilen und anzeigen: deine gehen anonym an andere Fahrer (nur Art, Ort und Zeit), ihre siehst du auf der Karte. Aus: keine Verbindung zum Server.", "Share and show reports: yours go to other drivers anonymously (only kind, place and time), and you see theirs on the map. Off: no connection to the server."))
+        SToggle(prefs, Lang.t("Meldungen teilen", "Share reports"), PreferenceKeys.REPORTS_SHARE, true, Lang.t("Anonym teilen (Art, Ort, Zeit). Aus: keine Serververbindung.", "Shared anonymously (kind, place, time). Off: no server connection."))
         // the server's state, looked at again every few seconds while this page is open
         var tick by remember { mutableStateOf(0) }
         androidx.compose.runtime.LaunchedEffect(Unit) { while (true) { kotlinx.coroutines.delay(5000); tick++ } }
@@ -576,7 +576,7 @@ private fun AlertsSection(prefs: Prefs, engine: NavEngine) {
             }
         }
         SItem(Lang.t("Server für geteilte Meldungen", "Server for shared reports"), status)
-        SFieldItem(Lang.t("Meldungs-Server", "Reports server"), prefs.s(PreferenceKeys.REPORTS_URL, ""), Lang.t("Leer lassen für den eingebauten Server. Nur ändern, wenn du einen eigenen betreibst.", "Leave empty for the built-in server. Only change it if you run your own."), placeholder = "https://…") { prefs.put(PreferenceKeys.REPORTS_URL, it.trim()) }
+        SFieldItem(Lang.t("Meldungs-Server", "Reports server"), prefs.s(PreferenceKeys.REPORTS_URL, ""), Lang.t("Leer: eingebauter Server", "Empty: built-in server"), placeholder = "https://…") { prefs.put(PreferenceKeys.REPORTS_URL, it.trim()) }
     }
 }
 
@@ -592,26 +592,26 @@ private fun SoundSection(prefs: Prefs, engine: NavEngine) {
             val lm = remember { ctx.getSystemService(android.app.LocaleManager::class.java) }
             var lang by remember { mutableStateOf(lm?.applicationLocales?.takeIf { !it.isEmpty }?.get(0)?.language ?: "system") }
             SChoice(Lang.t("Sprache", "Language"), listOf("system" to Lang.t("Telefonsprache", "Phone's language"), "de" to "Deutsch", "en" to "English"), lang,
-                Lang.t("Bildschirme, Android Auto, Ansagen, Routenanweisungen und Suchergebnisse", "Screens, Android Auto, spoken directions, route instructions and search results")) {
+                Lang.t("Bildschirme, Android Auto und Ansagen", "Screens, Android Auto and voice")) {
                 lang = it
                 lm?.applicationLocales = if (it == "system") android.os.LocaleList.getEmptyLocaleList() else android.os.LocaleList.forLanguageTags(it)
             }
         }
         SChoice("Sprachführung", listOf("0" to "Alle", "1" to "Nur Warnungen", "2" to "Aus"), engine.soundMode.toString(),
-            "Nur Warnungen überspringt Abbiegehinweise, sagt aber Kameras, Limits und Gefahren an") { prefs.put(PreferenceKeys.SOUND_MODE, it.toInt()) }
+            "„Nur Warnungen“: ohne Abbiegehinweise") { prefs.put(PreferenceKeys.SOUND_MODE, it.toInt()) }
         SToggle(prefs, "Straßennamen ansagen", PreferenceKeys.VOICE_ROADS, true, "Aus gibt nur die Richtung an")
         SToggle(prefs, "Intelligente Anweisungen", "smartvoice", true, "Anweisungen mit Ausfahrtsnummern und Schildern")
         SChoice("Sprachkanal", listOf("nav" to "Navigation", "media" to "Medien"), prefs.s(PreferenceKeys.VOICE_CHANNEL, "nav"),
-            "Falls du Töne hörst, aber keine Sprache, wähle Medien") { prefs.put(PreferenceKeys.VOICE_CHANNEL, it) }
+            "Medien wählen, falls keine Sprache zu hören ist") { prefs.put(PreferenceKeys.VOICE_CHANNEL, it) }
         SItem("Stimme und Sprache", "Nutzt die System-Sprachausgabe") { SButton("Öffnen") { openSystemSettings(ctx, "com.android.settings.TTS_SETTINGS") } }
         // the installed German voices: the more natural ones (Google's network voices) need internet, the others work offline
         val voices = remember { engine.installedVoices().take(8) }
-        if (voices.isEmpty()) SNote("Keine deutsche Stimme gefunden. Lade eine unter „Stimme und Sprache“ herunter, dann erscheint sie hier.")
+        if (voices.isEmpty()) SNote("Keine passende Stimme installiert. Download unter „Stimme und Sprache“.")
         else {
             val saved = prefs.s(PreferenceKeys.TTS_VOICE, "")
             SChoice("Ansagestimme", voices.mapIndexed { i, v -> v.name to "Stimme ${i + 1} · " + (if (v.isNetworkConnectionRequired) "online" else "offline") },
                 if (voices.any { it.name == saved }) saved else voices.first().name,
-                "Online-Stimmen klingen meist natürlicher, brauchen aber Internet. Die erste ist die beste installierte.") { engine.useVoice(it) }
+                "Online-Stimmen klingen natürlicher, benötigen aber Internet.") { engine.useVoice(it) }
             SButton("Probe anhören") { engine.speak(Lang.t("Nach 500 Metern links abbiegen.", "In 500 metres, turn left."), true) }
         }
         SItem("Lautstärke") { SButton("Öffnen") { openSystemSettings(ctx, Settings.ACTION_SOUND_SETTINGS) } }
@@ -634,7 +634,7 @@ private fun PlacesSection(engine: NavEngine) {
     val pl = engine.places
     var settingSlot by remember { mutableStateOf<String?>(null) }
     val slotsRaw = engine.prefs.s(PreferenceKeys.PLACE_HOME, "") + engine.prefs.s("place_work", "")
-    SGroup("Gespeicherte Orte", footer = "Zuhause und Arbeitsplatz können auch über die Buttons unter der Suchleiste festgelegt werden.") {
+    SGroup("Gespeicherte Orte", footer = "Auch über die Buttons unter der Suchleiste festlegbar.") {
         PlaceItem("Zuhause", remember(slotsRaw) { pl.slot("home") }, { settingSlot = "home" }) { pl.clearSlot("home") }
         PlaceItem("Arbeitsplatz", remember(slotsRaw) { pl.slot("work") }, { settingSlot = "work" }) { pl.clearSlot("work") }
     }
@@ -643,7 +643,7 @@ private fun PlacesSection(engine: NavEngine) {
     val mine = remember(raw) { pl.customs() }
     var renaming by remember { mutableStateOf<String?>(null) }
     var adding by remember { mutableStateOf(false) }
-    SGroup("Deine Orte", footer = "Eigene benannte Orte unter der Suchleiste.") {
+    SGroup("Eigene Orte", footer = "Eigene benannte Orte unter der Suchleiste.") {
         if (mine.isEmpty()) SNote("Noch keine eigenen Orte vorhanden.")
         mine.forEachIndexed { i, lp ->
             if (renaming == lp.label) {
@@ -690,7 +690,7 @@ private fun PlacesSection(engine: NavEngine) {
         }
         if (favs.size > 1) SItem("Alle Favoriten entfernen") { SButton("Alle löschen", danger = true) { pl.clearFavourites() } }
     }
-    SGroup("Verlauf", footer = "Wische einen Ort zur Seite, um ihn aus der Liste zu entfernen.") {
+    SGroup("Verlauf", footer = "Zum Entfernen zur Seite wischen.") {
         SToggle(engine.prefs, "Gespeichert & Zuletzt unter der Suchleiste", "quicklist", true, "Die Liste der Favoriten und letzten Orte auf der Karte")
         SItem("Letzte Ziele", "${pl.recents().size} letzte Ziele") {
             SButton("Löschen", danger = true) { pl.clearHistory(); engine.toast(engine.str(R.string.rest_1437), 2000) }
@@ -716,7 +716,7 @@ private fun TripsGroup(engine: NavEngine) {
         if (shown.isNotEmpty()) {
             SItem("Fahrtenbuch leeren", "Alle Fahrten löschen") { SButton("Löschen", danger = true) { engine.trips.clear(); shown = emptyList() } }
             val ctx = androidx.compose.ui.platform.LocalContext.current
-            SItem("Exportieren", "Als Tabelle (CSV) oder druckbare Monatsübersicht (PDF). Tippe eine Fahrt an, um sie als dienstlich oder privat zu markieren.") {
+            SItem("Exportieren", "CSV oder PDF. Fahrt antippen: dienstlich oder privat.") {
                 SButton("CSV") { com.headunit.launcher.TripExport.share(ctx, engine.prefs, shown, false)?.let { engine.toast("Export fehlgeschlagen: $it", 4000) } }
                 SButton("PDF", primary = true) { com.headunit.launcher.TripExport.share(ctx, engine.prefs, shown, true)?.let { engine.toast("Export fehlgeschlagen: $it", 4000) } }
             }
@@ -744,7 +744,7 @@ private fun DefaultZoomRow(prefs: Prefs) {
     var v by remember(saved) { mutableStateOf(saved) }
     fun save(x: Float) = prefs.put(PreferenceKeys.DEFAULT_ZOOM, String.format(java.util.Locale.US, "%.2f", x))
     Column(Modifier.fillMaxWidth().padding(vertical = 6.dp)) {
-        SItem("Standard-Zoom", "Wenn du nicht auf einer Route bist. Zurücksetzen oder auf der Karte mit + und - zoomen.") {
+        SItem("Standard-Zoom", "Zoom ohne aktive Route") {
             if (kotlin.math.abs(v) > 0.01f) SButton("Zurücksetzen") { v = 0f; save(0f) }
         }
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
@@ -765,7 +765,7 @@ private fun PhoneLinkGroup(prefs: Prefs) {
     val code = prefs.s(PreferenceKeys.LINK_CODE, "")
     val role = prefs.s(PreferenceKeys.LINK_ROLE, "")
     var typing by remember { mutableStateOf(false) }
-    SGroup("Orte vom Smartphone senden", footer = "Einmalig koppeln: Auf dem Autodisplay 'Smartphone koppeln' tippen und Code eingeben.") {
+    SGroup("Orte vom Smartphone senden", footer = "Einmalig koppeln: auf dem Autodisplay „Smartphone koppeln“ wählen.") {
         when {
             code.isNotBlank() && role == "car" -> {
                 SItem("Dies ist das Auto", "Gekoppelt. Code ${com.headunit.launcher.CarLink.pretty(code)}") {
@@ -779,7 +779,7 @@ private fun PhoneLinkGroup(prefs: Prefs) {
                     Text(com.headunit.launcher.CarLink.pretty(code), color = LocalVw.current.text, fontSize = 26.sp, fontWeight = FontWeight.Bold, letterSpacing = 2.sp)
                 }
             }
-            code.isNotBlank() && role == "phone" -> SItem("Dies ist dein Smartphone", "Mit deinem Auto gekoppelt (${com.headunit.launcher.CarLink.pretty(code)})") {
+            code.isNotBlank() && role == "phone" -> SItem("Dies ist das Smartphone", "Mit deinem Auto gekoppelt (${com.headunit.launcher.CarLink.pretty(code)})") {
                 SButton("Entkoppeln", danger = true) { prefs.put(PreferenceKeys.LINK_CODE, ""); prefs.put(PreferenceKeys.LINK_ROLE, "") }
             }
             else -> {
@@ -800,11 +800,11 @@ private fun PhoneLinkGroup(prefs: Prefs) {
 private fun SharingGroups(prefs: Prefs) {
     val ctx = LocalContext.current
     val pkg = android.net.Uri.parse("package:" + ctx.packageName)
-    SGroup("Ankunftszeit teilen", footer = "Während der Fahrt unter Optionen > „Ankunftszeit teilen“: ein Link über das Teilen-Menü zu einer Webseite mit deiner Position, Ankunftszeit und Restweg, alle 30 Sekunden aktualisiert. Er endet bei Ankunft, mit „Teilen beenden“ oder nach 30 Minuten ohne Aktualisierung.") {
-        SFieldItem("Dein Name", prefs.s(PreferenceKeys.TRIP_NAME, ""), "Steht auf der Webseite, z. B. „Max ist unterwegs“. Leer: „Unterwegs“",
+    SGroup("Ankunftszeit teilen", footer = "Unter Optionen > „Ankunftszeit teilen“: Link zu Position, Ankunftszeit und Restweg. Endet bei Ankunft.") {
+        SFieldItem("Name", prefs.s(PreferenceKeys.TRIP_NAME, ""), "Auf der Webseite, z. B. „Max ist unterwegs“",
             placeholder = "Name (optional)") { prefs.put(PreferenceKeys.TRIP_NAME, it.trim().take(40)) }
     }
-    SGroup("Orte aus anderen Apps", footer = "Teile einen Ort aus Google Maps, WhatsApp oder Kontakte an Horizon Nav.") {
+    SGroup("Orte aus anderen Apps", footer = "Orte aus Google Maps, WhatsApp oder Kontakten teilen.") {
         SItem("Google Maps Links") {
             SButton("Standardmäßig öffnen") {
                 if (android.os.Build.VERSION.SDK_INT >= 31) openSystemSettings(ctx, Settings.ACTION_APP_OPEN_BY_DEFAULT_SETTINGS, pkg)
@@ -821,9 +821,9 @@ private fun FuelSection(prefs: Prefs, engine: NavEngine) {
     val ctx = LocalContext.current
     val sc = rememberCoroutineScope()
     SGroup("Kraftstoffpreise") {
-        SChoice("Dein Kraftstoff", listOf("E10" to "Super E10", "E5" to "Super E5", "B7" to "Diesel", "E85" to "Bioethanol (E85)", "EV" to "Elektro"), prefs.s(PreferenceKeys.FUEL_TYPE, "E10")) { prefs.put(PreferenceKeys.FUEL_TYPE, it) }
+        SChoice("Kraftstoff", listOf("E10" to "Super E10", "E5" to "Super E5", "B7" to "Diesel", "E85" to "Bioethanol (E85)", "EV" to "Elektro"), prefs.s(PreferenceKeys.FUEL_TYPE, "E10")) { prefs.put(PreferenceKeys.FUEL_TYPE, it) }
         // only an electric car gets stops planned on the route: for a combustion car the switch would do nothing, so it is not shown
-        if (prefs.s(PreferenceKeys.FUEL_TYPE, "E10") == "EV") SToggle(prefs, "Ladestopps auf langen Fahrten planen", "smartfuel", true, "Plant Ladestopps entlang der Route, wenn der Akku nicht bis zum Ziel reicht")
+        if (prefs.s(PreferenceKeys.FUEL_TYPE, "E10") == "EV") SToggle(prefs, "Ladestopps auf langen Fahrten planen", "smartfuel", true, "Wenn der Akku nicht bis zum Ziel reicht")
         // the UK government's Fuel Finder (pump prices): only in Great Britain and only for a combustion car
         val ukFuel = engine.countryCode().uppercase() in setOf("GB", "UK") && prefs.s(PreferenceKeys.FUEL_TYPE, "E10") != "EV"
         if (ukFuel) {
@@ -846,7 +846,7 @@ private fun FuelSection(prefs: Prefs, engine: NavEngine) {
         }
     }
     if (prefs.s(PreferenceKeys.FUEL_TYPE, "E10") == "EV") CloudAccountGroup(prefs)
-    if (prefs.s(PreferenceKeys.FUEL_TYPE, "E10") == "EV") SGroup("Dein Elektroauto") {
+    if (prefs.s(PreferenceKeys.FUEL_TYPE, "E10") == "EV") SGroup("Elektroauto") {
         EvCarItem(prefs)
         SFieldItem("Effizienz (km pro kWh)", prefs.s(PreferenceKeys.EVMPK, ""), placeholder = "z. B. 5.5", number = true) { s -> prefs.put(PreferenceKeys.EVMPK, s.replace(',', '.').filter { it.isDigit() || it == '.' }.take(5)) }
         // a chosen car brings its own battery size; the typed one is then not used
@@ -854,19 +854,19 @@ private fun FuelSection(prefs: Prefs, engine: NavEngine) {
         if (carKwh != null) SItem("Nutzbare Batterie", "${evNum(carKwh)} kWh aus den Fahrzeugdaten")
         else SFieldItem("Nutzbare Batterie (kWh)", prefs.s(PreferenceKeys.EV_BATTERY_KWH, ""), "Für Akkuschätzung und Ladestopps (Standard: 60 kWh)", placeholder = "z. B. 64", number = true) { s -> prefs.put(PreferenceKeys.EV_BATTERY_KWH, s.replace(',', '.').filter { it.isDigit() || it == '.' }.take(5)) }
         SFieldItem("Strompreis (Cent pro kWh)", prefs.s(PreferenceKeys.EVPPK, ""), placeholder = "z. B. 38", number = true) { s -> prefs.put(PreferenceKeys.EVPPK, s.replace(',', '.').filter { it.isDigit() || it == '.' }.take(6)) }
-        SFieldItem("Restreichweite am Ziel (km)", prefs.s(PreferenceKeys.EV_DEST_KM, ""), "Ladestopps werden so geplant, dass du mit mindestens so viel Reichweite ankommst (Standard: 50 km)", placeholder = "z. B. 50", number = true) { s -> prefs.put(PreferenceKeys.EV_DEST_KM, s.filter { it.isDigit() }.take(3).toIntOrNull()?.coerceAtMost(500)?.toString() ?: "") }
-        SFieldItem("Restreichweite an der Ladesäule (km)", prefs.s(PreferenceKeys.EV_CHARGER_KM, ""), "Mindestens so viel Reichweite, wenn du an einer Ladesäule ankommst. So bleibt Puffer, falls sie belegt ist und du zur nächsten fährst (Standard: 30 km)", placeholder = "z. B. 30", number = true) { s -> prefs.put(PreferenceKeys.EV_CHARGER_KM, s.filter { it.isDigit() }.take(3).toIntOrNull()?.coerceAtMost(500)?.toString() ?: "") }
+        SFieldItem("Restreichweite am Ziel (km)", prefs.s(PreferenceKeys.EV_DEST_KM, ""), "Mindestreichweite bei Ankunft (Standard: 50 km)", placeholder = "z. B. 50", number = true) { s -> prefs.put(PreferenceKeys.EV_DEST_KM, s.filter { it.isDigit() }.take(3).toIntOrNull()?.coerceAtMost(500)?.toString() ?: "") }
+        SFieldItem("Restreichweite an der Ladesäule (km)", prefs.s(PreferenceKeys.EV_CHARGER_KM, ""), "Puffer, falls die Säule belegt ist (Standard: 30 km)", placeholder = "z. B. 30", number = true) { s -> prefs.put(PreferenceKeys.EV_CHARGER_KM, s.filter { it.isDigit() }.take(3).toIntOrNull()?.coerceAtMost(500)?.toString() ?: "") }
         SChoice("Ladesäulen für Ladestopps", listOf("0" to "Alle", "50" to "50 kW", "150" to "150 kW", "300" to "300 kW"), prefs.i(PreferenceKeys.EV_MIN_KW, 50).toString(),
-            "Nur Ladesäulen mit mindestens dieser Leistung (oder alle) werden als Stopp geplant. Die Leistung schlägt die App online nach. Säulen, deren Leistung trotzdem unbekannt bleibt, nimmt sie nur als letzten Ausweg, wenn keine mit bekannter Leistung erreichbar ist. Ladedaten in Deutschland: Bundesnetzagentur.de (CC BY 4.0).") { prefs.put(PreferenceKeys.EV_MIN_KW, it.toInt()) }
+            "Mindestleistung für Ladestopps. Säulen ohne bekannte Leistung nur als letzte Wahl. Daten: Bundesnetzagentur.de (CC BY 4.0).") { prefs.put(PreferenceKeys.EV_MIN_KW, it.toInt()) }
         EvOperatorsItem(prefs)
         SChoice("Umweg für bevorzugte Anbieter", listOf("5" to "5 Min.", "10" to "10 Min.", "15" to "15 Min.", "20" to "20 Min."), prefs.i(PreferenceKeys.EV_PREF_MIN, 10).toString(),
-            "Ladesäulen deiner bevorzugten Anbieter werden nur gewählt, wenn die Fahrt dadurch höchstens so viele Minuten länger dauert und keinen zusätzlichen Ladestopp braucht (Standard: 10 Min.)") { prefs.put(PreferenceKeys.EV_PREF_MIN, it.toInt()) }
-        SToggle(prefs, "Ladesäulen-Daten im Ausland laden", PreferenceKeys.FR_CHARGERS, false, "Ohne Einschalten lädt die App keine Ladesäulen-Dateien herunter. Eingeschaltet lädt sie bei Bedarf: Frankreich (einmal im Monat rund 127 MB, dazu rund 9 MB Verfügbarkeit), Niederlande (NDW) und Brüssel (jeweils wöchentlich, klein), nur wenn das Gebiet auf der Karte liegt. Quellen: transport.data.gouv.fr (Licence Ouverte 2.0, Beta), NDW (CC0), Brussels Mobility (CC BY 4.0).")
+            "Maximaler Umweg ohne zusätzlichen Stopp (Standard: 10 Min.)") { prefs.put(PreferenceKeys.EV_PREF_MIN, it.toInt()) }
+        SToggle(prefs, "Ladesäulen-Daten im Ausland laden", PreferenceKeys.FR_CHARGERS, false, "Lädt bei Bedarf Daten für Frankreich (ca. 136 MB/Monat), Niederlande und Brüssel. Quellen: transport.data.gouv.fr (Licence Ouverte 2.0), NDW (CC0), Brussels Mobility (CC BY 4.0).")
         EvWidgetItem(prefs)
     } else SGroup("Kraftstoffkosten auf der Route") {
         SFieldItem("Verbrauch (Liter pro 100 km)", prefs.s(PreferenceKeys.FUELMPG, ""), placeholder = "z. B. 6.5", number = true) { s -> prefs.put(PreferenceKeys.FUELMPG, s.replace(',', '.').filter { it.isDigit() || it == '.' }.take(5)) }
         SFieldItem("Kraftstoffpreis (Cent pro Liter)", prefs.s(PreferenceKeys.FUELPPL, ""), placeholder = "z. B. 175.9", number = true) { s -> prefs.put(PreferenceKeys.FUELPPL, s.replace(',', '.').filter { it.isDigit() || it == '.' }.take(6)) }
-        SFieldItem("Tankinhalt (Liter)", prefs.s(PreferenceKeys.FUEL_TANK_L, ""), "Für die Tank-Reichweite: wie viel in den vollen Tank passt", placeholder = "z. B. 50", number = true) { s -> prefs.put(PreferenceKeys.FUEL_TANK_L, s.filter { it.isDigit() }.take(3)) }
+        SFieldItem("Tankinhalt (Liter)", prefs.s(PreferenceKeys.FUEL_TANK_L, ""), "Für die Tank-Reichweite", placeholder = "z. B. 50", number = true) { s -> prefs.put(PreferenceKeys.FUEL_TANK_L, s.filter { it.isDigit() }.take(3)) }
     }
     LearnedGroup(engine)
 }
@@ -875,7 +875,7 @@ private fun FuelSection(prefs: Prefs, engine: NavEngine) {
 @Composable
 private fun LearnedGroup(engine: NavEngine) {
     var rows by remember { mutableStateOf(engine.learnedSummary()) }
-    SGroup("Gelernt aus deinen Fahrten", footer = "Fließt in Ankunftszeit, Akku- und Tank-Reichweite ein. Lernt bei jeder Fahrt weiter.") {
+    SGroup("Aus Fahrten gelernt", footer = "Verbessert Ankunftszeit und Reichweite") {
         rows.forEach { (k, v) -> SItem(k, v) }
         SItem("Gelerntes zurücksetzen") { SButton("Zurücksetzen", danger = true) { engine.resetLearned(); rows = engine.learnedSummary() } }
     }
@@ -933,7 +933,7 @@ private fun ScreenSection(prefs: Prefs, engine: NavEngine) {
         SSlider(
             "Text- und Buttongröße",
             (if (autoScale) autoPercent else prefs.i(PreferenceKeys.UI_SCALE, autoPercent)).toFloat(),
-            60f..140f, "%", sub = if (autoScale) "Schieberegler bewegen zum manuellen Anpassen" else "Manuell anpassen oder automatische Skalierung aktivieren", steps = 15, reset = 100f
+            60f..140f, "%", sub = if (autoScale) "Schieberegler bewegen zum manuellen Anpassen" else "Manuell oder automatisch", steps = 15, reset = 100f
         ) {
             prefs.put(PreferenceKeys.UI_AUTO_SCALE, false)
             prefs.put(PreferenceKeys.UI_SCALE, it)
@@ -952,7 +952,7 @@ private fun ScreenSection(prefs: Prefs, engine: NavEngine) {
 
     }
     SGroup("Beim Fahren") {
-        SToggle(prefs, "Deine Geschwindigkeit neben dem Limit", "mapspeed", true)
+        SToggle(prefs, "Geschwindigkeit neben dem Limit", "mapspeed", true)
         SToggle(prefs, "Tachoring", "speedring", true, "Füllt sich bis zum Tempolimit, färbt sich gelb dann rot")
         SSlider("Tempolimit- und Tachogröße", prefs.i(PreferenceKeys.SPEED_SIZE, 100).toFloat(), 50f..200f, "%", sub = "Auf Smartphone und Autodisplay", steps = 29, reset = 100f) { prefs.put(PreferenceKeys.SPEED_SIZE, it) }
         SToggle(prefs, "Straße und Richtung beim Fahren ohne Route", "cruise", true)
@@ -968,7 +968,7 @@ private fun ScreenSection(prefs: Prefs, engine: NavEngine) {
             when (prefs.s(PreferenceKeys.DRIVE, "")) {
                 "rhd" -> "Fahrer rechts: Karten links, Buttons rechts"
                 "lhd" -> "Fahrer links: Bildschirm gespiegelt, Karten rechts"
-                else -> "Folgt dem Land, in dem du fährst"
+                else -> "Nach aktuellem Land"
             }) { prefs.put(PreferenceKeys.DRIVE, it) }
     }
 }
@@ -1008,7 +1008,7 @@ private fun AndroidAutoSection(prefs: Prefs) {
             SSlider("Straßennamen-Größe", prefs.i(PreferenceKeys.CAR_ROAD_NAME_SIZE, 100).toFloat(), 70f..200f, "%", steps = 12, reset = 100f) { prefs.put(PreferenceKeys.CAR_ROAD_NAME_SIZE, it) }
         }
         SItem("Installiert durch", source)
-        SItem("Sprachsuche im Auto", "Sag „Hey Google, navigiere mit Horizon Nav zu …“ (ein Ort, eine Adresse, „Zuhause“, „Arbeit“ oder ein Favorit). Ohne „mit Horizon Nav“ geht es nur, wenn Horizon Nav in den Android-Auto-Einstellungen als Standard-Navigations-App gewählt ist. Bei einem eindeutigen Treffer startet die Route sofort, sonst öffnet sich die Trefferliste.")
+        SItem("Sprachsuche im Auto", "„Hey Google, navigiere mit Horizon Nav zu …“. Ohne „mit Horizon Nav“ nur als Standard-Navigations-App.")
         SItem("Android Auto Einstellungen", if (hasAa) null else "Android Auto ist auf diesem Telefon nicht installiert") {
             if (hasAa) SButton("Öffnen") {
                 val i = ctx.packageManager.getLaunchIntentForPackage(gh)
@@ -1047,7 +1047,7 @@ private fun KeyTestGroup(prefs: Prefs) {
     val sc = rememberCoroutineScope()
     var busy by remember { mutableStateOf(false) }
     var results by remember { mutableStateOf<List<com.headunit.launcher.KeyTest.Result>>(emptyList()) }
-    SGroup("Schlüssel testen", footer = "Schickt je Schlüssel eine kleine Abfrage an seinen eigenen Dienst. Nicht eingetragene Schlüssel werden übersprungen.") {
+    SGroup("Schlüssel testen", footer = "Eine Testabfrage je eingetragenem Schlüssel.") {
         SItem("Alle Schlüssel testen", if (results.isEmpty()) "Prüft, ob die eingetragenen Schlüssel funktionieren" else null) {
             SButton(if (busy) "Prüft…" else "Testen", primary = true) {
                 if (!busy) { busy = true; sc.launch { results = withContext(Dispatchers.IO) { com.headunit.launcher.KeyTest.all(prefs) }; busy = false } }
@@ -1060,44 +1060,44 @@ private fun KeyTestGroup(prefs: Prefs) {
 @Composable
 private fun KeysSection(prefs: Prefs, engine: NavEngine) {
     KeyTestGroup(prefs)
-    SGroup("Kraftstoffpreise außerhalb Großbritanniens", footer = "Deutschland benötigt einen kostenlosen Schlüssel von Tankerkönig (creativecommons.tankerkoenig.de).") {
+    SGroup("Kraftstoffpreise außerhalb Großbritanniens", footer = "Deutschland: kostenloser Schlüssel von creativecommons.tankerkoenig.de") {
         SFieldItem("Tankerkönig-Schlüssel (Deutschland)", prefs.s(PreferenceKeys.TANKERKOENIG_KEY, ""), placeholder = "Schlüssel einfügen", password = true) { prefs.put(PreferenceKeys.TANKERKOENIG_KEY, it.trim()) }
     }
     SGroup("Ladesäulen-Daten außerhalb Deutschlands") {
-        SFieldItem("Open Charge Map API-Schlüssel", prefs.s(PreferenceKeys.OCM_KEY, ""), "Optional, kostenlos auf openchargemap.org: findet Leistung und Betreiber von Ladesäulen außerhalb Deutschlands. Weitere Quellen: NDW (Niederlande, CC0), Brussels Mobility (Brüssel, CC BY 4.0). In Deutschland nutzt die App das Ladesäulenregister der Bundesnetzagentur. Ladedaten: Bundesnetzagentur.de (CC BY 4.0), Open Charge Map (CC BY-SA 4.0).", placeholder = "Schlüssel einfügen", password = true) { prefs.put(PreferenceKeys.OCM_KEY, it.trim()) }
+        SFieldItem("Open Charge Map API-Schlüssel", prefs.s(PreferenceKeys.OCM_KEY, ""), "Optional, kostenlos auf openchargemap.org. Daten: Bundesnetzagentur.de (CC BY 4.0), Open Charge Map (CC BY-SA 4.0), NDW (CC0), Brussels Mobility (CC BY 4.0).", placeholder = "Schlüssel einfügen", password = true) { prefs.put(PreferenceKeys.OCM_KEY, it.trim()) }
         OcmTestItem(prefs)
     }
     SGroup("Suche") {
         SChoice("Suchergebnisse", searchCountryOptions(engine), searchCountryValue(prefs)) { prefs.put(PreferenceKeys.COUNTRY, it) }
         if (engine.hasKey && engine.hasMapbox) SChoice("Suchen mit", listOf("auto" to "TomTom", "mapbox" to "Mapbox"), if (prefs.s(PreferenceKeys.SEARCHWITH, "auto") == "mapbox") "mapbox" else "auto",
-            "TomTom-Suche ist am genauesten für Adressen und Hausnummern") { prefs.put(PreferenceKeys.SEARCHWITH, it) }
-        else if (!engine.hasKey) SNote("Für die genauste Adresssuche unten einen kostenlosen TomTom-Schlüssel eintragen.")
+            "TomTom ist am genauesten für Adressen") { prefs.put(PreferenceKeys.SEARCHWITH, it) }
+        else if (!engine.hasKey) SNote("Für genaueste Adresssuche: TomTom-Schlüssel eintragen.")
     }
-    SGroup("Kartenkonten", footer = "Die Suche findet auch deine gespeicherten Orte. Ohne Empfang kommen Routen und Suche aus dem Offline-Paket.") {
+    SGroup("Kartenkonten", footer = "Ohne Empfang: Routen und Suche aus dem Offline-Paket.") {
         SFieldItem("TomTom API-Schlüssel", prefs.s(PreferenceKeys.API_KEY, ""), "Kostenlos erhältlich auf developer.tomtom.com",
             placeholder = "Schlüssel einfügen") { prefs.setApiKey(it) }
         SFieldItem("HERE API-Schlüssel", prefs.s(PreferenceKeys.HERE_KEY, ""), "Für genauere Tempolimits. Kostenlos auf platform.here.com",
             placeholder = "Schlüssel einfügen") { prefs.put(PreferenceKeys.HERE_KEY, it.trim()) }
         if (prefs.s(PreferenceKeys.HERE_KEY, "").isNotBlank()) {
             val st = com.headunit.launcher.HereRest.status
-            SNote("HERE: " + st.ifBlank { "noch keine Abfrage (fragt, sobald du ein paar Meter gefahren bist)" })
+            SNote("HERE: " + st.ifBlank { "noch keine Abfrage" })
         }
-        SFieldItem("Mapillary Client-Token", prefs.s(PreferenceKeys.MAPILLARY_KEY, ""), "Tempo-Schilder von Straßenfotos, für genauere Tempolimits. Kostenlos auf mapillary.com/dashboard/developers",
+        SFieldItem("Mapillary Client-Token", prefs.s(PreferenceKeys.MAPILLARY_KEY, ""), "Tempolimits aus Straßenfotos. Kostenlos auf mapillary.com",
             placeholder = "Token einfügen (MLY|…)") { prefs.put(PreferenceKeys.MAPILLARY_KEY, it.trim()) }
         if (prefs.s(PreferenceKeys.MAPILLARY_KEY, "").isNotBlank()) {
             val st = com.headunit.launcher.Mapillary.status
-            SNote("Mapillary: " + st.ifBlank { "noch keine Abfrage (fragt, sobald du fährst)" })
+            SNote("Mapillary: " + st.ifBlank { "noch keine Abfrage" })
         }
         SFieldItem("Mapbox Zugangstoken", prefs.s(PreferenceKeys.MAPBOX_TOKEN, ""), "Öffentliches Token (beginnt mit pk.) einfügen",
             placeholder = "Token einfügen") { prefs.put(PreferenceKeys.MAPBOX_TOKEN, com.headunit.launcher.MapboxRest.clean(it)) }
     }
-    SGroup("Satellitenbilder", footer = "Automatisch: Mapbox, dann die Luftbilder der Landesämter (nur Deutschland), dann Esri, dann MapTiler, zuletzt EOX Sentinel-2. Ohne Schlüssel wird ein Anbieter übersprungen. Lehnt Mapbox ab, merkt sich die App den Ersatz 24 Stunden.") {
+    SGroup("Satellitenbilder", footer = "Automatisch: Mapbox, Landesamt (DE), Esri, MapTiler, EOX. Anbieter ohne Schlüssel werden übersprungen.") {
         SChoice("Quelle", listOf("auto" to "Automatisch", "mapbox" to "Mapbox", "landesamt" to "Landesamt", "esri" to "Esri", "maptiler" to "MapTiler", "eox" to "EOX"),
-            prefs.s(PreferenceKeys.SAT_SOURCE, "auto"), "Landesamt: Luftbilder der Vermessungsämter in Deutschland, außerhalb Esri, MapTiler oder EOX") { prefs.put(PreferenceKeys.SAT_SOURCE, it) }
+            prefs.s(PreferenceKeys.SAT_SOURCE, "auto"), "Landesamt: amtliche Luftbilder (nur Deutschland)") { prefs.put(PreferenceKeys.SAT_SOURCE, it) }
         SChoice("Straßen über dem Luftbild", listOf("subtle" to "Dezent", "normal" to "Normal", "strong" to "Kräftig"),
             prefs.s(PreferenceKeys.SAT_HYBRID, "normal")) { prefs.put(PreferenceKeys.SAT_HYBRID, it) }
         SChoice("Luftbilder vorab laden", listOf("wifi" to "Nur WLAN", "always" to "Immer", "off" to "Aus"),
-            prefs.s(PreferenceKeys.SAT_PREFETCH, "wifi"), "Beim Routenstart die Luftbilder 300 m beidseits der Strecke speichern (Landesamt und EOX)") { prefs.put(PreferenceKeys.SAT_PREFETCH, it) }
+            prefs.s(PreferenceKeys.SAT_PREFETCH, "wifi"), "Speichert Luftbilder entlang der Route") { prefs.put(PreferenceKeys.SAT_PREFETCH, it) }
         SatStoreItem()
         SFieldItem("Esri API-Schlüssel", prefs.s(PreferenceKeys.ESRI_KEY, ""), "Kostenlos auf location.arcgis.com, mit Zugriff auf Basemaps",
             placeholder = "Schlüssel einfügen") { prefs.put(PreferenceKeys.ESRI_KEY, it.trim()) }
@@ -1129,7 +1129,7 @@ private fun AboutSection(prefs: Prefs, engine: NavEngine) {
                 if (!logsOn) { logsOn = true; com.headunit.launcher.DebugLog.unlocked = true; engine.toast("Log-Optionen eingeblendet", 2500) }
             }
         })
-        if (logsOn) SItem("Logs", "Letzte Meldungen der App in die Zwischenablage kopieren. Enthält eventuell Standort- oder Routendaten.") {
+        if (logsOn) SItem("Logs", "In die Zwischenablage. Kann Standortdaten enthalten.") {
             SButton("Kopieren") {
                 engine.toast("Logs werden gesammelt …", 2000)
                 Thread {
@@ -1322,7 +1322,7 @@ private fun EvWidgetItem(prefs: Prefs) {
     val at = com.headunit.launcher.EvWidget.readAt(prefs)
     val name = remember(id) { com.headunit.launcher.EvWidget.providerLabel(ctx, prefs) }
     val sub = when {
-        id < 0 -> "Übernimmt den Ladestand aus dem Widget deiner Auto-App, statt ihn von Hand einzustellen. Im Auto kommt der Wert direkt vom Fahrzeug, wenn Android Auto ihn teilt."
+        id < 0 -> "Ladestand aus dem Widget der Hersteller-App"
         at > 0 -> (when (com.headunit.launcher.EvWidget.source(prefs)) { "car" -> "Direkt vom Auto"; "cloud" -> "Aus der Cloud des Herstellers"; else -> name }) + " · ${prefs.s(PreferenceKeys.EV_NOW_PCT, "–")} % · ${prefs.s(PreferenceKeys.EV_NOW_KM, "–")} km, gelesen um " + java.text.SimpleDateFormat("HH:mm", java.util.Locale.GERMANY).format(java.util.Date(at))
         else -> "$name · Noch kein Prozentwert gefunden. Das Widget meldet sich, sobald es sich aktualisiert."
     }
@@ -1339,9 +1339,9 @@ private fun EvWidgetItem(prefs: Prefs) {
         if (id >= 0) SButton("Entfernen", danger = true) { com.headunit.launcher.EvWidget.remove(ctx, prefs) }
     }
     if (id >= 0) {
-        SToggle(prefs, "Widget automatisch aktualisieren", PreferenceKeys.EV_AUTOREFRESH, true, "Tippt mit Android Auto regelmäßig den Aktualisieren-Knopf im Widget an, auch bei gesperrtem Handy")
+        SToggle(prefs, "Widget automatisch aktualisieren", PreferenceKeys.EV_AUTOREFRESH, true, "Aktualisiert das Widget regelmäßig über Android Auto")
         if (prefs.b(PreferenceKeys.EV_AUTOREFRESH, true)) {
-            SNote("Achtung: Jedes Antippen fragt den Server des Herstellers ab (bei VW wird dafür das Auto geweckt). Im Auto geschieht das jede Minute, das kann gegen die Nutzungsbedingungen (AGB) des Herstellers verstoßen und dazu führen, dass Abfragen gedrosselt oder das Konto gesperrt wird. Nutzung auf eigene Verantwortung.")
+            SNote("Achtung: fragt jede Minute den Herstellerserver ab (bei VW wird das Auto geweckt). Kann gegen die AGB verstoßen und zur Sperrung führen. Nutzung auf eigene Verantwortung.")
         }
         val note = com.headunit.launcher.EvWidget.refreshNote
         if (note.isNotBlank()) Text("Zuletzt: $note", color = LocalVw.current.sub, fontSize = 12.sp, modifier = Modifier.padding(bottom = 10.dp))
@@ -1350,7 +1350,7 @@ private fun EvWidgetItem(prefs: Prefs) {
     if (id >= 0 && at == 0L) {
         val texts = com.headunit.launcher.EvWidget.lastTexts
         Text(
-            if (texts.isEmpty()) "Vom Widget ist noch kein Text angekommen. Erst nach „App öffnen“ und einer Aktualisierung des Widgets."
+            if (texts.isEmpty()) "Noch kein Text vom Widget. Erst nach „App öffnen“ und Aktualisierung."
             else "Text im Widget: " + texts.joinToString("  |  "),
             color = LocalVw.current.sub, fontSize = 12.sp, modifier = Modifier.padding(bottom = 10.dp),
         )
@@ -1360,7 +1360,7 @@ private fun EvWidgetItem(prefs: Prefs) {
         androidx.compose.ui.window.Dialog(onDismissRequest = { picking = false }) {
             Column(Modifier.widthIn(max = 560.dp).fillMaxWidth().clip(RoundedCornerShape(26.dp)).background(c.panel).padding(22.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Text(tr("Widget mit dem Ladestand"), color = c.text, fontSize = 22.sp, fontWeight = FontWeight.Bold)
-                Text(tr("Wähle das Widget deiner Auto-App. Horizon Nav liest daraus den Prozentwert, wenn es sich aktualisiert."), color = c.sub, fontSize = 14.sp)
+                Text(tr("Widget der Hersteller-App wählen. Der Prozentwert wird daraus gelesen."), color = c.sub, fontSize = 14.sp)
                 Column(Modifier.heightIn(max = 420.dp).verticalScroll(rememberScrollState())) {
                     if (list.isEmpty()) Text(tr("Keine Widgets gefunden"), color = c.sub, fontSize = 15.sp)
                     for (info in list) {
@@ -1444,14 +1444,14 @@ private fun EvOperatorsItem(prefs: Prefs) {
 private fun EvCarItem(prefs: Prefs) {
     var picking by remember { mutableStateOf(false) }
     val label = prefs.s(PreferenceKeys.EV_CAR, "")
-    val sub = if (label.isBlank()) "Mit Akku und Ladekurve deines Autos werden die Ladezeiten an den Ladestopps genau."
+    val sub = if (label.isBlank()) "Für genaue Ladezeiten an Ladestopps"
     else {
         val kwh = com.headunit.launcher.EvCars.batteryKwh(prefs)
         val kw = prefs.s(PreferenceKeys.EV_CAR_KW, "").toDoubleOrNull()
         label + (kwh?.let { " · ${evNum(it)} kWh" } ?: "") + (kw?.let { " · max. ${evNum(Math.round(it).toDouble())} kW" } ?: "")
     }
     // (the dataset's licence asks for the source to be shown)
-    SItem("Dein Fahrzeug", sub + "\nFahrzeugdaten: " + com.headunit.launcher.EvCars.SOURCE)
+    SItem("Fahrzeug", sub + "\nFahrzeugdaten: " + com.headunit.launcher.EvCars.SOURCE)
     // the buttons sit on their own line, as for the widget below
     Row(Modifier.fillMaxWidth().padding(bottom = 8.dp).horizontalScroll(androidx.compose.foundation.rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         SButton(if (label.isBlank()) "Wählen" else "Ändern", primary = label.isBlank()) { picking = true }
@@ -1486,10 +1486,10 @@ private fun EvCarDialog(prefs: Prefs, onClose: () -> Unit) {
     fun pick(car: com.headunit.launcher.EvCar) { com.headunit.launcher.EvCars.select(prefs, car); onClose() }
     androidx.compose.ui.window.Dialog(onDismissRequest = onClose) {
         Column(Modifier.widthIn(max = 560.dp).fillMaxWidth().clip(RoundedCornerShape(26.dp)).background(c.panel).padding(22.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Text(tr("Dein Fahrzeug"), color = c.text, fontSize = 22.sp, fontWeight = FontWeight.Bold)
+            Text(tr("Fahrzeug"), color = c.text, fontSize = 22.sp, fontWeight = FontWeight.Bold)
             when {
                 failed -> {
-                    Text(tr("Die Fahrzeugdaten ließen sich nicht laden. Prüfe die Internetverbindung."), color = c.sub, fontSize = 15.sp)
+                    Text(tr("Fahrzeugdaten nicht verfügbar. Internetverbindung prüfen."), color = c.sub, fontSize = 15.sp)
                     SButton("Erneut versuchen", primary = true) { attempt++ }
                 }
                 cars == null -> Text(tr("Fahrzeugdaten werden geladen …"), color = c.sub, fontSize = 15.sp)
@@ -1588,8 +1588,8 @@ private fun SatStoreItem() {
 @Composable
 private fun VehicleGroup(prefs: Prefs) {
     val kind = prefs.s(PreferenceKeys.VEHICLE, "car")
-    SGroup("Fahrzeug", footer = if (kind == "car") "Wohnmobil oder Anhänger: eigenes Höchsttempo für Ankunftszeit und Tempowarnung, Maße und Gewicht für die Route." else
-        "Die Ankunftszeit rechnet mit dem Höchsttempo, die Tempowarnung warnt ab diesem Wert. Zu niedrige Brücken, zu schmale Straßen und Gewichtsgrenzen meidet die Route, soweit TomTom und Mapbox sie kennen. Gilt für die nächste geplante Route.") {
+    SGroup("Fahrzeug", footer = if (kind == "car") "Höchsttempo, Maße und Gewicht für Wohnmobil, Lkw oder Anhänger." else
+        "Routen meiden zu niedrige, schmale oder zu schwach belastbare Strecken, soweit bekannt. Gilt ab der nächsten Route.") {
         SChoice("Profil", listOf("car" to "Pkw", "camper" to "Wohnmobil", "lorry" to "Lastkraftwagen"), kind) { prefs.put(PreferenceKeys.VEHICLE, it) }
         if (kind != "car") {
             val d = com.headunit.launcher.Vehicle.defaults(kind)
@@ -1619,19 +1619,19 @@ private fun CloudAccountGroup(prefs: Prefs) {
     val prov = com.headunit.launcher.CarCloud.provider(prefs)
     val footer = when (prov) {
         "volvo" -> "Kostenloses Entwicklerkonto auf developer.volvocars.com: Anwendung anlegen, als Redirect-URI ${com.headunit.launcher.CarCloud.REDIRECT} eintragen, Energy API und Connected Vehicle API wählen. Client-ID, Secret und VCC-API-Key hier einfügen, dann anmelden."
-        "bmw" -> "Im Kundenportal von BMW (bmw-cardata.bmwgroup.com, Zugang über „Mein BMW“) CarData aktivieren und „CarData Client erstellen“ wählen, dort die Client-ID kopieren und hier einfügen. Beim Anmelden gibt die App einen Code aus, den du auf der BMW-Seite eingibst. BMW erlaubt nur 50 Abrufe am Tag, deshalb ist die Abrufrate dort anfangs 30 Minuten."
+        "bmw" -> "Auf bmw-cardata.bmwgroup.com CarData aktivieren, einen Client erstellen und die Client-ID hier einfügen. Max. 50 Abrufe pro Tag."
         "smartcar" -> "Kostenloses Konto auf dashboard.smartcar.com (ein Fahrzeug ist gratis): Anwendung anlegen, als Redirect-URI ${com.headunit.launcher.CarCloud.REDIRECT} eintragen. Client-ID und Secret hier einfügen, dann anmelden und dein Auto (BMW, Mercedes, Tesla, Ford, Hyundai, Kia u. a.) freigeben."
-        else -> "Holt den Akkustand vor der Fahrt und beim Laden vom Server des Herstellers, wenn Android Auto ihn nicht liefert. Du meldest dich mit deinem eigenen Konto an, die Schlüssel bleiben auf dem Handy."
+        else -> "Akkustand vom Herstellerserver, wenn Android Auto ihn nicht liefert. Zugangsdaten bleiben auf dem Gerät."
     }
     SGroup("Akkustand aus der Cloud", footer = footer) {
         SChoice("Anbieter", listOf("none" to "Aus", "bmw" to "BMW / Mini", "volvo" to "Volvo", "smartcar" to "Smartcar (viele Marken)"), prov,
-            "BMW und Mini: direkt über CarData. Volvo: direkt bei Volvo. Smartcar: ein Zugang für BMW, Mercedes, Tesla, Ford, Hyundai, Kia und weitere; kostenlos für ein Auto.") { prefs.put(PreferenceKeys.CLOUD, it) }
+            "Smartcar: viele Marken, für ein Fahrzeug kostenlos") { prefs.put(PreferenceKeys.CLOUD, it) }
         if (prov != "none") {
             SFieldItem("Client-ID", prefs.s(PreferenceKeys.CLOUD_ID, ""), placeholder = "aus dem Entwicklerportal") { prefs.put(PreferenceKeys.CLOUD_ID, it.trim()) }
             if (prov != "bmw") SFieldItem("Client-Secret", prefs.s(PreferenceKeys.CLOUD_SECRET, ""), password = true) { prefs.put(PreferenceKeys.CLOUD_SECRET, it.trim()) }
             if (prov == "volvo") SFieldItem("VCC-API-Key", prefs.s(PreferenceKeys.CLOUD_VCC, ""), password = true) { prefs.put(PreferenceKeys.CLOUD_VCC, it.trim()) }
             SChoice("Abrufrate", listOf("5" to "5 Min.", "10" to "10 Min.", "20" to "20 Min.", "30" to "30 Min.", "60" to "60 Min."), com.headunit.launcher.CarCloud.rateMin(prefs).toString(),
-                "Abgerufen wird nur, solange die App offen ist, eine Route läuft oder Android Auto verbunden ist, außerdem einmal beim Öffnen." +
+                "Nur bei offener App, aktiver Route oder Android Auto." +
                     (if (prov == "bmw") " BMW erlaubt nur 50 Abrufe am Tag (heute ${com.headunit.launcher.CarCloud.callsToday(prefs)}); ist das Limit erreicht, pausiert die App bis morgen." else "")) {
                 prefs.put(PreferenceKeys.CLOUD_RATE + prov, it)
             }
