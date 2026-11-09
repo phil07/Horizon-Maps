@@ -212,7 +212,14 @@ object EvWidget {
                 if (x is ViewGroup) for (i in 0 until x.childCount) walk(x.getChildAt(i))
             }
             walk(v)
+            // widgets built with Glance (VW and others) give their buttons no names, only numbers ("glance_view_id_016"): then the
+            // smallest clickable thing that isn't most of the widget is taken, which is the refresh icon (the big one opens the app)
             val hit = found.firstOrNull { (_, w) -> val l = w.lowercase(); refreshWords.any { l.contains(it) } }?.first
+                ?: run {
+                    val whole = (v.width.toLong() * v.height).coerceAtLeast(1L)
+                    found.map { it.first }.filter { x -> x.width > 0 && x.height > 0 && x.width.toLong() * x.height < whole / 4 }
+                        .minByOrNull { x -> x.width.toLong() * x.height }
+                }
             if (hit == null) {
                 refreshNote = Lang.t("$at: kein Aktualisieren-Knopf gefunden", "$at: no refresh button found") +
                     (if (found.isNotEmpty()) " (" + found.joinToString(", ") { it.second.ifBlank { "?" }.take(30) } + ")" else "")

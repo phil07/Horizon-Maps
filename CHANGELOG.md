@@ -5,6 +5,8 @@ Add user-facing Horizon Nav changes under **Unreleased** before publishing each 
 ## Unreleased
 
 ### Behoben
+- Widget aktualisieren: Findet jetzt auch den Aktualisieren-Knopf von Widgets ohne Beschriftung, z. B. beim VW-Widget.
+  EN: Widget refresh: Now also finds the refresh button of widgets without labels, such as VW's.
 - Kreisverkehr im Head-up-Display: In Android Auto zeigt der Pfeil die richtige Seite. Die dritte Ausfahrt zeigte nach rechts wie die erste.
   EN: Roundabout on the head-up display: In Android Auto the arrow now points the right way. The third exit pointed right like the first.
 
