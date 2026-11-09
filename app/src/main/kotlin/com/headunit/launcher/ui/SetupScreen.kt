@@ -120,8 +120,8 @@ private fun SetupBody(prefs: Prefs, engine: NavEngine, onDone: () -> Unit) {
                             Icon(setupSteps[s].icon, null, tint = c.accent, modifier = Modifier.size(28.dp))
                         }
                         Column(Modifier.padding(start = 16.dp)) {
-                            Text(setupSteps[s].title, color = c.text, fontSize = 26.sp, fontWeight = FontWeight.Bold)
-                            Text(setupSteps[s].sub, color = c.sub, fontSize = 14.sp)
+                            Text(tr(setupSteps[s].title), color = c.text, fontSize = 26.sp, fontWeight = FontWeight.Bold)
+                            Text(tr(setupSteps[s].sub), color = c.sub, fontSize = 14.sp)
                         }
                     }
                     when (s) {
@@ -148,7 +148,7 @@ private fun SetupPoint(text: String) {
     val c = LocalVw.current
     Row(verticalAlignment = Alignment.CenterVertically) {
         Icon(Icons.Rounded.Check, null, tint = Good, modifier = Modifier.size(20.dp))
-        Text(text, color = c.text, fontSize = 15.sp, modifier = Modifier.padding(start = 10.dp))
+        Text(tr(text), color = c.text, fontSize = 15.sp, modifier = Modifier.padding(start = 10.dp))
     }
 }
 
@@ -210,8 +210,8 @@ private fun HomeWorkStep(engine: NavEngine) {
         ) {
             Icon(icon, null, tint = if (cur != null) c.accent else c.sub, modifier = Modifier.size(26.dp))
             Column(Modifier.padding(start = 14.dp).weight(1f)) {
-                Text(label, color = c.text, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
-                Text(cur?.let { it.name + if (it.sub.isNotBlank()) ", " + it.sub else "" } ?: "Nicht festgelegt · Tippen zum Suchen", color = c.sub, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(tr(label), color = c.text, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+                Text(cur?.let { it.name + if (it.sub.isNotBlank()) ", " + it.sub else "" } ?: tr("Nicht festgelegt · Tippen zum Suchen"), color = c.sub, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
             if (cur != null) Icon(Icons.Rounded.Check, null, tint = Good, modifier = Modifier.size(22.dp))
         }
@@ -256,7 +256,7 @@ private fun PackStep(prefs: Prefs, engine: NavEngine) {
         if (!engine.onWifi() && !installed) Text(stringResource(R.string.ui_071), color = Warn, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
     }
     if (engine.packBusy) LinearProgressIndicator(color = c.accent, trackColor = c.tile, modifier = Modifier.fillMaxWidth())
-    if (engine.packStatus.isNotBlank()) Text(engine.packStatus + if (engine.packBusy) " · läuft weiter, wenn du fortfährst" else "", color = c.sub, fontSize = 13.sp)
+    if (engine.packStatus.isNotBlank()) Text(engine.packStatus + if (engine.packBusy) tr(" · läuft weiter, wenn du fortfährst") else "", color = c.sub, fontSize = 13.sp)
     Text(stringResource(R.string.ui_069), color = c.sub, fontSize = 13.sp)
 }
 
@@ -274,8 +274,8 @@ private fun PermissionStep() {
     fun row(title: String, sub: String, ok: Boolean, perms: Array<String>) {
         Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(c.tile).padding(horizontal = 16.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
-                Text(title, color = c.text, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
-                Text(sub, color = c.sub, fontSize = 13.sp)
+                Text(tr(title), color = c.text, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+                Text(tr(sub), color = c.sub, fontSize = 13.sp)
             }
             if (ok) Icon(Icons.Rounded.Check, "Erlaubt", tint = Good, modifier = Modifier.size(24.dp))
             else SButton("Erlauben", primary = true) { try { ask.launch(perms) } catch (e: Exception) { } }

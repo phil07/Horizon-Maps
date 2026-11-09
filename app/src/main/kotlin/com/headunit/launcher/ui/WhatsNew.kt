@@ -52,7 +52,7 @@ import androidx.compose.ui.unit.sp
 internal class NoteItem(val kind: Int, val title: String, val desc: String, val icon: ImageVector)
 
 /** 0 new, 1 improved, 2 fixed. */
-private val kindNames = listOf("NEU", "VERBESSERT", "BEHOBEN")
+private val kindNames get() = if (com.headunit.launcher.Lang.de) listOf("NEU", "VERBESSERT", "BEHOBEN") else listOf("NEW", "IMPROVED", "FIXED")
 
 /**
  * Turns release notes ("- Something: what it does" lines, maybe under "### 1.0.N" headings when several versions are shown) into
@@ -141,7 +141,7 @@ internal fun WhatsNewList(notes: String, dark: Boolean, columns: Int = 1, maxHei
     Column(Modifier.fillMaxWidth().heightIn(max = capH).verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(8.dp)) {
         if (items.isEmpty()) {
-            Text(if (notes.isBlank()) "Diese Version ist installiert und bereit." else notes,
+            Text(if (notes.isBlank()) com.headunit.launcher.Lang.t("Diese Version ist installiert und bereit.", "This version is installed and ready.") else notes,
                 color = v.text, fontSize = 14.sp, lineHeight = 20.sp, modifier = Modifier.padding(4.dp))
             return@Column
         }

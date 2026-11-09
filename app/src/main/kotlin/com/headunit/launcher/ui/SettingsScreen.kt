@@ -537,7 +537,7 @@ private fun AlertsSection(prefs: Prefs, engine: NavEngine) {
         // where you are bans camera warnings and "Off where banned" is on: say so here, or it looks as if the switch doesn't work
         val banned = com.headunit.launcher.CAMERA_BANNED[engine.detectedCountry]
         val camOff = banned != null && prefs.b(PreferenceKeys.CAMERA_WARNINGS, false) && prefs.b(PreferenceKeys.CAMBANOBEY, true)
-        SToggle(prefs, "Blitzer", "cameras", false, if (camOff) "Gerade aus: in $banned nicht erlaubt (siehe „Aus, wo verboten“)"
+        SToggle(prefs, "Blitzer", "cameras", false, if (camOff) Lang.t("Aus: in $banned nicht erlaubt", "Off: not allowed in $banned")
             else if (prefs.b(PreferenceKeys.CAMERA_WARNINGS, false)) engine.camNote.ifBlank { "Suche startet mit dem nächsten GPS-Signal" } else null)
         if (prefs.b(PreferenceKeys.CAMERA_WARNINGS, false)) SToggle(prefs, "Aus, wo verboten", "cambanobey", true, "Automatisch aus z. B. in DE, FR und CH")
         SToggle(prefs, "Blitzer auf der Karte zeigen", "cameramap", true, "Nur Anzeige; Warnungen dort nur mit „Blitzer“ an")
@@ -891,7 +891,7 @@ private fun OfflinePlacesGroup(engine: NavEngine) {
     val where = countryName(cc)
     var state by remember { mutableStateOf(if (OfflinePlaces.installed(ctx)) "Installiert (%.1f MB)".format(OfflinePlaces.sizeMb(ctx)) else "Nicht heruntergeladen") }
     var busy by remember { mutableStateOf(false) }
-    SGroup("Ortsnamen", footer = "Städte und Dörfer in $where für die Suche ohne Signal.") {
+    SGroup("Ortsnamen", footer = Lang.t("Orte in $where für die Suche ohne Signal.", "Places in $where for search without signal.")) {
         SItem("Städte und Dörfer", state) {
             SButton(if (busy) "Lädt…" else if (OfflinePlaces.installed(ctx)) "Aktualisieren" else "Herunterladen", primary = !OfflinePlaces.installed(ctx)) {
                 if (!busy) {
@@ -922,7 +922,7 @@ private fun ScreenSection(prefs: Prefs, engine: NavEngine) {
         val autoScale = prefs.b(PreferenceKeys.UI_AUTO_SCALE, prefs.s(PreferenceKeys.UI_SCALE, "").isBlank())
         SItem(
             "Automatische UI-Skalierung",
-            if (autoScale) "Nutzt Bildschirmgröße und -form (aktuell $autoPercent%)" else "Manuelle Text- und Buttongröße ist aktiviert"
+            if (autoScale) Lang.t("Nach Bildschirmgröße (aktuell $autoPercent%)", "By screen size (now $autoPercent%)") else Lang.t("Manuelle Größe aktiv", "Manual size active")
         ) {
             // (the app's own switch, in the accent colour like all the others)
             com.headunit.launcher.ui.Switch(autoScale) { enabled ->
@@ -1199,7 +1199,7 @@ private fun AboutSection(prefs: Prefs, engine: NavEngine) {
             val pw = keyPw
             keyToast(try {
                 val text = ctx.contentResolver.openInputStream(uri)?.bufferedReader()?.use { it.readText() }.orEmpty()
-                "${KeyBackup.import(prefs, text, pw)} Schlüssel wiederhergestellt"
+                KeyBackup.import(prefs, text, pw).let { n -> Lang.t("$n Schlüssel wiederhergestellt", "$n keys restored") }
             } catch (e: Exception) { e.message ?: "Schlüssel konnten nicht wiederhergestellt werden" })
         }
         keyPw = ""
@@ -1405,7 +1405,7 @@ private fun EvOperatorsItem(prefs: Prefs) {
     }
     Box(Modifier.fillMaxWidth()) {
         // a real button, so it's clear the list opens from here
-        SItem("Bevorzugte Ladeanbieter", "$summary. Ladestopps nutzen bevorzugt Säulen dieser Anbieter, wenn der Umweg klein bleibt.", onClick = { open = true }) {
+        SItem("Bevorzugte Ladeanbieter", Lang.t("$summary. Bevorzugt bei kleinem Umweg.", "$summary. Preferred if the detour is small."), onClick = { open = true }) {
             SButton(if (names.isEmpty()) "Auswählen ▾" else "Ändern ▾") { open = true }
         }
         // limited height and scrolling: the car's screen is short
@@ -1605,7 +1605,7 @@ private fun VehicleGroup(prefs: Prefs) {
 
 @Composable
 private fun VehicleField(prefs: Prefs, kind: String, what: String, title: String, def: String, unit: String) {
-    SFieldItem(title, prefs.s(com.headunit.launcher.Vehicle.key(kind, what), ""), "Leer lassen für $def $unit", placeholder = def, number = true) {
+    SFieldItem(title, prefs.s(com.headunit.launcher.Vehicle.key(kind, what), ""), Lang.t("Leer = $def $unit", "Empty = $def $unit"), placeholder = def, number = true) {
         prefs.put(com.headunit.launcher.Vehicle.key(kind, what), it.trim().replace(',', '.'))
     }
 }
@@ -1618,9 +1618,9 @@ private fun CloudAccountGroup(prefs: Prefs) {
     val sc = rememberCoroutineScope()
     val prov = com.headunit.launcher.CarCloud.provider(prefs)
     val footer = when (prov) {
-        "volvo" -> "Kostenloses Entwicklerkonto auf developer.volvocars.com: Anwendung anlegen, als Redirect-URI ${com.headunit.launcher.CarCloud.REDIRECT} eintragen, Energy API und Connected Vehicle API wählen. Client-ID, Secret und VCC-API-Key hier einfügen, dann anmelden."
+        "volvo" -> Lang.t("Entwicklerkonto auf developer.volvocars.com: Anwendung mit Redirect-URI ${com.headunit.launcher.CarCloud.REDIRECT}, Energy API und Connected Vehicle API. Client-ID, Secret und VCC-API-Key einfügen, dann anmelden.", "Developer account at developer.volvocars.com: app with redirect URI ${com.headunit.launcher.CarCloud.REDIRECT}, Energy API and Connected Vehicle API. Paste client ID, secret and VCC API key, then sign in.")
         "bmw" -> "Auf bmw-cardata.bmwgroup.com CarData aktivieren, einen Client erstellen und die Client-ID hier einfügen. Max. 50 Abrufe pro Tag."
-        "smartcar" -> "Kostenloses Konto auf dashboard.smartcar.com (ein Fahrzeug ist gratis): Anwendung anlegen, als Redirect-URI ${com.headunit.launcher.CarCloud.REDIRECT} eintragen. Client-ID und Secret hier einfügen, dann anmelden und dein Auto (BMW, Mercedes, Tesla, Ford, Hyundai, Kia u. a.) freigeben."
+        "smartcar" -> Lang.t("Konto auf dashboard.smartcar.com (ein Fahrzeug gratis): Anwendung mit Redirect-URI ${com.headunit.launcher.CarCloud.REDIRECT}. Client-ID und Secret einfügen, anmelden, Fahrzeug freigeben.", "Account at dashboard.smartcar.com (one vehicle free): app with redirect URI ${com.headunit.launcher.CarCloud.REDIRECT}. Paste client ID and secret, sign in, allow the vehicle.")
         else -> "Akkustand vom Herstellerserver, wenn Android Auto ihn nicht liefert. Zugangsdaten bleiben auf dem Gerät."
     }
     SGroup("Akkustand aus der Cloud", footer = footer) {
@@ -1632,7 +1632,7 @@ private fun CloudAccountGroup(prefs: Prefs) {
             if (prov == "volvo") SFieldItem("VCC-API-Key", prefs.s(PreferenceKeys.CLOUD_VCC, ""), password = true) { prefs.put(PreferenceKeys.CLOUD_VCC, it.trim()) }
             SChoice("Abrufrate", listOf("5" to "5 Min.", "10" to "10 Min.", "20" to "20 Min.", "30" to "30 Min.", "60" to "60 Min."), com.headunit.launcher.CarCloud.rateMin(prefs).toString(),
                 "Nur bei offener App, aktiver Route oder Android Auto." +
-                    (if (prov == "bmw") " BMW erlaubt nur 50 Abrufe am Tag (heute ${com.headunit.launcher.CarCloud.callsToday(prefs)}); ist das Limit erreicht, pausiert die App bis morgen." else "")) {
+                    (if (prov == "bmw") Lang.t(" BMW: max. 50 Abrufe pro Tag (heute ${com.headunit.launcher.CarCloud.callsToday(prefs)}), danach Pause bis morgen.", " BMW: max 50 calls a day (today ${com.headunit.launcher.CarCloud.callsToday(prefs)}), then paused until tomorrow.") else "")) {
                 prefs.put(PreferenceKeys.CLOUD_RATE + prov, it)
             }
             val st = com.headunit.launcher.CarCloud.status

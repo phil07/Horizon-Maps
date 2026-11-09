@@ -97,6 +97,8 @@ jobs:
           # GitHub's API (which only allows a few requests an hour and often turned the card blank).
           mkdir -p "$GITHUB_WORKSPACE/app/src/main/assets"
           cp "$CHANGE_NOTES" "$GITHUB_WORKSPACE/app/src/main/assets/whatsnew.md"
+          # the app keeps the "EN:" lines (its English); the GitHub release and Google Play get the German only
+          sed -i '/^[[:space:]]*[Ee][Nn]:/d' "$CHANGE_NOTES"
           echo "Notes for ${VERSION}:"; cat "$CHANGE_NOTES"
 
       - name: Build release APK

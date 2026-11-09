@@ -188,7 +188,28 @@ object Updater {
     }
 
     /** Removes release boilerplate and unfinished changelog templates before showing notes in the UI. */
-    private fun cleanReleaseNotes(raw: String): String {
+    /**
+     * A change may carry its English under it, on an indented "EN: Headline: what it does" line. In English that line replaces
+     * the German one before it; in German it is dropped.
+     */
+    internal fun pickLanguage(raw: String, german: Boolean = Lang.de): String {
+        val out = ArrayList<String>()
+        for (line in raw.lines()) {
+            val t = line.trim()
+            if (t.startsWith("EN:", ignoreCase = true)) {
+                if (!german) {
+                    val i = out.indexOfLast { val p = it.trimStart(); p.startsWith("- ") || p.startsWith("* ") || p.startsWith("• ") }
+                    if (i >= 0) { out[i] = "- " + t.substring(3).trim(); while (out.size > i + 1) out.removeAt(out.size - 1) }
+                }
+                continue
+            }
+            out += line
+        }
+        return out.joinToString("\n")
+    }
+
+    private fun cleanReleaseNotes(raw0: String): String {
+        val raw = pickLanguage(raw0)
         val withoutComments = raw.replace(Regex("<!--[\\s\\S]*?-->"), "")
         val cleaned = withoutComments.lineSequence()
             .filterNot { line ->
