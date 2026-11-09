@@ -7002,7 +7002,8 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         try {
             // the voice chosen in Settings, when it is still installed
             val chosen = prefs.s(PreferenceKeys.TTS_VOICE, "").takeIf { it.isNotBlank() }
-            if (chosen != null) { t.voices?.firstOrNull { it.name == chosen }?.let { t.voice = it; return } }
+            // (only while it speaks the app's language: after switching the language the matching voice is picked instead)
+            if (chosen != null) { t.voices?.firstOrNull { it.name == chosen && it.locale.language == Locale.getDefault().language }?.let { t.voice = it; return } }
             val lang = t.language?.language ?: return
             val best = t.voices
                 ?.filter { it.locale.language == lang && it.features?.contains(TextToSpeech.Engine.KEY_FEATURE_NOT_INSTALLED) != true }

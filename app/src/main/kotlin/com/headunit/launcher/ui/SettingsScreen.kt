@@ -586,6 +586,17 @@ private fun AlertsSection(prefs: Prefs, engine: NavEngine) {
 private fun SoundSection(prefs: Prefs, engine: NavEngine) {
     val ctx = LocalContext.current
     SGroup("Ton & Stimme") {
+        // the app's language (screens, Android Auto, spoken directions, route instructions and search results). Android 13 and newer
+        // keep a language per app; before that the app follows the phone's language
+        if (android.os.Build.VERSION.SDK_INT >= 33) {
+            val lm = remember { ctx.getSystemService(android.app.LocaleManager::class.java) }
+            var lang by remember { mutableStateOf(lm?.applicationLocales?.takeIf { !it.isEmpty }?.get(0)?.language ?: "system") }
+            SChoice(Lang.t("Sprache", "Language"), listOf("system" to Lang.t("Telefonsprache", "Phone's language"), "de" to "Deutsch", "en" to "English"), lang,
+                Lang.t("Bildschirme, Android Auto, Ansagen, Routenanweisungen und Suchergebnisse", "Screens, Android Auto, spoken directions, route instructions and search results")) {
+                lang = it
+                lm?.applicationLocales = if (it == "system") android.os.LocaleList.getEmptyLocaleList() else android.os.LocaleList.forLanguageTags(it)
+            }
+        }
         SChoice("Sprachführung", listOf("0" to "Alle", "1" to "Nur Warnungen", "2" to "Aus"), engine.soundMode.toString(),
             "Nur Warnungen überspringt Abbiegehinweise, sagt aber Kameras, Limits und Gefahren an") { prefs.put(PreferenceKeys.SOUND_MODE, it.toInt()) }
         SToggle(prefs, "Straßennamen ansagen", PreferenceKeys.VOICE_ROADS, true, "Aus gibt nur die Richtung an")

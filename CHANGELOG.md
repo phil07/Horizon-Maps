@@ -4,6 +4,9 @@ Add user-facing Horizon Nav changes under **Unreleased** before publishing each 
 
 ## Unreleased
 
+### Neu
+- Sprache wählen: Unter Einstellungen > Ton & Stimme > Sprache stellst du die App auf Deutsch oder Englisch, unabhängig von der Telefonsprache (ab Android 13). Das gilt für Bildschirme, Android Auto, Ansagen, Routenanweisungen und Suchergebnisse.
+
 ### Behoben
 - Verkehrsfarben: Ein Stau oder Unfall auf der Routenlinie bleibt nicht mehr rot, wenn er sich aufgelöst hat. Jede Aktualisierung beginnt beim Verkehr des Routendienstes und legt TomTom und Meldungen darüber.
 - Verpasste Abbiegung: Sicherer gegen GPS-Abweichungen in der Stadt. Sie zählt nur, wenn du weiter als die GPS-Ungenauigkeit (mindestens 15 m) von der Route weg bist und deutlich anders fährst (über 90 Grad), damit das Heranfahren an eine Abbiegung keine neue Route auslöst.
