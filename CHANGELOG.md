@@ -4,11 +4,9 @@ Add user-facing Horizon Nav changes under **Unreleased** before publishing each 
 
 ## Unreleased
 
-### Neu
-- Alle Standorte anzeigen: Bei einer Suche nach einem Geschäft oder einer Kette (Lidl, Aldi, Starbucks …) mit mehreren Filialen in 25 km zeigt „Alle N Standorte anzeigen“ alle an. Sortiert nach Schnellste (Fahrzeit mit heutigem Verkehr), Nächste oder Auf meiner Route. Die Karte zeigt jede Filiale mit Logo und Fahrzeit. Antippen, dann „Los“ oder „Als Stopp“. „In diesem Bereich suchen“ sucht dort, wohin die Karte geschoben wurde. In Android Auto als Liste.
-  EN: See all locations: Search for a shop or chain (Lidl, Aldi, Starbucks …) with several branches within 25 km and "See all N locations" shows them all, sorted by Quickest (drive time with today's traffic), Nearest or On my route. The map shows each with its logo and drive time. Tap one, then Go or Add as stop. "Search this area" looks again where you moved the map. On Android Auto it's a list.
-- Logos in Suchergebnissen: Geschäfte und Marken zeigen ihr Logo (von ihrer Website oder aus einer eingebauten Liste bekannter Ketten). Logos bleiben nach dem ersten Mal auf dem Gerät; ohne Empfang erscheint die übliche Nadel.
-  EN: Logos in search results: Shops and brands show their own logo (from their website or a built-in list of common chains). Logos are kept on the device after the first time; without a signal the usual pin shows.
+### Behoben
+- Gewählte Route bleibt: Eine Alternative statt der schnellsten Route wird jetzt auch nach dem Start beibehalten. Bei einer Neuberechnung (z. B. nach kurzer GPS-Abweichung) und wenn Android Auto die Fahrt übernimmt, wechselt die App nicht mehr auf die schnellste. Schnellere Wege werden nur noch angeboten.
+  EN: Chosen route kept: An alternative picked instead of the fastest route is now kept after starting. A reroute (e.g. after brief GPS drift) or Android Auto taking over the trip no longer switches to the fastest. Faster ways are only offered.
 
 ## 1.0.246 — 2026-10-28
 

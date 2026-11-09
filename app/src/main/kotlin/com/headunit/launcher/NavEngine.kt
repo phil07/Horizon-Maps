@@ -1450,7 +1450,8 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
                 if (dest !== d || previewing || route == null) return@launch
                 if (rs.isEmpty()) { toast(Lang.t("Kein Weg über die Stopps gefunden, die Route bleibt", "No way through the stops found, the route stays"), 4000); return@launch }
                 via = newVia; evPlanned = ev
-                routes = rs; active = rs.indices.minByOrNull { rs[it].time } ?: 0
+                val was = route
+                routes = rs; active = keepChosen(rs, was)
                 said.clear(); offCount = 0; lastIdx = 0; trustProg = -1.0
                 clearLiveAlts(); drawRoutes(); updateRouteZones(); pushVia()
                 try { loadRouteWeather(rs[active]) } catch (e: Exception) { }
@@ -2241,7 +2242,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
                 if (prefer != null && keepVia && rs.none { routeOverlap(it, prefer) > 0.8 }) rs = listOf(prefer) + rs
                 val pick = (if (prefer != null && keepVia && rs.size > 1) rs.indices.maxByOrNull { routeOverlap(rs[it], prefer) } else null)
                     ?: simplerPick(rs)
-                pickedSlower = rs.size > 1 && rs[pick].time > rs.minOf { it.time } + 60.0
+                pickedSlower = rs.size > 1 && rs[pick] !== rs.minByOrNull { it.time }
                 if (rs[pick].steps.isEmpty()) toast(if (lastRouteProvider == "mapbox") Lang.t("Mapbox hat für diese Route keine Abbiegehinweise geliefert", "Mapbox returned no turn instructions for this route") else Lang.t("Dieser Schlüssel liefert keine Abbiegehinweise. Prüfe, ob er Zugriff auf die TomTom Routing API hat", "This key returned no turn instructions. Check it has TomTom Routing API access"), 6000)
                 if (departInMin > 0 && !usedOffline && !departApplied) toast(ctx.getString(R.string.toast_007), 4000)
                 departMin = departInMin
@@ -2325,6 +2326,18 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         return if (n == 0) 0.0 else on.toDouble() / n
     }
 
+    /**
+     * The way to take from new routes [rs] worked out on the go: after picking a slower way yourself, the one that keeps to it
+     * ([old], the route you were on) most closely; otherwise the quickest. A reroute used to always take the quickest, which threw
+     * away the way you had chosen.
+     */
+    private fun keepChosen(rs: List<Route>, old: Route?): Int {
+        val quickest = rs.indices.minByOrNull { rs[it].time } ?: 0
+        if (!pickedSlower || old == null || rs.size < 2) return quickest
+        val best = rs.indices.maxByOrNull { routeOverlap(rs[it], old) } ?: return quickest
+        return if (routeOverlap(rs[best], old) >= 0.5) best else quickest
+    }
+
     fun beginNavigation() {
         if (!previewing) return
         // electric: the charging plan of the chosen route is still being worked out. Starting now would set off without its stops
@@ -2347,7 +2360,8 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         }
         map.stopFly()
         // a slower way picked from the choice: kept, faster ones are only offered
-        if (routes.size > 1) pickedSlower = route?.let { r -> r.time > routes.minOf { it.time } + 60.0 } == true
+        // (any way that isn't the quickest: also one only seconds slower, else a reroute or a quicker way found later took it away)
+        if (routes.size > 1) pickedSlower = route?.let { r -> r !== routes.minByOrNull { it.time } } == true
         previewing = false
         // where this trip started, for "Route back" when you arrive
         tripFrom = fix?.pos
@@ -2437,7 +2451,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
                         }
                         // the route was ended (or a new destination chosen) while this was worked out: the old route must not come back
                         if (dest !== d || previewing) { err = null; break }
-                        if (rs.isNotEmpty()) { routes = rs; active = rs.indices.minByOrNull { rs[it].time } ?: 0; said.clear(); offCount = 0; lastIdx = 0; trustProg = -1.0; clearLiveAlts(); drawRoutes(); cardsForStartAlts(); updateRouteZones(); evAfterReroute()
+                        if (rs.isNotEmpty()) { val was = route; routes = rs; active = keepChosen(rs, was); said.clear(); offCount = 0; lastIdx = 0; trustProg = -1.0; clearLiveAlts(); drawRoutes(); cardsForStartAlts(); updateRouteZones(); evAfterReroute()
                             // live alternatives looked for again half a minute after a reroute
                             if (prefs.b(PreferenceKeys.LIVE_ALTERNATIVES, true)) lastFasterCheck = System.currentTimeMillis() - 90_000L
                             try { closureAfterReroute(rs[active]) } catch (e: Exception) { }
@@ -7576,8 +7590,15 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         if (d != null && Geo.dist(d.pos, to.pos) < 30.0 && route != null) {
             val sameStops = via.size == stops.size && via.zip(stops).all { (a, b) -> Geo.dist(a.pos, b.pos) < 30.0 }
             if (sameStops) {
-                // already showing this route's choice (a place shared to both screens): set off with it
-                if (previewing) beginNavigation()
+                // already showing this route's choice (a place shared to both screens): set off with the way picked on the other
+                // screen, not this screen's own pick (it was always the quickest)
+                if (previewing) {
+                    if (chosen != null && routes.size > 1) {
+                        val i = routes.indices.maxByOrNull { routeOverlap(routes[it], chosen) } ?: active
+                        if (i != active && routeOverlap(routes[i], chosen) > 0.8) selectRoute(i)
+                    }
+                    beginNavigation()
+                }
                 return
             }
             // same trip, but the other screen changed its stops (e.g. charging stops added once the chargers were found mid-drive)
