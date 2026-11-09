@@ -19,6 +19,7 @@ Die Entwicklung hier ist eine Weiterentwicklung dieses Originals. Vielen Dank an
 - **Sprachbefehle**, z. B. „Bring mich nach Hause“
 - **Ziele vom Handy ans Radio senden**, Parkplatz merken, Wetter und Regenradar
 - **Ort antippen**: Ein Ort auf der Karte zeigt eine Karte mit Name, Adresse, „Los“ und „Als Stopp“; langes Drücken fährt direkt hin
+- **Öffnungszeiten** in Suche und Ort-Karte, **Schlagworte** für Favoriten, Raststätten-Vorschlag zur Pausenerinnerung
 - **Suche mit Logos**: Geschäfte zeigen ihr Logo; bei Ketten zeigt „Alle Standorte“ jede Filiale in der Nähe mit Fahrzeit (Mapbox, ersatzweise TomTom), sortiert nach Schnellste, Nächste oder Auf meiner Route
 - **Routenvergleich** mit Fahrzeit, Stau, Maut/Vignette und Ladestopps; eine gewählte Alternative bleibt auch bei Neuberechnung erhalten
 - **Kreisverkehre** seitenrichtig in Abbiegebox, Karte und Head-up-Display

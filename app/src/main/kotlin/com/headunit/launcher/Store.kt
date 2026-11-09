@@ -79,9 +79,22 @@ class PlaceStore(private val prefs: Prefs) {
         return if (cur.any { same(it, p) }) {
             writeList("places_fav", cur.filterNot { same(it, p) }); false
         } else {
-            writeList("places_fav", (listOf(p) + cur).take(20)); true
+            writeList("places_fav", (listOf(p) + cur).take(60)); true
         }
     }
+
+    // ---- tags for favourites ("Kunden", "Urlaub"): kept beside the list, by position, so the saved favourites stay as they are ----
+    private fun tagKey(p: Place) = String.format(java.util.Locale.US, "%.4f,%.4f", p.pos.lat, p.pos.lon)
+    private fun tagMap(): org.json.JSONObject = try { org.json.JSONObject(prefs.s(PreferenceKeys.FAV_TAGS, "").ifBlank { "{}" }) } catch (e: Exception) { org.json.JSONObject() }
+    fun favTag(p: Place): String = tagMap().optString(tagKey(p))
+    /** Sets the favourite's tag (blank takes it off). */
+    fun setFavTag(p: Place, tag: String) {
+        val m = tagMap(); val t = tag.trim().take(20)
+        if (t.isEmpty()) m.remove(tagKey(p)) else m.put(tagKey(p), t)
+        prefs.put(PreferenceKeys.FAV_TAGS, m.toString())
+    }
+    /** The tags in use, in alphabetical order. */
+    fun favTags(): List<String> = favourites().map { favTag(it) }.filter { it.isNotBlank() }.distinct().sortedBy { it.lowercase() }
 
     /** Gives a favourite a name of your own (it stays in the same place in the list). */
     fun renameFavourite(p: Place, name: String) {

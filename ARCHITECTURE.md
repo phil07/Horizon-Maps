@@ -10,6 +10,10 @@ This document records current ownership boundaries and the intended low-risk ref
 - `Geo.kt`, `NavigationPolicy.kt`: geographic calculations and pure navigation decisions. GPS-accuracy-aware off-route distance thresholds and strike counting now live in `NavigationPolicy`, with boundary-focused unit tests; `NavEngine` still owns the actual reroute lifecycle and calls.
 - `OfflineRouter.kt`, `OfflineMap.kt`, `OfflinePlaces.kt`, `OfflineServer.kt`: offline routing, map/places access, and loopback serving. Keep network parsing and request limits close to their boundaries.
 - `Prefs.kt`: observable preferences, backup import/export, and compatibility migrations. New key names and migrations should be documented and tested; never include API keys in exported backups.
+- `BrandLogos.kt`, `OpenHours.kt`: pure helpers for search results (chain keys and logo websites; opening-times notes from TomTom's `timeRanges`), unit-tested. The "all locations of a chain" state (`ChainView`, `ChainLoc`) lives in `NavEngine`, its pins in `MapBinding` (`setChainPins`).
+- `ui/CustomLook.kt`: the own-design accent colour and map wash, applied in `VwTheme` and `navVw`. The route colour is read by `MapBinding.sevColor`.
+- Language: `res/values/` is English, `res/values-de/` German; `Lang.de` is true only on German devices. Texts written in code use `Lang.t(de, en)`; the settings pages look their English up in `ui/SettingsEn.kt` (`tr()`), keyed by the German text. CHANGELOG entries carry an indented `EN:` line that `Updater.pickLanguage` uses for the What's new card.
+- Route choice: `NavigationPolicy.keepChosenIndex` and `isPickedSlower` decide whether a reroute keeps the way picked by hand (`NavEngine.userPicked`), covered by `RouteChoiceTest`.
 - `Updater.kt`: Android/GitHub/download/install I/O. Pure metadata validation is now in `UpdaterPolicy.kt`, so it can be tested independently of Android services.
 
 ## Refactoring rules

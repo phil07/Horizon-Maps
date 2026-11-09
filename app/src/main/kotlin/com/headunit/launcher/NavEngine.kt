@@ -178,7 +178,18 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
             pickJob = scope.launch {
                 launch {
                     val addr = withContext(Dispatchers.IO) { try { PoiSearch.addressAt(p) } catch (e: Exception) { null } } ?: return@launch
-                    if (mapPick === first) mapPick = if (name != null) Place(name, addr, p) else Place(addr.substringBefore(", "), addr.substringAfter(", ", ""), p)
+                    val cur = mapPick
+                    if (cur != null && Geo.dist(cur.pos, p) < 1.0) mapPick = (if (name != null) Place(name, addr, p) else Place(addr.substringBefore(", "), addr.substringAfter(", ", ""), p))
+                        .also { it.hours = cur.hours; it.web = cur.web; it.brand = cur.brand }
+                }
+                // a named place: its opening times and website (for the logo) from TomTom's search, when there is a key
+                if (name != null && hasKey && refusedKey != apiKey && online()) launch {
+                    val hit = withContext(Dispatchers.IO) { try { TomTomRest.poiNear(apiKey, name, null, p, 150).firstOrNull() } catch (e: Exception) { null } } ?: return@launch
+                    val cur = mapPick
+                    if (cur != null && Geo.dist(cur.pos, p) < 1.0) {
+                        mapPick = Place(cur.name, cur.sub, cur.pos).also { it.hours = hit.hours; it.web = hit.web; it.brand = hit.brand }
+                        loadLogos(listOfNotNull(mapPick))
+                    }
                 }
                 delay(15_000)
                 clearPick()
@@ -1468,7 +1479,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
                 routes = rs; active = keepChosen(rs, was)
                 said.clear(); offCount = 0; lastIdx = 0; trustProg = -1.0
                 clearLiveAlts(); drawRoutes(); updateRouteZones(); pushVia()
-                try { loadRouteWeather(rs[active]) } catch (e: Exception) { }
+                try { loadRouteWeather(rs[active]) } catch (e: Exception) { android.util.Log.w("NavEngine", "route weather failed", e) }
                 if (prefs.b(PreferenceKeys.LIVE_ALTERNATIVES, true)) lastFasterCheck = System.currentTimeMillis() - 90_000L
                 if (sync) try { RouteSync.stopsChanged(this@NavEngine, d, newVia) } catch (e: Exception) { }
                 after?.invoke()
@@ -2481,7 +2492,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
                             try { closureAfterReroute(rs[active]) } catch (e: Exception) { }
                             err = null; break }
                         err = "no route found"
-                    } catch (e: Exception) { err = e.message ?: "unknown error" }
+                    } catch (e: Exception) { android.util.Log.w("NavEngine", "reroute failed", e); err = e.message ?: "unknown error" }
                     if (attempt < 3) delay(2500)
                     if (dest !== d) { err = null; break }
                 }
@@ -3378,7 +3389,8 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
                 breakNext += 7200
                 raiseAlert("break", Lang.t("Du fährst seit $hrs Stunden. Zeit für eine Pause?", "You have been driving for $hrs hours. Time for a break?"), 8000)
                 speak(Lang.t("Sie fahren seit $hrs Stunden. Bitte machen Sie eine Pause.", "You have been driving for $hrs hours. Consider taking a break."), true)
-                if (route == null) loadNearby("fuel", false)
+                // with the reminder on: on a route the rest areas along it are offered (a tap adds one as a stop); otherwise fuel nearby
+                if (route != null && !previewing) loadNearby("services", false) else if (route == null) loadNearby("fuel", false)
             }
         } else if (p.speed > 3.0) {
             tripOn = true; tripT0 = now; tripDistance = 0.0; tripMoveSec = 0; tripTop = p.speed; tripLast = p.pos
@@ -3571,6 +3583,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
                     nearby = ParkingLive.sortNearby(ParkingLive.enrich(list, live.orEmpty(), origin, radius.toDouble())).take(15)
                 } else
                 nearby = sortNearby(list).take(15)
+                loadLogos(nearby.map { it.place })
                 if (nearby.isEmpty()) toast(if (alongRoute) Lang.t("Nichts entlang der Route gefunden", "Nothing found along the route ahead") else Lang.t("Nichts in der Nähe gefunden", "Nothing found nearby"), 3000)
             } catch (e: Exception) { toast(searchFailText(e), 4500) }
             finally { nearbyBusy = false }
@@ -4397,6 +4410,10 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         map.onViewMoved = { c -> viewMoved(c); garagesAt(c, false) }
         map.onGarageTap = { g -> showGarage(g) }
         map.onChainTap = { i -> chain?.locs?.getOrNull(i)?.let { selectChain(it) } }
+        // the phone, not while being guided: a tap on a free spot shows its address with "Los" (a second tap anywhere puts the card away)
+        map.onFreeTap = { p ->
+            if (!isCar && (route == null || previewing) && results.isEmpty() && chain == null && !chainBusy) { if (mapPick != null) clearPick() else showPick(p, null) }
+        }
     }
 
     // ---- car parks on the map, with their free spaces ----
@@ -5132,7 +5149,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
                     return s.count { p -> ahead.any { Geo.dist(p, it) < 40.0 } }.toDouble() / s.size
                 }
                 val same = rs.maxByOrNull { overlap(it) } ?: return@launch
-                try { refreshTraffic(cur, same) } catch (e: Exception) { }
+                try { refreshTraffic(cur, same) } catch (e: Exception) { android.util.Log.w("NavEngine", "traffic refresh failed", e) }
                 if (live) {
                     // live comparison: every other way stays on the map in grey with how it compares, to tap any time
                     val others = rs.filter { it !== same && overlap(it) < 0.8 }.take(2)
@@ -6808,7 +6825,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
             try {
                 // all routes at once: the slowest one decides, not the sum
                 rs.map { r -> scope.async {
-                    val res = try { computeEvPlan(r) } catch (e: Exception) { null }
+                    val res = try { computeEvPlan(r) } catch (e: Exception) { android.util.Log.w("NavEngine", "charging plan failed", e); null }
                     if (routes === rs) { evEstimated.remove(r); evRoutePlans[r] = if (res == null) EvRouteSummary(0, 0, true) else EvRouteSummary(res.first.size, res.first.sumOf { it.minutes }, res.second != null, res.second == EV_OFFLINE_MSG) }
                 } }.forEach { it.await() }
                 // the routes are offered only now: pre-select the quickest one counting its charging time

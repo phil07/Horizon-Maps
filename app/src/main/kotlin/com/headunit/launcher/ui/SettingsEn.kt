@@ -10,6 +10,8 @@ import com.headunit.launcher.Lang
 internal object SettingsEn {
     private val m: Map<String, String> = hashMapOf(
         "Kartenansicht" to "Map view",
+        "Schlagwort" to "Tag",
+        "z. B. Kunden" to "e.g. customers",
         "Fahnen wehen" to "Waving flags",
         "Fahnen bewegen sich im Wind" to "Flags move in the wind",
         "Eigenes Design" to "Own design",

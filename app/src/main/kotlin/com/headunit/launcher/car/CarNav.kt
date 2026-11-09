@@ -1119,6 +1119,7 @@ class SearchScreen(carContext: CarContext, private val holder: CarHolder, initia
                 val r = Row.Builder().setTitle(p.name).setImage(placeIcon(carContext, p))
                 val line = listOf(distFrom(e, p), p.sub).filter { it.isNotBlank() }.joinToString(" · ")
                 if (line.isNotBlank()) r.addText(line)
+                p.hours?.let { r.addText(it) }
                 r.setOnClickListener { e?.startRoute(p); screenManager.popToRoot() }
                 list.addItem(r.build())
             }
@@ -1226,7 +1227,9 @@ class NearbyScreen(carContext: CarContext, private val holder: CarHolder, privat
         val limit = try { carContext.getCarService(ConstraintManager::class.java).getContentLimit(ConstraintManager.CONTENT_LIMIT_TYPE_LIST) } catch (x: Exception) { 6 }
         val list = ItemList.Builder().setNoItemsMessage(Lang.t("Nichts in der Nähe gefunden", "Nothing found nearby"))
         for (n in items.take(limit.coerceIn(1, 12))) {
-            val r = Row.Builder().setTitle(n.place.name).setImage(rowIcon(carContext, iconRes, tint))
+            // the shop's or brand's logo when it is on the unit (fuel brands, restaurant chains), else the kind's icon
+            val logo = com.headunit.launcher.BrandLogos.domainFor(n.place)?.let { com.headunit.launcher.BrandLogos.cached(carContext, it) }
+            val r = Row.Builder().setTitle(n.place.name).setImage(if (logo != null) CarIcon.Builder(IconCompat.createWithBitmap(logo)).build() else rowIcon(carContext, iconRes, tint))
             val bits = ArrayList<String>()
             bits += com.headunit.launcher.Geo.fmtDist(n.dist, e?.imperial ?: false)
             // the price the local way ("1,789 €" in Germany), as on the phone: it was always shown in pence ("178.9p")

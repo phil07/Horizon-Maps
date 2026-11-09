@@ -706,10 +706,26 @@ private fun PlacesSection(engine: NavEngine) {
     val favs = remember(favRaw) { pl.favourites() }
     var renamingFav by remember { mutableStateOf<Place?>(null) }
     var slotFor by remember { mutableStateOf<Place?>(null) }
+    var taggingFav by remember { mutableStateOf<Place?>(null) }
+    var tagFilter by remember { mutableStateOf("") }
+    val tagRaw = engine.prefs.s(PreferenceKeys.FAV_TAGS, "")
+    val tags = remember(favRaw, tagRaw) { pl.favTags() }
     SGroup("Favoriten") {
         if (favs.isEmpty()) SNote("Noch keine Favoriten vorhanden.")
-        favs.forEach { f ->
+        // your own tags ("Kunden", "Urlaub"): the list shows one tag's favourites at a time
+        if (tags.isNotEmpty()) SItem("Schlagwort", if (tagFilter.isBlank() || tagFilter !in tags) "Alle" else tagFilter) {
+            SButton("Alle", primary = tagFilter.isBlank() || tagFilter !in tags) { tagFilter = "" }
+            for (t in tags) SButton(t, primary = tagFilter == t) { tagFilter = t }
+        }
+        favs.filter { tagFilter.isBlank() || tagFilter !in tags || pl.favTag(it) == tagFilter }.forEach { f ->
             when {
+                taggingFav == f -> {
+                    var t by remember(f) { mutableStateOf(pl.favTag(f)) }
+                    SItem("Schlagwort für ${f.name}") {
+                        SField(t, { t = it.take(20) }, placeholder = "z. B. Kunden", width = 200.dp)
+                        SButton("Speichern", primary = true) { pl.setFavTag(f, t); taggingFav = null }
+                    }
+                }
                 renamingFav == f -> {
                     var t by remember(f) { mutableStateOf(f.name) }
                     SItem("${f.name} umbenennen") {
@@ -722,7 +738,8 @@ private fun PlacesSection(engine: NavEngine) {
                     SButton("Arbeitsplatz", primary = true) { pl.setSlot("work", f); slotFor = null; engine.toast(engine.str(R.string.toast_064, f.name), 2500) }
                     SButton("Abbrechen") { slotFor = null }
                 }
-                else -> SItem(f.name, f.sub) {
+                else -> SItem(f.name, listOf(pl.favTag(f).let { if (it.isBlank()) "" else "#$it" }, f.sub).filter { it.isNotBlank() }.joinToString(" · ")) {
+                    SButton("Schlagwort") { taggingFav = f }
                     SButton("Umbenennen") { renamingFav = f }
                     SButton("Zuhause / Arbeit") { slotFor = f }
                     SButton("Entfernen", danger = true) { pl.toggleFavourite(f) }

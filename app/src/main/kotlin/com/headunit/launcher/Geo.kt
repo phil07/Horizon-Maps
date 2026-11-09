@@ -21,6 +21,8 @@ data class Place(val name: String, val sub: String, val pos: LL) {
     var web: String? = null
     /** The brand or chain the search named ("Lidl"), if any. Not saved, not compared. */
     var brand: String? = null
+    /** "Geöffnet bis 20:00" or "Geschlossen · öffnet 08:00" when the search gave opening times (see OpenHours). Not saved, not compared. */
+    var hours: String? = null
 }
 
 /** The name of a spot held on the map with no place there: in the app's language (older ones were always "Dropped pin"). */
@@ -265,6 +267,7 @@ object TomTomRest {
             if (poi != null) {
                 p.web = poi.optString("url").takeIf { it.isNotBlank() }
                 p.brand = poi.optJSONArray("brands")?.optJSONObject(0)?.optString("name")?.takeIf { it.isNotBlank() }
+                p.hours = try { OpenHours.fromTomTom(poi) } catch (e: Exception) { null }
             }
             if (out.none { it.name == p.name && Geo.dist(it.pos, p.pos) < 60 }) out += p
         }
@@ -282,7 +285,7 @@ object TomTomRest {
         val out = ArrayList<Place>()
         // 1. classic fuzzy search
         try {
-            var url = "$SEARCH/$enc.json?key=$k&limit=15&language=${if (Lang.de) "de-DE" else "en-GB"}&typeahead=true&minFuzzyLevel=1&maxFuzzyLevel=2&idxSet=POI,Addr,Str,Xstr,Geo,PAD"
+            var url = "$SEARCH/$enc.json?key=$k&limit=15&language=${if (Lang.de) "de-DE" else "en-GB"}&typeahead=true&minFuzzyLevel=1&maxFuzzyLevel=2&idxSet=POI,Addr,Str,Xstr,Geo,PAD&openingHours=nextSevenDays"
             if (cc.isNotEmpty()) url += "&countrySet=$cc"
             if (near != null) url += "&lat=${near.lat}&lon=${near.lon}"
             parsePlaces(JSONObject(get(url)).optJSONArray("results") ?: JSONArray(), q, out)
@@ -482,7 +485,7 @@ object TomTomRest {
         val enc = URLEncoder.encode(kind ?: q.trim(), "UTF-8").replace("+", "%20")
         val api = if (kind != null) "categorySearch" else "poiSearch"
         val url = "https://api.tomtom.com/search/2/$api/$enc.json?key=$k&lat=${near.lat}&lon=${near.lon}&radius=$radius&limit=25" +
-            "&language=${if (Lang.de) "de-DE" else "en-GB"}" + (if (kind == null) "&typeahead=true" else "")
+            "&language=${if (Lang.de) "de-DE" else "en-GB"}&openingHours=nextSevenDays" + (if (kind == null) "&typeahead=true" else "")
         val out = ArrayList<Place>()
         parsePlaces(JSONObject(get(url, 8000, 9000)).optJSONArray("results") ?: JSONArray(), q, out)
         return out.filter { Geo.dist(near, it.pos) <= radius * 1.2 }.sortedBy { Geo.dist(near, it.pos) }

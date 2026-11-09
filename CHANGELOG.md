@@ -4,6 +4,20 @@ Add user-facing Horizon Nav changes under **Unreleased** before publishing each 
 
 ## Unreleased
 
+### Neu
+- Öffnungszeiten: Suchergebnisse, „Alle Standorte“ und die Ort-Karte zeigen „Geöffnet bis …“ oder „Geschlossen · öffnet …“, wenn TomTom die Zeiten kennt.
+  EN: Opening times: Search results, "See all locations" and the place card show "Open until …" or "Closed · opens …" when TomTom knows the times.
+- Freien Punkt antippen: Ein Tipp auf eine freie Stelle der Handy-Karte zeigt die Adresse mit „Los“ und „Als Stopp“. Ein zweiter Tipp schließt die Karte. Nicht während der Zielführung.
+  EN: Tap a free spot: A tap on a free spot of the phone's map shows its address with Go and Add as stop. A second tap puts the card away. Not while being guided.
+- Schlagworte für Favoriten: Favoriten können ein eigenes Schlagwort bekommen (z. B. „Kunden“) und lassen sich danach filtern. Es passen jetzt 60 statt 20 Favoriten.
+  EN: Tags for favourites: Favourites can get a tag of your own (e.g. "customers") and be filtered by it. There is now room for 60 instead of 20.
+
+### Verbessert
+- Pausenerinnerung: Ist sie eingeschaltet, werden nach zwei Stunden auf einer Route die Raststätten entlang der Strecke angeboten.
+  EN: Break reminder: When it is on, the rest areas along the route are offered after two hours of driving.
+- Android Auto: Die Schnellsuche (Tanken, Essen, Laden …) zeigt Markenlogos, die Suche Öffnungszeiten.
+  EN: Android Auto: The quick search (fuel, food, charging …) shows brand logos, the search shows opening times.
+
 ## 1.0.246 — 2026-10-28
 
 ### Improved in-app updates

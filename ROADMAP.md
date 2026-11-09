@@ -10,7 +10,6 @@ Move items to **Done** as they ship, and add new requests at the bottom of the r
 
 ## Features requested
 
-2. **Change the app's language.** Asked on r/Androidheadunits. Parked for now.
 6. **Import saved places from Google Maps** (from a Google Takeout file). *Skipped for now (owner's decision, 2 Nov 2026).*
 7. **Copy offline map packs from another device.** For example, download on a phone or PC at home and copy them across by USB, for when the car can't reach home Wi-Fi. *Not needed (owner's decision, 2 Nov 2026).*
 8. **Smaller offline packs**, such as Singapore on its own instead of Singapore, Malaysia and Brunei together, and town names for every country in a shared pack.
@@ -77,3 +76,10 @@ Move items to **Done** as they ship, and add new requests at the bottom of the r
 - The fuel and parking search errors (HTTP 429 / 502) fixed.
 - Adding a stop no longer hangs.
 - A donate link.
+- Change the app's language (#2): German or English, picked in Settings > Sound & voice (Android 13+); German on German devices, English on all others. Settings, setup and the What's new card are translated.
+- Every location of a shop or chain ("Alle Standorte"), with drive times, logos, sorting by quickest / nearest / on my route, and a list on Android Auto.
+- Logos and opening times in search results; a card for a place or spot tapped on the phone's map (Go / Add as stop).
+- Own design (route, arrow and accent colour, lighter or darker map) with a live preview; waving 3D flags with a chequered finish flag.
+- Tolls and vignettes on the route cards; a route picked by hand is kept through reroutes and on Android Auto.
+- Roundabouts the right way round on the turn card, the map and the head-up display; exact exit angle on TomTom routes.
+- Tags for favourites, and rest areas offered with the two-hour break reminder.

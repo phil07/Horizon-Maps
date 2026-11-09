@@ -1184,6 +1184,7 @@ private fun PhonePickCard(engine: NavEngine) {
                 Text(p.name, color = c.text, fontSize = 17.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 val sub = listOfNotNull(dist, p.sub.ifBlank { null }).joinToString(" · ")
                 if (sub.isNotBlank()) Text(sub, color = c.sub, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                HoursLine(p)
             }
             Icon(Icons.Rounded.Close, Lang.t("Schließen", "Close"), tint = c.sub, modifier = Modifier.size(40.dp).clip(CircleShape).clickable { engine.clearPick() }.padding(8.dp))
         }
@@ -1194,6 +1195,13 @@ private fun PhonePickCard(engine: NavEngine) {
                 modifier = Modifier.weight(1f).clip(RoundedCornerShape(50)).border(1.dp, c.accent, RoundedCornerShape(50)).clickable { engine.stopPick() }.padding(vertical = 10.dp))
         }
     }
+}
+
+/** "Geöffnet bis 20:00" in green or "Geschlossen · öffnet 08:00" in red, when the search gave the place's opening times. */
+@Composable
+internal fun HoursLine(p: com.headunit.launcher.Place) {
+    val h = p.hours ?: return
+    Text(h, color = if (com.headunit.launcher.OpenHours.isOpen(h)) Good else Bad, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
 }
 
 /** A shop's logo in a round tile when it is on the unit, else the usual red pin. */
@@ -1229,6 +1237,7 @@ private fun ImmResults(engine: NavEngine, onPicked: () -> Unit) {
                 Column(Modifier.padding(start = 14.dp).weight(1f)) {
                     Text(p.name, color = c.text, fontSize = 17.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     Text(p.sub, color = c.sub, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    HoursLine(p)
                 }
                 if (here != null) Text(Geo.fmtDist(Geo.dist(here, p.pos), engine.imperial), color = c.sub, fontSize = 13.sp, modifier = Modifier.padding(start = 8.dp))
             }
@@ -1281,6 +1290,7 @@ private fun ChainPanel(engine: NavEngine, onDone: () -> Unit) {
                             Text(l.place.name, color = c.text, fontSize = 16.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                             val extra = if (engine.chainSort == "route") l.offRoute?.let { Lang.t(" · ${Geo.fmtDist(it, engine.imperial)} von der Route", " · ${Geo.fmtDist(it, engine.imperial)} off route") }.orEmpty() else ""
                             Text(l.place.sub + extra, color = c.sub, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            HoursLine(l.place)
                         }
                         Column(horizontalAlignment = Alignment.End, modifier = Modifier.padding(start = 8.dp)) {
                             val secs = l.secs

@@ -6,6 +6,7 @@ internal class SettingRef(val title: String, val sub: String, val group: String,
 internal val settingsIndex = listOf(
     SettingRef("Aussehen", "Standard oder Neon (dunkle Stadt, leuchtende Linien)", "Design", 0),
     SettingRef("Neonfarbe", "Gelb, Cyan oder Magenta", "Design", 0),
+    SettingRef("Schlagwort", "Favoriten mit eigenen Schlagworten ordnen und filtern", "Favoriten", 7),
     SettingRef("Fahnen wehen", "Fahnen bewegen sich im Wind", "Routenlinie", 2),
     SettingRef("Routenfarbe", "Farbe der Routenlinie", "Eigenes Design", 0),
     SettingRef("Akzentfarbe", "Farbe von Buttons und Hervorhebungen", "Eigenes Design", 0),
