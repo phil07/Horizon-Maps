@@ -39,6 +39,13 @@ object BrandLogos {
     fun key(name: String): String = name.lowercase().split(" - ", " – ", ",", " (", "|").first().trim()
         .replace(Regex("\\s+(filiale|markt|supermarkt|tankstelle|restaurant|store|express|city)$"), "").trim()
 
+    /** Whether a result called [name] (of brand [brand], if the search said) is a branch of the chain with the key [k]. */
+    fun sameChain(name: String, brand: String?, k: String): Boolean {
+        if (k.length < 2) return false
+        val n = key(name)
+        return key(brand ?: name) == k || n == k || n.startsWith("$k ")
+    }
+
     /** The website for a place's logo: the result's own, else the chain's from the list, else null. */
     fun domainFor(p: Place): String? {
         p.web?.let { w -> host(w)?.let { return it } }
@@ -69,7 +76,10 @@ object BrandLogos {
     fun load(ctx: Context, domain: String): Bitmap? {
         cached(ctx, domain)?.let { return it }
         synchronized(mem) { if (domain in failed) return null }
-        val b = fetch("https://www.google.com/s2/favicons?domain=$domain&sz=128")?.takeIf { it.width >= 32 }
+        // the site's own large icon first (sharp on a car screen), then the small icons from Google's and DuckDuckGo's services
+        val b = fetch("https://www.$domain/apple-touch-icon.png")?.takeIf { it.width >= 96 }
+            ?: fetch("https://$domain/apple-touch-icon.png")?.takeIf { it.width >= 96 }
+            ?: fetch("https://www.google.com/s2/favicons?domain=$domain&sz=256")?.takeIf { it.width >= 32 }
             ?: fetch("https://icons.duckduckgo.com/ip3/$domain.ico")
         if (b == null) { synchronized(mem) { failed += domain }; return null }
         synchronized(mem) { mem[domain] = b }

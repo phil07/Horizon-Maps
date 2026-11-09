@@ -106,4 +106,22 @@ internal object NavigationPolicy {
         val step = maxStep.coerceAtLeast(0.0)
         return current + (target - current).coerceIn(-step, step)
     }
+
+    /**
+     * Which of the new routes to take after a reroute: [times] in seconds and [overlaps] (0..1, how much each keeps to the route
+     * driven so far). After a pick by hand the one closest to it, if it keeps to at least half of it; otherwise the quickest.
+     */
+    fun keepChosenIndex(times: List<Double>, overlaps: List<Double>, pickedByHand: Boolean): Int {
+        val quickest = times.indices.minByOrNull { times[it] } ?: 0
+        if (!pickedByHand || times.size < 2 || overlaps.size != times.size) return quickest
+        val best = overlaps.indices.maxByOrNull { overlaps[it] } ?: return quickest
+        return if (overlaps[best] >= 0.5) best else quickest
+    }
+
+    /**
+     * Whether the route being started counts as a slower way chosen on purpose (then quicker ones are only offered): any way but
+     * the quickest when picked by hand; the app's own pick only when over a minute slower.
+     */
+    fun isPickedSlower(time: Double, quickest: Double, pickedByHand: Boolean): Boolean =
+        if (pickedByHand) time > quickest else time > quickest + 60.0
 }

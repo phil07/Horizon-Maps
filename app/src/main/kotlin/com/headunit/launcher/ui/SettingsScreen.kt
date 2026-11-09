@@ -286,8 +286,8 @@ private fun OwnDesignGroup(prefs: Prefs) {
             "#3DDC84" to "Grün", "#FFD54A" to "Gelb", "#FF9A3C" to "Orange", "#FF6FB5" to "Rosa", "#FFFFFF" to "Weiß"), route) { prefs.put(PreferenceKeys.ROUTE_COLOUR, it) }
         SColours("Pfeilfarbe", listOf("#F2F2F6" to "Weiß", "#C2C6D0" to "Silber", "#4C8DFF" to "Blau", "#6FD0FF" to "Hellblau", "#1FC7A6" to "Türkis",
             "#3DDC84" to "Grün", "#FFD54A" to "Gelb", "#FF9A3C" to "Orange", "#FF4D5E" to "Rot", "#FF6FB5" to "Rosa", "#A56BFF" to "Violett"), arrow) { prefs.put(PreferenceKeys.ARROW_COLOUR, it) }
-        SColours("Akzentfarbe", listOf(std, "#1A73E8" to "Blau", "#8AB4F8" to "Hellblau", "#1FA39A" to "Türkis", "#2E8B57" to "Grün", "#F2A900" to "Gold",
-            "#F07C28" to "Orange", "#D7263D" to "Rot", "#E86FA8" to "Rosa", "#7B4FC9" to "Violett"), accentHex) { prefs.put(PreferenceKeys.ACCENT_COLOUR, it) }
+        SColours("Akzentfarbe", listOf(std, "#1A73E8" to "Blau", "#8AB4F8" to "Hellblau", "#1FA39A" to "Türkis", "#2E8B57" to "Grün", "#B97A00" to "Gold",
+            "#D9661A" to "Orange", "#D7263D" to "Rot", "#D2508F" to "Rosa", "#7B4FC9" to "Violett"), accentHex) { prefs.put(PreferenceKeys.ACCENT_COLOUR, it) }
         SSlider("Karte heller/dunkler", light.toFloat(), -50f..50f, "%", reset = 0f) { prefs.put(PreferenceKeys.MAP_LIGHT, it.toInt().toString()) }
     }
 }

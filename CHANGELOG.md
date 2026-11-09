@@ -4,15 +4,25 @@ Add user-facing Horizon Nav changes under **Unreleased** before publishing each 
 
 ## Unreleased
 
-### Behoben
-- Schnellere Route: Die App wechselt wieder von selbst auf eine deutlich schnellere Route, solange die Route nicht von Hand gewählt wurde. Eine von Hand gewählte Alternative bleibt weiterhin erhalten.
-  EN: Faster route: The app again switches to a clearly faster route by itself unless the route was picked by hand. A route picked by hand is still kept.
-- Alle Standorte: Zeigt nur noch Filialen der gesuchten Kette, keine Orte mit ähnlich beginnendem Namen.
-  EN: See all locations: Only shows branches of the chain searched for, not places whose names merely start alike.
+### Neu
+- Ort antippen: Ein angetippter Ort auf der Handy-Karte zeigt eine Karte mit Name, Adresse, „Los“ und „Als Stopp“, auch über der Routenauswahl. Langes Drücken fährt weiterhin direkt hin.
+  EN: Tap a place: A place tapped on the phone's map shows a card with its name, address, Go and Add as stop, also on top of the route options. Holding still goes there straight away.
 
 ### Verbessert
-- Akku: Die wehenden Fahnen pausieren, wenn die Karte auf dem Handy nicht zu sehen ist.
-  EN: Battery: The waving flags pause when the phone's map is not visible.
+- Sprache: Nur deutsch eingestellte Handys bekommen Deutsch, alle anderen Englisch.
+  EN: Language: Only phones set to German get German, all others English.
+- Logos: Schärfer, da zuerst das große Symbol der Marken-Website geladen wird.
+  EN: Logos: Sharper, as the brand website's large icon is loaded first.
+- Alle Standorte: Fahrzeiten kommen ohne Mapbox-Token von TomTom (für die acht nächsten Filialen).
+  EN: See all locations: Without a Mapbox token, drive times come from TomTom (for the eight nearest branches).
+- Eigenes Design: Akzentfarben Gold, Orange und Rosa sind etwas dunkler, damit weiße Schrift darauf lesbar bleibt.
+  EN: Own design: The accent colours gold, orange and pink are a little darker so white text stays readable.
+
+### Behoben
+- Markierter Ort: Ein lange gedrückter Kartenpunkt heißt auf Deutsch jetzt „Markierter Ort“ statt „Dropped pin“.
+  EN: Dropped pin: A spot held on the map is now called "Markierter Ort" in German.
+- Suche nach Art (Tanken, Essen, Parken …): Ergebnisse kommen jetzt in der Sprache der App.
+  EN: Search by kind (fuel, food, parking …): Results now come in the app's language.
 
 ## 1.0.246 — 2026-10-28
 

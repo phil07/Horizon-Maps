@@ -265,6 +265,8 @@ private fun MapScreen(engine: NavEngine, onSettings: () -> Unit) {
         // the panels' outlines (as parts of the screen) go to the camera, so your arrow is moved clear of whatever is beside it
         val boxW = constraints.maxWidth.toFloat().coerceAtLeast(1f); val boxH = constraints.maxHeight.toFloat().coerceAtLeast(1f)
         fun report(i: Int, r: androidx.compose.ui.geometry.Rect) { engine.setPanel(i, r.left / boxW, r.top / boxH, r.right / boxW, r.bottom / boxH) }
+        // a place tapped on the map: its card floats over everything else (also over the route options while choosing a route)
+        if (engine.mapPick != null) Box(Modifier.align(Alignment.Center).offset(y = (-70).dp).padding(horizontal = 16.dp).zIndex(30f)) { PhonePickCard(engine) }
         Column(Modifier.align(side(Alignment.TopStart)).padding(16.dp).then(if (narrow) Modifier.fillMaxWidth().sides(end = 52.dp * mainButtonScale + 10.dp) else Modifier.width(380.dp))
             .onGloballyPositioned { report(0, it.boundsInParent()) }
             // the turn list opens over the trip card below it
@@ -1165,6 +1167,32 @@ private fun ImmSearch(engine: NavEngine, q: String, onQ: (String) -> Unit, locke
             ),
             modifier = Modifier.fillMaxSize().focusRequester(focus),
         )
+    }
+}
+
+/** The card for a place tapped on the phone's map: its name and address, "Los", and "Als Stopp" when there is a trip to add it to. */
+@Composable
+private fun PhonePickCard(engine: NavEngine) {
+    val p = engine.mapPick ?: return
+    val c = LocalVw.current
+    val hasTrip = engine.dest != null && engine.route != null
+    val dist = engine.fix?.pos?.let { Geo.fmtDist(Geo.dist(it, p.pos), engine.imperial) }
+    Column(Modifier.widthIn(max = 420.dp).panel(12.dp, RoundedCornerShape(24.dp), c.surface).padding(horizontal = 16.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            PlaceLogo(engine, p)
+            Column(Modifier.padding(start = 12.dp).weight(1f)) {
+                Text(p.name, color = c.text, fontSize = 17.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                val sub = listOfNotNull(dist, p.sub.ifBlank { null }).joinToString(" · ")
+                if (sub.isNotBlank()) Text(sub, color = c.sub, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            }
+            Icon(Icons.Rounded.Close, Lang.t("Schließen", "Close"), tint = c.sub, modifier = Modifier.size(40.dp).clip(CircleShape).clickable { engine.clearPick() }.padding(8.dp))
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            Text(Lang.t("Los", "Go"), color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.Bold, textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                modifier = Modifier.weight(1f).clip(RoundedCornerShape(50)).background(c.accent).clickable { engine.routePick() }.padding(vertical = 11.dp))
+            if (hasTrip) Text(Lang.t("Als Stopp", "Add as stop"), color = c.accent, fontSize = 15.sp, fontWeight = FontWeight.Bold, textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                modifier = Modifier.weight(1f).clip(RoundedCornerShape(50)).border(1.dp, c.accent, RoundedCornerShape(50)).clickable { engine.stopPick() }.padding(vertical = 10.dp))
+        }
     }
 }
 

@@ -166,8 +166,11 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         private set
     private var pickJob: kotlinx.coroutines.Job? = null
 
-    fun carMapTap(sp: android.graphics.PointF) {
-        map.pickAt(sp) { p, name ->
+    fun carMapTap(sp: android.graphics.PointF) { map.pickAt(sp) { p, name -> showPick(p, name) } }
+
+    /** Shows the card for the spot [p] (a place called [name], or just a point): on the car screen, and for a place tapped on the phone. */
+    fun showPick(p: LL, name: String?) {
+        run {
             val first = Place(name ?: Lang.t("Markierter Ort", "Marked spot"), "", p)
             mapPick = first
             map.setPick(p)
@@ -184,6 +187,16 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
     }
 
     fun clearPick() { pickJob?.cancel(); pickJob = null; mapPick = null; map.setPick(null) }
+
+    /** The picked spot becomes a stop on the trip being driven or chosen (the phone's "Als Stopp"). */
+    fun stopPick() {
+        val p = mapPick ?: return
+        clearPick()
+        if (dest != null && route != null) addStop(p) else startRoute(p)
+    }
+
+    /** The picked spot becomes the destination (the phone's "Los"). */
+    fun routePick() { val p = mapPick ?: return; clearPick(); startRoute(p) }
 
     /** Goes to the picked spot, or adds it as a stop while a route is being driven. */
     fun goPick() {
@@ -645,8 +658,8 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         val osm: java.util.concurrent.CompletableFuture<List<Place>>? = if (kind == null) java.util.concurrent.CompletableFuture.supplyAsync<List<Place>> {
             try { PoiSearch.osmByName(q, near, radius) } catch (e: Exception) { emptyList<Place>() }
         } else null
-        if (tomtomOk) try { out += TomTomRest.poiNear(apiKey, q, kind?.tomtom, near, radius) } catch (e: Exception) { }
-        if (out.size < 3 && hasMapbox) try { out += MapboxRest.poiNear(mbToken, kind?.label ?: q, near, radius) } catch (e: Exception) { }
+        if (tomtomOk) try { out += TomTomRest.poiNear(apiKey, q, kind?.tomtom, near, radius) } catch (e: Exception) { android.util.Log.w("NavEngine", "nearby search (TomTom) failed", e) }
+        if (out.size < 3 && hasMapbox) try { out += MapboxRest.poiNear(mbToken, kind?.label ?: q, near, radius) } catch (e: Exception) { android.util.Log.w("NavEngine", "nearby search (Mapbox) failed", e) }
         if (kind != null && out.size < 3) try { out += PoiSearch.osmByKind(kind, near, radius) } catch (e: Exception) { }
         if (osm != null) out += try { osm.get(9, java.util.concurrent.TimeUnit.SECONDS) ?: emptyList<Place>() } catch (e: Exception) { emptyList<Place>() }
         return PoiSearch.distinct(out.sortedBy { Geo.dist(near, it.pos) }).take(limit)
@@ -820,10 +833,11 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         map.onLongPress = { p ->
             val t = tappedPoi
             val place = if (t != null && Geo.dist(t.second, p) < 60.0 && android.os.SystemClock.uptimeMillis() - tappedAt < 120_000L) { tappedPoi = null; Place(t.first, "", t.second) }
-                else Place("Dropped pin", "", p)
+                else Place(pinName(), "", p)
             if (route != null && !previewing && dest != null) addStop(place) else startRoute(place)
         }
-        map.onPoiTap = { name, p -> tappedPoi = name to p; tappedAt = android.os.SystemClock.uptimeMillis(); toast(if (route != null && !previewing) Lang.t("$name: lange drücken, um es als Stopp hinzuzufügen", "$name: hold on it to add it as a stop") else Lang.t("$name: lange drücken, um dorthin zu fahren", "$name: hold on it to go there"), 3000) }
+// a place tapped on the map: a card with its name, "Los" and "Als Stopp" (holding on it still goes there straight away)
+        map.onPoiTap = { name, p -> tappedPoi = name to p; tappedAt = android.os.SystemClock.uptimeMillis(); showPick(p, name) }
         map.onUserGesture = { if (following) { following = false }; scheduleRecentre(12_000) }
         map.onMapIdle = { box -> refreshChargerLayer(box) }
         map.onAltTap = { i -> switchToAlt(i) }
@@ -1990,7 +2004,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
             // the online search and the saved / downloaded places run at the same time, and their results are merged
             val localJob = async { offlineMatches(q, near) }
             val nearJob = async(Dispatchers.IO) { try { nearbyMatches(q, near) } catch (e: Exception) { emptyList() } }
-            val net0 = try { withContext(Dispatchers.IO) { netGeocode(countryCode(), q, near) } } catch (e: kotlinx.coroutines.CancellationException) { throw e } catch (e: Exception) { null }
+            val net0 = try { withContext(Dispatchers.IO) { netGeocode(countryCode(), q, near) } } catch (e: kotlinx.coroutines.CancellationException) { throw e } catch (e: Exception) { android.util.Log.w("NavEngine", "search failed", e); null }
             val shops = kotlinx.coroutines.withTimeoutOrNull(10_000L) { nearJob.await() } ?: emptyList()
             val net = withNearby(q, net0, shops)
             // the online results are shown straight away if the downloaded lists are still being searched; those are merged in after
@@ -2028,7 +2042,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         val k = BrandLogos.key(p.brand ?: p.name)
         if (k.length < 2) return 0
         val here = fix?.pos ?: map.center() ?: return 0
-        return results.count { r -> (BrandLogos.key(r.brand ?: r.name) == k) && Geo.dist(here, r.pos) <= 25_000 }
+        return results.count { r -> BrandLogos.sameChain(r.name, r.brand, k) && Geo.dist(here, r.pos) <= 25_000 }
     }
 
     /** Opens the panel with every branch of [p]'s chain within 25 km of [around] (here, or where the map is for "search this area"). */
@@ -2045,7 +2059,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
             val shown = results
             val found = withContext(Dispatchers.IO) {
                 val more = if (online()) try { nearbyMatches(name, center, 40) } catch (e: Exception) { emptyList() } else emptyList()
-                (shown + more).filter { val n = BrandLogos.key(it.name); BrandLogos.key(it.brand ?: it.name) == k || n == k || n.startsWith("$k ") }
+                (shown + more).filter { BrandLogos.sameChain(it.name, it.brand, k) }
                     .filter { Geo.dist(center, it.pos) <= 25_000 }
             }
             val uniq = PoiSearch.distinct(found).onEach { if (it.web == null && web != null) it.web = web }
@@ -2060,9 +2074,13 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
             map.fit(locs.map { it.place.pos } + listOfNotNull(fix?.pos))
             // drive times with today's traffic (Mapbox's matrix), then the logos
             val from = fix?.pos
-            if (from != null && hasMapbox && online() && locs.isNotEmpty()) {
-                val t = withContext(Dispatchers.IO) { try { MapboxRest.driveTimes(mbToken, from, locs.map { it.place.pos }) } catch (e: Exception) { null } }
-                t?.forEachIndexed { i, v -> locs.getOrNull(i)?.secs = v }
+            if (from != null && online() && locs.isNotEmpty()) {
+                val t = if (hasMapbox) withContext(Dispatchers.IO) { try { MapboxRest.driveTimes(mbToken, from, locs.map { it.place.pos }) } catch (e: Exception) { android.util.Log.w("NavEngine", "chain drive times (Mapbox) failed", e); null } } else null
+                if (t != null) t.forEachIndexed { i, v -> locs.getOrNull(i)?.secs = v }
+                // no Mapbox token (or it failed): TomTom's route time for the eight nearest, one request each
+                else if (hasKey && refusedKey != apiKey) withContext(Dispatchers.IO) {
+                    for (l in locs.take(8)) try { l.secs = TomTomRest.driveTime(apiKey, from, l.place.pos) } catch (e: Exception) { android.util.Log.w("NavEngine", "chain drive time (TomTom) failed", e); break }
+                }
                 showChainOnMap()
             }
             val doms = locs.mapNotNull { BrandLogos.domainFor(it.place) }.distinct()
@@ -2248,7 +2266,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
                 if (departInMin > 0 && !usedOffline && !departApplied) toast(ctx.getString(R.string.toast_007), 4000)
                 departMin = departInMin
                 departAtMs = if (!usedOffline && departApplied) departMs else 0L
-                if (to.name != "Dropped pin") places.addRecent(to)
+                if (!isPin(to.name)) places.addRecent(to)
                 if (!keepVia) habits.record(to)
                 loadRain(to, rs[pick].time)
                 loadRouteWeather(rs[pick])
@@ -2337,10 +2355,8 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
      * away the way you had chosen.
      */
     private fun keepChosen(rs: List<Route>, old: Route?): Int {
-        val quickest = rs.indices.minByOrNull { rs[it].time } ?: 0
-        if (!pickedSlower || old == null || rs.size < 2) return quickest
-        val best = rs.indices.maxByOrNull { routeOverlap(rs[it], old) } ?: return quickest
-        return if (routeOverlap(rs[best], old) >= 0.5) best else quickest
+        if (!pickedSlower || old == null) return NavigationPolicy.keepChosenIndex(rs.map { it.time }, emptyList(), false)
+        return NavigationPolicy.keepChosenIndex(rs.map { it.time }, rs.map { routeOverlap(it, old) }, true)
     }
 
     fun beginNavigation() {
@@ -2368,7 +2384,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         // (any way that isn't the quickest: also one only seconds slower, else a reroute or a quicker way found later took it away)
         // The app's own pick (a simpler way up to 90 s slower, or the best one counting charging) is not a pick by hand: it still gives
         // way to a quicker route later, unless it is over a minute slower as before.
-        if (routes.size > 1) pickedSlower = route?.let { r -> if (userPicked) r !== routes.minByOrNull { it.time } else r.time > routes.minOf { it.time } + 60.0 } == true
+        if (routes.size > 1) pickedSlower = route?.let { r -> NavigationPolicy.isPickedSlower(r.time, routes.minOf { it.time }, userPicked) } == true
         previewing = false
         // where this trip started, for "Route back" when you arrive
         tripFrom = fix?.pos

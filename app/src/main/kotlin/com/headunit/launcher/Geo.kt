@@ -23,6 +23,10 @@ data class Place(val name: String, val sub: String, val pos: LL) {
     var brand: String? = null
 }
 
+/** The name of a spot held on the map with no place there: in the app's language (older ones were always "Dropped pin"). */
+fun pinName(): String = Lang.t("Markierter Ort", "Dropped pin")
+fun isPin(name: String): Boolean = name == "Dropped pin" || name == "Markierter Ort" || name == "Marked spot"
+
 /** Marks a search result as a town, city or region (see [Place.town]). */
 fun Place.town(yes: Boolean): Place = apply { town = yes }
 
@@ -464,7 +468,7 @@ object TomTomRest {
     fun poiNearby(key: String, kind: String, c: LL, radius: Int): List<Nearby> {
         val k = URLEncoder.encode(key, "UTF-8")
         val q = URLEncoder.encode(poiQuery(kind), "UTF-8").replace("+", "%20")
-        val body = get("https://api.tomtom.com/search/2/categorySearch/$q.json?key=$k&lat=${c.lat}&lon=${c.lon}&radius=$radius&limit=25&language=en-GB", 8000, 12000)
+        val body = get("https://api.tomtom.com/search/2/categorySearch/$q.json?key=$k&lat=${c.lat}&lon=${c.lon}&radius=$radius&limit=25&language=${if (Lang.de) "de-DE" else "en-GB"}", 8000, 12000)
         val arr = JSONObject(body).optJSONArray("results") ?: JSONArray()
         return (0 until arr.length()).mapNotNull { poiResult(arr.getJSONObject(it), kind, c) }
     }
@@ -498,6 +502,13 @@ object TomTomRest {
             val x = arr.getJSONObject(i)
             poiResult(x, kind, line.first())?.let { it to x.optInt("detourTime", -1) }
         }
+    }
+
+    /** Seconds to drive from [from] to [to] with today's traffic (no route line asked for), or null. */
+    fun driveTime(key: String, from: LL, to: LL): Double? {
+        val k = URLEncoder.encode(key, "UTF-8")
+        val body = get("$CLASSIC/${from.lat},${from.lon}:${to.lat},${to.lon}/json?key=$k&traffic=true&routeRepresentation=none", 8000, 12000)
+        return JSONObject(body).optJSONArray("routes")?.optJSONObject(0)?.optJSONObject("summary")?.optDouble("travelTimeInSeconds", -1.0)?.takeIf { it > 0 }
     }
 
     /** When to leave to arrive at [arriveAtMs] (TomTom's predicted traffic for that time), or null if it can't say. */
