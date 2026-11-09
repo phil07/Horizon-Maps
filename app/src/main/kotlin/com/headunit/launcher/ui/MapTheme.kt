@@ -28,7 +28,9 @@ fun immSurface(): Color = if (LocalVw.current.dark) Color(0xFF1C2030) else Color
  * The palette shared by the map screen and the settings: soft charcoal-blue at night, clean white by day,
  * with a Google-like blue accent.
  */
-fun navVw(c: Vw): Vw =
+fun navVw(c: Vw): Vw = CustomLook.apply(navVw0(c))
+
+private fun navVw0(c: Vw): Vw =
     Neon.accent?.let { Neon.vw(c, it) } ?: if (c.dark) c.copy(
         bg = Color(0xFF10131C), panel = Color(0xFF181C29),
         surface = Color(0xFF1C2030), surface2 = Color(0xFF262B3F), tile = Color(0xFF272C42),

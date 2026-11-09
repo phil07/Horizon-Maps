@@ -25,6 +25,10 @@ internal object PreferenceKeys {
     const val MODEL_GLOW = "modelglow"
     const val CAR_COLOUR = "carcolour"
     const val ARROW_COLOUR = "arrowcolour"
+    /** own design: the main route colour, the app's accent colour (empty = usual) and the map lighter/darker (-50..50) */
+    const val ROUTE_COLOUR = "routecolour"
+    const val ACCENT_COLOUR = "accentcolour"
+    const val MAP_LIGHT = "maplight"
     const val TRAFFIC = "traffic"
     const val SATELLITE = "satellite"
     const val BUILDINGS_3D = "buildings3d"

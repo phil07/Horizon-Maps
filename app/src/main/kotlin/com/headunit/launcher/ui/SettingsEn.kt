@@ -10,6 +10,18 @@ import com.headunit.launcher.Lang
 internal object SettingsEn {
     private val m: Map<String, String> = hashMapOf(
         "Kartenansicht" to "Map view",
+        "Eigenes Design" to "Own design",
+        "Wirkt sofort. Standard stellt die übliche Farbe wieder her." to "Applies right away. Standard restores the usual colour.",
+        "Routenfarbe" to "Route colour",
+        "Farbe der Routenlinie" to "Colour of the route line",
+        "Akzentfarbe" to "Accent colour",
+        "Farbe von Buttons und Hervorhebungen" to "Colour of buttons and highlights",
+        "Karte heller/dunkler" to "Map lighter/darker",
+        "Helligkeit der Karte anpassen" to "Adjust map brightness",
+        "Standard" to "Standard",
+        "Lila" to "Purple",
+        "Gold" to "Gold",
+        "Orange" to "Orange",
         "Willkommen bei Horizon Nav" to "Welcome to Horizon Nav",
         "In wenigen Schritten bist du startklar zum Fahren" to "Ready to drive in a few steps",
         "Kartenschlüssel" to "Map keys",

@@ -4,6 +4,14 @@ Add user-facing Horizon Nav changes under **Unreleased** before publishing each 
 
 ## Unreleased
 
+### Neu
+- Eigenes Design: Unter Einstellungen > Karte > Eigenes Design lassen sich Routen-, Pfeil- und Akzentfarbe wählen und die Karte heller oder dunkler stellen, mit Live-Vorschau.
+  EN: Own design: Settings > Map > Own design sets the route, arrow and accent colour and makes the map lighter or darker, with a live preview.
+
+### Verbessert
+- Englisch: Einrichtung, „Was ist neu“ und alle Einstellungstexte gibt es jetzt vollständig auf Englisch.
+  EN: English: Setup, What's new and all settings texts are now fully in English.
+
 ## 1.0.246 — 2026-10-28
 
 ### Improved in-app updates

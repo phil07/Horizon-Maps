@@ -92,6 +92,7 @@ import com.headunit.launcher.locatorSpec
 fun CarOverlay(engine: NavEngine, area: State<android.graphics.Rect?>, dark: State<Boolean>, scale: State<Float>, actions: CarActions, onCover: (Int) -> Unit = {}) {
     val base = LocalDensity.current
     Neon.sync(engine.prefs)
+    CustomLook.sync(engine.prefs)
     // the map's colours follow the look live (they used to be set once, when the car connected): switching Neon on or off in the
     // phone's settings while the car is connected changes the car map at once
     val carMapColours = (if (Neon.on) "neon" else null) ?: engine.prefs.s(PreferenceKeys.MAP_COLOURS, "mapbox")

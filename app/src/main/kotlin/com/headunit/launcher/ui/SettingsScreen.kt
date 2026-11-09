@@ -253,6 +253,46 @@ private fun SettingsBody(prefs: Prefs, engine: NavEngine, onClose: () -> Unit) {
 
 // ------------------------------------------------------------------ Map look
 
+/** Own design: route, arrow and accent colour and a lighter or darker map, with a preview that changes as you pick. */
+@Composable
+private fun OwnDesignGroup(prefs: Prefs) {
+    val c = LocalVw.current
+    val route = prefs.s(PreferenceKeys.ROUTE_COLOUR, "")
+    val arrow = prefs.s(PreferenceKeys.ARROW_COLOUR, "#F2F2F6")
+    val accentHex = prefs.s(PreferenceKeys.ACCENT_COLOUR, "")
+    val light = (prefs.s(PreferenceKeys.MAP_LIGHT, "0").toFloatOrNull() ?: 0f).toInt()
+    SGroup("Eigenes Design", footer = "Wirkt sofort. Standard stellt die übliche Farbe wieder her.") {
+        val routeCol = CustomLook.parse(route) ?: if (c.dark) Color(0xFF4CC9FF) else Color(0xFF2A7BE4)
+        val arrowCol = CustomLook.parse(arrow) ?: Color(0xFFF2F2F6)
+        val accentCol = CustomLook.parse(accentHex) ?: c.accent
+        val mapBg = if (c.dark) Color(0xFF1B1F2B) else Color(0xFFE9ECF1)
+        val road = if (c.dark) Color(0xFF353B4D) else Color(0xFFFFFFFF)
+        val wash = CustomLook.wash(light)
+        androidx.compose.foundation.Canvas(Modifier.fillMaxWidth().padding(vertical = 8.dp).height(150.dp).clip(RoundedCornerShape(18.dp))) {
+            val w = size.width; val h = size.height
+            drawRect(mapBg)
+            val st = androidx.compose.ui.graphics.drawscope.Stroke(width = 14f, cap = androidx.compose.ui.graphics.StrokeCap.Round)
+            drawLine(road, androidx.compose.ui.geometry.Offset(0f, h * 0.3f), androidx.compose.ui.geometry.Offset(w, h * 0.42f), 14f)
+            drawLine(road, androidx.compose.ui.geometry.Offset(w * 0.75f, 0f), androidx.compose.ui.geometry.Offset(w * 0.62f, h), 12f)
+            val p = androidx.compose.ui.graphics.Path().apply { moveTo(w * 0.12f, h * 1.0f); cubicTo(w * 0.2f, h * 0.55f, w * 0.45f, h * 0.7f, w * 0.68f, h * 0.38f); lineTo(w * 0.73f, 0f) }
+            drawPath(p, routeCol, style = st.copy(width = 22f))
+            val ax = w * 0.17f; val ay = h * 0.78f
+            val tri = androidx.compose.ui.graphics.Path().apply { moveTo(ax, ay - 26f); lineTo(ax + 18f, ay + 18f); lineTo(ax, ay + 8f); lineTo(ax - 18f, ay + 18f); close() }
+            drawPath(tri, arrowCol); drawPath(tri, Color.Black.copy(alpha = 0.5f), style = androidx.compose.ui.graphics.drawscope.Stroke(3f))
+            if (wash.alpha > 0f) drawRect(wash)
+            drawRoundRect(accentCol, androidx.compose.ui.geometry.Offset(w - 150f, h - 70f), androidx.compose.ui.geometry.Size(130f, 50f), androidx.compose.ui.geometry.CornerRadius(25f))
+        }
+        val std = "" to "Standard"
+        SColours("Routenfarbe", listOf(std, "#4CC9FF" to "Hellblau", "#2A7BE4" to "Blau", "#7B4FC9" to "Violett", "#A56BFF" to "Lila", "#1FC7A6" to "Türkis",
+            "#3DDC84" to "Grün", "#FFD54A" to "Gelb", "#FF9A3C" to "Orange", "#FF6FB5" to "Rosa", "#FFFFFF" to "Weiß"), route) { prefs.put(PreferenceKeys.ROUTE_COLOUR, it) }
+        SColours("Pfeilfarbe", listOf("#F2F2F6" to "Weiß", "#C2C6D0" to "Silber", "#4C8DFF" to "Blau", "#6FD0FF" to "Hellblau", "#1FC7A6" to "Türkis",
+            "#3DDC84" to "Grün", "#FFD54A" to "Gelb", "#FF9A3C" to "Orange", "#FF4D5E" to "Rot", "#FF6FB5" to "Rosa", "#A56BFF" to "Violett"), arrow) { prefs.put(PreferenceKeys.ARROW_COLOUR, it) }
+        SColours("Akzentfarbe", listOf(std, "#1A73E8" to "Blau", "#8AB4F8" to "Hellblau", "#1FA39A" to "Türkis", "#2E8B57" to "Grün", "#F2A900" to "Gold",
+            "#F07C28" to "Orange", "#D7263D" to "Rot", "#E86FA8" to "Rosa", "#7B4FC9" to "Violett"), accentHex) { prefs.put(PreferenceKeys.ACCENT_COLOUR, it) }
+        SSlider("Karte heller/dunkler", light.toFloat(), -50f..50f, "%", reset = 0f) { prefs.put(PreferenceKeys.MAP_LIGHT, it.toInt().toString()) }
+    }
+}
+
 @Composable
 private fun MapLookSection(prefs: Prefs, engine: NavEngine) {
     SGroup("Design", footer = if (prefs.s(PreferenceKeys.LOOK, "standard") == "neon") "Neon ist immer ein Nachtdesign und ändert nur das Aussehen. Schrift: Rajdhani (SIL Open Font License)." else null) {
@@ -262,6 +302,7 @@ private fun MapLookSection(prefs: Prefs, engine: NavEngine) {
             SChoice("Neonfarbe", listOf("yellow" to "Gelb", "cyan" to "Cyan", "magenta" to "Magenta"), prefs.s(PreferenceKeys.NEON_ACCENT, "yellow"),
                 "Farbe von Menüs und Hervorhebungen") { prefs.put(PreferenceKeys.NEON_ACCENT, it) }
     }
+    if (prefs.s(PreferenceKeys.LOOK, "standard") != "neon") OwnDesignGroup(prefs)
     SGroup("Tag und Nacht") {
         SChoice("Tag und Nacht", listOf("auto" to "Auto", "lights" to "Scheinwerfer", "sun" to "Sonnenstand", "times" to "Feste Zeiten", "day" to "Tag", "night" to "Nacht"), prefs.s(PreferenceKeys.THEME, "auto"),
             "Auto folgt dem Nachtmodus des Geräts") { prefs.put(PreferenceKeys.THEME, it) }

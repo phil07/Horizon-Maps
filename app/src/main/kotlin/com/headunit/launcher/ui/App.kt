@@ -93,6 +93,7 @@ fun App(prefs: Prefs, engine: NavEngine, map: MapBinding) {
     LaunchedEffect(sysDark) { if (sysDark && !prefs.b(PreferenceKeys.SYSDARKSEEN, false)) prefs.put(PreferenceKeys.SYSDARKSEEN, true) }
     // the neon look (Settings > Map > Design) is always a night look
     Neon.sync(prefs)
+    CustomLook.sync(prefs)
     val dark = Neon.on || resolveDark(prefs.s(PreferenceKeys.THEME, "auto"), prefs.s(PreferenceKeys.LASTLAT, "").toDoubleOrNull(), prefs.s(PreferenceKeys.LASTLON, "").toDoubleOrNull(), nowMs, prefs.b(PreferenceKeys.SYSDARKSEEN, false), sysDark,
         prefs.s(PreferenceKeys.NIGHT_FROM, "19:00"), prefs.s(PreferenceKeys.DAY_FROM, "07:00"))
     val hostCtx = androidx.compose.ui.platform.LocalContext.current
@@ -138,6 +139,8 @@ fun App(prefs: Prefs, engine: NavEngine, map: MapBinding) {
     LaunchedEffect(hideTraffic) { map.setHideOtherTraffic(hideTraffic) }
     val altColour = prefs.s(PreferenceKeys.ALT_ROUTE_COLOUR, "#C4D9E6")
     LaunchedEffect(altColour) { map.setAltColour(altColour) }
+    val routeColour = prefs.s(PreferenceKeys.ROUTE_COLOUR, "")
+    LaunchedEffect(routeColour) { map.setRouteColour(routeColour) }
     val arrowPct = prefs.s(PreferenceKeys.ARROW_PERCENT, "240").toIntOrNull() ?: 240
     val mainArrowScale = prefs.i(PreferenceKeys.MAIN_ARROW_SIZE, 100).coerceIn(60, 180) / 100f
     LaunchedEffect(arrowPct, mainArrowScale) { map.setArrowScale(arrowPct / 100f * mainArrowScale) }

@@ -104,6 +104,7 @@ fun VwTheme(dark: Boolean, content: @Composable () -> Unit) {
         if (cr(sub, v.bg) < 4.5f) sub = on
         v = v.copy(onBg = on, onBgSub = sub)
     }
+    v = CustomLook.apply(v)
     val scheme = if (dark) darkColorScheme(primary = v.accent, onPrimary = if (neon != null) Neon.onAccent else Color(0xFF003258), background = v.bg, surface = v.surface, onSurface = v.text, onBackground = v.text)
     else lightColorScheme(primary = v.accent, background = v.bg, surface = v.surface, onSurface = v.text, onBackground = v.text)
     CompositionLocalProvider(LocalVw provides v) {

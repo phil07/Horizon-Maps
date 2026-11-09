@@ -2523,8 +2523,11 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
     private fun sevColor(im: Boolean = false, day: Boolean = false): Expression = Expression.switchCase(
         Expression.eq(Expression.get("sev"), lit(2)), col(if (im) "#D93025" else "#FF4D4D"),
         Expression.eq(Expression.get("sev"), lit(1)), col(if (im) "#F9AB00" else "#FFB020"),
-        col(neonRoute() ?: if (day) "#2A7BE4" else if (im) "#2FC4F5" else "#4CC9FF"),
+        col(neonRoute() ?: ownRoute() ?: if (day) "#2A7BE4" else if (im) "#2FC4F5" else "#4CC9FF"),
     )
+
+    /** Settings > Map > Own design: the route colour picked there (empty = the usual blue). */
+    private fun ownRoute(): String? = prefs.s(PreferenceKeys.ROUTE_COLOUR, "").takeIf { h -> h.isNotBlank() && try { android.graphics.Color.parseColor(h); true } catch (e: Exception) { false } }
 
     private fun pushAll() {
         pushLive(); pushRadar(); pushTurn()
@@ -3950,6 +3953,17 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
         // a view over the map: a new name used to be a new map picture, which made the map lay out all its labels again
         try { if (name.isNotBlank()) roadView.setImageBitmap(roadBitmap(name)) } catch (e: Exception) { }
         placeLocator()
+    }
+
+    /** Recolours the route line straight away when its colour is changed in Settings > Map > Own design. */
+    fun setRouteColour(@Suppress("UNUSED_PARAMETER") hex: String) {
+        main0.post {
+            val st = style ?: return@post
+            val im = theme == "immersive"; val day = !nightStyle
+            for (id in listOf("dl-route-line", "dl-route-glow")) try {
+                if (st.styleLayerExists(id)) st.setStyleLayerProperty(id, "line-color", sevColor(im, day))
+            } catch (e: Throwable) { }
+        }
     }
 
     /** Recolours the other-route lines straight away when the colour is changed in Settings (the style itself is only built once). */
