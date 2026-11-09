@@ -4,6 +4,12 @@ Add user-facing Horizon Nav changes under **Unreleased** before publishing each 
 
 ## Unreleased
 
+### Behoben
+- Verkehrsfarben: Ein Stau oder Unfall auf der Routenlinie bleibt nicht mehr rot, wenn er sich aufgelöst hat. Jede Aktualisierung beginnt beim Verkehr des Routendienstes und legt TomTom und Meldungen darüber.
+- Verpasste Abbiegung: Sicherer gegen GPS-Abweichungen in der Stadt. Sie zählt nur, wenn du weiter als die GPS-Ungenauigkeit (mindestens 15 m) von der Route weg bist und deutlich anders fährst (über 90 Grad), damit das Heranfahren an eine Abbiegung keine neue Route auslöst.
+- Postleitzahl-Bezirk: Ein Bezirk allein („M25“, „B1“) heißt oft auch wie eine Straße. Er steht jetzt an dritter Stelle, sodass bei „M25“ die Autobahn zuerst kommt.
+- Routenübersicht in Android Auto: Die Route füllt jetzt den Bildschirm, statt nur das obere Drittel zu nutzen, und ist dadurch größer und besser lesbar.
+
 ## 1.0.246 — 2026-10-28
 
 ### Improved in-app updates

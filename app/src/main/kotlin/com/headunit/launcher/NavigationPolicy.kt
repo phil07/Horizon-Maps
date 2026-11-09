@@ -59,8 +59,12 @@ internal object NavigationPolicy {
         if (progressJump || distanceMeters > limitMeters * 2.0) 2 else 1
 
     /** A close-to-route fix can still indicate a wrong turn when the vehicle is moving away from the route heading. */
-    fun shouldCountHeadingAwayStrike(distanceMeters: Double, speedMps: Double, headingDifferenceDegrees: Double): Boolean =
-        distanceMeters > 15.0 && speedMps > 4.0 && headingDifferenceDegrees.isFinite() && kotlin.math.abs(headingDifferenceDegrees) > 70.0
+    // safer against GPS drift in town: only beyond the GPS's own error (at least 15 m) and at a sharp angle (over 90 degrees), so
+    // approaching a turn (the heading already swinging round, the fix a little to the side) never counts towards a reroute
+    fun shouldCountHeadingAwayStrike(distanceMeters: Double, speedMps: Double, headingDifferenceDegrees: Double, accuracyMeters: Double = 0.0): Boolean {
+        val acc = if (accuracyMeters.isFinite() && accuracyMeters > 0.0) accuracyMeters else 0.0
+        return distanceMeters > maxOf(15.0, acc) && speedMps > 4.0 && headingDifferenceDegrees.isFinite() && kotlin.math.abs(headingDifferenceDegrees) > 90.0
+    }
 
     /** Reject implausible forward snaps that would skip too much route progress between trusted fixes. */
     fun isProgressJump(candidateProgressMeters: Double, trustedProgressMeters: Double, speedMps: Double, elapsedSeconds: Double): Boolean {

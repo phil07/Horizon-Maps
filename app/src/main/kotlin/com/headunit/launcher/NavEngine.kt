@@ -1956,7 +1956,18 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         }
         // a kind of place ("Supermarkt"): the nearby ones of that kind first, not places that happen to be called that
         if (PoiSearch.kindOf(q) != null) return all.sortedBy { it.second }.map { it.first }.take(15)
-        return SearchRank.rank(q, all, { it.name }, { it.town }, { if (near != null) Geo.dist(near, it.pos) else 0.0 }).take(15)
+        return districtThird(q, SearchRank.rank(q, all, { it.name }, { it.town }, { if (near != null) Geo.dist(near, it.pos) else 0.0 })).take(15)
+    }
+
+    /**
+     * A postcode district on its own ("M25", "B1") is also how roads are named: the district goes third, so a search for the M25
+     * still shows the motorway first. A full postcode ("SO14 2AB") keeps its place.
+     */
+    private fun districtThird(q: String, list: List<Place>): List<Place> {
+        if (!Regex("^[A-Za-z]{1,2}\\d[A-Za-z\\d]?$").matches(q.trim())) return list
+        val pc = list.indexOfFirst { it.sub.startsWith("Postleitzahl") || it.sub.startsWith("Postcode") || it.sub.startsWith("Postal code") }
+        if (pc < 0 || pc >= 2 || list.size < 2) return list
+        val m = list.toMutableList(); val d = m.removeAt(pc); m.add(min(2, m.size), d); return m
     }
 
     fun search(q: String) {
@@ -2406,7 +2417,8 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         val r = route ?: return
         val pts = listOfNotNull(fix?.pos) + r.pts.drop(lastIdx.coerceIn(0, max(0, r.pts.size - 2))).filterIndexed { n, _ -> n % 6 == 0 } + r.pts.last()
         following = false
-        map.fit(pts)
+        // on the car the route fills the screen: there is no panel at the bottom to leave room for, so it is zoomed in further
+        map.fit(pts, panel = !isCar)
         scheduleRecentre(10_000)
     }
 
@@ -3892,7 +3904,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
                 if (backSince == 0L) { backSince = nowT; backProg = s.progress }
                 if (nowT - backSince > 5000L && backProg - s.progress > 25.0) { backSince = 0L; offCount = 0; reroute(); return }
             } else backSince = 0L
-            if (NavigationPolicy.shouldCountHeadingAwayStrike(s.dist, p.speed, angDiff(seg, p.heading))) {
+            if (NavigationPolicy.shouldCountHeadingAwayStrike(s.dist, p.speed, angDiff(seg, p.heading), p.acc)) {
                 if (++offCount >= REROUTE_STRIKES) reroute()
             } else offCount = 0
         } else if (newFix) { offCount = 0; offSince = 0L }
@@ -4910,6 +4922,9 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
 
     private var sevBase: IntArray? = null
     private var sevBaseRoute: Route? = null
+    /** The route service's own traffic colours for [svcSevRoute], before any refresh, TomTom or incident was painted on. */
+    private var svcSev: IntArray? = null
+    private var svcSevRoute: Route? = null
 
     /** Colours the stretch of road around each live incident amber (slow) or red (heavy), on top of the route's own traffic data. */
     private fun applyIncidentSev(r: Route, found: List<Triple<Incident, Double, String>>) {
@@ -5054,9 +5069,15 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         fun key(p: LL) = Math.round(p.lat * 1e4) * 1000003L + Math.round(p.lon * 1e4)
         val m = HashMap<Long, Int>(fresh.sev.size * 2)
         for (i in fresh.sev.indices) m[key(fresh.pts[i])] = fresh.sev[i]
+        // the route service's own traffic for this route, kept from before anything was painted on it: a refresh starts from that
+        // (plus the fresh answer), never from the painted line, or a jam or incident that had cleared stayed red for good
+        if (svcSevRoute !== cur || svcSev?.size != cur.sev.size) {
+            svcSev = (if (sevBaseRoute === cur && sevBase?.size == cur.sev.size) sevBase!! else cur.sev).copyOf(); svcSevRoute = cur
+        }
+        val own = svcSev!!
         var hit = 0
         val base = IntArray(cur.sev.size)
-        for (i in cur.sev.indices) { val v = m[key(cur.pts[i])]; if (v != null) { base[i] = v; hit++ } else base[i] = cur.sev[i] }
+        for (i in cur.sev.indices) { val v = m[key(cur.pts[i])]; if (v != null) { base[i] = v; hit++ } else base[i] = own[i] }
         // the other service's view of the same stretch: the worse of the two counts
         for (o in others) {
             if (o.sev.isEmpty()) continue

@@ -4489,7 +4489,8 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
     }
 
     /** Smoothly zooms out (flat, north-up) so every point sits in the area above the route-preview panel. */
-    fun fit(points: List<LL>) {
+    /** [panel]: leave the bottom of the screen for the phone's preview panel; off for the car's overview, which has no panel there. */
+    fun fit(points: List<LL>, panel: Boolean = true) {
         if (points.size < 2) return
         val d = mapView.resources.displayMetrics.density.toDouble()
         val w = mapView.width / d
@@ -4507,7 +4508,7 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
         val vi = viewInset
         val il = (vi?.left ?: 0) / d; val ir = (vi?.right ?: 0) / d; val it0 = (vi?.top ?: 0) / d; val ib = (vi?.bottom ?: 0) / d
         val vw = max(50.0, w - il - ir); val vh = max(50.0, h - it0 - ib)
-        val pl = il + vw * 0.07; val pr = ir + vw * 0.07; val pt = it0 + vh * 0.10; val pb = ib + vh * 0.60
+        val pl = il + vw * 0.07; val pr = ir + vw * 0.07; val pt = it0 + vh * 0.10; val pb = ib + vh * (if (panel) 0.60 else 0.10)
         val aw = w - pl - pr; val ah = h - pt - pb
         val fx = max(x1 - x0, 1e-7); val fy = max(y1 - y0, 1e-7)
         // (zoom in this formula is for a map drawn at the screen's own density; a lower render scale shows more map, so it's corrected)

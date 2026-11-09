@@ -51,8 +51,10 @@ class NavigationPolicyTest {
     }
 
     @Test fun headingAwayRerouteRequiresDistanceSpeedAndClearHeadingDifference() {
-        assertTrue(NavigationPolicy.shouldCountHeadingAwayStrike(15.1, 4.1, 70.1))
-        assertTrue(NavigationPolicy.shouldCountHeadingAwayStrike(20.0, 8.0, -90.0))
+        assertTrue(NavigationPolicy.shouldCountHeadingAwayStrike(15.1, 4.1, 90.1))
+        assertTrue(NavigationPolicy.shouldCountHeadingAwayStrike(20.0, 8.0, -120.0))
+        assertFalse(NavigationPolicy.shouldCountHeadingAwayStrike(20.0, 8.0, 120.0, 25.0))
+        assertTrue(NavigationPolicy.shouldCountHeadingAwayStrike(30.0, 8.0, 120.0, 25.0))
         assertFalse(NavigationPolicy.shouldCountHeadingAwayStrike(15.0, 8.0, 90.0))
         assertFalse(NavigationPolicy.shouldCountHeadingAwayStrike(20.0, 4.0, 90.0))
         assertFalse(NavigationPolicy.shouldCountHeadingAwayStrike(20.0, 8.0, 70.0))
