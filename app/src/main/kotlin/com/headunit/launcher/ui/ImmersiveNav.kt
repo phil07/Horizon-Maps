@@ -64,6 +64,7 @@ import androidx.compose.material.icons.rounded.Apartment
 import androidx.compose.material.icons.rounded.CameraAlt
 import androidx.compose.material.icons.rounded.CarCrash
 import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material.icons.rounded.LocationOn
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.FilterAlt
 import androidx.compose.material.icons.rounded.Bolt
@@ -128,6 +129,7 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -274,9 +276,9 @@ private fun MapScreen(engine: NavEngine, onSettings: () -> Unit) {
                 if (engine.walking) WalkCard(engine)
                 ImmSearch(engine, q, { q = it }, typingLocked, focus, voice)
                 engine.phoneDest?.let { pd -> PhoneDestCard(engine, pd) }
-                val showResults = engine.results.isNotEmpty()
+                val showResults = engine.results.isNotEmpty() || engine.chain != null || engine.chainBusy
                 AnimatedVisibility(showResults, enter = fadeIn(tween(180)) + androidx.compose.animation.expandVertically(tween(240)), exit = fadeOut(tween(120)) + androidx.compose.animation.shrinkVertically(tween(180))) {
-                    ImmResults(engine) { q = "" }
+                    if (engine.chain != null || engine.chainBusy) ChainPanel(engine) { q = "" } else ImmResults(engine) { q = "" }
                 }
                 AnimatedVisibility(!showResults && q.isEmpty() && engine.nearbyKind == null, enter = fadeIn(tween(220)) + androidx.compose.animation.expandVertically(tween(260)), exit = fadeOut(tween(140)) + androidx.compose.animation.shrinkVertically(tween(200))) {
                     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -299,7 +301,8 @@ private fun MapScreen(engine: NavEngine, onSettings: () -> Unit) {
               }
             }
             if (routing) {
-                if (engine.results.isNotEmpty()) ImmResults(engine) { q = "" }
+                if (engine.chain != null || engine.chainBusy) ChainPanel(engine) { q = "" }
+                else if (engine.results.isNotEmpty()) ImmResults(engine) { q = "" }
                 else {
                     val curTurn = engine.turn
                     val lastTurn = remember { mutableStateOf(curTurn) }
@@ -1165,22 +1168,105 @@ private fun ImmSearch(engine: NavEngine, q: String, onQ: (String) -> Unit, locke
     }
 }
 
+/** A shop's logo in a round tile when it is on the unit, else the usual red pin. */
+@Composable
+internal fun PlaceLogo(engine: NavEngine, p: com.headunit.launcher.Place, size: androidx.compose.ui.unit.Dp = 42.dp) {
+    val c = LocalVw.current
+    @Suppress("UNUSED_VARIABLE") val rev = engine.logoRev
+    val ctx = androidx.compose.ui.platform.LocalContext.current
+    val logo = remember(p, engine.logoRev) { com.headunit.launcher.BrandLogos.domainFor(p)?.let { com.headunit.launcher.BrandLogos.cached(ctx, it) } }
+    Box(Modifier.size(size).clip(CircleShape).background(if (logo != null) Color.White else c.tile), contentAlignment = Alignment.Center) {
+        if (logo != null) androidx.compose.foundation.Image(logo.asImageBitmap(), null, Modifier.size(size * 0.62f))
+        else Icon(Icons.Rounded.Place, null, tint = Color(0xFFEA4335), modifier = Modifier.size(size * 0.52f))
+    }
+}
+
 @Composable
 private fun ImmResults(engine: NavEngine, onPicked: () -> Unit) {
     val c = LocalVw.current
     val shape = RoundedCornerShape(26.dp)
     val here = engine.fix?.pos
+    // a shop or chain with several branches nearby: "Alle N Standorte" under its first result
+    val chainRows = remember(engine.results) {
+        val seen = HashSet<String>()
+        engine.results.mapNotNull { p ->
+            val k = com.headunit.launcher.BrandLogos.key(p.brand ?: p.name)
+            if (k in seen) null else { seen += k; val n = engine.chainCount(p); if (n >= 2) p to n else null }
+        }.toMap()
+    }
     LazyColumn(Modifier.fillMaxWidth().heightIn(max = 420.dp).panel(10.dp, shape, c.surface).padding(vertical = 6.dp)) {
         items(engine.results) { p ->
             Row(Modifier.fillMaxWidth().clickable { onPicked(); engine.pickPlace(p) }.padding(horizontal = 16.dp, vertical = 11.dp), verticalAlignment = Alignment.CenterVertically) {
-                Box(Modifier.size(42.dp).clip(CircleShape).background(c.tile), contentAlignment = Alignment.Center) {
-                    Icon(Icons.Rounded.Place, null, tint = Color(0xFFEA4335), modifier = Modifier.size(22.dp))
-                }
+                PlaceLogo(engine, p)
                 Column(Modifier.padding(start = 14.dp).weight(1f)) {
                     Text(p.name, color = c.text, fontSize = 17.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     Text(p.sub, color = c.sub, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
                 if (here != null) Text(Geo.fmtDist(Geo.dist(here, p.pos), engine.imperial), color = c.sub, fontSize = 13.sp, modifier = Modifier.padding(start = 8.dp))
+            }
+            chainRows[p]?.let { n ->
+                Row(Modifier.fillMaxWidth().clickable { engine.showAllLocations(p) }.padding(start = 72.dp, end = 16.dp, top = 0.dp, bottom = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically) {
+                    Icon(androidx.compose.material.icons.Icons.Rounded.LocationOn, null, tint = c.accent, modifier = Modifier.size(18.dp))
+                    Text(Lang.t("Alle $n Standorte anzeigen", "See all $n locations"), color = c.accent, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(start = 6.dp))
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Every branch of a shop or chain: sorted by Quickest (drive time with today's traffic), Nearest or On my route, each with its logo.
+ * The map shows them all. Tap a row (or a pin) to choose it, then Go or Add as a stop. "Search this area" looks again where the map is.
+ */
+@Composable
+private fun ChainPanel(engine: NavEngine, onDone: () -> Unit) {
+    val c = LocalVw.current
+    val shape = RoundedCornerShape(26.dp)
+    val ch = engine.chain
+    val onRoute = engine.route != null && !engine.previewing
+    Column(Modifier.fillMaxWidth().heightIn(max = 460.dp).panel(10.dp, shape, c.surface).padding(vertical = 8.dp)) {
+        Row(Modifier.fillMaxWidth().padding(start = 16.dp, end = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f)) {
+                Text(ch?.name ?: Lang.t("Suche …", "Searching …"), color = c.text, fontSize = 18.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(if (engine.chainBusy) Lang.t("Standorte werden gesucht …", "Finding locations …") else Lang.t("${ch?.locs?.size ?: 0} Standorte", "${ch?.locs?.size ?: 0} locations"), color = c.sub, fontSize = 13.sp)
+            }
+            Icon(Icons.Rounded.Close, Lang.t("Schließen", "Close"), tint = c.sub, modifier = Modifier.size(40.dp).clip(CircleShape).clickable { engine.closeChain() }.padding(8.dp))
+        }
+        Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 12.dp, vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            val sorts = listOf("quick" to Lang.t("Schnellste", "Quickest"), "near" to Lang.t("Nächste", "Nearest")) + (if (onRoute) listOf("route" to Lang.t("Auf meiner Route", "On my route")) else emptyList())
+            for ((id, label) in sorts) {
+                val sel = engine.chainSort == id
+                Text(label, color = if (sel) Color.White else c.text, fontSize = 14.sp, fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.clip(RoundedCornerShape(50)).background(if (sel) c.accent else c.tile).clickable { engine.chainSort = id }.padding(horizontal = 14.dp, vertical = 8.dp))
+            }
+            Text(Lang.t("In diesem Bereich suchen", "Search this area"), color = c.accent, fontSize = 14.sp, fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.clip(RoundedCornerShape(50)).border(1.dp, c.accent, RoundedCornerShape(50)).clickable { engine.chainSearchHere() }.padding(horizontal = 14.dp, vertical = 7.dp))
+        }
+        LazyColumn(Modifier.fillMaxWidth()) {
+            items(engine.chainSorted()) { l ->
+                val sel = engine.chainSel === l
+                Column(Modifier.fillMaxWidth().background(if (sel) c.accent.copy(alpha = 0.12f) else Color.Transparent).clickable { engine.selectChain(if (sel) null else l) }.padding(horizontal = 16.dp, vertical = 10.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        PlaceLogo(engine, l.place, 38.dp)
+                        Column(Modifier.padding(start = 12.dp).weight(1f)) {
+                            Text(l.place.name, color = c.text, fontSize = 16.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            val extra = if (engine.chainSort == "route") l.offRoute?.let { Lang.t(" · ${Geo.fmtDist(it, engine.imperial)} von der Route", " · ${Geo.fmtDist(it, engine.imperial)} off route") }.orEmpty() else ""
+                            Text(l.place.sub + extra, color = c.sub, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        }
+                        Column(horizontalAlignment = Alignment.End, modifier = Modifier.padding(start = 8.dp)) {
+                            val secs = l.secs
+                            if (secs != null) Text(Geo.fmtDur(secs), color = c.text, fontSize = 15.sp, fontWeight = FontWeight.Bold)
+                            Text(Geo.fmtDist(l.dist, engine.imperial), color = c.sub, fontSize = 13.sp)
+                        }
+                    }
+                    if (sel) Row(Modifier.fillMaxWidth().padding(top = 10.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Text(Lang.t("Los", "Go"), color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.Bold, textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                            modifier = Modifier.weight(1f).clip(RoundedCornerShape(50)).background(c.accent).clickable { val p = l.place; engine.closeChain(); engine.results = emptyList(); onDone(); engine.startRoute(p) }.padding(vertical = 11.dp))
+                        if (onRoute) Text(Lang.t("Als Stopp", "Add as stop"), color = c.accent, fontSize = 15.sp, fontWeight = FontWeight.Bold, textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                            modifier = Modifier.weight(1f).clip(RoundedCornerShape(50)).border(1.dp, c.accent, RoundedCornerShape(50)).clickable { val p = l.place; engine.closeChain(); engine.results = emptyList(); onDone(); engine.addStop(p) }.padding(vertical = 10.dp))
+                    }
+                }
             }
         }
     }

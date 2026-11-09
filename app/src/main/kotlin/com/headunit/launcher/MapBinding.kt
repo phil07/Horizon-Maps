@@ -2220,6 +2220,13 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
             .iconImage(Expression.get("img")).iconAllowOverlap(false).iconIgnorePlacement(false)
             .iconPitchAlignment(IconPitchAlignment.VIEWPORT).iconEmissiveStrength(1.0).iconAnchor(IconAnchor.BOTTOM)
             .iconSize(zoomed(1.0, 13 to 0.42, 15 to 0.55, 18 to 0.7)).minZoom(13.0))
+        // every branch of a chain ("Alle Standorte"): its logo with the drive time, above everything else
+        chainImgs.clear()
+        addS(st, GeoJsonSource.Builder("dl-chain").featureCollection(empty()).build())
+        addL(st, SymbolLayer("dl-chain", "dl-chain").inSlot(TOP)
+            .iconImage(Expression.get("img")).iconAllowOverlap(true).iconIgnorePlacement(true).symbolSortKey(Expression.get("z"))
+            .iconPitchAlignment(IconPitchAlignment.VIEWPORT).iconEmissiveStrength(1.0).iconAnchor(IconAnchor.BOTTOM).iconSize(0.5))
+        pushChain()
         // every speed camera around you, route or not: a small camera badge on the road (the route's own ones sit on top, bigger)
         addS(st, GeoJsonSource.Builder("dl-alpr").featureCollection(empty()).build())
         addL(st, CircleLayer("dl-alpr-l", "dl-alpr")
@@ -2582,6 +2589,80 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
     private val garageImgs = HashSet<String>()
 
     fun setGarages(list: List<Garage>) { main0.post { if (list != garages) { garages = list; pushGarages() } } }
+
+    // ---- every branch of a chain ----
+    class ChainPin(val pos: LL, val label: String, val logo: Bitmap?, val selected: Boolean)
+    /** Tapped a branch on the map (its index in the list given to [setChainPins]). */
+    var onChainTap: ((Int) -> Unit)? = null
+    private var chainPins: List<ChainPin> = emptyList()
+    private val chainImgs = HashSet<String>()
+
+    fun setChainPins(list: List<ChainPin>) { main0.post { chainPins = list; pushChain() } }
+
+    private fun chainImg(p: ChainPin) = "dl-ch-" + (p.logo?.let { System.identityHashCode(it) } ?: 0) + "-" + p.label.replace(Regex("[^A-Za-z0-9]"), "_") + (if (p.selected) "-s" else "")
+
+    private fun pushChain() {
+        val st = style ?: return
+        val s = src("dl-chain") ?: return
+        try {
+            for (p in chainPins) { val id = chainImg(p); if (chainImgs.add(id)) addImg(st, id, chainBitmap(p)) }
+            s.featureCollection(FeatureCollection.fromFeatures(chainPins.map { p ->
+                Feature.fromGeometry(Point.fromLngLat(p.pos.lon, p.pos.lat)).also { it.addStringProperty("img", chainImg(p)); it.addNumberProperty("z", if (p.selected) 1 else 0) }
+            }))
+        } catch (e: Throwable) { }
+    }
+
+    /** A round badge with the logo (or a red pin) and the drive time in a pill beside it, standing on a little stem; bigger when chosen. */
+    private fun chainBitmap(p: ChainPin): Bitmap {
+        val k = if (p.selected) 1.3f else 1f
+        val tp = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xFF111418.toInt(); textSize = 34f * k; typeface = android.graphics.Typeface.DEFAULT_BOLD }
+        val d = 84f * k
+        val pillW = tp.measureText(p.label) + 34f * k
+        val w = d + pillW - 10f * k
+        val h = d + 22f * k
+        val bmp = Bitmap.createBitmap(w.toInt() + 6, h.toInt() + 6, Bitmap.Config.ARGB_8888)
+        val c = Canvas(bmp)
+        val white = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xFFFFFFFF.toInt() }
+        val shadow = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0x55000000 }
+        val accent = if (p.selected) 0xFF1A73E8.toInt() else 0xFFFFFFFF.toInt()
+        // the pill with the time
+        val pr = RectF(d - 20f * k, d * 0.22f, w, d * 0.78f)
+        c.drawRoundRect(RectF(pr.left, pr.top + 3f, pr.right, pr.bottom + 3f), pr.height() / 2, pr.height() / 2, shadow)
+        c.drawRoundRect(pr, pr.height() / 2, pr.height() / 2, Paint(Paint.ANTI_ALIAS_FLAG).apply { color = accent })
+        tp.color = if (p.selected) 0xFFFFFFFF.toInt() else 0xFF111418.toInt()
+        c.drawText(p.label, pr.left + 22f * k, pr.centerY() - (tp.descent() + tp.ascent()) / 2f, tp)
+        // the stem and the round badge
+        c.drawRect(d / 2 - 3f * k, d - 6f, d / 2 + 3f * k, h, Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xFF5F6368.toInt() })
+        c.drawCircle(d / 2, d / 2 + 3f, d / 2 - 2f, shadow)
+        c.drawCircle(d / 2, d / 2, d / 2 - 2f, Paint(Paint.ANTI_ALIAS_FLAG).apply { color = if (p.selected) 0xFF1A73E8.toInt() else 0xFFDADCE0.toInt() })
+        c.drawCircle(d / 2, d / 2, d / 2 - 6f * k, white)
+        val logo = p.logo
+        if (logo != null) {
+            val r = d / 2 - 14f * k
+            c.drawBitmap(logo, null, RectF(d / 2 - r, d / 2 - r, d / 2 + r, d / 2 + r), Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG))
+        } else {
+            val pin = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xFFEA4335.toInt() }
+            c.drawCircle(d / 2, d / 2 - 6f * k, 16f * k, pin)
+            val path = android.graphics.Path().apply { moveTo(d / 2 - 14f * k, d / 2 - 1f * k); lineTo(d / 2 + 14f * k, d / 2 - 1f * k); lineTo(d / 2, d / 2 + 24f * k); close() }
+            c.drawPath(path, pin)
+            c.drawCircle(d / 2, d / 2 - 6f * k, 6f * k, white)
+        }
+        return bmp
+    }
+
+    private fun chainAt(sp: android.graphics.PointF): Int? {
+        val ps = chainPins
+        if (ps.isEmpty()) return null
+        val dp = mapView.resources.displayMetrics.density
+        val px = pixels(ps.map { it.pos })
+        if (px.size != ps.size) return null
+        var best: Int? = null; var bd = 34.0 * dp
+        for (k in ps.indices) {
+            val d = Math.hypot(px[k].x - sp.x, px[k].y - 30 * dp - sp.y)
+            if (d < bd) { bd = d; best = k }
+        }
+        return best
+    }
 
     fun zoomNow(): Double = try { mbMap.cameraState.zoom } catch (e: Throwable) { 0.0 }
 
@@ -4479,6 +4560,8 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
     fun tapAt(sp: android.graphics.PointF): Boolean {
         // a tap during the route fly-through skips straight to the overview
         flyDone?.let { d -> flyDone = null; flyToken++; try { mapView.camera.cancelAllAnimators() } catch (e: Throwable) { }; d(); return true }
+        // a branch of a chain ("Alle Standorte")
+        chainAt(sp)?.let { onChainTap?.invoke(it); return true }
         // a charge point on the map (drawn above the route, so it comes first)
         nearestCharger(sp)?.let { onChargerTap?.invoke(it); return true }
         if (liveLines.isEmpty()) { val g = garageAt(sp) ?: return false; onGarageTap?.invoke(g); return true }

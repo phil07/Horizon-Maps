@@ -635,7 +635,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
      * "Apotheke"), the nearest ones of that kind. The search service's own result list ranks by name over the whole country and
      * often left these out. TomTom or Mapbox when set up, and OpenStreetMap (free) alongside or instead.
      */
-    private fun nearbyMatches(q: String, near: LL?): List<Place> {
+    private fun nearbyMatches(q: String, near: LL?, limit: Int = 12): List<Place> {
         if (near == null || q.trim().length < 2 || SearchRank.streety(q)) return emptyList()
         val kind = PoiSearch.kindOf(q)
         val radius = if (kind != null) 10_000 else 25_000
@@ -649,7 +649,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         if (out.size < 3 && hasMapbox) try { out += MapboxRest.poiNear(mbToken, kind?.label ?: q, near, radius) } catch (e: Exception) { }
         if (kind != null && out.size < 3) try { out += PoiSearch.osmByKind(kind, near, radius) } catch (e: Exception) { }
         if (osm != null) out += try { osm.get(9, java.util.concurrent.TimeUnit.SECONDS) ?: emptyList<Place>() } catch (e: Exception) { emptyList<Place>() }
-        return PoiSearch.distinct(out.sortedBy { Geo.dist(near, it.pos) }).take(12)
+        return PoiSearch.distinct(out.sortedBy { Geo.dist(near, it.pos) }).take(limit)
     }
 
     /** Places of a kind nearby from whichever service is set up. */
@@ -1973,6 +1973,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
     }
 
     fun search(q: String) {
+        if (chain != null || chainBusy) closeChain()
         if (q.length < 2) { results = emptyList(); return }
         val near = fix?.pos ?: map.center()
         searchJob?.cancel()
@@ -2000,9 +2001,117 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
             }
             val merged = rankResults(q, near, net ?: emptyList(), local)
             results = merged
+            loadLogos(merged)
             if (merged.isEmpty()) toast(if (net == null) Lang.t("Suche fehlgeschlagen: schwacher oder kein Empfang", "Search failed: weak or no signal") else Lang.t("Keine Treffer. Füge einen Ort oder eine Postleitzahl hinzu.", "No matches. Try adding a town or postcode."), 3500)
             else if (net == null) toast(ctx.getString(R.string.toast_049), 3500)
         }
+    }
+
+    // ---- every location of a shop or chain ("Alle N Standorte") ----
+
+    /** One branch in the all-locations panel: [secs] is the drive time with today's traffic once known, [offRoute] metres from the route. */
+    class ChainLoc(val place: Place, val dist: Double, val offRoute: Double?) {
+        var secs by mutableStateOf<Double?>(null)
+    }
+    class ChainView(val name: String, val center: LL, val locs: List<ChainLoc>)
+
+    var chain by mutableStateOf<ChainView?>(null)
+    var chainBusy by mutableStateOf(false)
+    /** "quick", "near" or "route" */
+    var chainSort by mutableStateOf("quick")
+    var chainSel by mutableStateOf<ChainLoc?>(null)
+    private var chainJob: kotlinx.coroutines.Job? = null
+
+    /** How many results are the same shop or chain as [p] within 25 km of here (the button shows from 2). */
+    fun chainCount(p: Place): Int {
+        val k = BrandLogos.key(p.brand ?: p.name)
+        if (k.length < 2) return 0
+        val here = fix?.pos ?: map.center() ?: return 0
+        return results.count { r -> (BrandLogos.key(r.brand ?: r.name) == k) && Geo.dist(here, r.pos) <= 25_000 }
+    }
+
+    /** Opens the panel with every branch of [p]'s chain within 25 km of [around] (here, or where the map is for "search this area"). */
+    fun showAllLocations(p: Place, around: LL? = null) = showAllLocations(p.brand ?: p.name, around, p.web)
+
+    fun showAllLocations(name: String, around: LL? = null, web: String? = null) {
+        val center = around ?: fix?.pos ?: map.center() ?: return
+        val k = BrandLogos.key(name)
+        chainJob?.cancel()
+        chainBusy = true
+        chainSel = null
+        if (chainSort == "route" && (route == null || previewing)) chainSort = "quick"
+        chainJob = scope.launch {
+            val shown = results
+            val found = withContext(Dispatchers.IO) {
+                val more = if (online()) try { nearbyMatches(name, center, 40) } catch (e: Exception) { emptyList() } else emptyList()
+                (shown + more).filter { BrandLogos.key(it.brand ?: it.name) == k || BrandLogos.key(it.name).startsWith(k) }
+                    .filter { Geo.dist(center, it.pos) <= 25_000 }
+            }
+            val uniq = PoiSearch.distinct(found).onEach { if (it.web == null && web != null) it.web = web }
+            val line = route?.takeIf { !previewing }?.pts
+            val locs = uniq.map { pl ->
+                val off = line?.let { pts -> var b = Double.MAX_VALUE; val step = maxOf(1, pts.size / 400); var i = 0; while (i < pts.size) { b = min(b, Geo.dist(pts[i], pl.pos)); i += step }; b }
+                ChainLoc(pl, Geo.dist(fix?.pos ?: center, pl.pos), off)
+            }.sortedBy { it.dist }.take(24)
+            chain = ChainView(name, center, locs)
+            chainBusy = false
+            showChainOnMap()
+            map.fit(locs.map { it.place.pos } + listOfNotNull(fix?.pos))
+            // drive times with today's traffic (Mapbox's matrix), then the logos
+            val from = fix?.pos
+            if (from != null && hasMapbox && online() && locs.isNotEmpty()) {
+                val t = withContext(Dispatchers.IO) { try { MapboxRest.driveTimes(mbToken, from, locs.map { it.place.pos }) } catch (e: Exception) { null } }
+                t?.forEachIndexed { i, v -> locs.getOrNull(i)?.secs = v }
+                showChainOnMap()
+            }
+            val doms = locs.mapNotNull { BrandLogos.domainFor(it.place) }.distinct()
+            if (doms.isNotEmpty() && online()) {
+                withContext(Dispatchers.IO) { for (d in doms) try { BrandLogos.load(ctx, d) } catch (e: Exception) { } }
+                logoRev++
+                showChainOnMap()
+            }
+        }
+    }
+
+    /** Loads the logos of the shops in [list] that aren't on the unit yet (once each), then redraws the lists. */
+    private fun loadLogos(list: List<Place>) {
+        if (!online()) return
+        val doms = list.mapNotNull { BrandLogos.domainFor(it) }.distinct().filter { BrandLogos.cached(ctx, it) == null }
+        if (doms.isEmpty()) return
+        scope.launch {
+            withContext(Dispatchers.IO) { for (d in doms.take(10)) try { BrandLogos.load(ctx, d) } catch (e: Exception) { } }
+            logoRev++
+        }
+    }
+
+    /** Bumped when logos have been loaded, so the lists draw them. */
+    var logoRev by mutableStateOf(0)
+
+    /** The branches in the order chosen ([chainSort]). */
+    fun chainSorted(sort: String = chainSort): List<ChainLoc> {
+        val l = chain?.locs ?: return emptyList()
+        return when (sort) {
+            "near" -> l.sortedBy { it.dist }
+            "route" -> l.sortedBy { it.offRoute ?: Double.MAX_VALUE }
+            // quickest: by drive time, or by distance where it isn't known yet
+            else -> l.sortedBy { it.secs ?: (it.dist / 13.0) }
+        }
+    }
+
+    fun selectChain(c: ChainLoc?) { chainSel = c; showChainOnMap(); c?.let { map.fit(listOfNotNull(it.place.pos, fix?.pos)) } }
+
+    /** "Search this area": the same chain again around where the map is now. */
+    fun chainSearchHere() { val c = chain ?: return; showAllLocations(c.name, map.center() ?: c.center, c.locs.firstOrNull()?.place?.web) }
+
+    fun closeChain() { chainJob?.cancel(); chain = null; chainSel = null; chainBusy = false; map.setChainPins(emptyList()) }
+
+    private fun showChainOnMap() {
+        val c = chain ?: return
+        val sel = chainSel
+        map.setChainPins(c.locs.map { l ->
+            val dom = BrandLogos.domainFor(l.place)
+            MapBinding.ChainPin(l.place.pos, l.secs?.let { Geo.fmtDur(it) } ?: Geo.fmtDist(l.dist, imperial), dom?.let { BrandLogos.cached(ctx, it) }, l === sel)
+        })
     }
 
     /** Search used by the stops editor: the same sources as the search box, returned instead of shown. */
@@ -4249,6 +4358,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         map.onRouteCameras = { c -> knownCams = c; if (camerasOnMap()) mergeCams() }
         map.onViewMoved = { c -> viewMoved(c); garagesAt(c, false) }
         map.onGarageTap = { g -> showGarage(g) }
+        map.onChainTap = { i -> chain?.locs?.getOrNull(i)?.let { selectChain(it) } }
     }
 
     // ---- car parks on the map, with their free spaces ----

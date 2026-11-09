@@ -1105,13 +1105,27 @@ class SearchScreen(carContext: CarContext, private val holder: CarHolder, initia
         val e = holder.engine
         val limit = try { carContext.getCarService(ConstraintManager::class.java).getContentLimit(ConstraintManager.CONTENT_LIMIT_TYPE_LIST) } catch (x: Exception) { 6 }
         val list = ItemList.Builder().setNoItemsMessage(if (query.trim().length < 2) Lang.t("Ort, Adresse oder Postleitzahl eingeben, oder sag „Hey Google, navigiere mit Horizon Nav zu …“", "Type a place, address or postcode, or say \"Hey Google, navigate to … with Horizon Nav\"") else Lang.t("Suche läuft…", "Searching…"))
-        if (query.trim().length >= 2) for (p in shown.take(limit.coerceIn(1, 12))) {
-            // a red pin, the name, and how far it is with the address under it (as in the app's results)
-            val r = Row.Builder().setTitle(p.name).setImage(rowIcon(carContext, R.drawable.ic_car_pin, 0xFFEA4335.toInt()))
-            val line = listOf(distFrom(e, p), p.sub).filter { it.isNotBlank() }.joinToString(" · ")
-            if (line.isNotBlank()) r.addText(line)
-            r.setOnClickListener { e?.startRoute(p); screenManager.popToRoot() }
-            list.addItem(r.build())
+        if (query.trim().length >= 2) {
+            // a shop or chain with several branches nearby: "Alle N Standorte" as the first row
+            val chainOf = shown.firstOrNull { e != null && e.chainCount(it) >= 2 }
+            var n = limit.coerceIn(1, 12)
+            if (chainOf != null && e != null) {
+                val cnt = e.chainCount(chainOf)
+                list.addItem(Row.Builder().setTitle(Lang.t("Alle $cnt Standorte: ${chainOf.name}", "See all $cnt locations: ${chainOf.name}"))
+                    .setImage(rowIcon(carContext, R.drawable.ic_car_pin, 0xFF1A73E8.toInt()))
+                    .addText(Lang.t("Nach Fahrzeit mit heutigem Verkehr", "By drive time with today's traffic"))
+                    .setBrowsable(true)
+                    .setOnClickListener { e.showAllLocations(chainOf); screenManager.push(ChainScreen(carContext, holder)) }.build())
+                n--
+            }
+            for (p in shown.take(n)) {
+                // a red pin (or the shop's logo), the name, and how far it is with the address under it (as in the app's results)
+                val r = Row.Builder().setTitle(p.name).setImage(placeIcon(carContext, p))
+                val line = listOf(distFrom(e, p), p.sub).filter { it.isNotBlank() }.joinToString(" · ")
+                if (line.isNotBlank()) r.addText(line)
+                r.setOnClickListener { e?.startRoute(p); screenManager.popToRoot() }
+                list.addItem(r.build())
+            }
         }
         return SearchTemplate.Builder(object : SearchTemplate.SearchCallback {
             // searched once typing pauses (as in the app), not on every letter: each search is a request on your TomTom key
@@ -1125,6 +1139,56 @@ class SearchScreen(carContext: CarContext, private val holder: CarHolder, initia
             // the keyboard opens at once: Android Auto puts the microphone in it, one tap starts voice input
             // (the mic next to "Wohin?" only opens this page, Android Auto gives an app no way to start speech itself)
             .setShowKeyboardByDefault(true).setItemList(list.build()).build()
+    }
+}
+
+/** The shop's logo when it is on the unit, else the red pin. */
+private fun placeIcon(ctx: CarContext, p: Place): CarIcon {
+    val logo = com.headunit.launcher.BrandLogos.domainFor(p)?.let { com.headunit.launcher.BrandLogos.cached(ctx, it) }
+    return if (logo != null) CarIcon.Builder(IconCompat.createWithBitmap(logo)).build() else rowIcon(ctx, R.drawable.ic_car_pin, 0xFFEA4335.toInt())
+}
+
+/** Every branch of a shop or chain, quickest first (drive time with today's traffic). On a route a tap adds it as a stop. */
+class ChainScreen(carContext: CarContext, private val holder: CarHolder) : Screen(carContext) {
+    private val handler = Handler(Looper.getMainLooper())
+    private var sig = ""
+    private val poll = object : Runnable {
+        override fun run() {
+            val e = holder.engine
+            val s = "${e?.chainBusy}|${e?.chain?.locs?.size}|${e?.chain?.locs?.count { it.secs != null }}|${e?.logoRev}"
+            if (s != sig) { sig = s; invalidate() }
+            handler.postDelayed(this, 500)
+        }
+    }
+
+    init {
+        lifecycle.addObserver(object : DefaultLifecycleObserver {
+            override fun onStart(owner: LifecycleOwner) { handler.post(poll) }
+            override fun onStop(owner: LifecycleOwner) { handler.removeCallbacks(poll) }
+            override fun onDestroy(owner: LifecycleOwner) { holder.engine?.closeChain() }
+        })
+    }
+
+    override fun onGetTemplate(): Template {
+        val e = holder.engine
+        val b = ListTemplate.Builder().setTitle(e?.chain?.name ?: Lang.t("Standorte", "Locations")).setHeaderAction(Action.BACK)
+        if (e == null || (e.chainBusy && e.chain == null)) return b.setLoading(true).build()
+        val limit = try { carContext.getCarService(ConstraintManager::class.java).getContentLimit(ConstraintManager.CONTENT_LIMIT_TYPE_LIST) } catch (x: Exception) { 6 }
+        val list = ItemList.Builder().setNoItemsMessage(Lang.t("Keine Standorte gefunden", "No locations found"))
+        val locs = e.chainSorted("quick")
+        for (l in locs.take(limit.coerceIn(1, 12))) {
+            val r = Row.Builder().setTitle(l.place.name).setImage(placeIcon(carContext, l.place))
+            r.addText(listOfNotNull(l.secs?.let { com.headunit.launcher.Geo.fmtDur(it) }, com.headunit.launcher.Geo.fmtDist(l.dist, e.imperial)).joinToString(" · "))
+            if (l.place.sub.isNotBlank()) r.addText(l.place.sub)
+            r.setOnClickListener {
+                val p = l.place
+                e.closeChain()
+                if (e.route != null && !e.previewing) e.addStop(p) else e.startRoute(p)
+                screenManager.popToRoot()
+            }
+            list.addItem(r.build())
+        }
+        return b.setSingleList(list.build()).build()
     }
 }
 

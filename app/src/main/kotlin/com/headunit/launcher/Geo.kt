@@ -17,6 +17,10 @@ data class Step(val off: Double, val maneuver: String, val street: String, val m
 data class Place(val name: String, val sub: String, val pos: LL) {
     /** Whether a search found this as a town, city or region, so those can come before streets (not saved, not compared). */
     var town: Boolean = false
+    /** The shop's or brand's website when the search said ("lidl.de"), for its logo (see BrandLogos). Not saved, not compared. */
+    var web: String? = null
+    /** The brand or chain the search named ("Lidl"), if any. Not saved, not compared. */
+    var brand: String? = null
 }
 
 /** Marks a search result as a town, city or region (see [Place.town]). */
@@ -254,6 +258,10 @@ object TomTomRest {
             val name = poi?.optString("name")?.takeIf { it.isNotBlank() } ?: free.ifBlank { q }
             val sub = if (poi != null) free else addr?.optString("country").orEmpty()
             val p = Place(name, sub, LL(pos.getDouble("lat"), pos.getDouble("lon"))).town(poi == null && x.optString("type") == "Geography")
+            if (poi != null) {
+                p.web = poi.optString("url").takeIf { it.isNotBlank() }
+                p.brand = poi.optJSONArray("brands")?.optJSONObject(0)?.optString("name")?.takeIf { it.isNotBlank() }
+            }
             if (out.none { it.name == p.name && Geo.dist(it.pos, p.pos) < 60 }) out += p
         }
     }

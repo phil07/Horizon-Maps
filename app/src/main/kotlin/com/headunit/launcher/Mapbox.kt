@@ -81,6 +81,22 @@ object MapboxRest {
         return body
     }
 
+    /**
+     * Drive times in seconds with today's traffic from [from] to each of [to] (Mapbox's matrix; null where there's no road). Asked in
+     * groups of 9, as the traffic matrix takes 10 points at most.
+     */
+    fun driveTimes(token: String, from: LL, to: List<LL>): List<Double?> {
+        val out = ArrayList<Double?>()
+        for (chunk in to.chunked(9)) {
+            val coords = (listOf(from) + chunk).joinToString(";") { "${it.lon},${it.lat}" }
+            val dests = (1..chunk.size).joinToString(";")
+            val body = get("$API/directions-matrix/v1/mapbox/driving-traffic/$coords?sources=0&destinations=$dests&annotations=duration&access_token=${enc(token)}", 8000, 15000)
+            val row = JSONObject(body).optJSONArray("durations")?.optJSONArray(0)
+            for (i in chunk.indices) out += row?.let { r -> if (r.isNull(i)) null else r.optDouble(i).takeIf { !it.isNaN() } }
+        }
+        return out
+    }
+
     // ------------------------------------------------------------------ the map
 
     /** Mapbox's own looks: Navigation (made for driving, with live traffic), Streets, and Satellite with roads and labels. */

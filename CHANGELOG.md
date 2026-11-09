@@ -5,10 +5,10 @@ Add user-facing Horizon Nav changes under **Unreleased** before publishing each 
 ## Unreleased
 
 ### Neu
-- Wehende Fahnen: Die Zielflagge ist jetzt schwarz-weiß kariert und weht wie die gelben Zwischenzielfahnen im Wind, auf dem Handy und in Android Auto. Die Animation läuft nur, wenn die Karte nah herangezoomt ist.
-  EN: Waving flags: The destination flag is now a chequered finish flag and waves in the wind like the yellow stop flags, on the phone and in Android Auto. It only animates when zoomed in close.
-- Fahnen-Schalter: „Fahnen wehen“ schaltet die Bewegung ab. „3D-Fahnen“ wirkt jetzt sofort.
-  EN: Flag switches: "Waving flags" turns the movement off. "3D flags" now applies right away.
+- Alle Standorte anzeigen: Bei einer Suche nach einem Geschäft oder einer Kette (Lidl, Aldi, Starbucks …) mit mehreren Filialen in 25 km zeigt „Alle N Standorte anzeigen“ alle an. Sortiert nach Schnellste (Fahrzeit mit heutigem Verkehr), Nächste oder Auf meiner Route. Die Karte zeigt jede Filiale mit Logo und Fahrzeit. Antippen, dann „Los“ oder „Als Stopp“. „In diesem Bereich suchen“ sucht dort, wohin die Karte geschoben wurde. In Android Auto als Liste.
+  EN: See all locations: Search for a shop or chain (Lidl, Aldi, Starbucks …) with several branches within 25 km and "See all N locations" shows them all, sorted by Quickest (drive time with today's traffic), Nearest or On my route. The map shows each with its logo and drive time. Tap one, then Go or Add as stop. "Search this area" looks again where you moved the map. On Android Auto it's a list.
+- Logos in Suchergebnissen: Geschäfte und Marken zeigen ihr Logo (von ihrer Website oder aus einer eingebauten Liste bekannter Ketten). Logos bleiben nach dem ersten Mal auf dem Gerät; ohne Empfang erscheint die übliche Nadel.
+  EN: Logos in search results: Shops and brands show their own logo (from their website or a built-in list of common chains). Logos are kept on the device after the first time; without a signal the usual pin shows.
 
 ## 1.0.246 — 2026-10-28
 
