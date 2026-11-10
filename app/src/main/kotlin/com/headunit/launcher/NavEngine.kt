@@ -5943,15 +5943,23 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
     /** "left" or "right" for the side of the road the destination is on, from the route's own instruction or from where the pin is. */
     private fun arrivalSide(r: Route, maneuver: String): String {
         val m = maneuver.uppercase()
-        if (m.endsWith("LEFT")) return "links"
-        if (m.endsWith("RIGHT")) return "rechts"
-        val d = dest?.pos ?: return ""
-        if (r.pts.size < 2) return ""
-        val a = r.pts[r.pts.size - 2]; val b = r.pts.last()
-        if (Geo.dist(a, b) < 2.0 || Geo.dist(b, d) < 8.0) return ""
+        // the route service's own word, used only when the place is too close to the line to call from the map
+        val fromRoute = if (m.endsWith("LEFT")) "links" else if (m.endsWith("RIGHT")) "rechts" else ""
+        val d = dest?.pos ?: return fromRoute
+        if (r.pts.size < 2) return fromRoute
+        val b = r.pts.last()
+        // the way you're driving into the place: the last 40 m of the route, not the last couple of metres (a noisy direction)
+        var i = r.pts.size - 1; var acc = 0.0
+        while (i > 0 && acc < 40.0) { acc += Geo.dist(r.pts[i - 1], r.pts[i]); i-- }
+        val a = r.pts[i]
+        if (Geo.dist(a, b) < 5.0 || Geo.dist(b, d) < 8.0) return fromRoute
         val kx = cos(Geo.rad(b.lat)) * 111320.0
-        val cross = ((b.lon - a.lon) * kx) * ((d.lat - a.lat) * 110574.0) - ((b.lat - a.lat) * 110574.0) * ((d.lon - a.lon) * kx)
-        return if (cross > 0) "links" else "rechts"
+        val dx = (b.lon - a.lon) * kx; val dy = (b.lat - a.lat) * 110574.0
+        val ex = (d.lon - b.lon) * kx; val ey = (d.lat - b.lat) * 110574.0
+        // how far the place lies to the left (+) or right (-) of the way you're driving, in metres
+        val side = (dx * ey - dy * ex) / Math.hypot(dx, dy)
+        if (abs(side) >= 6.0) return if (side > 0) "links" else "rechts"
+        return fromRoute
     }
 
     // ---- arrive by ----

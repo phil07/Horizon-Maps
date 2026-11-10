@@ -387,6 +387,9 @@ private fun LimitBoard(n: Int, canada: Boolean, over: Boolean, estimated: Boolea
             .then(if (onClick != null) Modifier.clickable { onClick() } else Modifier),
         contentAlignment = Alignment.Center,
     ) {
+        // the words and figures are sized from the sign itself: the car's own larger text size used to squash them
+        val dens = androidx.compose.ui.platform.LocalDensity.current
+        androidx.compose.runtime.CompositionLocalProvider(androidx.compose.ui.platform.LocalDensity provides androidx.compose.ui.unit.Density(dens.density, 1f)) {
         androidx.compose.foundation.layout.Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = androidx.compose.foundation.layout.Arrangement.Center) {
             val head = (size.value * 0.12f).sp
             if (canada) Text(stringResource(R.string.ui_032), color = Color(0xFF151515), fontSize = (size.value * 0.105f).sp, fontWeight = FontWeight.Bold, maxLines = 1, lineHeight = head)
@@ -396,6 +399,7 @@ private fun LimitBoard(n: Int, canada: Boolean, over: Boolean, estimated: Boolea
             }
             Text("$n", color = if (estimated) Color(0xFF4A4A4A) else Color(0xFF111111), fontSize = (size.value * (if (n >= 100) 0.3f else 0.38f)).sp,
                 fontWeight = FontWeight.Black, maxLines = 1, lineHeight = (size.value * 0.4f).sp)
+        }
         }
     }
 }

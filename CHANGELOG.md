@@ -29,6 +29,10 @@ Add user-facing Horizon Nav changes under **Unreleased** before publishing each 
   EN: Street lamps where they really are: Lamps from OpenStreetMap now also come online. Mapped lamps are shown where they are, guessed ones only fill the gaps. Fetched once per area, kept for a month.
 
 ### Behoben
+- Falsche Seite bei der Ankunft: „Ziel liegt rechts“ bei einem Ziel links. Die Seite wird jetzt aus der Lage des Ziels zur Fahrtrichtung berechnet. Die Angabe des Routendienstes gilt nur, wenn die Lage zu knapp ist.
+  EN: Wrong side on arrival: "destination on the right" for a place on the left. The side is now worked out from where the place is against your direction of travel; the route service's word is only used when that's too close to call.
+- Tempolimit-Schild auf Android Auto: Die Schrift des US- und kanadischen Schilds richtet sich nach dem Schild selbst, eine größere Textgröße am Auto drückt sie nicht mehr zusammen. Das Schild neben dem Tacho ist etwas größer.
+  EN: Speed limit sign on Android Auto: The US and Canadian board's words are sized from the sign itself, so a larger car text size can't squash them. The board next to the speedometer is a little bigger.
 - Absturz beim Antippen eines Ortes auf der Karte: Ein Ort ohne Namen in Mapbox' Daten schloss die App. Namenlose Orte werden jetzt ignoriert, und andere Fehler bei einem Kartentipp können die App nicht mehr schließen.
   EN: Crash tapping a place on the map: A place with no name in Mapbox's data closed the app. Nameless places are now ignored, and other errors in a map tap can no longer close the app.
 - Spurbild unter der Abbiegekarte auf Android Auto: Auf einem kurzen Bildschirm lief es unter die Fahrtkarte. Es wird jetzt passend zum freien Platz kleiner und entfällt, wenn selbst ein kleines nicht passt. Die Spuren stehen trotzdem in der Abbiegekarte.

@@ -973,7 +973,8 @@ private fun SpeedRing(engine: NavEngine, show: Boolean, k: Double) {
                 // beside the ring's upper corner, just clear of it (raised over the top it covered the battery chip above and the ring)
                 .offset(x = if (!show) 0.dp else if (signRight) 48.dp else (-48).dp, y = 0.dp)
         ) {
-            SpeedLimitSign(engine, if (show) 50.dp else 70.dp)
+            // (on the car, a little bigger beside the speedometer: it's read at a glance)
+            SpeedLimitSign(engine, if (show) (if (engine.isCar) 58.dp else 50.dp) else 70.dp)
         }
     }
 }
