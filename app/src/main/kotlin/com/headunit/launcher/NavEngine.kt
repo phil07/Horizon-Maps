@@ -2790,7 +2790,11 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
             votes += SpeedVote.Vote("HERE", SpeedVote.NONE, SpeedVote.W_HERE)
         // TomTom has no way to say "no limit": where OpenStreetMap says so outright, an answer of its from the stretch before doesn't count
         if (tt != null && !osmNone) votes += SpeedVote.Vote("TomTom", tt.ms, cw(tt.ms, SpeedVote.W_TOMTOM))
-        if (mb != null) votes += SpeedVote.Vote("Mapbox", if (mb <= 0.0) SpeedVote.NONE else mb, if (mb <= 0.0) SpeedVote.W_MAPBOX else cw(mb, SpeedVote.W_MAPBOX))
+        // Mapbox's limits are largely OpenStreetMap's: where it says the same as OpenStreetMap, that is one source, counted once
+        // (both at full weight made an OSM-based limit count twice as much as a sign). Where they differ, both still count.
+        val mbSameAsOsm = mb != null && osm != null && !osm.estimated &&
+            ((osmNone && mb <= 0.0) || (!osmNone && osm.ms > 0.0 && mb > 0.0 && abs(mb - osm.ms) < 0.6))
+        if (mb != null && !mbSameAsOsm) votes += SpeedVote.Vote("Mapbox", if (mb <= 0.0) SpeedVote.NONE else mb, if (mb <= 0.0) SpeedVote.W_MAPBOX else cw(mb, SpeedVote.W_MAPBOX))
         if (rws != null) votes += SpeedVote.Vote("RWS", rws, cw(rws, SpeedVote.W_RWS))
         // the route's limit is its service's own data: where that service already answered for this road it isn't counted twice
         // (TomTom's route and TomTom's road lookup both voting 30 outweighed OpenStreetMap and Mapbox saying 50)

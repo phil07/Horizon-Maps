@@ -12,6 +12,9 @@ Add user-facing Horizon Nav changes under **Unreleased** before publishing each 
 - Einfachere Routen bevorzugen: Unter Einstellungen › Routen › Routenauswahl. Eine Route, die nur etwa eine Minute langsamer ist, aber deutlich weniger Abbiegungen hat, wird zuerst gewählt und heißt jetzt Einfachste (vorher Kürzeste). Ausgeschaltet startet die App immer auf der schnellsten Route.
   EN: Prefer simpler routes: Under Settings › Routes › Route choice. A route only about a minute slower but with far fewer turns is picked first, and is now labelled Simplest (it used to say Shortest). Switched off, the app always starts on the fastest route.
 
+- Tempolimit-Abstimmung: Stimmen Mapbox und OpenStreetMap überein, zählt das jetzt einmal statt doppelt.
+  EN: Speed limit vote: When Mapbox and OpenStreetMap agree, it now counts once instead of twice.
+
 ### Behoben
 - Absturz beim Antippen eines Ortes auf der Karte: Ein Ort ohne Namen in Mapbox' Daten schloss die App. Namenlose Orte werden jetzt ignoriert, und andere Fehler bei einem Kartentipp können die App nicht mehr schließen.
   EN: Crash tapping a place on the map: A place with no name in Mapbox's data closed the app. Nameless places are now ignored, and other errors in a map tap can no longer close the app.
