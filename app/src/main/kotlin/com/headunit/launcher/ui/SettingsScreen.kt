@@ -1074,6 +1074,7 @@ private fun AndroidAutoSection(prefs: Prefs) {
             SChoice("Knopfgröße", listOf("normal" to "Normal", "large" to "Groß", "xl" to "Extra groß"), prefs.s(PreferenceKeys.TRIP_BTN_SIZE, "normal"),
                 "Weniger Knöpfe machen die Karte schmaler, so bleibt mehr von der Karte frei") { prefs.put(PreferenceKeys.TRIP_BTN_SIZE, it) }
         }
+        VehiclesGroup(prefs)
         SItem("Installiert durch", source)
         SItem("Sprachsuche im Auto", "„Hey Google, navigiere mit Horizon Nav zu …“. Ohne „mit Horizon Nav“ nur als Standard-Navigations-App.")
         SItem("Android Auto Einstellungen", if (hasAa) null else "Android Auto ist auf diesem Telefon nicht installiert") {
@@ -1728,3 +1729,37 @@ internal fun TiltSetting(prefs: Prefs, title: String, key: String) {
     }
     if (own) SSlider("Neigung", v.toFloat(), 30f..65f, "°", steps = 34, reset = 55f) { prefs.put(key, it.coerceIn(30, 65)) }
 }
+
+/** Several cars (Android Auto > Fahrzeuge): each car is its Bluetooth device, and keeps its own fuel and electric car settings. */
+@Composable
+private fun VehiclesGroup(prefs: Prefs) {
+    SGroup("Fahrzeuge") {
+        val cars = com.headunit.launcher.VehicleProfiles.cars(prefs)
+        val active = com.headunit.launcher.VehicleProfiles.activeId(prefs)
+        val pend = com.headunit.launcher.VehicleProfiles.pending(prefs)
+        if (pend != null) {
+            SItem("Unbekanntes Bluetooth-Gerät: ${pend.second}", "Welches Fahrzeug ist das? Danach wird es beim Verbinden automatisch gewählt.")
+            for (c in cars) SButton("Zu ${c.name}") {
+                com.headunit.launcher.VehicleProfiles.assign(prefs, c.id, pend.first)
+                com.headunit.launcher.VehicleProfiles.clearPending(prefs)
+                com.headunit.launcher.VehicleProfiles.switchTo(prefs, c.id)
+            }
+            SButton("Als neues Fahrzeug anlegen", primary = true) {
+                com.headunit.launcher.VehicleProfiles.create(prefs, pend.second, pend.first)
+                com.headunit.launcher.VehicleProfiles.clearPending(prefs)
+            }
+            SButton("Nicht jetzt") { com.headunit.launcher.VehicleProfiles.clearPending(prefs) }
+        }
+        if (cars.isEmpty()) SItem("Noch kein Fahrzeug angelegt", "Die Einstellungen gelten für alle Autos, bis du ein Fahrzeug anlegst.")
+        for (c in cars) {
+            val isActive = c.id == active
+            SItem(c.name, if (isActive) "Aktiv · ${if (c.bt.isEmpty()) "kein Bluetooth-Gerät zugeordnet" else c.bt.size.toString() + " Bluetooth-Gerät(e)"}"
+                else "Antippen, um dieses Fahrzeug zu wählen") { com.headunit.launcher.VehicleProfiles.switchTo(prefs, c.id) }
+            if (!isActive) SButton("Löschen", danger = true) { com.headunit.launcher.VehicleProfiles.delete(prefs, c.id) }
+        }
+        SButton("Aktuelle Einstellungen als neues Fahrzeug speichern") {
+            com.headunit.launcher.VehicleProfiles.create(prefs, "Fahrzeug ${cars.size + 1}", null)
+        }
+    }
+}
+

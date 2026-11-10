@@ -15,6 +15,9 @@ Add user-facing Horizon Nav changes under **Unreleased** before publishing each 
 - Tempolimit-Abstimmung: Stimmen Mapbox und OpenStreetMap überein, zählt das jetzt einmal statt doppelt.
   EN: Speed limit vote: When Mapbox and OpenStreetMap agree, it now counts once instead of twice.
 
+- Mehrere Fahrzeuge: Jedes Auto (über sein Bluetooth-Gerät) behält seinen Kraftstoff, die E-Auto-Daten und die aus Fahrten gelernten Werte. Verbindet sich ein bekanntes Auto, wird es automatisch gewählt. Ein unbekanntes Gerät fragt Einstellungen › Android Auto › Fahrzeuge.
+  EN: Several cars: Each car (by its Bluetooth device) keeps its fuel type, electric car data and the values learned from its trips. A known car is picked automatically when it connects. For an unknown device, Settings › Android Auto › Vehicles asks which car it is.
+
 ### Behoben
 - Absturz beim Antippen eines Ortes auf der Karte: Ein Ort ohne Namen in Mapbox' Daten schloss die App. Namenlose Orte werden jetzt ignoriert, und andere Fehler bei einem Kartentipp können die App nicht mehr schließen.
   EN: Crash tapping a place on the map: A place with no name in Mapbox's data closed the app. Nameless places are now ignored, and other errors in a map tap can no longer close the app.

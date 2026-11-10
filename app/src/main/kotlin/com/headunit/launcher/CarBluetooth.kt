@@ -41,12 +41,18 @@ object CarBluetooth {
     @Suppress("MissingPermission")
     fun onBluetooth(ctx: Context, intent: Intent) {
         val prefs = Prefs(ctx.applicationContext)
-        if (!prefs.b(PreferenceKeys.PARK_BLUETOOTH, true)) return
         val dev: BluetoothDevice? = try {
             if (android.os.Build.VERSION.SDK_INT >= 33) intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE, BluetoothDevice::class.java)
             else @Suppress("DEPRECATION") intent.getParcelableExtra<BluetoothDevice>(BluetoothDevice.EXTRA_DEVICE)
         } catch (e: Exception) { null }
         val addr = try { dev?.address } catch (e: SecurityException) { null } ?: return
+        // which car this is (Settings > Android Auto > Fahrzeuge): runs whether or not the parked-spot feature is on
+        if (intent.action == BluetoothDevice.ACTION_ACL_CONNECTED) try {
+            val cls = dev?.bluetoothClass
+            val carClass = cls != null && isCarClass(cls.majorDeviceClass, cls.deviceClass)
+            if (carClass || VehicleProfiles.knows(prefs, addr)) VehicleProfiles.onConnected(prefs, addr, try { dev?.name } catch (e: SecurityException) { null } ?: "Bluetooth $addr", carClass)
+        } catch (e: Exception) { android.util.Log.w("CarBluetooth", "vehicle: ${e.message}") }
+        if (!prefs.b(PreferenceKeys.PARK_BLUETOOTH, true)) return
         val now = System.currentTimeMillis()
         when (intent.action) {
             BluetoothDevice.ACTION_ACL_CONNECTED -> {
