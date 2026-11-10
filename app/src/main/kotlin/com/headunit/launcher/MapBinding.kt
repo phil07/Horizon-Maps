@@ -223,11 +223,14 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
         }
         mapView.gestures.addOnMapLongClickListener { p -> onLongPress?.invoke(LL(p.latitude(), p.longitude())); true }
         mapView.gestures.addOnMapClickListener { p ->
-            main0.postDelayed({ tapClears() }, 150L)
-            val used = try { val s = mbMap.pixelForCoordinate(p); tapAt(android.graphics.PointF(s.x.toFloat(), s.y.toFloat())) } catch (e: Throwable) { false }
-            // nothing of the app's under the tap, and (a moment later) no place of the map's either: a tap on a free spot
-            if (!used) { val at = android.os.SystemClock.uptimeMillis(); main0.postDelayed({ if (poiTapAt < at) onFreeTap?.invoke(LL(p.latitude(), p.longitude())) }, 300L) }
-            used
+            // (whatever goes wrong in a tap is logged, never allowed to close the app)
+            try {
+                main0.postDelayed({ tapClears() }, 150L)
+                val used = try { val s = mbMap.pixelForCoordinate(p); tapAt(android.graphics.PointF(s.x.toFloat(), s.y.toFloat())) } catch (e: Throwable) { false }
+                // nothing of the app's under the tap, and (a moment later) no place of the map's either: a tap on a free spot
+                if (!used) { val at = android.os.SystemClock.uptimeMillis(); main0.postDelayed({ if (poiTapAt < at) try { onFreeTap?.invoke(LL(p.latitude(), p.longitude())) } catch (e: Throwable) { android.util.Log.w("MapBinding", "free tap: ${e.message}") } }, 300L) }
+                used
+            } catch (e: Throwable) { android.util.Log.w("MapBinding", "map tap: ${e.message}"); false }
         }
         // any touch that moves the map (drag, pinch, twist, two-finger tilt) stops the follow camera
         mapView.gestures.addOnMoveListener(object : OnMoveListener {
@@ -1314,8 +1317,12 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
             })
             mbMap.addInteraction(com.mapbox.maps.ClickInteraction.standardPoi { f, _ ->
                 if (!tapSelectOn) return@standardPoi false
-                val g = f.geometry
-                f.name?.let { n -> poiTapAt = android.os.SystemClock.uptimeMillis(); onPoiTap?.invoke(n, LL(g.latitude(), g.longitude())) }
+                // a place without a name or a position in the map's data is ignored (it used to crash the app)
+                try {
+                    val n = f.name
+                    val g = f.geometry
+                    if (!n.isNullOrBlank() && g != null) { poiTapAt = android.os.SystemClock.uptimeMillis(); onPoiTap?.invoke(n, LL(g.latitude(), g.longitude())) }
+                } catch (e: Throwable) { android.util.Log.w("MapBinding", "place tap: ${e.message}") }
                 false
             })
         } catch (e: Throwable) { android.util.Log.w("MapBinding", "tap highlight: ${e.message}") }
