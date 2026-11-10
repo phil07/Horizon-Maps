@@ -644,7 +644,7 @@ private fun CarRoutePreview(engine: NavEngine) {
     val cards: @Composable androidx.compose.foundation.layout.RowScope.() -> Unit = {
         rs.forEachIndexed { i, r ->
             val sel = i == engine.active
-            val label = if (i == fastest) "Schnellste" else if (i == shortest) "Kürzeste" else "Alternative"
+            val label = if (i == fastest) "Schnellste" else if (i == engine.simplerIdx) Lang.t("Einfachste", "Simplest") else if (i == shortest) "Kürzeste" else "Alternative"
             Column(Modifier.weight(1f).inset(18.dp, if (sel) c.accent else null).carTap("route-$i") { engine.selectRoute(i) }.padding(horizontal = 12.dp, vertical = 9.dp)) {
                 Text(label.uppercase(), color = if (sel) c.accent else c.sub, fontSize = 11.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp, maxLines = 1)
                 Text(Geo.fmtDur(r.time), color = c.text, fontSize = 22.sp, fontWeight = FontWeight.Bold, maxLines = 1)

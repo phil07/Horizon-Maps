@@ -39,6 +39,8 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
     // ---- observable state ----
     var fix by mutableStateOf<Fix?>(null)
     var routes by mutableStateOf<List<Route>>(emptyList())
+    /** The route picked as the simpler one (fewer turns), or -1: shown as "Einfachste" rather than "Kürzeste". */
+    var simplerIdx by mutableStateOf(-1)
     var routeFrac by mutableStateOf(0f)
     var active by mutableIntStateOf(0)
     var dest by mutableStateOf<Place?>(null)
@@ -499,6 +501,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
     private fun simplerPick(rs: List<Route>): Int {
         if (rs.isEmpty()) return 0
         val f = rs.indices.minByOrNull { rs[it].time } ?: 0
+        if (!prefs.b(PreferenceKeys.SIMPLER_ROUTE, true)) return f
         val fastT = rs[f].time
         val fastTurns = turnCount(rs[f])
         return rs.indices
@@ -2299,6 +2302,8 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
                 stopSim()
                 if (TomTomRest.avoidDropped && !usedOffline) toast(ctx.getString(R.string.toast_005), 5000)
                 // (the way sent from the phone was picked by hand there: it is kept like one picked here)
+                // the simpler route (fewer turns, about as quick) is labelled as such; none when the fastest was picked
+                simplerIdx = if (prefer == null && sent == null && rs.size > 1 && pick != rs.indices.minByOrNull { rs[it].time }) pick else -1
                 dest = to; routes = rs; active = pick; userPicked = sent != null && prefer == null
                 if (isEv && via.isEmpty() && prefs.b(PreferenceKeys.SMARTFUEL, true)) planEvAllRoutes()
                 prediction = null; predictionAt = 0L

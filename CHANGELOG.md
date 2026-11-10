@@ -8,6 +8,10 @@ Add user-facing Horizon Nav changes under **Unreleased** before publishing each 
 - Knöpfe auf der Fahrtkarte: Unter Einstellungen > Android Auto lassen sich Übersicht, Andere Routen, Ton und Beenden ein- und ausschalten, und die Knöpfe in drei Größen wählen. Weniger Knöpfe machen die Karte schmaler.
   EN: Trip card buttons: Under Settings > Android Auto you can turn Overview, Other routes, Sound and End on or off, and pick the buttons' size (three sizes). Fewer buttons make the card narrower.
 
+### Neu
+- Einfachere Routen bevorzugen: Unter Einstellungen › Routen › Routenauswahl. Eine Route, die nur etwa eine Minute langsamer ist, aber deutlich weniger Abbiegungen hat, wird zuerst gewählt und heißt jetzt Einfachste (vorher Kürzeste). Ausgeschaltet startet die App immer auf der schnellsten Route.
+  EN: Prefer simpler routes: Under Settings › Routes › Route choice. A route only about a minute slower but with far fewer turns is picked first, and is now labelled Simplest (it used to say Shortest). Switched off, the app always starts on the fastest route.
+
 ### Behoben
 - Absturz beim Antippen eines Ortes auf der Karte: Ein Ort ohne Namen in Mapbox' Daten schloss die App. Namenlose Orte werden jetzt ignoriert, und andere Fehler bei einem Kartentipp können die App nicht mehr schließen.
   EN: Crash tapping a place on the map: A place with no name in Mapbox's data closed the app. Nameless places are now ignored, and other errors in a map tap can no longer close the app.

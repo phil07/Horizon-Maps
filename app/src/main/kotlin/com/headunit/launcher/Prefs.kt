@@ -258,6 +258,8 @@ internal object PreferenceKeys {
     const val RESUME = "resume"
     const val ROADFAM = "roadfam"
     const val ROUTE_ECO = "route_eco"
+    /** Start on a much simpler route (far fewer turns) when it's only about a minute slower; off = always the fastest. */
+    const val SIMPLER_ROUTE = "simpler_route"
     const val ROUTEBACK = "routeback"
     const val ROUTEBAR = "routebar"
     const val ROUTECHEVRONS = "routechevrons"
