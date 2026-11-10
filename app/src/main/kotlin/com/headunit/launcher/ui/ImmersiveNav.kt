@@ -278,6 +278,8 @@ private fun MapScreen(engine: NavEngine, onSettings: () -> Unit) {
                 if (engine.walking) WalkCard(engine)
                 ImmSearch(engine, q, { q = it }, typingLocked, focus, voice)
                 engine.phoneDest?.let { pd -> PhoneDestCard(engine, pd) }
+                // an unknown car's Bluetooth device: which car it is (see Settings > Android Auto > Fahrzeuge)
+                VehicleAskCard(engine.prefs, onCar = false, Modifier.fillMaxWidth())
                 val showResults = engine.results.isNotEmpty() || engine.chain != null || engine.chainBusy
                 AnimatedVisibility(showResults, enter = fadeIn(tween(180)) + androidx.compose.animation.expandVertically(tween(240)), exit = fadeOut(tween(120)) + androidx.compose.animation.shrinkVertically(tween(180))) {
                     if (engine.chain != null || engine.chainBusy) ChainPanel(engine) { q = "" } else ImmResults(engine) { q = "" }

@@ -1755,6 +1755,7 @@ private fun VehiclesGroup(prefs: Prefs) {
             val isActive = c.id == active
             SItem(c.name, if (isActive) "Aktiv · ${if (c.bt.isEmpty()) "kein Bluetooth-Gerät zugeordnet" else c.bt.size.toString() + " Bluetooth-Gerät(e)"}"
                 else "Antippen, um dieses Fahrzeug zu wählen") { com.headunit.launcher.VehicleProfiles.switchTo(prefs, c.id) }
+            SFieldItem("Name", c.name, "Wie das Auto heißt, z. B. „ID.4“") { com.headunit.launcher.VehicleProfiles.rename(prefs, c.id, it) }
             if (!isActive) SButton("Löschen", danger = true) { com.headunit.launcher.VehicleProfiles.delete(prefs, c.id) }
         }
         SButton("Aktuelle Einstellungen als neues Fahrzeug speichern") {

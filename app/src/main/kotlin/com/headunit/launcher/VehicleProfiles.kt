@@ -42,7 +42,10 @@ object VehicleProfiles {
     }
 
     /** The car settings as they are now (the empty ones left out). */
-    private fun snapshot(prefs: Prefs): Map<String, String> = KEYS.associateWith { prefs.s(it, "") }.filterValues { it.isNotEmpty() }
+    /** The vehicle kinds' own sizes and speeds ("veh_camper_h" and so on), kept per car as well. */
+    private val KIND_KEYS = listOf("car", "camper", "lorry").flatMap { k -> listOf("max", "h", "w", "l", "kg", "axlekg").map { Vehicle.key(k, it) } }
+
+    private fun snapshot(prefs: Prefs): Map<String, String> = (KEYS + KIND_KEYS).associateWith { prefs.s(it, "") }.filterValues { it.isNotEmpty() }
 
     private fun apply(prefs: Prefs, data: Map<String, String>) { for ((k, v) in data) if (prefs.s(k, "") != v) prefs.put(k, v) }
 
@@ -79,6 +82,12 @@ object VehicleProfiles {
         prefs.put(KEY_ACTIVE, id)
         save(prefs, cars)
         return id
+    }
+
+    @Synchronized fun rename(prefs: Prefs, id: String, name: String) {
+        val n = name.trim().take(40)
+        if (n.isEmpty()) return
+        save(prefs, load(prefs).map { if (it.id == id) it.copy(name = n) else it }.toMutableList())
     }
 
     /** Puts a Bluetooth device with [addr] to car [id] (taking it away from any other car). */

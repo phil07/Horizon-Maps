@@ -319,6 +319,8 @@ private fun CarScreen(engine: NavEngine, a: android.graphics.Rect?, actions: Car
             ImmCompass(engine, Modifier.align(Alignment.TopEnd).padding(end = rightTop, top = top + below + if (portrait) 84.dp else 0.dp))
         }
 
+        // an unknown car's Bluetooth device connected: which car it is
+        VehicleAskCard(engine.prefs, onCar = true, Modifier.align(Alignment.TopCenter).padding(top = 12.dp))
         if (!previewing && !arriving) {
             val hazards: @Composable () -> Unit = {
                 // (only when there's no turn card to carry them)
