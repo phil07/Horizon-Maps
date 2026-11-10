@@ -549,23 +549,34 @@ private fun TripCard(engine: NavEngine, fill: Boolean) {
         val pill: @Composable (String, Dp, () -> Unit) -> Unit = { label, h, action ->
             Box(Modifier.height(h).clip(androidx.compose.foundation.shape.CircleShape).background(c.line).carTap("trip-$label") { action() }
                 .padding(horizontal = 16.dp), contentAlignment = Alignment.Center) {
-                Text(label, color = c.text, fontSize = 20.sp, fontWeight = FontWeight.Medium, maxLines = 1)
+                Text(label, color = c.text, fontSize = (20f * h.value / 46f).sp, fontWeight = FontWeight.Medium, maxLines = 1)
             }
         }
         val overviewBtn: @Composable (Dp) -> Unit = { h -> pill(Lang.t("Übersicht", "Overview"), h) { engine.overview() } }
         val otherBtn: @Composable (Dp) -> Unit = { h ->
             pill(if (engine.prefs.b(PreferenceKeys.LIVE_ALTERNATIVES, true)) Lang.t("Andere aus", "Hide others") else Lang.t("Andere an", "Show others"), h) { engine.toggleOtherRoutes() }
         }
+        // the buttons chosen in Settings > Android Auto > Knöpfe auf der Fahrtkarte, and their size
+        val showOv = engine.prefs.b(PreferenceKeys.TRIP_BTN_OVERVIEW, true)
+        val showOther = engine.prefs.b(PreferenceKeys.TRIP_BTN_OTHERS, true)
+        val showSound = engine.prefs.b(PreferenceKeys.TRIP_BTN_SOUND, true)
+        val showEnd = engine.prefs.b(PreferenceKeys.TRIP_BTN_END, true)
+        val sizeK = when (engine.prefs.s(PreferenceKeys.TRIP_BTN_SIZE, "normal")) { "large" -> 1.2f; "xl" -> 1.4f; else -> 1f }
         if (fill) Row(Modifier.fillMaxWidth().padding(start = 16.dp, end = 10.dp, top = 4.dp, bottom = 10.dp), verticalAlignment = Alignment.CenterVertically) {
             Row(Modifier.weight(1f), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) { stats() }
-            Box(Modifier.padding(start = 8.dp)) { overviewBtn(46.dp) }
-            Box(Modifier.padding(start = 8.dp)) { otherBtn(46.dp) }
-            Box(Modifier.padding(start = 12.dp)) { sound(46.dp) }
-            Box(Modifier.padding(start = 8.dp)) { end(46.dp) }
+            if (showOv) Box(Modifier.padding(start = 8.dp)) { overviewBtn(46.dp * sizeK) }
+            if (showOther) Box(Modifier.padding(start = 8.dp)) { otherBtn(46.dp * sizeK) }
+            if (showSound) Box(Modifier.padding(start = 12.dp)) { sound(46.dp * sizeK) }
+            if (showEnd) Box(Modifier.padding(start = 8.dp)) { end(46.dp * sizeK) }
         } else Row(Modifier.widthIn(min = 460.dp).onSizeChanged { if (it.width != rowW) rowW = it.width }.padding(start = 16.dp, end = 10.dp, top = 4.dp, bottom = 10.dp),
             horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
             Row(horizontalArrangement = Arrangement.spacedBy(26.dp), verticalAlignment = Alignment.CenterVertically) { stats() }
-            Row(Modifier.padding(start = 16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) { overviewBtn(54.dp); otherBtn(54.dp); sound(54.dp); end(54.dp) }
+            Row(Modifier.padding(start = 16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                if (showOv) overviewBtn(54.dp * sizeK)
+                if (showOther) otherBtn(54.dp * sizeK)
+                if (showSound) sound(54.dp * sizeK)
+                if (showEnd) end(54.dp * sizeK)
+            }
         }
     }
 }

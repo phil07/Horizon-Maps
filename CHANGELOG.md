@@ -4,7 +4,13 @@ Add user-facing Horizon Nav changes under **Unreleased** before publishing each 
 
 ## Unreleased
 
+### Neu
+- Knöpfe auf der Fahrtkarte: Unter Einstellungen > Android Auto lassen sich Übersicht, Andere Routen, Ton und Beenden ein- und ausschalten, und die Knöpfe in drei Größen wählen. Weniger Knöpfe machen die Karte schmaler.
+  EN: Trip card buttons: Under Settings > Android Auto you can turn Overview, Other routes, Sound and End on or off, and pick the buttons' size (three sizes). Fewer buttons make the card narrower.
+
 ### Behoben
+- Spurbild unter der Abbiegekarte auf Android Auto: Auf einem kurzen Bildschirm lief es unter die Fahrtkarte. Es wird jetzt passend zum freien Platz kleiner und entfällt, wenn selbst ein kleines nicht passt. Die Spuren stehen trotzdem in der Abbiegekarte.
+  EN: Lane picture under the turn card on Android Auto: On a short screen it ran under the trip card. It now shrinks to the free room and is left out when even a small one wouldn't fit. The lanes still show in the turn card.
 - Abbiegung am Ende einer Slip Road: Die Anzeige zählt jetzt bis zur Stelle herunter, an der die Slip Road die Hauptstraße verlässt („Ausfahrt links nehmen“), und erst danach bis zum Abbiegen. Vorher zählte sie bis zum Ende der Slip Road.
   EN: Turn at the end of a slip road: The display now counts down to where the slip road leaves the main road ("take the exit on the left"), and only then to the turn. It used to count down to the end of the slip road.
 

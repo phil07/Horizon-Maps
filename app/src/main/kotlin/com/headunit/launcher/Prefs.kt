@@ -302,6 +302,12 @@ internal object PreferenceKeys {
     const val AVOID_TOLL_COUNTRIES = "avoid_toll_cc"
     const val ROAD_NAME_SIZE = "roadnamesize"
     const val CAR_ROAD_NAME_SIZE = "carroadnamesize"
+    /** Buttons on the Android Auto trip card (on/off each) and their size: "normal", "large" or "xl". */
+    const val TRIP_BTN_OVERVIEW = "tripbtn_overview"
+    const val TRIP_BTN_OTHERS = "tripbtn_others"
+    const val TRIP_BTN_SOUND = "tripbtn_sound"
+    const val TRIP_BTN_END = "tripbtn_end"
+    const val TRIP_BTN_SIZE = "tripbtn_size"
     const val CAR_MODEL = "carmodel"
     const val TRAFFIC_GREEN = "trafficgreen"
     const val STOP_SIGNS = "stopsigns"

@@ -740,7 +740,13 @@ class MapScreen(carContext: CarContext, private val holder: CarHolder) : Screen(
         }
 
         /** The lanes drawn side by side: white arrows for the lanes to use, grey for the rest. */
-        private fun lanesPicture(lanes: List<List<Pair<String, Boolean>>>): android.graphics.Bitmap {
+        private fun lanesPicture(lanes: List<List<Pair<String, Boolean>>>, scale: Float = 1f): android.graphics.Bitmap {
+            val full = lanesPictureFull(lanes)
+            if (scale >= 0.999f) return full
+            return android.graphics.Bitmap.createScaledBitmap(full, (full.width * scale).toInt().coerceAtLeast(1), (full.height * scale).toInt().coerceAtLeast(1), true)
+        }
+
+        private fun lanesPictureFull(lanes: List<List<Pair<String, Boolean>>>): android.graphics.Bitmap {
             val lw = 72; val h = 96
             val bmp = android.graphics.Bitmap.createBitmap(lw * lanes.size, h, android.graphics.Bitmap.Config.ARGB_8888)
             val c = Canvas(bmp)
@@ -875,9 +881,15 @@ class MapScreen(carContext: CarContext, private val holder: CarHolder) : Screen(
                         for ((d, ok) in r) lb.addDirection(LaneDirection.create(laneShape(d), ok))
                         sb.addLane(lb.build())
                     }
-                    val key = recs.toString()
-                    val pic = lanesCache?.takeIf { it.first == key }?.second ?: lanesPicture(recs).also { lanesCache = key to it }
-                    sb.setLanesImage(CarIcon.Builder(IconCompat.createWithBitmap(pic)).build())
+                    // Android Auto puts this picture under the turn card, and the app's trip card may cover the space below it: the
+                    // picture shrinks to the room left by the trip card, and is left out when even a small one wouldn't fit (the
+                    // lanes still show in the turn card itself)
+                    val room = ((1.0 - (e?.bottomCover ?: 0.0) - 0.45) / 0.35).coerceIn(0.0, 1.0)
+                    if (room >= 0.4) {
+                        val key = recs.toString() + "@" + (room * 10).toInt()
+                        val pic = lanesCache?.takeIf { it.first == key }?.second ?: lanesPicture(recs, room.toFloat()).also { lanesCache = key to it }
+                        sb.setLanesImage(CarIcon.Builder(IconCompat.createWithBitmap(pic)).build())
+                    }
                 }
             } catch (x: Exception) { }
             return sb.build()
