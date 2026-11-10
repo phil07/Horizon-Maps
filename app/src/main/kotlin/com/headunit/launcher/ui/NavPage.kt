@@ -249,7 +249,7 @@ internal fun BoxScope.RoutePreview(engine: NavEngine) {
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         Pill(if (showOpts) Lang.t("Optionen ▴", "Options ▴") else Lang.t("Optionen ▾", "Options ▾"), showOpts, { showOpts = !showOpts })
-        Column(Modifier.weight(1f, fill = false).padding(end = 8.dp)) {
+        if (!engine.previewing) Column(Modifier.weight(1f, fill = false).padding(end = 8.dp)) {
             if (summary.isNotEmpty()) Text(summary, color = c.sub, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
             engine.destRain?.let { Text(it, color = Warn, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis) }
         }
@@ -297,17 +297,17 @@ internal fun BoxScope.RoutePreview(engine: NavEngine) {
     val narrowP = androidx.compose.ui.platform.LocalConfiguration.current.screenWidthDp < 720
     val destPart: @Composable (Modifier) -> Unit = { m ->
         Column(m) {
-            Text(stringResource(R.string.ui_012), color = c.sub, fontSize = 12.sp)
-            Text(engine.dest?.name ?: "", color = c.text, fontSize = 17.sp, fontWeight = FontWeight.Bold, maxLines = 2, overflow = TextOverflow.Ellipsis)
             val d = engine.dest
-            if (d != null) Row(Modifier.padding(top = 4.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(stringResource(R.string.ui_012), color = c.sub, fontSize = 12.sp, modifier = Modifier.weight(1f, fill = false))
+                if (d != null) Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 val fav = engine.places.isFavourite(d)
                 Icon(if (fav) Icons.Rounded.Star else Icons.Rounded.StarBorder, Lang.t("Favorit", "Favourite"), tint = if (fav) Warn else c.sub,
-                    modifier = Modifier.size(26.dp).clickable { engine.toast(if (engine.places.toggleFavourite(d)) engine.str(R.string.toast_065) else engine.str(R.string.rest_1253), 2000) })
+                    modifier = Modifier.size(22.dp).clickable { engine.toast(if (engine.places.toggleFavourite(d)) engine.str(R.string.toast_065) else engine.str(R.string.rest_1253), 2000) })
                 Icon(Icons.Rounded.Home, Lang.t("Als Zuhause festlegen", "Set as home"), tint = c.sub,
-                    modifier = Modifier.size(26.dp).clickable { engine.places.setSlot("home", d); engine.toast(engine.str(R.string.rest_1263, d.name), 2500) })
+                    modifier = Modifier.size(22.dp).clickable { engine.places.setSlot("home", d); engine.toast(engine.str(R.string.rest_1263, d.name), 2500) })
                 Icon(Icons.Rounded.Work, Lang.t("Als Arbeit festlegen", "Set as work"), tint = c.sub,
-                    modifier = Modifier.size(26.dp).clickable { engine.places.setSlot("work", d); engine.toast(engine.str(R.string.rest_1262, d.name), 2500) })
+                    modifier = Modifier.size(22.dp).clickable { engine.places.setSlot("work", d); engine.toast(engine.str(R.string.rest_1262, d.name), 2500) })
                 var saving by remember { mutableStateOf(false) }
                 val mine = engine.places.customAt(d) != null
                 Icon(Icons.Rounded.BookmarkAdd, Lang.t("Mit Namen speichern", "Save with a name"), tint = if (mine) c.accent else c.sub, modifier = Modifier.size(26.dp).clickable { saving = true })
@@ -315,7 +315,9 @@ internal fun BoxScope.RoutePreview(engine: NavEngine) {
                 if (engine.prefs.s(PreferenceKeys.LINK_ROLE, "") == "phone" && engine.prefs.s(PreferenceKeys.LINK_CODE, "").isNotBlank())
                     Icon(Icons.Rounded.DirectionsCar, Lang.t("An Auto senden", "Send to car"), tint = c.accent, modifier = Modifier.size(26.dp).clickable { engine.sendToCar(d) })
                 if (saving) AddPlaceDialog(engine, d) { saving = false }
+                }
             }
+            Text(engine.dest?.name ?: "", color = c.text, fontSize = 17.sp, fontWeight = FontWeight.Bold, maxLines = 2, overflow = TextOverflow.Ellipsis)
         }
     }
     val routeCards: @Composable androidx.compose.foundation.layout.RowScope.() -> Unit = {
@@ -330,11 +332,10 @@ internal fun BoxScope.RoutePreview(engine: NavEngine) {
                 Text(label.uppercase(), color = if (sel) c.accent else c.sub, fontSize = 11.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
                 val est = evTrip && engine.evPlanIsEstimate(r)
                 Text((if (est) "ca. " else "") + Geo.fmtDur(totalSecs(r)), color = c.text, fontSize = 22.sp, fontWeight = FontWeight.Bold)
-                Text("${Geo.fmtDist(r.len, engine.imperial)} · ${Lang.t("Ankunft", "arrive")} ${if (est) "ca. " else ""}${fmt.format(java.util.Date(baseMs + (totalSecs(r) * 1000).toLong()))}", color = c.sub, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 val via = viaOf(r)
                 val delayMin = Math.round(r.delay / 60.0).toInt()
                 Text(
-                    if (delayMin >= 1) Lang.t("+$delayMin Min. Verkehr", "+$delayMin min traffic") else if (via.isNotEmpty()) Lang.t("über $via", "via $via") else Lang.t("Keine Verzögerungen", "No delays"),
+                    Geo.fmtDist(r.len, engine.imperial) + " · " + if (delayMin >= 1) Lang.t("+$delayMin Min. Verkehr", "+$delayMin min traffic") else if (via.isNotEmpty()) Lang.t("über $via", "via $via") else Lang.t("keine Verzögerung", "no delays"),
                     color = if (delayMin >= 10) Bad else if (delayMin >= 1) Warn else c.sub, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis,
                 )
                 // tolls and vignettes, so the routes can be compared before one is chosen
