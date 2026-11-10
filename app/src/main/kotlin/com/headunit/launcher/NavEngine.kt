@@ -2387,7 +2387,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         val mid = LL((from.lat + to.lat) / 2, (from.lon + to.lon) / 2)
         val brg = Geo.bearing(from, to)
         val pts = ArrayList<LL>()
-        for (f in listOf(0.25, 0.45)) for (side in listOf(90.0, -90.0)) pts += MapExtras.offset(mid, brg + side, direct * f)
+        for (f in listOf(0.25, 0.45)) for (side in listOf(90.0, -90.0)) pts += Furniture.offset(mid, brg + side, direct * f)
         val cands = pts.filter { Geo.dist(from, it) + Geo.dist(it, to) < direct * 1.35 }
             .sortedBy { Geo.dist(from, it) + Geo.dist(it, to) }.take(3)
         val out = ArrayList<Route>()
