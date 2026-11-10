@@ -4,6 +4,10 @@ Add user-facing Horizon Nav changes under **Unreleased** before publishing each 
 
 ## Unreleased
 
+### Behoben
+- Abbiegung am Ende einer Slip Road: Die Anzeige zählt jetzt bis zur Stelle herunter, an der die Slip Road die Hauptstraße verlässt („Ausfahrt links nehmen“), und erst danach bis zum Abbiegen. Vorher zählte sie bis zum Ende der Slip Road.
+  EN: Turn at the end of a slip road: The display now counts down to where the slip road leaves the main road ("take the exit on the left"), and only then to the turn. It used to count down to the end of the slip road.
+
 ### Verbessert
 - An Auto senden schickt die ganze Fahrt: Aus den Routenoptionen gehen jetzt auch deine Stopps und der gewählte Weg mit, nicht nur das Ziel. Die Karte im Auto zeigt, wie viele Stopps kommen.
   EN: Send to car sends the whole trip: From the route options it now sends your stops and the way you picked too, not just the destination. The car's card says how many stops are coming.
