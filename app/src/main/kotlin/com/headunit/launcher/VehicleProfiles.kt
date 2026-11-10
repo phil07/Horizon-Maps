@@ -23,7 +23,7 @@ object VehicleProfiles {
         PreferenceKeys.EV_CAR_KW, PreferenceKeys.EV_CAR_CURVE,
     )
 
-    class Car(val id: String, val name: String, val bt: List<String>, val data: Map<String, String>)
+    data class Car(val id: String, val name: String, val bt: List<String>, val data: Map<String, String>)
 
     private fun load(prefs: Prefs): MutableList<Car> = try {
         val a = JSONArray(prefs.s(KEY_PROFILES, "[]"))
