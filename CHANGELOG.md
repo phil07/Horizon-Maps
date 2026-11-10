@@ -21,6 +21,13 @@ Add user-facing Horizon Nav changes under **Unreleased** before publishing each 
 - Fahrzeuge: Ein unbekanntes Auto-Gerät fragt jetzt mit einer Karte auf dem Handy und im Auto, welches Fahrzeug das ist. Fahrzeuge lassen sich umbenennen, und jedes Auto behält seine eigene Fahrzeugart mit Maßen und Höchstgeschwindigkeit.
   EN: Vehicles: An unknown car Bluetooth device now asks with a card on the phone and in the car which car it is. Cars can be renamed, and each car keeps its own vehicle type with its sizes and top speed.
 
+- Staus auf der Route: Jeder Stau ab einer Minute bekommt vorn ein kleines Schild „+8 min“ (rot bei starkem, gelb bei zähem Verkehr). Bei der Routenwahl zeigen sich auch die Staus der anderen Routen, abgeblendet. Ist der Stau passiert, verschwindet das Schild.
+  EN: Queues on the route: Each queue of a minute or more gets a small "+8 min" sign where it starts (red for heavy, amber for slow). While choosing a route, the other routes' queues show too, dimmed. A sign goes once you're past its start.
+- Tempolimit-Änderung: Unter Einstellungen › Warnungen › Geschwindigkeit wählst du Gong und Stimme, nur Stimme oder nur Gong. Mit beidem wartet die Stimme, bis der Gong vorbei ist.
+  EN: Speed limit change: Under Settings › Alerts › Speed you choose chime and voice, voice only, or chime only. With both, the voice waits for the chime to finish.
+- Straßenlaternen an den echten Stellen: Die Laternen aus OpenStreetMap kommen jetzt auch online. Erfasste Laternen werden genau gezeigt, geschätzte nur in den Lücken. Einmal pro Gebiet geladen, einen Monat gespeichert.
+  EN: Street lamps where they really are: Lamps from OpenStreetMap now also come online. Mapped lamps are shown where they are, guessed ones only fill the gaps. Fetched once per area, kept for a month.
+
 ### Behoben
 - Absturz beim Antippen eines Ortes auf der Karte: Ein Ort ohne Namen in Mapbox' Daten schloss die App. Namenlose Orte werden jetzt ignoriert, und andere Fehler bei einem Kartentipp können die App nicht mehr schließen.
   EN: Crash tapping a place on the map: A place with no name in Mapbox's data closed the app. Nameless places are now ignored, and other errors in a map tap can no longer close the app.

@@ -103,6 +103,9 @@ class LimitSec(val off: Double, val end: Double, val ms: Double)
 /** A stretch of route [off]..[end] metres from the start that is slowed by [secs] seconds. */
 class DelaySeg(val off: Double, val end: Double, val secs: Double)
 
+/** A queue ahead on a route, at its start: its minutes, heavy (red) or slow (amber), and dimmed when it's on a route not being driven. */
+data class QueueMark(val pos: LL, val min: Int, val heavy: Boolean, val dim: Boolean)
+
 object Geo {
     fun rad(d: Double) = d * PI / 180.0
 

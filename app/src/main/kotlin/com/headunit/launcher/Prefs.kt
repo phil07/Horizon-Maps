@@ -203,6 +203,10 @@ internal object PreferenceKeys {
     const val LASTLAT = "lastlat"
     const val LASTLON = "lastlon"
     const val LIMITCHANGE = "limitchange"
+    /** How a speed limit change is told: "both" (gong, then the voice), "voice" or "chime". */
+    const val LIMIT_HOW = "limithow"
+    /** Street lamps from OpenStreetMap online (see LampsOnline). */
+    const val LAMPS_ONLINE = "lampsonline"
     const val LIMITEST = "limitest"
     const val LIVECARD = "livecard"
     const val MAPFAST = "mapfast"

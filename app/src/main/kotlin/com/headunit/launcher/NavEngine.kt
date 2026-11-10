@@ -1430,9 +1430,12 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         if (n == limitCandidate) candidateHits++ else { limitCandidate = n; candidateHits = 1 }
         if (candidateHits >= 2 && (fix?.speed ?: 0.0) > 3.0) {
             announcedLimit = n; candidateHits = 0; limitCandidate = -1
-            chime()
+            // how it's told (Settings > Alerts > Speed): gong and voice (the voice waits for the gong), voice only, or gong only
+            val how = prefs.s(PreferenceKeys.LIMIT_HOW, "both")
+            if (how != "voice") chime()
             raiseAlert("limit", "Tempolimit $n")
-            speak("Tempolimit $n", true)
+            if (how == "both") scope.launch { delay(500); speak("Tempolimit $n", true) }
+            else if (how == "voice") speak("Tempolimit $n", true)
             limitPulse = true
             scope.launch { delay(3500); limitPulse = false }
         }
@@ -2452,8 +2455,19 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         cardsForStartAlts()
     }
 
+    /** The queues ahead on [r] (a minute or more, not yet passed): where each starts. */
+    private fun queuesFor(r: Route, progress: Double, dim: Boolean): List<QueueMark> =
+        r.delays.filter { it.secs >= 60.0 && it.off > progress + 5.0 }.map {
+            QueueMark(pointAt(r, it.off).first, Math.round(it.secs / 60.0).toInt().coerceAtLeast(1), it.secs >= 180.0, dim)
+        }
+
+    private var queueMarks: List<QueueMark> = emptyList()
+    private fun pushQueues(list: List<QueueMark>) { if (list == queueMarks) return; queueMarks = list; map.setQueues(list) }
+
     private fun drawRoutes() {
         val r = route ?: return
+        // while choosing a route: the queues of every route, the others dimmed
+        if (previewing) pushQueues(routes.indices.flatMap { i -> queuesFor(routes[i], 0.0, i != active) })
         map.setRoute(r.pts, routes.filterIndexed { i, _ -> i != active }.map { it.pts }, r.sev)
         map.setTunnels(r.tunnels.map { (a, b) -> slice(r, a, b) })
     }
@@ -2536,6 +2550,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         routeCams = emptyList(); camsRoute = null; camsAt = 0L; camsCount = -1; hazardSig = 0; policeSig = 0; map.setHazards(emptyList())
         via = emptyList(); evPlanned = emptyList(); evAutoDest = null; evStops = emptyList(); evWarning = null; stopMode = false; destRain = null; routeWx = emptyList()
         routes = emptyList(); active = 0; dest = null; turn = null; eta = null; lastIdx = 0; previewing = false; routeFrac = 0f; onRoad = ""
+        pushQueues(emptyList())
         departMin = 0; departAtMs = 0L; navStartMs = 0L; navTripDest = null; evStartPending = false; evPreferRoute = null; pickedSlower = false
         fuelSuggestion = null; parkingNear = emptyList(); parkingFor = null
         turnArrowKey = -1; map.setTurnArrow(emptyList())
@@ -5498,6 +5513,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
             try { tripShareTick() } catch (e: Exception) { }
         }
 
+        if (!previewing) try { pushQueues(queuesFor(r, progress, false)) } catch (e: Exception) { }
         if (!light && !shadow()) try { routeExtrasTick(r, progress) } catch (e: Exception) { android.util.Log.w("NavEngine", "route extras failed", e) }
         val ins = r.steps
         var k = ins.indexOfFirst { it.off > progress + 4 }

@@ -1569,7 +1569,10 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
      */
     private fun placeLamps(c: LL, roads: List<List<Point>>, gap: Double): Triple<List<Feature>, List<Feature>, String> {
         val dLat = 0.008; val dLon = dLat / Math.cos(Math.toRadians(c.lat))
-        val mapped = if (OfflineRouter.hasLamps(ctx)) OfflineRouter.lamps(ctx, c.lat - dLat, c.lon - dLon, c.lat + dLat, c.lon + dLon, maxTiles = 64) else emptyList()
+        val offlineLamps = if (OfflineRouter.hasLamps(ctx)) OfflineRouter.lamps(ctx, c.lat - dLat, c.lon - dLon, c.lat + dLat, c.lon + dLon, maxTiles = 64) else emptyList()
+        // the mapped lamps of OpenStreetMap online (once per area, kept a month): the real positions, wherever people have mapped them
+        val online = if (prefs.b(PreferenceKeys.LAMPS_ONLINE, true)) try { LampsOnline.inBox(ctx, c.lat - dLat, c.lon - dLon, c.lat + dLat, c.lon + dLon, LampsOnline.connected(ctx)) } catch (e: Exception) { emptyList() } else emptyList()
+        val mapped = offlineLamps + online
         // spots: lat, lon, bearing of the arm
         val spots = ArrayList<DoubleArray>()
         val near = mapped.sortedBy { Geo.dist(LL(it[0], it[1]), c) }.take(90)
@@ -2282,6 +2285,13 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
             .iconSize(zoomed(1.0, 10 to 0.55, 13 to 0.8, 16 to 1.05, 18 to 1.2)))
         addImg(st, "dl-via-ev", viaEvBitmap())
         addImg(st, "dl-via-stop", viaStopBitmap())
+        // the queues ahead: a small pill with the minutes where each starts (see NavEngine.queuesFor)
+        queueImgs.clear()
+        addS(st, GeoJsonSource.Builder("dl-queues").featureCollection(empty()).build())
+        addL(st, SymbolLayer("dl-queues-l", "dl-queues")
+            .iconImage(Expression.get("img")).iconEmissiveStrength(1.0)
+            .iconAllowOverlap(true).iconIgnorePlacement(true).iconAnchor(IconAnchor.BOTTOM)
+            .iconSize(zoomed(1.0, 10 to 0.6, 13 to 0.8, 16 to 1.0, 18 to 1.1)))
         addL(st, SymbolLayer("dl-via-l", "dl-via")
             .iconImage(Expression.get("img")).iconEmissiveStrength(1.0)
             .iconAllowOverlap(true).iconIgnorePlacement(true).iconPitchAlignment(IconPitchAlignment.VIEWPORT)
@@ -4188,6 +4198,32 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
         val s = src("dl-dest") ?: return
         val pts = listOfNotNull(dest, pick)
         s.featureCollection(FeatureCollection.fromFeatures(pts.map { Feature.fromGeometry(Point.fromLngLat(it.lon, it.lat)) }))
+    }
+
+    private val queueImgs = HashSet<String>()
+
+    /** The queue pills on the map (see QueueMark); the picture of each minute count is made once per style. */
+    fun setQueues(list: List<QueueMark>) {
+        main0.post {
+            val st = style ?: return@post
+            val feats = list.map { q ->
+                val name = "q-${if (q.heavy) "h" else "s"}-${if (q.dim) "d" else "n"}-${q.min}"
+                if (queueImgs.add(name)) addImg(st, name, queueBitmap(q))
+                Feature.fromGeometry(Point.fromLngLat(q.pos.lon, q.pos.lat)).also { it.addStringProperty("img", name) }
+            }
+            src("dl-queues")?.featureCollection(FeatureCollection.fromFeatures(feats))
+        }
+    }
+
+    private fun queueBitmap(q: QueueMark): Bitmap {
+        val bmp = Bitmap.createBitmap(132, 48, Bitmap.Config.ARGB_8888)
+        val c = Canvas(bmp)
+        val a = if (q.dim) 115 else 255
+        val col = if (q.heavy) 0xFFD93025.toInt() else 0xFFF9AB00.toInt()
+        c.drawRoundRect(android.graphics.RectF(0f, 0f, 132f, 48f), 24f, 24f, Paint(Paint.ANTI_ALIAS_FLAG).apply { color = col; alpha = a })
+        c.drawText("+${q.min} min", 66f, 33f, Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = 0xFFFFFFFF.toInt(); alpha = a; textSize = 26f; textAlign = Paint.Align.CENTER; typeface = android.graphics.Typeface.DEFAULT_BOLD })
+        return bmp
     }
 
     /** A spot picked by tapping the map in the car (shown with the destination pin until it's chosen or dropped). */
