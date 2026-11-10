@@ -2274,7 +2274,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
                 }
                 if (rs0.isEmpty()) throw IllegalStateException("No route found")
                 var rs = if (usedOffline) rs0 else avoidVignette(rs0, from, to.pos, departMs)
-                // within the Netherlands a way through Germany is often quicker, and the services' own choices don't include it
+                // a way off to one side can be quicker than the services' own few choices, which all run close to the direct line
                 if (!usedOffline && via.isEmpty()) try { rs = rs + neighbourDetours(rs, from, to.pos, departMs, driveHeading(from)) } catch (e: Exception) { }
                 if (usedOffline) toast(ctx.getString(R.string.toast_030), 4000)
                 // the fastest route is the one chosen first: everything planned for the trip (rain, weather, charging stops) is for it
@@ -2373,19 +2373,23 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
 
     /** How much of [b] route [a] follows (share of sampled points of [a] within 300 m of [b]). */
     /**
-     * Trips inside the Netherlands: a way through Germany that is clearly quicker (3 minutes or more) or clearly shorter (10 %, no more than
-     * 5 minutes slower) is asked for through a point in Germany, and offered as one more route. The services' own alternatives don't
-     * include these. Only when both ends are in the Netherlands, and only the two German points that make the least detour.
+     * Any trip: a way that goes off to one side and comes back can be quicker or shorter than the services' own choices (they only
+     * offer a few alternatives, all close to the direct line, so a way through a neighbouring country often never shows). Points
+     * out to both sides of the middle of the trip are tried (the ones that make the least detour, at most three requests); a route
+     * clearly quicker (3 minutes or more) or clearly shorter (10 %, no more than 5 minutes slower) is offered as one more route.
+     * Trips under 25 km aren't looked at.
      */
     private suspend fun neighbourDetours(rs: List<Route>, from: LL, to: LL, departMs: Long, hd: Double): List<Route> {
-        fun inNl(p: LL) = p.lat in 50.7..53.6 && p.lon in 3.3..7.3
-        if (rs.isEmpty() || !inNl(from) || !inNl(to)) return emptyList()
+        if (rs.isEmpty()) return emptyList()
         val direct = Geo.dist(from, to)
         if (direct < 25_000.0) return emptyList()
         val bestT = rs.minOf { it.time }; val bestL = rs.minOf { it.len }
-        val points = listOf(LL(51.47, 6.85), LL(51.84, 6.61), LL(51.96, 7.63), LL(52.28, 8.05), LL(52.52, 7.33), LL(52.03, 8.53), LL(51.33, 6.56), LL(50.78, 6.08))
-        val cands = points.filter { Geo.dist(from, it) + Geo.dist(it, to) < direct * 1.6 }
-            .sortedBy { Geo.dist(from, it) + Geo.dist(it, to) }.take(2)
+        val mid = LL((from.lat + to.lat) / 2, (from.lon + to.lon) / 2)
+        val brg = Geo.bearing(from, to)
+        val pts = ArrayList<LL>()
+        for (f in listOf(0.25, 0.45)) for (side in listOf(90.0, -90.0)) pts += MapExtras.offset(mid, brg + side, direct * f)
+        val cands = pts.filter { Geo.dist(from, it) + Geo.dist(it, to) < direct * 1.35 }
+            .sortedBy { Geo.dist(from, it) + Geo.dist(it, to) }.take(3)
         val out = ArrayList<Route>()
         for (c in cands) {
             val r = withContext(Dispatchers.IO) { try { netRoutes(from, to, false, departMs, listOf(c), hd) } catch (e: Exception) { emptyList() } }.firstOrNull() ?: continue

@@ -5,8 +5,8 @@ Add user-facing Horizon Nav changes under **Unreleased** before publishing each 
 ## Unreleased
 
 ### Neu
-- Route über Deutschland: Fährt man in den Niederlanden, rechnet die App zusätzlich eine Route über einen Punkt in Deutschland. Ist sie spürbar schneller oder kürzer, erscheint sie als weiterer Vorschlag.
-  EN: Route through Germany: Driving within the Netherlands, the app also works out a route through a point in Germany. If it is clearly quicker or shorter, it appears as one more suggestion.
+- Andere Wege: Bei jeder Planung über 25 km rechnet die App bis zu drei zusätzliche Wege, die seitlich ausholen (auch über andere Länder). Ist einer spürbar schneller oder kürzer, erscheint er als weiterer Vorschlag.
+  EN: Other ways: For every trip over 25 km the app works out up to three extra ways that swing off to one side (also through other countries). If one is clearly quicker or shorter, it appears as one more suggestion.
 
 ## 1.0.246 — 2026-10-28
 
