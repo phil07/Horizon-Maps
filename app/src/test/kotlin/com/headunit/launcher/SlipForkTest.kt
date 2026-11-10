@@ -14,7 +14,7 @@ class SlipForkTest {
     }
 
     @Test fun turnWithItsOwnExitStepIsLeftAlone() {
-        val out = slipForks(listOf(step(900.0, "MOTORWAY_EXIT_LEFT"), step(1400.0, "TURN_LEFT")), listOf(0.0 to 1000.0))
+        val out = slipForks(listOf(step(1000.0, "MOTORWAY_EXIT_LEFT"), step(1400.0, "TURN_LEFT")), listOf(0.0 to 1000.0))
         assertEquals(-1.0, out[1].fork, 0.01)
     }
 
