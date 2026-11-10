@@ -435,6 +435,8 @@ object MapboxRest {
         val rbOthers = ArrayList<Double>()
         // tunnels: each junction marked "tunnel" starts one, running to the next junction (or the end of its step)
         val tunnelSpots = ArrayList<Pair<LL, LL?>>()
+        // motorway and trunk stretches (from the junctions' road classes), for the slip roads (see slipForks)
+        val motorway = ArrayList<Pair<Double, Double>>()
         for (li in 0 until legs.length()) {
             val leg = legs.getJSONObject(li)
             var off = legStart
@@ -512,6 +514,18 @@ object MapboxRest {
                         }
                     } catch (e: Exception) { }
                 }
+                try {
+                    val ints = s.optJSONArray("intersections")
+                    if (ints != null && ints.length() > 0) {
+                        var last = -1
+                        for (ii in 0 until ints.length()) {
+                            val cl = ints.getJSONObject(ii).optJSONArray("classes") ?: continue
+                            if ((0 until cl.length()).any { cl.optString(it) == "motorway" || cl.optString(it) == "trunk" }) last = ii
+                        }
+                        // up to the last junction on the motorway (the rest of the step has left it)
+                        if (last >= 0) motorway += at to at + s.optDouble("distance", 0.0) * k * (last + 1).toDouble() / ints.length()
+                    }
+                } catch (e: Exception) { }
                 prevOff = off
                 off += s.optDouble("distance", 0.0)
             }
@@ -589,7 +603,7 @@ object MapboxRest {
                 if (s1 > s0 + 5.0) tun += s0 to s1
             }
         } catch (e: Exception) { }
-        return Route(pts, cum, steps, total, time, delay, laneSecs, sev).also { it.delays = delays; it.limits = limits; it.incidents = incidents; it.tunnels = tun; it.source = "mapbox"; it.tollCc = tollCountries(r) }
+        return Route(pts, cum, slipForks(steps, motorway), total, time, delay, laneSecs, sev).also { it.delays = delays; it.limits = limits; it.incidents = incidents; it.tunnels = tun; it.source = "mapbox"; it.tollCc = tollCountries(r) }
     }
 
     // ------------------------------------------------------------------ search

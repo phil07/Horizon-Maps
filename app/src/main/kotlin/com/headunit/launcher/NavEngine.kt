@@ -5494,8 +5494,11 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         var k = ins.indexOfFirst { it.off > progress + 4 }
         if (k < 0) k = ins.size - 1
         if (k >= 0) {
-            val cur = ins[k]
-            val d = max(0.0, cur.off - progress)
+            val cur0 = ins[k]
+            // a slip road's turn: until the road leaves the main road it counts down to there, and reads as the exit it starts with
+            val slipStart = cur0.fork >= 0 && progress < cur0.fork - 5.0 && !cur0.maneuver.uppercase().startsWith("ARRIVE")
+            val cur = if (slipStart) cur0.copy(maneuver = slipExitManeuver(cur0.maneuver)) else cur0
+            val d = max(0.0, (if (slipStart) cur0.fork else cur0.off) - progress)
             val arriving = cur.maneuver.uppercase().startsWith("ARRIVE")
             val side = if (arriving) arrivalSide(r, cur.maneuver) else ""
             val nxt = ins.getOrNull(k + 1)

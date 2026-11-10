@@ -13,7 +13,37 @@ data class Step(val off: Double, val maneuver: String, val street: String, val m
     /** At a roundabout: the way you're heading as you come onto it, the way you leave it, and the other roads off it (degrees; -1 unknown). */
     val rbIn: Double = -1.0, val rbOut: Double = -1.0, val rbExits: List<Double> = emptyList(),
     /** The motorway junction's name when the route data has it ("Frankfurter Kreuz", "Weiterstadt"); else it comes from OpenStreetMap (see Junctions). */
-    val jct: String = "")
+    val jct: String = "",
+    /** Where a slip road leaves the main road, when this turn is at its far end (metres along the route; -1 when none). See [slipForks]. */
+    val fork: Double = -1.0)
+
+/**
+ * Slip roads: a turn at the far end of a slip road often has no step of its own where the road leaves the motorway (no exit number).
+ * The turn then counted down all the way to its far end, past the point where you had to move over. Here each such turn gets the end
+ * of the motorway stretch just before it ([motorway] = stretches of motorway or trunk road along the route, in metres) as its [Step.fork].
+ */
+fun slipForks(steps: List<Step>, motorway: List<Pair<Double, Double>>): List<Step> {
+    if (motorway.isEmpty()) return steps
+    return steps.map { s ->
+        val m = s.maneuver.uppercase()
+        val turn = m.startsWith("TURN") || m.startsWith("SHARP") || m.startsWith("BEAR")
+        if (!turn || m.contains("EXIT") || m.contains("RAMP")) return@map s
+        // still on the motorway at the turn itself: not a slip road
+        if (motorway.any { it.first <= s.off && s.off <= it.second }) return@map s
+        // the motorway stretch that ends closest before the turn (slip roads are short)
+        val end = motorway.filter { it.second <= s.off - 20.0 && it.second >= s.off - 1500.0 }.maxOfOrNull { it.second } ?: return@map s
+        // an exit step in between already counts down from its own point
+        if (steps.any { o -> o.off >= end - 1.0 && o.off < s.off - 1.0 && o.maneuver.uppercase().let { it.contains("EXIT") || it.contains("RAMP") } }) return@map s
+        s.copy(fork = end)
+    }
+}
+
+/** The exit a slip road starts with, on the side the turn at its end goes ("MOTORWAY_EXIT_LEFT"); other manoeuvres unchanged. */
+fun slipExitManeuver(m: String): String {
+    val u = m.uppercase()
+    return when { u.contains("LEFT") -> "MOTORWAY_EXIT_LEFT"; u.contains("RIGHT") -> "MOTORWAY_EXIT_RIGHT"; else -> m }
+}
+
 data class Place(val name: String, val sub: String, val pos: LL) {
     /** Whether a search found this as a town, city or region, so those can come before streets (not saved, not compared). */
     var town: Boolean = false
@@ -384,23 +414,23 @@ object TomTomRest {
         val attempts = ArrayList<String>()
         if (quick) {
             // rerouting: only two quick tries, so a weak signal does not leave you waiting through ten slow requests
-            attempts += "$classic$lang&sectionType=traffic&sectionType=lanes"
+            attempts += "$classic$lang&sectionType=traffic&sectionType=motorway&sectionType=lanes"
             attempts += classic
         } else {
         if (dep.isNotEmpty()) {
-            attempts += "$classic$dep$lang&sectionType=traffic&sectionType=lanes"
-            attempts += "$classic$dep&sectionType=traffic&sectionType=lanes"
+            attempts += "$classic$dep$lang&sectionType=traffic&sectionType=motorway&sectionType=lanes"
+            attempts += "$classic$dep&sectionType=traffic&sectionType=motorway&sectionType=lanes"
             attempts += "$classic$dep"
         }
-        if (evParams.isNotEmpty()) attempts += "$classic$lang&sectionType=traffic&sectionType=lanes$evParams"
-        attempts += "$classic$lang&sectionType=traffic&sectionType=lanes"
-        attempts += "$classic&sectionType=traffic&sectionType=lanes"
-        attempts += "$classic&sectionType=traffic"
+        if (evParams.isNotEmpty()) attempts += "$classic$lang&sectionType=traffic&sectionType=motorway&sectionType=lanes$evParams"
+        attempts += "$classic$lang&sectionType=traffic&sectionType=motorway&sectionType=lanes"
+        attempts += "$classic&sectionType=traffic&sectionType=motorway&sectionType=lanes"
+        attempts += "$classic&sectionType=traffic&sectionType=motorway"
         attempts += classic
         // the Orbis fallback cannot take areas to avoid, so it is only used for ordinary requests
         if (avoidJson == null) {
-            if (dep.isNotEmpty()) attempts += "$base$dep&sectionType=traffic"
-            attempts += "$base&traffic=live&sectionType=traffic"
+            if (dep.isNotEmpty()) attempts += "$base$dep&sectionType=traffic&sectionType=motorway"
+            attempts += "$base&traffic=live&sectionType=traffic&sectionType=motorway"
             attempts += base
         }
         }
@@ -632,10 +662,16 @@ object TomTomRest {
         val laneSecs = ArrayList<LaneSec>()
         val sev = IntArray(max(0, pts.size - 1))
         val delays = ArrayList<DelaySeg>()
+        val motorway = ArrayList<Pair<Double, Double>>()
         try {
             val secs = r.optJSONArray("sections") ?: JSONArray()
             for (n in 0 until secs.length()) {
                 val sec = secs.getJSONObject(n)
+                if (sec.optString("sectionType").equals("MOTORWAY", true)) {
+                    val a = sec.optInt("startPointIndex", 0).coerceIn(0, pts.size - 1); val b = sec.optInt("endPointIndex", a).coerceIn(0, pts.size - 1)
+                    if (b > a) motorway += cum[a] to cum[b]
+                    continue
+                }
                 if (!sec.optString("sectionType").equals("TRAFFIC", true)) continue
                 val a = sec.optInt("startPointIndex", 0).coerceIn(0, sev.size)
                 val b = sec.optInt("endPointIndex", a).coerceIn(0, sev.size)
@@ -691,7 +727,7 @@ object TomTomRest {
         } catch (e: Exception) { /* speed limits are optional */ }
         val s = r.optJSONObject("summary")
         val len = s?.optDouble("lengthInMeters", 0.0)?.takeIf { it > 0 } ?: cum.lastOrNull() ?: 0.0
-        return Route(pts, cum, steps, len, s?.optDouble("travelTimeInSeconds", 0.0) ?: 0.0, s?.optDouble("trafficDelayInSeconds", 0.0) ?: 0.0, laneSecs, sev).also { it.delays = delays; it.limits = limits; it.source = "tomtom" }
+        return Route(pts, cum, slipForks(steps, motorway), len, s?.optDouble("travelTimeInSeconds", 0.0) ?: 0.0, s?.optDouble("trafficDelayInSeconds", 0.0) ?: 0.0, laneSecs, sev).also { it.delays = delays; it.limits = limits; it.source = "tomtom" }
     }
 }
 
