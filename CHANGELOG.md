@@ -4,9 +4,9 @@ Add user-facing Horizon Nav changes under **Unreleased** before publishing each 
 
 ## Unreleased
 
-### Verbessert
-- Schnellere Erkennung, wenn du die Route verlässt: Die App fragt nach 2 Sekunden abseits der Route eine neue an, und bei einer falschen Abbiegung schon beim ersten deutlichen Hinweis. Die alte Route bleibt sichtbar, bis die neue da ist.
-  EN: Faster detection when you leave the route: The app asks for a new route after 2 seconds off it, and at the first clear sign of a wrong turn. The old route stays on screen until the new one arrives.
+### Behoben
+- Eine selbst gewählte Route wird beim Losfahren nicht mehr von einer schnelleren überschrieben: Wurde die Route für Ladestopps neu berechnet, galt sie als nicht bewusst gewählt.
+  EN: A route you picked yourself is no longer replaced by a quicker one when you start: when it was worked out again for the charging stops, it counted as not picked by hand.
 
 ## 1.0.246 — 2026-10-28
 

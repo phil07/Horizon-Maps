@@ -2363,7 +2363,10 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
                 // (the way sent from the phone was picked by hand there: it is kept like one picked here)
                 // the simpler route (fewer turns, about as quick) is labelled as such; none when the fastest was picked
                 simplerIdx = if (prefer == null && sent == null && rs.size > 1 && pick != rs.indices.minByOrNull { rs[it].time }) pick else -1
-                dest = to; routes = rs; active = pick; userPicked = sent != null && prefer == null
+                dest = to; routes = rs; active = pick
+                // a way picked by hand stays picked when the same trip is worked out again (the charging stops go on as the trip
+                // starts): it used to count as the app's own pick then, and a quicker way took it away at the start
+                userPicked = if (prefer != null) userPicked else sent != null
                 if (isEv && via.isEmpty() && prefs.b(PreferenceKeys.SMARTFUEL, true)) planEvAllRoutes()
                 prediction = null; predictionAt = 0L
                 updateRouteZones()
