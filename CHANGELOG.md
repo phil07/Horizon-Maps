@@ -5,40 +5,8 @@ Add user-facing Horizon Nav changes under **Unreleased** before publishing each 
 ## Unreleased
 
 ### Behoben
-- Fahrtkarte verdeckt das Stopp-Panel nicht mehr: Solange das Panel für einen Stopp oder alle Standorte offen ist, tritt die Fahrtkarte zur Seite und kommt danach wieder.
-  EN: Trip card no longer covers the stop panel: While the add-a-stop or all-locations panel is open, the trip card steps aside and comes back when it closes.
-- Ein Shop-Filter lässt Orte weg, die den Shop nur erwähnen: Ein Western-Union-Schalter in einem Sainsbury's gehört nicht mehr zur Kette.
-  EN: Shop search leaves out places that only mention the shop: A Western Union counter inside a Sainsbury's no longer counts as a branch of the shop.
-- Verkehrs-Hinweis liegt nicht mehr über der Karte: Er steht unter der Abbiegekarte, wenn dort Platz ist, sonst direkt über der Fahrt- bzw. Ankunftskarte.
-  EN: Traffic pill no longer sits over the card: It goes under the turn card when there's room, otherwise just above the trip or arrival card.
-- Weniger Abfragen an OpenStreetMap: Fehlende Laternen-Gebiete werden in einer Anfrage geholt, und dieselbe Abfrage läuft nicht doppelt.
-  EN: Fewer requests to OpenStreetMap: Missing street-lamp areas are fetched in one request, and the same query isn't sent twice at once.
-
-### Verbessert
-- Android Auto auf kleinen Bildschirmen: Auf 800 × 480 sind Zuhause, Arbeit und die Schnellsuche schmaler, die Fahrtkarte ist eine Zeile und das Tempolimit-Schild kleiner.
-  EN: Android Auto on small screens: At 800 × 480 Home, Work and the quick search are slimmer, the trip card is one line and the speed sign is smaller.
-- Android Auto auf kleinen Bildschirmen: Suchleiste schmaler, Melden und Orte nur als Symbol.
-  EN: Android Auto on small screens: Slimmer search bar, and Report and Places as icons only.
-- Android Auto auf kleinen Bildschirmen: Die Suchknöpfe passen in eine Zeile, die restlichen sind hinter ⋯ zu finden. Die Abbiegekarte ist schmaler, die Spuren stehen darin.
-  EN: Android Auto on small screens: The find buttons fit one row, the rest sit behind ⋯. The turn card is narrower, with the lanes inside it.
-- Android Auto im geteilten Fenster: Dort zeigt die Karte nur noch Abbiegung, eine Zeile Fahrt und das Tempolimit. Suche und Knöpfe fallen weg.
-  EN: Android Auto in a split window: There the map shows only the turn, one trip line and the speed limit. Search and buttons are hidden.
-- Android Auto: Die Frage „Welches Fahrzeug ist das?“ liegt nicht mehr über den Knöpfen von Android Auto und passt sich der Fenstergröße an.
-  EN: Android Auto: The "Which car is this?" card no longer covers Android Auto's buttons and fits the window's size.
-- Android Auto: Die Schrift auf der Frage „Welches Fahrzeug ist das?“ ist größer, und die Knöpfe sind höher, damit sie sich besser treffen lassen.
-  EN: Android Auto: The text on the "Which car is this?" card is larger, and the buttons are taller so they're easier to hit.
-- Kreisel: Der Pfeil im grünen Kasten, auf Android Auto und im Head-Up-Display zeigt jetzt dieselbe Richtung wie die Route auf der Karte (z. B. die 3. Ausfahrt nach links statt halb rechts).
-  EN: Roundabouts: The arrow on the turn card, on Android Auto and on the head-up display now points the same way as the route on the map (e.g. the 3rd exit to the left instead of half right).
 - Kreisel: Ein- und Ausfahrt werden aus der Routenlinie gelesen, die auch die Karte zeigt. Grüner Kasten, Android Auto und Head-Up-Display stimmen damit überein.
   EN: Roundabouts: Entry and exit are read from the route line the map shows. The turn card, Android Auto and the head-up display now agree with the map.
-
-### Neu
-- Stopp entlang der Route: Beim Hinzufügen eines Stopps zeigt „Entlang der Route suchen“ (oder die Suchtaste der Tastatur) alle Treffer entlang der restlichen Strecke auf der Karte, jeweils mit dem Zeitaufwand. Sortierbar nach geringstem Umweg, am frühesten oder am nächsten. Auf Android Auto als Liste nach Umweg.
-  EN: Add a stop, seen along your route: When adding a stop, "See them along your route" (or the keyboard's search key) lists every match along the rest of the route, each with the time it adds. Sort by least detour, soonest or nearest. On Android Auto it's a list sorted by detour.
-
-### Verbessert
-- Schont den Akku: Die App rechnet weniger doppelt, und ein Tempolimit wird auf derselben Straße nicht gleich wieder abgefragt.
-  EN: Saves battery: The app works out less twice, and a speed limit on the same road isn't looked up again straight away.
 
 ## 1.0.246 — 2026-10-28
 

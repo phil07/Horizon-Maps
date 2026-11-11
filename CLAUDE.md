@@ -7,3 +7,4 @@
 - There is no local Android build (Gradle/Maven downloads are blocked). CI (GitHub Actions, release-apk.yml) is the only compiler, so check its result after each push.
 - Never commit the signing keystore or any API key or token.
 - Changelog: with every push to `main`, add the user-facing changes to the `## Unreleased` section of CHANGELOG.md (German, with an `EN:` line each), and empty the section of the entries that were already published in the build before. The app's "What's new" card shows only what is in that section.
+- Before every push to `main`, empty the `## Unreleased` section of CHANGELOG.md completely, then write new entries for the changes in that push only (German, with an `EN:` line each). The section must only hold the current changes; nothing from earlier pushes stays in it.
