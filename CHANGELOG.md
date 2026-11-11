@@ -4,14 +4,6 @@ Add user-facing Horizon Nav changes under **Unreleased** before publishing each 
 
 ## Unreleased
 
-### Verbessert
-- Routenauswahl kompakter: Die Routenkarten zeigen Zeit, Strecke und Verkehr in weniger Zeilen, der Ankunftstext fällt weg. Favorit, Zuhause und Arbeit stehen neben dem Zielnamen. Während der Auswahl zeigt die obere Leiste nur noch „Optionen“.
-  EN: More compact route choice: The route cards show time, distance and traffic in fewer lines; the arrival text is gone. Favourite, home and work sit beside the destination name. While choosing, the top bar shows only "Options".
-
-### Neu
-- Andere Wege: Bei jeder Planung über 25 km rechnet die App bis zu drei zusätzliche Wege, die seitlich ausholen (auch über andere Länder). Ist einer spürbar schneller oder kürzer, erscheint er als weiterer Vorschlag.
-  EN: Other ways: For every trip over 25 km the app works out up to three extra ways that swing off to one side (also through other countries). If one is clearly quicker or shorter, it appears as one more suggestion.
-
 ## 1.0.246 — 2026-10-28
 
 ### Improved in-app updates
