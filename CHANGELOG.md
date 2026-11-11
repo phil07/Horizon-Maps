@@ -4,9 +4,9 @@ Add user-facing Horizon Nav changes under **Unreleased** before publishing each 
 
 ## Unreleased
 
-### Behoben
-- Kreisel: Ein- und Ausfahrt werden aus der Routenlinie gelesen, die auch die Karte zeigt. Grüner Kasten, Android Auto und Head-Up-Display stimmen damit überein.
-  EN: Roundabouts: Entry and exit are read from the route line the map shows. The turn card, Android Auto and the head-up display now agree with the map.
+### Verbessert
+- Schnellere Erkennung, wenn du die Route verlässt: Die App fragt nach 2 Sekunden abseits der Route eine neue an, und bei einer falschen Abbiegung schon beim ersten deutlichen Hinweis. Die alte Route bleibt sichtbar, bis die neue da ist.
+  EN: Faster detection when you leave the route: The app asks for a new route after 2 seconds off it, and at the first clear sign of a wrong turn. The old route stays on screen until the new one arrives.
 
 ## 1.0.246 — 2026-10-28
 

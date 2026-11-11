@@ -701,8 +701,8 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
     private var offCount = 0
     /** When the car first left the route in the current stretch of being off it (0 when it's on the route). */
     private var offSince = 0L
-    /** Off-route strikes before the route is recalculated: 2 (was 3) so a wrong turn is caught sooner. */
-    private val REROUTE_STRIKES = 2
+    /** Off-route strikes before the route is recalculated: 1 (was 3, then 2) so a wrong turn is caught at the first clear sign. */
+    private val REROUTE_STRIKES = 1
     /** Since when (elapsed ms, 0 none) you've been going the wrong way along the route, and how far along it you were then. */
     private var backSince = 0L
     private var backProg = 0.0
@@ -4202,9 +4202,9 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
             // (the road next to the route, not believed yet: no strike towards a reroute)
         } else if (gpsReliableForReroute && (s.dist > (if (netGrace) maxOf(offLim, 80.0) else offLim) || (jump && !netGrace))) {
             if (newFix) {
-                // off the route for about 5 seconds in a row: a new route is asked for (the arrow has followed you already)
+                // off the route for about 2 seconds in a row: a new route is asked for (the arrow has followed you already)
                 if (offSince == 0L) offSince = nowT
-                if (nowT - offSince >= 5000L) { offSince = 0L; offCount = 0; reroute(); return }
+                if (nowT - offSince >= 2000L) { offSince = 0L; offCount = 0; reroute(); return }
             }
         } else if (gpsReliableForReroute && newFix && !netGrace) {
             // Still close to the route, but a vehicle moving away from its direction can indicate a wrong turn.
