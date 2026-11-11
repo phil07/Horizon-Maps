@@ -4,10 +4,6 @@ Add user-facing Horizon Nav changes under **Unreleased** before publishing each 
 
 ## Unreleased
 
-### Behoben
-- Die gewählte Route bleibt gewählt: Wenn die Ladeplanung fertig wird, nachdem du eine Alternative angetippt hast, springt die App nicht mehr auf eine andere Route zurück. Beim Losfahren fährt sie die Route, die du gewählt hast.
-  EN: Your chosen route stays chosen: When the charging plan finishes after you have tapped an alternative, the app no longer switches back to another route. When you set off, it drives the route you picked.
-
 ## 1.0.246 — 2026-10-28
 
 ### Improved in-app updates
