@@ -42,16 +42,17 @@ object BrandLogos {
     /** Whether a result called [name] (of brand [brand], if the search said) is a branch of the chain with the key [k]. */
     fun sameChain(name: String, brand: String?, k: String): Boolean {
         if (k.length < 2) return false
-        // a search that names the brand decides by it: a counter inside a shop ("Sainsbury's Western Union") is not the shop
-        if (brand != null) return key(brand) == k
         val n = key(name)
-        if (n == k) return true
-        // "Sainsbury's Local": the chain plus its own format, but not a concession inside it
-        return n.startsWith("$k ") && concessions.none { n.contains(it) }
+        // a counter or service inside a shop carries the shop's name too: it isn't a branch of the shop
+        if (concessions.any { n.contains(it) }) return false
+        // a search that names the brand decides by it
+        if (brand != null) return key(brand) == k
+        // "Sainsbury's Local": the chain plus its own format
+        return n == k || n.startsWith("$k ")
     }
 
     /** Things that sit inside shops and carry the shop's name (or are named after a shop they're in): not branches of it. */
-    private val concessions = listOf("western union", "post office", "cafe", "café", "pharmacy", "apotheke", "atm", "counter", "kiosk", "lounge", "service", "cash")
+    private val concessions = listOf("western union", "post office", "cafe", "café", "pharmacy", "apotheke", "atm", "counter", "kiosk", "lounge")
 
     /** The website for a place's logo: the result's own, else the chain's from the list, else null. */
     fun domainFor(p: Place): String? {
