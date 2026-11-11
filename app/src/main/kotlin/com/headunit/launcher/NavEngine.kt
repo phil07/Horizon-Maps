@@ -489,10 +489,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
     }
 
     /** The number of real turns on a route (not the start, the arrival or going straight on). */
-    private fun turnCount(r: Route): Int = r.steps.count { st ->
-        val m = st.maneuver.uppercase()
-        m != "DEPART" && !m.startsWith("ARRIVE") && m != "STRAIGHT" && m != "FOLLOW" && m != "CONTINUE"
-    }
+    private fun turnCount(r: Route): Int = r.turns
 
     /**
      * The route to start with: the quickest, unless one with clearly fewer turns (at least two fewer) is at most 90 seconds slower. Such
@@ -2404,7 +2401,14 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         if (a.pts.isEmpty()) return 0.0
         val step = maxOf(1, a.pts.size / 60)
         var n = 0; var on = 0
-        for (i in a.pts.indices step step) { n++; if (RouteExtras.project(b, a.pts[i], 300.0) != null) on++ }
+        // points well outside b's box are not near it: no need for the exact check (300 m is about 0.0027 degrees)
+        val bb = b.bounds; val pad = 0.0035
+        for (i in a.pts.indices step step) {
+            n++
+            val p = a.pts[i]
+            if (p.lat < bb[0] - pad || p.lat > bb[2] + pad || p.lon < bb[1] - pad || p.lon > bb[3] + pad) continue
+            if (RouteExtras.project(b, p, 300.0) != null) on++
+        }
         return if (n == 0) 0.0 else on.toDouble() / n
     }
 
@@ -2744,7 +2748,21 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         return ss.sign.takeIf { !it.end }
     }
 
+    /** The last limit looked up (its road, the place and time, and the answer), so the same road isn't asked for again at once. */
+    private class LimitMemo(val way: Long, val at: LL, val t: Long, val routeMs: Double?, val osm: Overpass.Limit?, val vote: SpeedVote.Result?)
+    private var limitMemo: LimitMemo? = null
+
     private suspend fun lookUpLimit(p: LL, hd: Double, routeMs: Double?): Pair<Overpass.Limit?, SpeedVote.Result?> {
+        val osmNow = Overpass.speedLimit(p, hd, if (Overpass.countryAt(p) == "GB") "GB" else detectedCountry.ifBlank { Overpass.countryAt(p) })
+        val way = osmNow?.wayId ?: 0L
+        val m = limitMemo
+        if (way != 0L && m != null && m.way == way && m.routeMs == routeMs && Geo.dist(m.at, p) < 20.0 && System.currentTimeMillis() - m.t < 10_000L) return osmNow to m.vote
+        val (osm, vote) = lookUpLimitFresh(p, hd, routeMs)
+        if (way != 0L) limitMemo = LimitMemo(way, p, System.currentTimeMillis(), routeMs, osm, vote)
+        return osm to vote
+    }
+
+    private suspend fun lookUpLimitFresh(p: LL, hd: Double, routeMs: Double?): Pair<Overpass.Limit?, SpeedVote.Result?> {
         // the country you're in (from where you are), not the head unit's language setting, which is often US English anywhere
         val cc = if (Overpass.countryAt(p) == "GB") "GB" else detectedCountry.ifBlank { Overpass.countryAt(p) }
         val osm = Overpass.speedLimit(p, hd, cc)

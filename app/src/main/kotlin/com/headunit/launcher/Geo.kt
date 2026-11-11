@@ -89,6 +89,21 @@ class Route(
     @Volatile var limits: List<LimitSec> = emptyList()
     /** Incidents on the route that came with it (Mapbox routes carry them; TomTom's are looked up separately). */
     @Volatile var incidents: List<Incident> = emptyList()
+
+    /** The box round the route (lat min, lon min, lat max, lon max): a quick way to rule a point out before the exact check. */
+    val bounds: DoubleArray by lazy {
+        var s = 90.0; var n = -90.0; var w = 180.0; var e = -180.0
+        for (p in pts) { s = minOf(s, p.lat); n = maxOf(n, p.lat); w = minOf(w, p.lon); e = maxOf(e, p.lon) }
+        doubleArrayOf(s, w, n, e)
+    }
+
+    /** The manoeuvres that are turns (not the start, the arrival, or going straight on). Counted once per route. */
+    val turns: Int by lazy {
+        steps.count { st ->
+            val m = st.maneuver.uppercase()
+            m != "DEPART" && !m.startsWith("ARRIVE") && m != "STRAIGHT" && m != "FOLLOW" && m != "CONTINUE"
+        }
+    }
     /** Whose route this is ("tomtom", "mapbox", "offline"): its speed limits are that service's own data. */
     @Volatile var source: String = ""
     /** The heights along the route (loaded after it, for the battery estimate), or null. */
