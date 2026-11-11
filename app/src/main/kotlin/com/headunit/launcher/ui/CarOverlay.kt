@@ -266,15 +266,17 @@ private fun CarScreen(engine: NavEngine, a: android.graphics.Rect?, actions: Car
         if (engine.route == null && !arriving) Column(Modifier.padding(start = left, top = top).width(topW).onSizeChanged { topBlockH = it.height }.onGloballyPositioned { if (topShown) report(0, it.boundsInRoot()) },
             verticalArrangement = Arrangement.spacedBy(10.dp)) {
             // sized like the car's own Melden button: big enough to hit and read while driving
-            Row(Modifier.fillMaxWidth().height(80.dp).panel(10.dp, RoundedCornerShape(40.dp), c.surface).padding(end = 10.dp),
+            // (on a short screen: slimmer, so the chips below get the room)
+            val barH = if (engine.carShort) 56.dp else 80.dp
+            Row(Modifier.fillMaxWidth().height(barH).panel(10.dp, RoundedCornerShape(40.dp), c.surface).padding(end = if (engine.carShort) 6.dp else 10.dp),
                 verticalAlignment = Alignment.CenterVertically) {
                 // the bar opens the search (Saved & recent folds itself, by its own header)
-                Row(Modifier.weight(1f).fillMaxHeight().carTap("search") { actions.search() }.padding(start = 24.dp), verticalAlignment = Alignment.CenterVertically) {
-                    androidx.compose.material3.Icon(androidx.compose.material.icons.Icons.Rounded.Search, null, tint = c.sub, modifier = Modifier.size(32.dp))
-                    Text(stringResource(R.string.ui_064), color = c.sub, fontSize = 28.sp, modifier = Modifier.padding(start = 14.dp))
+                Row(Modifier.weight(1f).fillMaxHeight().carTap("search") { actions.search() }.padding(start = if (engine.carShort) 16.dp else 24.dp), verticalAlignment = Alignment.CenterVertically) {
+                    androidx.compose.material3.Icon(androidx.compose.material.icons.Icons.Rounded.Search, null, tint = c.sub, modifier = Modifier.size(if (engine.carShort) 24.dp else 32.dp))
+                    Text(stringResource(R.string.ui_064), color = c.sub, fontSize = if (engine.carShort) 20.sp else 28.sp, modifier = Modifier.padding(start = 12.dp))
                 }
-                Box(Modifier.size(60.dp).clip(androidx.compose.foundation.shape.CircleShape).background(c.accent).carTap("search-mic") { actions.search() }, contentAlignment = Alignment.Center) {
-                    androidx.compose.material3.Icon(androidx.compose.material.icons.Icons.Rounded.Mic, null, tint = Color.White, modifier = Modifier.size(32.dp))
+                Box(Modifier.size(if (engine.carShort) 44.dp else 60.dp).clip(androidx.compose.foundation.shape.CircleShape).background(c.accent).carTap("search-mic") { actions.search() }, contentAlignment = Alignment.Center) {
+                    androidx.compose.material3.Icon(androidx.compose.material.icons.Icons.Rounded.Mic, null, tint = Color.White, modifier = Modifier.size(if (engine.carShort) 24.dp else 32.dp))
                 }
             }
             NoticeCard(engine, big = true)

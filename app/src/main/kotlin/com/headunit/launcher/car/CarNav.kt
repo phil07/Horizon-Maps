@@ -584,7 +584,10 @@ class MapScreen(carContext: CarContext, private val holder: CarHolder) : Screen(
     private fun icon(res: Int) = CarIcon.Builder(IconCompat.createWithResource(carContext, res)).build()
 
     /** Melden (Polizei, Unfall, Gefahr …): opens the "Hier melden" screen. It has the Search button's place. */
-    private fun reportAction(): Action = Action.Builder().setTitle(Lang.t("Melden", "Report"))
+    private fun reportAction(): Action = if (holder.engine?.carShort == true)
+        // a short screen: the icon alone (its label is the same word everywhere, so it's read from the icon)
+        Action.Builder().setIcon(icon(R.drawable.ic_car_report)).setOnClickListener { screenManager.push(ReportScreen(carContext, holder)) }.build()
+    else Action.Builder().setTitle(Lang.t("Melden", "Report"))
         .setOnClickListener { screenManager.push(ReportScreen(carContext, holder)) }.build()
 
     override fun onGetTemplate(): Template = try {
@@ -650,7 +653,8 @@ class MapScreen(carContext: CarContext, private val holder: CarHolder) : Screen(
         } else {
             // cars that don't pass taps on: Melden has the Search button's place, and Suche is the first row in Orte
             strip.addAction(reportAction())
-            strip.addAction(Action.Builder().setTitle(Lang.t("Orte", "Places")).setOnClickListener { screenManager.push(PlacesScreen(carContext, holder)) }.build())
+            strip.addAction(if (e?.carShort == true) Action.Builder().setIcon(icon(R.drawable.ic_car_star)).setOnClickListener { screenManager.push(PlacesScreen(carContext, holder)) }.build()
+                else Action.Builder().setTitle(Lang.t("Orte", "Places")).setOnClickListener { screenManager.push(PlacesScreen(carContext, holder)) }.build())
             strip.addAction(view)
             strip.addAction(Action.Builder().setIcon(icon(R.drawable.ic_car_settings)).setOnClickListener { openSettings() }.build())
         }

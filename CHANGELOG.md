@@ -13,6 +13,8 @@ Add user-facing Horizon Nav changes under **Unreleased** before publishing each 
 ### Verbessert
 - Android Auto auf kleinen Bildschirmen: Auf 800 × 480 sind Zuhause, Arbeit und die Schnellsuche schmaler, die Fahrtkarte ist eine Zeile und das Tempolimit-Schild kleiner.
   EN: Android Auto on small screens: At 800 × 480 Home, Work and the quick search are slimmer, the trip card is one line and the speed sign is smaller.
+- Android Auto auf kleinen Bildschirmen: Suchleiste schmaler, Melden und Orte nur als Symbol.
+  EN: Android Auto on small screens: Slimmer search bar, and Report and Places as icons only.
 
 ### Neu
 - Stopp entlang der Route: Beim Hinzufügen eines Stopps zeigt „Entlang der Route suchen“ (oder die Suchtaste der Tastatur) alle Treffer entlang der restlichen Strecke auf der Karte, jeweils mit dem Zeitaufwand. Sortierbar nach geringstem Umweg, am frühesten oder am nächsten. Auf Android Auto als Liste nach Umweg.
