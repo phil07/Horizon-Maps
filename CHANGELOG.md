@@ -25,6 +25,8 @@ Add user-facing Horizon Nav changes under **Unreleased** before publishing each 
   EN: Android Auto in a split window: There the map shows only the turn, one trip line and the speed limit. Search and buttons are hidden.
 - Android Auto: Die Frage „Welches Fahrzeug ist das?“ liegt nicht mehr über den Knöpfen von Android Auto und passt sich der Fenstergröße an.
   EN: Android Auto: The "Which car is this?" card no longer covers Android Auto's buttons and fits the window's size.
+- Android Auto: Die Schrift auf der Frage „Welches Fahrzeug ist das?“ ist größer, und die Knöpfe sind höher, damit sie sich besser treffen lassen.
+  EN: Android Auto: The text on the "Which car is this?" card is larger, and the buttons are taller so they're easier to hit.
 
 ### Neu
 - Stopp entlang der Route: Beim Hinzufügen eines Stopps zeigt „Entlang der Route suchen“ (oder die Suchtaste der Tastatur) alle Treffer entlang der restlichen Strecke auf der Karte, jeweils mit dem Zeitaufwand. Sortierbar nach geringstem Umweg, am frühesten oder am nächsten. Auf Android Auto als Liste nach Umweg.

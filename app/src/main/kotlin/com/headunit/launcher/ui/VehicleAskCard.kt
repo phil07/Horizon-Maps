@@ -5,6 +5,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.CircleShape
@@ -41,8 +42,8 @@ internal fun VehicleAskCard(prefs: Prefs, onCar: Boolean, modifier: Modifier = M
     val cars = VehicleProfiles.cars(prefs)
     Column(modifier.panel(10.dp, RoundedCornerShape(22.dp), c.surface).padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(Lang.t("Neues Bluetooth-Gerät: ${pend.second}", "New Bluetooth device: ${pend.second}"), color = c.text,
-            fontSize = if (onCar) 22.sp else 16.sp, fontWeight = FontWeight.Bold, maxLines = 2)
-        Text(Lang.t("Welches Fahrzeug ist das?", "Which car is this?"), color = c.sub, fontSize = if (onCar) 18.sp else 13.sp)
+            fontSize = if (onCar) 30.sp else 16.sp, fontWeight = FontWeight.Bold, maxLines = 2)
+        Text(Lang.t("Welches Fahrzeug ist das?", "Which car is this?"), color = c.sub, fontSize = if (onCar) 24.sp else 13.sp)
         for (car in cars) AskButton(Lang.t("Zu ${car.name}", "This is ${car.name}"), "ask-${car.id}", onCar, primary = false) {
             VehicleProfiles.assign(prefs, car.id, pend.first)
             VehicleProfiles.clearPending(prefs)
@@ -59,8 +60,8 @@ internal fun VehicleAskCard(prefs: Prefs, onCar: Boolean, modifier: Modifier = M
 @Composable
 private fun AskButton(text: String, id: String, onCar: Boolean, primary: Boolean, action: () -> Unit) {
     val c = LocalVw.current
-    val base = Modifier.fillMaxWidth().clip(CircleShape).background(if (primary) c.accent else c.line).padding(horizontal = 16.dp, vertical = if (onCar) 12.dp else 8.dp)
+    val base = Modifier.fillMaxWidth().heightIn(min = if (onCar) 64.dp else 0.dp).clip(CircleShape).background(if (primary) c.accent else c.line).padding(horizontal = 16.dp, vertical = if (onCar) 14.dp else 8.dp)
     Box(if (onCar) base.carTap(id, action) else base.clickable { action() }) {
-        Text(text, color = if (primary) Color.White else c.text, fontSize = if (onCar) 20.sp else 15.sp, fontWeight = FontWeight.Medium, maxLines = 1)
+        Text(text, color = if (primary) Color.White else c.text, fontSize = if (onCar) 26.sp else 15.sp, fontWeight = FontWeight.Medium, maxLines = 1)
     }
 }
