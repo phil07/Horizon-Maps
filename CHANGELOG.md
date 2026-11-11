@@ -29,6 +29,8 @@ Add user-facing Horizon Nav changes under **Unreleased** before publishing each 
   EN: Android Auto: The text on the "Which car is this?" card is larger, and the buttons are taller so they're easier to hit.
 - Kreisel: Der Pfeil auf der Abbiegekarte zeigt dieselbe Ausfahrt wie die Anweisung und die Karte, z. B. die 3. Ausfahrt nach links.
   EN: Roundabouts: The arrow on the turn card now points to the same exit as the instruction and the map, e.g. the 3rd exit to the left.
+- Kreisel auf Android Auto und im Head-Up-Display: Der Pfeil zeigt dieselbe Ausfahrt wie auf dem Handy.
+  EN: Roundabouts on Android Auto and the head-up display: The arrow points to the same exit as on the phone.
 
 ### Neu
 - Stopp entlang der Route: Beim Hinzufügen eines Stopps zeigt „Entlang der Route suchen“ (oder die Suchtaste der Tastatur) alle Treffer entlang der restlichen Strecke auf der Karte, jeweils mit dem Zeitaufwand. Sortierbar nach geringstem Umweg, am frühesten oder am nächsten. Auf Android Auto als Liste nach Umweg.

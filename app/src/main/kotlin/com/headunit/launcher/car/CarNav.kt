@@ -840,7 +840,9 @@ class MapScreen(carContext: CarContext, private val holder: CarHolder) : Screen(
                 // 90 = first exit on the near side, 180 = straight on, 270 = far side, 360 = back the way you came
                 var ang = -1
                 if (t.rbIn >= 0 && t.rbOut >= 0) {
-                    val rel = ((t.rbOut - t.rbIn + 540.0) % 360.0) - 180.0   // -180..180, right turn positive
+                    // the same exit as the turn card and the map (the one the instruction names); -180..180, right turn positive
+                    val named = com.headunit.launcher.ui.roundaboutExitTurn(t.rbIn, t.rbOut, t.rbExits, t.exit, left)
+                    val rel = if (named.isFinite()) named.toDouble() else ((t.rbOut - t.rbIn + 540.0) % 360.0) - 180.0
                     val a = Math.round(if (left) 180.0 + rel else 180.0 - rel).toInt()
                     ang = ((a % 360) + 360) % 360
                 } else {
