@@ -37,7 +37,26 @@ object Overpass {
     fun query(q: String, connectMs: Int = 10000, readMs: Int = 30000, tries: Int = endpoints.size): JSONArray = run(q, connectMs, readMs, tries)
 
     /** Asks the servers, and when every one fails (a dropped connection, a busy server) tries the round again: three rounds, a pause between. */
+    /** Queries running right now, by their text: a second caller with the same query waits for the first one's answer. */
+    private val inFlight = java.util.concurrent.ConcurrentHashMap<String, java.util.concurrent.FutureTask<JSONArray>>()
+
     private fun run(query: String, connectMs: Int = 8000, readMs: Int = 18000, tries: Int = endpoints.size): JSONArray {
+        val task = java.util.concurrent.FutureTask { rounds(query, connectMs, readMs, tries) }
+        val running = inFlight.putIfAbsent(query, task)
+        if (running != null) return unwrap { running.get() }
+        try {
+            task.run()
+            return unwrap { task.get() }
+        } finally {
+            inFlight.remove(query, task)
+        }
+    }
+
+    private fun unwrap(get: () -> JSONArray): JSONArray = try { get() } catch (e: java.util.concurrent.ExecutionException) {
+        when (val c = e.cause) { is IOException -> throw c; is RuntimeException -> throw c; else -> throw IOException(c) }
+    } catch (e: InterruptedException) { throw IOException("interrupted") }
+
+    private fun rounds(query: String, connectMs: Int, readMs: Int, tries: Int): JSONArray {
         var last: IOException? = null
         for (round in 1..3) {
             try { return runOnce(query, connectMs, readMs, tries) } catch (e: IOException) {

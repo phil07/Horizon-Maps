@@ -11,6 +11,8 @@ Add user-facing Horizon Nav changes under **Unreleased** before publishing each 
   EN: Shop search leaves out places that only mention the shop: A Western Union counter inside a Sainsbury's no longer counts as a branch of the shop.
 - Verkehrs-Hinweis liegt nicht mehr über der Karte: Er steht unter der Abbiegekarte, wenn dort Platz ist, sonst direkt über der Fahrt- bzw. Ankunftskarte.
   EN: Traffic pill no longer sits over the card: It goes under the turn card when there's room, otherwise just above the trip or arrival card.
+- Weniger Abfragen an OpenStreetMap: Fehlende Laternen-Gebiete werden in einer Anfrage geholt, und dieselbe Abfrage läuft nicht doppelt.
+  EN: Fewer requests to OpenStreetMap: Missing street-lamp areas are fetched in one request, and the same query isn't sent twice at once.
 
 ### Verbessert
 - Android Auto auf kleinen Bildschirmen: Auf 800 × 480 sind Zuhause, Arbeit und die Schnellsuche schmaler, die Fahrtkarte ist eine Zeile und das Tempolimit-Schild kleiner.
