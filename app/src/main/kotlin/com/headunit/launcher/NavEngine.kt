@@ -2007,6 +2007,61 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         val m = list.toMutableList(); val d = m.removeAt(pc); m.add(min(2, m.size), d); return m
     }
 
+    /** A match on the route ahead: its place, how far along the route it is, how far off the route, and the minutes it adds. */
+    class AlongHit(val place: Place, val ahead: Double, val off: Double, val extraMin: Int)
+    var alongHits by mutableStateOf<List<AlongHit>>(emptyList())
+        private set
+    /** "detour" (least detour), "soon" (soonest) or "near" (nearest to the route). */
+    var alongSort by mutableStateOf("detour")
+        private set
+    var alongBusy by mutableStateOf(false)
+        private set
+    var alongOpen by mutableStateOf(false)
+    var alongQuery by mutableStateOf("")
+        private set
+
+    private fun sortedAlong(l: List<AlongHit>): List<AlongHit> = when (alongSort) {
+        "soon" -> l.sortedBy { it.ahead }
+        "near" -> l.sortedBy { it.off }
+        else -> l.sortedWith(compareBy<AlongHit> { it.extraMin }.thenBy { it.off })
+    }
+
+    fun changeAlongSort(mode: String) { alongSort = mode; alongHits = sortedAlong(alongHits) }
+
+    /**
+     * "See them along your route": the search for [q] at a few points along the rest of the route, the matches that are near it
+     * (within 3 km), each with the minutes it would add. [done] runs when the list is in.
+     */
+    fun searchAlong(q: String, done: (() -> Unit)? = null) {
+        val r = route ?: return
+        if (q.trim().length < 2) return
+        alongQuery = q.trim(); alongOpen = true; alongBusy = true; alongHits = emptyList()
+        val start = if (!previewing) curProgress else 0.0
+        val total = r.len
+        val at = (0..5).map { k -> start + (total - start) * k / 5.0 }.map { pointAt(r, it).first }
+        val country = countryCode()
+        scope.launch {
+            val found = withContext(Dispatchers.IO) {
+                val seen = ArrayList<Place>()
+                for (p in at) {
+                    val part = try { netGeocode(country, alongQuery, p) } catch (e: Exception) { emptyList() }
+                    for (x in part) if (seen.none { Geo.dist(it.pos, x.pos) < 50.0 }) seen += x
+                }
+                seen
+            }
+            val hits = found.mapNotNull { p ->
+                val pr = RouteExtras.project(r, p.pos, 3000.0, start) ?: return@mapNotNull null
+                if (pr.first < start - 50.0) return@mapNotNull null
+                AlongHit(p, pr.first - start, pr.second, detour(pr.second))
+            }.take(20)
+            alongHits = sortedAlong(hits)
+            alongBusy = false
+            done?.invoke()
+        }
+    }
+
+    fun closeAlong() { alongOpen = false; alongHits = emptyList(); alongQuery = "" }
+
     fun search(q: String) {
         if (chain != null || chainBusy) closeChain()
         if (q.length < 2) { results = emptyList(); return }

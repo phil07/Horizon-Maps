@@ -4,6 +4,10 @@ Add user-facing Horizon Nav changes under **Unreleased** before publishing each 
 
 ## Unreleased
 
+### Neu
+- Stopp entlang der Route: Beim Hinzufügen eines Stopps zeigt „Entlang der Route suchen“ (oder die Suchtaste der Tastatur) alle Treffer entlang der restlichen Strecke auf der Karte, jeweils mit dem Zeitaufwand. Sortierbar nach geringstem Umweg, am frühesten oder am nächsten. Auf Android Auto als Liste nach Umweg.
+  EN: Add a stop, seen along your route: When adding a stop, "See them along your route" (or the keyboard's search key) lists every match along the rest of the route, each with the time it adds. Sort by least detour, soonest or nearest. On Android Auto it's a list sorted by detour.
+
 ### Verbessert
 - Schont den Akku: Die App rechnet weniger doppelt, und ein Tempolimit wird auf derselben Straße nicht gleich wieder abgefragt.
   EN: Saves battery: The app works out less twice, and a speed limit on the same road isn't looked up again straight away.

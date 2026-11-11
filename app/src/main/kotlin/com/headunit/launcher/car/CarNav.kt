@@ -1113,6 +1113,11 @@ class SearchScreen(carContext: CarContext, private val holder: CarHolder, initia
         val e = holder.engine
         val limit = try { carContext.getCarService(ConstraintManager::class.java).getContentLimit(ConstraintManager.CONTENT_LIMIT_TYPE_LIST) } catch (x: Exception) { 6 }
         val list = ItemList.Builder().setNoItemsMessage(if (query.trim().length < 2) Lang.t("Ort, Adresse oder Postleitzahl eingeben, oder sag „Hey Google, navigiere mit Horizon Nav zu …“", "Type a place, address or postcode, or say \"Hey Google, navigate to … with Horizon Nav\"") else Lang.t("Suche läuft…", "Searching…"))
+        if (query.trim().length >= 2 && e != null && e.route != null) {
+            // adding a stop: the matches along the rest of the route, sorted by detour
+            list.addItem(Row.Builder().setTitle(Lang.t("Entlang der Route suchen", "See them along your route"))
+                .setOnClickListener { screenManager.push(AlongScreen(carContext, holder, query.trim())) }.build())
+        }
         if (query.trim().length >= 2) {
             // a shop or chain with several branches nearby: "Alle N Standorte" as the first row
             val chainOf = shown.firstOrNull { e != null && e.chainCount(it) >= 2 }
@@ -1359,3 +1364,26 @@ class CarSettingsScreen(carContext: CarContext, private val holder: CarHolder, p
         return ListTemplate.Builder().setTitle(Lang.t("Einstellungen", "Settings")).setHeaderAction(Action.BACK).setSingleList(list.build()).build()
     }
 }
+
+/** Adding a stop on Android Auto: the matches along the rest of the route, a list sorted by detour; a tap adds it as a stop. */
+class AlongScreen(carContext: CarContext, private val holder: CarHolder, private val q: String) : Screen(carContext) {
+    private var started = false
+
+    override fun onGetTemplate(): Template {
+        val e = holder.engine
+        if (e != null && !started) { started = true; e.searchAlong(q) { invalidate() } }
+        val list = ItemList.Builder().setNoItemsMessage(if (e?.alongBusy == true) Lang.t("Suche entlang der Route …", "Searching along the route …") else Lang.t("Nichts entlang der Route gefunden", "Nothing found along the route"))
+        val limit = try { carContext.getCarService(ConstraintManager::class.java).getContentLimit(ConstraintManager.CONTENT_LIMIT_TYPE_LIST) } catch (x: Exception) { 6 }
+        for (h in (e?.alongHits ?: emptyList()).take(limit.coerceIn(1, 12))) {
+            val r = Row.Builder().setTitle(h.place.name).setImage(placeIcon(carContext, h.place))
+            val imp = e?.imperial ?: false
+            r.addText(listOf(if (h.extraMin <= 0) Lang.t("ohne Umweg", "no detour") else Lang.t("+${h.extraMin} Min. Umweg", "+${h.extraMin} min detour"),
+                Lang.t("in ${com.headunit.launcher.Geo.fmtDist(h.ahead, imp)}", "in ${com.headunit.launcher.Geo.fmtDist(h.ahead, imp)}")).joinToString(" · "))
+            r.setOnClickListener { e?.closeAlong(); e?.addStop(h.place); screenManager.popToRoot() }
+            list.addItem(r.build())
+        }
+        return ListTemplate.Builder().setTitle(Lang.t("Entlang der Route: $q", "Along your route: $q")).setHeaderAction(Action.BACK)
+            .setSingleList(list.build()).build()
+    }
+}
+

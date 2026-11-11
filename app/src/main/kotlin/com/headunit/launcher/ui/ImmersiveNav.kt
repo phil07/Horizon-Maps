@@ -277,6 +277,9 @@ private fun MapScreen(engine: NavEngine, onSettings: () -> Unit) {
                 // on foot to the parked car: the next instruction and what is left, over the search bar
                 if (engine.walking) WalkCard(engine)
                 ImmSearch(engine, q, { q = it }, typingLocked, focus, voice)
+                // adding a stop: the matches along the rest of the route (the keyboard's search key does the same)
+                if (engine.stopMode && q.trim().length >= 2 && !engine.alongOpen) ImmPill(Lang.t("Entlang der Route suchen", "See them along your route"), { engine.searchAlong(q) }, icon = Icons.Rounded.Route, filled = true)
+                if (engine.alongOpen) AlongPanel(engine)
                 engine.phoneDest?.let { pd -> PhoneDestCard(engine, pd) }
                 // an unknown car's Bluetooth device: which car it is (see Settings > Android Auto > Fahrzeuge)
                 VehicleAskCard(engine.prefs, onCar = false, Modifier.fillMaxWidth())
@@ -1159,7 +1162,7 @@ private fun ImmSearch(engine: NavEngine, q: String, onQ: (String) -> Unit, locke
             },
             singleLine = true,
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-            keyboardActions = KeyboardActions(onSearch = { engine.search(q) }),
+            keyboardActions = KeyboardActions(onSearch = { if (engine.stopMode && engine.route != null) engine.searchAlong(q) else engine.search(q) }),
             shape = shape,
             colors = TextFieldDefaults.colors(
                 focusedContainerColor = c.surface, unfocusedContainerColor = c.surface, disabledContainerColor = c.surface,
@@ -1642,3 +1645,43 @@ private fun ChargerFilterDialog(engine: NavEngine, onClose: () -> Unit) {
         }
     }
 }
+
+/** The matches along the route, sorted (least detour, soonest, nearest), with the minutes each adds; tap one, then Add as a stop. */
+@Composable
+private fun AlongPanel(engine: NavEngine) {
+    val c = LocalVw.current
+    var picked by remember(engine.alongQuery) { mutableStateOf<NavEngine.AlongHit?>(null) }
+    Column(Modifier.floating(24.dp).padding(14.dp).heightIn(max = 420.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(Lang.t("Entlang der Route: ${engine.alongQuery}", "Along your route: ${engine.alongQuery}"), color = c.text, fontSize = 18.sp,
+                fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
+            if (engine.alongBusy) CircularProgressIndicator(Modifier.size(18.dp), color = c.accent, strokeWidth = 2.dp)
+            Box(Modifier.padding(start = 10.dp).size(44.dp).clip(CircleShape).clickable { engine.closeAlong() }, contentAlignment = Alignment.Center) {
+                Icon(Icons.Rounded.Close, Lang.t("Schließen", "Close"), tint = c.sub, modifier = Modifier.size(22.dp))
+            }
+        }
+        Row(Modifier.padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            Pill(Lang.t("Geringster Umweg", "Least detour"), engine.alongSort == "detour", { engine.changeAlongSort("detour") })
+            Pill(Lang.t("Am frühesten", "Soonest"), engine.alongSort == "soon", { engine.changeAlongSort("soon") })
+            Pill(Lang.t("Am nächsten", "Nearest"), engine.alongSort == "near", { engine.changeAlongSort("near") })
+        }
+        if (!engine.alongBusy && engine.alongHits.isEmpty()) Text(Lang.t("Nichts entlang der Route gefunden.", "Nothing found along the route."), color = c.sub, fontSize = 15.sp, modifier = Modifier.padding(top = 10.dp))
+        LazyColumn(Modifier.padding(top = 6.dp)) {
+            items(engine.alongHits) { h ->
+                val sel = picked === h
+                Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).clickable { picked = h }.padding(vertical = 8.dp, horizontal = 4.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(h.place.name, color = if (sel) c.accent else c.text, fontSize = 17.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
+                        Text(if (h.extraMin <= 0) Lang.t("ohne Umweg", "no detour") else Lang.t("+${h.extraMin} Min.", "+${h.extraMin} min"), color = c.accent, fontSize = 16.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(start = 8.dp))
+                    }
+                    Text(Lang.t("in ${com.headunit.launcher.Geo.fmtDist(h.ahead, engine.imperial)} voraus · ${Math.round(h.off)} m abseits", "${com.headunit.launcher.Geo.fmtDist(h.ahead, engine.imperial)} ahead · ${Math.round(h.off)} m off the route"),
+                        color = c.sub, fontSize = 13.sp, maxLines = 1)
+                }
+            }
+        }
+        picked?.let { h ->
+            ImmPill(Lang.t("Als Stopp hinzufügen", "Add as a stop"), { engine.addStop(h.place); engine.closeAlong() }, filled = true, icon = Icons.Rounded.Add)
+        }
+    }
+}
+
