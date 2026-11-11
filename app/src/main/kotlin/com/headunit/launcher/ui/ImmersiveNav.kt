@@ -246,6 +246,9 @@ private fun MapScreen(engine: NavEngine, onSettings: () -> Unit) {
         // where the speedometer starts (in pixels), so zoom only moves beside the panel when it would really touch it
         var speedTopPx by remember { mutableStateOf(-1) }
         val tripH = with(dens) { tripPx.toDp() }
+        // heights of the turn card and the arrival card, so the traffic pill can sit under the one or above the other
+        var turnPx by remember { mutableStateOf(0) }
+        var arrPx by remember { mutableStateOf(0) }
         val screenH = maxHeight
         LaunchedEffect(narrow, tripPx, screenH) { engine.bottomCover = if (narrow && tripPx > 0) (tripH / screenH).coerceIn(0f, 0.5f).toDouble() else 0.0 }
         // left-hand drive: everything swaps sides (cards on the right, round buttons on the left)
@@ -324,7 +327,7 @@ private fun MapScreen(engine: NavEngine, onSettings: () -> Unit) {
                                 val turnDensity = LocalDensity.current
                                 val cardSize = engine.prefs.i(PreferenceKeys.MAIN_CARD_SIZE, 100).coerceIn(70, 150) / 100f
                                 CompositionLocalProvider(LocalDensity provides Density(turnDensity.density * cardSize, turnDensity.fontScale)) {
-                                    ImmTurnCard(engine, t)
+                                    Box(Modifier.onSizeChanged { turnPx = it.height }) { ImmTurnCard(engine, t) }
                                 }
                             }
                         }
@@ -478,7 +481,14 @@ private fun MapScreen(engine: NavEngine, onSettings: () -> Unit) {
             stoppedHint = engine.stoppedOverview
             if (engine.stoppedOverview) { delay(5000); stoppedHint = false }
         }
-        AnimatedVisibility(stoppedHint && engine.stoppedOverview && !previewing, modifier = Modifier.align(Alignment.TopCenter).padding(top = 16.dp),
+        // under the turn card when there's room; otherwise just above the trip or arrival card, not over it
+        val turnDp = with(dens) { (if (routing && engine.turn != null) turnPx else 0).toDp() }
+        val arrDp = with(dens) { (if (engine.arrival != null) arrPx else 0).toDp() }
+        val pillTop = 16.dp + turnDp + 8.dp
+        val pillUnder = turnDp > 0.dp && pillTop + 48.dp <= maxHeight * 0.45f
+        val pillBottom = maxOf(if (engine.arrival != null) arrDp + 16.dp else tripH, 0.dp) + 10.dp
+        AnimatedVisibility(stoppedHint && engine.stoppedOverview && !previewing,
+            modifier = (if (pillUnder) Modifier.align(Alignment.TopCenter).padding(top = pillTop) else Modifier.align(Alignment.BottomCenter).padding(bottom = pillBottom)),
             enter = fadeIn(tween(300)), exit = fadeOut(tween(250))) {
             Row(Modifier.panel(6.dp, RoundedCornerShape(20.dp), c.surface).padding(horizontal = 14.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
                 Icon(Icons.Rounded.Traffic, null, tint = c.accent, modifier = Modifier.size(18.dp))
@@ -496,7 +506,7 @@ private fun MapScreen(engine: NavEngine, onSettings: () -> Unit) {
             modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 16.dp),
             enter = androidx.compose.animation.slideInVertically(androidx.compose.animation.core.tween(520)) { it } + fadeIn(),
             exit = androidx.compose.animation.slideOutVertically { it } + fadeOut(),
-        ) { lastArr.value?.let { a -> ArrivalCard(engine, a) } }
+        ) { lastArr.value?.let { a -> Box(Modifier.onSizeChanged { arrPx = it.height }) { ArrivalCard(engine, a) } } }
 
         engine.faster?.let { fr ->
             Row(

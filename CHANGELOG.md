@@ -9,6 +9,8 @@ Add user-facing Horizon Nav changes under **Unreleased** before publishing each 
   EN: Trip card no longer covers the stop panel: While the add-a-stop or all-locations panel is open, the trip card steps aside and comes back when it closes.
 - Ein Shop-Filter lässt Orte weg, die den Shop nur erwähnen: Ein Western-Union-Schalter in einem Sainsbury's gehört nicht mehr zur Kette.
   EN: Shop search leaves out places that only mention the shop: A Western Union counter inside a Sainsbury's no longer counts as a branch of the shop.
+- Verkehrs-Hinweis liegt nicht mehr über der Karte: Er steht unter der Abbiegekarte, wenn dort Platz ist, sonst direkt über der Fahrt- bzw. Ankunftskarte.
+  EN: Traffic pill no longer sits over the card: It goes under the turn card when there's room, otherwise just above the trip or arrival card.
 
 ### Verbessert
 - Android Auto auf kleinen Bildschirmen: Auf 800 × 480 sind Zuhause, Arbeit und die Schnellsuche schmaler, die Fahrtkarte ist eine Zeile und das Tempolimit-Schild kleiner.
