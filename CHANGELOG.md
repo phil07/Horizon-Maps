@@ -23,6 +23,8 @@ Add user-facing Horizon Nav changes under **Unreleased** before publishing each 
   EN: Android Auto on small screens: The find buttons fit one row, the rest sit behind ⋯. The turn card is narrower, with the lanes inside it.
 - Android Auto im geteilten Fenster: Dort zeigt die Karte nur noch Abbiegung, eine Zeile Fahrt und das Tempolimit. Suche und Knöpfe fallen weg.
   EN: Android Auto in a split window: There the map shows only the turn, one trip line and the speed limit. Search and buttons are hidden.
+- Android Auto: Die Frage „Welches Fahrzeug ist das?“ liegt nicht mehr über den Knöpfen von Android Auto und passt sich der Fenstergröße an.
+  EN: Android Auto: The "Which car is this?" card no longer covers Android Auto's buttons and fits the window's size.
 
 ### Neu
 - Stopp entlang der Route: Beim Hinzufügen eines Stopps zeigt „Entlang der Route suchen“ (oder die Suchtaste der Tastatur) alle Treffer entlang der restlichen Strecke auf der Karte, jeweils mit dem Zeitaufwand. Sortierbar nach geringstem Umweg, am frühesten oder am nächsten. Auf Android Auto als Liste nach Umweg.

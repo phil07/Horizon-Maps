@@ -327,7 +327,9 @@ private fun CarScreen(engine: NavEngine, a: android.graphics.Rect?, actions: Car
         }
 
         // an unknown car's Bluetooth device connected: which car it is
-        VehicleAskCard(engine.prefs, onCar = true, Modifier.align(Alignment.TopCenter).padding(top = 12.dp))
+        // centred in the area Android Auto leaves free (its button column on the left, its own bar on the right), never wider than 520 dp,
+        // so it doesn't cover Melden, 2D or the settings button, and it follows the window's size when that changes
+        VehicleAskCard(engine.prefs, onCar = true, Modifier.align(Alignment.Center).padding(start = insL + edge, end = insR + edge).widthIn(max = 520.dp))
         if (!previewing && !arriving) {
             // the trip card steps aside while the add-a-stop or all-locations panel is open, and comes back when it closes
             val panelOpen = engine.stopMode || engine.chain != null || engine.chainBusy || engine.alongOpen
