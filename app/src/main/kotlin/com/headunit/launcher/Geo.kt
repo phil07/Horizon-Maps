@@ -15,7 +15,9 @@ data class Step(val off: Double, val maneuver: String, val street: String, val m
     /** The motorway junction's name when the route data has it ("Frankfurter Kreuz", "Weiterstadt"); else it comes from OpenStreetMap (see Junctions). */
     val jct: String = "",
     /** Where a slip road leaves the main road, when this turn is at its far end (metres along the route; -1 when none). See [slipForks]. */
-    val fork: Double = -1.0)
+    val fork: Double = -1.0,
+    /** At a roundabout: where the route leaves the ring (metres along the route; -1 when the route data doesn't say). */
+    val rbEnd: Double = -1.0)
 
 /**
  * Slip roads: a turn at the far end of a slip road often has no step of its own where the road leaves the motorway (no exit number).
@@ -122,6 +124,58 @@ class DelaySeg(val off: Double, val end: Double, val secs: Double)
 data class QueueMark(val pos: LL, val min: Int, val heavy: Boolean, val dim: Boolean)
 
 object Geo {
+    /** The point [d] metres along a line ([cum]: the distance to each point) and the heading of the piece it is on. */
+    fun pointOnLine(pts: List<LL>, cum: DoubleArray, d: Double): Pair<LL, Double> {
+        var lo = 0; var hi = cum.size - 1
+        while (lo < hi - 1) { val m = (lo + hi) ushr 1; if (cum[m] <= d) lo = m else hi = m }
+        val seg = (cum[hi] - cum[lo]).takeIf { it > 0 } ?: 1.0
+        val t = ((d - cum[lo]) / seg).coerceIn(0.0, 1.0)
+        val a = pts[lo]; val b = pts[hi]
+        return Pair(LL(a.lat + (b.lat - a.lat) * t, a.lon + (b.lon - a.lon) * t), bearing(a, b))
+    }
+
+    /**
+     * A roundabout's way in and way out, read from the route line itself (the line the map draws), as headings in degrees:
+     * the heading over the last 12 m before the ring ([entry]) and over the 30 m after leaving it. Where the route leaves the ring
+     * is [exitAt] when the route data says so, otherwise where the line stops turning round the ring (anticlockwise where traffic
+     * keeps right, clockwise where it keeps left). Null when the line is too short to tell.
+     */
+    fun roundaboutHeadings(pts: List<LL>, cum: DoubleArray, entry: Double, exitAt: Double, limitAt: Double, leftTraffic: Boolean): Pair<Double, Double>? {
+        if (pts.size < 2 || cum.size != pts.size) return null
+        val len = cum.last()
+        val e = entry.coerceIn(0.0, len)
+        val limit = minOf(len, e + 250.0, limitAt)
+        if (limit <= e + 5.0) return null
+        val inH = bearing(pointOnLine(pts, cum, maxOf(0.0, e - 12.0)).first, pointOnLine(pts, cum, e).first)
+        var exit = if (exitAt > e && exitAt <= limit) exitAt else -1.0
+        if (exit < 0) {
+            val step = 4.0
+            val hs = ArrayList<Double>()
+            var o = e
+            while (o <= limit) { hs += pointOnLine(pts, cum, o).second; o += step }
+            val sign = if (leftTraffic) 1.0 else -1.0
+            fun dlt(a: Double, b: Double) = ((b - a + 540.0) % 360.0) - 180.0
+            val win = 5
+            var turned = 0.0
+            var found = -1
+            for (i in 0 until hs.size - 1) {
+                val d = sign * dlt(hs[i], hs[i + 1])
+                if (turned >= 15.0) {
+                    // turning out of the ring (against its direction), or not turning round it any more
+                    if (d < -2.0) { found = i; break }
+                    if (i + win <= hs.size - 1 && (i until i + win).all { j -> sign * dlt(hs[j], hs[j + 1]) <= 1.0 }) { found = i; break }
+                }
+                if (d > 0) turned += d
+            }
+            // no ring in the line (a mini roundabout drawn as a single point): the heading a little way on
+            exit = if (found >= 0) e + found * step else e + 25.0
+        }
+        val outEnd = minOf(len, exit + 30.0)
+        if (outEnd - exit < 5.0) return null
+        val outH = bearing(pointOnLine(pts, cum, exit).first, pointOnLine(pts, cum, outEnd).first)
+        return inH to outH
+    }
+
     fun rad(d: Double) = d * PI / 180.0
 
     private val abbr = mapOf("Close" to "Cl", "Road" to "Rd", "Street" to "St", "Avenue" to "Ave", "Drive" to "Dr", "Lane" to "Ln", "Crescent" to "Cres",

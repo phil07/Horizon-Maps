@@ -488,6 +488,11 @@ object MapboxRest {
                 // a stop on the way: not a step of its own (the next leg carries on from it)
                 val skip = type == "notification" || type == "exit roundabout" || type == "exit rotary" ||
                     (type == "arrive" && li < legs.length() - 1) || (type == "depart" && li > 0)
+                // leaving a roundabout: not a step of its own, but where it is tells the turn card which way the exit goes
+                if (type == "exit roundabout" || type == "exit rotary") {
+                    val ri = steps.indexOfLast { it.maneuver.uppercase().startsWith("ROUNDABOUT") }
+                    if (ri >= 0 && steps[ri].rbEnd < 0 && at > steps[ri].off) steps[ri] = steps[ri].copy(rbEnd = at)
+                }
                 if (!skip) {
                     val man = maneuverOf(type, mod, leftHand)
                     val name = s.optString("name")

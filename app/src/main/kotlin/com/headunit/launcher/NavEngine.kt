@@ -5669,11 +5669,17 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
             }
             // the motorway junction there, by name: "Frankfurter Kreuz", "Ausfahrt 17 Weiterstadt"
             val jc = if (arriving) null else junctionAt(r, cur)
+            // a roundabout's way in and out from the route line itself, as the map draws it: the route data's angles sent the arrow the
+            // wrong way (a third exit to the left showed as half right). The roads off the ring are left out then (their angles
+            // come from the same data).
+            val rbGeo = if (cur.maneuver.uppercase().startsWith("ROUNDABOUT")) try {
+                Geo.roundaboutHeadings(r.pts, r.cum, cur.off, cur.rbEnd, nxt?.off?.minus(2.0) ?: Double.MAX_VALUE, leftTraffic)
+            } catch (e: Exception) { null } else null
             val newTurn = TurnInfo(
                 d, street, cur.maneuver, if (thenOn) nxt?.maneuver else null,
                 if (thenOn && nxt != null) Lang.t("Dann ", "Then ") + Geo.maneuverText(nxt.maneuver, nxt.roundExit) + (if (nxt.street.isNotBlank()) Lang.t(" auf ${nxt.street}", " onto ${nxt.street}") else "") else "",
                 laneSec, Geo.stepTag(cur), laneAdv, cur.roundExit, cur.sign,
-                exitNo = cur.exitNo, rbIn = cur.rbIn, rbOut = cur.rbOut, rbExits = cur.rbExits, thenGap = if (thenOn) gap else 0.0, thenExit = if (thenOn) (nxt?.roundExit ?: 0) else 0,
+                exitNo = cur.exitNo, rbIn = rbGeo?.first ?: cur.rbIn, rbOut = rbGeo?.second ?: cur.rbOut, rbExits = if (rbGeo != null) emptyList() else cur.rbExits, thenGap = if (thenOn) gap else 0.0, thenExit = if (thenOn) (nxt?.roundExit ?: 0) else 0,
                 junction = jc?.let { Junctions.label(it.first, it.second) }.orEmpty(), junctionName = jc?.first.orEmpty(),
             )
             // only publish a new turn card when something a driver can see changed (about 3 m of distance), so the screen is not redrawn four times a second for nothing
