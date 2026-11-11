@@ -1037,7 +1037,7 @@ internal fun ImmTurnCard(
     ) {
         // (in the car as tall as Android Auto's own buttons beside it, "Beenden", with text to match)
         if (slim) Row(Modifier.padding(horizontal = if (car) 20.dp else 14.dp, vertical = if (car) 14.dp else 9.dp), verticalAlignment = Alignment.CenterVertically) {
-            ManeuverArrow(t.maneuver, Geo.maneuverAngle(t.maneuver), Modifier.size(if (car) 50.dp else 34.dp), roundaboutExit = t.exit, roundaboutClockwise = engine.leftTraffic, exitAngle = roundaboutTurn(t.rbIn, t.rbOut))
+            ManeuverArrow(t.maneuver, Geo.maneuverAngle(t.maneuver), Modifier.size(if (car) 50.dp else 34.dp), roundaboutExit = t.exit, roundaboutClockwise = engine.leftTraffic, exitAngle = roundaboutExitTurn(t.rbIn, t.rbOut, t.rbExits, t.exit, engine.leftTraffic))
             RollText(Geo.fmtDist(t.dist, engine.imperial), Color.White, if (car) 36.sp else 25.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(start = if (car) 14.dp else 10.dp))
             Text(t.street, color = Color.White, fontSize = if (car) 26.sp else 16.sp, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(start = 12.dp))
         } else {
@@ -1047,7 +1047,7 @@ internal fun ImmTurnCard(
         val streetSp = if (car) 24.sp else if (compact) 16.sp else 19.sp
         val chipSp = if (car) 17.sp else 13.sp
         Row(Modifier.padding(start = if (car) 20.dp else if (compact) 12.dp else 18.dp, end = if (compact && !car) 12.dp else 16.dp, top = if (car) 14.dp else if (compact) 9.dp else 16.dp, bottom = if (car) 12.dp else if (compact) 8.dp else 12.dp), verticalAlignment = Alignment.CenterVertically) {
-            ManeuverArrow(t.maneuver, Geo.maneuverAngle(t.maneuver), Modifier.size(if (car) 64.dp else if (compact) 42.dp else 60.dp), roundaboutExit = t.exit, roundaboutClockwise = engine.leftTraffic, exitAngle = roundaboutTurn(t.rbIn, t.rbOut))
+            ManeuverArrow(t.maneuver, Geo.maneuverAngle(t.maneuver), Modifier.size(if (car) 64.dp else if (compact) 42.dp else 60.dp), roundaboutExit = t.exit, roundaboutClockwise = engine.leftTraffic, exitAngle = roundaboutExitTurn(t.rbIn, t.rbOut, t.rbExits, t.exit, engine.leftTraffic))
             Column(Modifier.padding(start = if (car) 16.dp else if (compact) 9.dp else 16.dp).weight(1f)) {
                 RollText(Geo.fmtDist(t.dist, engine.imperial), Color.White, distSp, fontWeight = FontWeight.Bold)
                 // (the tag of a motorway exit is "Ausfahrt 17", from Geo.stepTag; older builds wrote "Exit 17")

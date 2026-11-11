@@ -239,6 +239,20 @@ fun roundaboutTurn(inBearing: Double, outBearing: Double): Float {
     return d.toFloat()
 }
 
+/**
+ * The direction of the exit the instruction names ("3. Ausfahrt"): every exit of the roundabout is turned into an angle from the way in,
+ * sorted in the order you pass them (right-hand traffic: the first exit is the sharpest right, then ahead, then left; left-hand traffic
+ * the other way round), and the n-th one is taken. Falls back to the exit you take when the exits are not all known.
+ */
+fun roundaboutExitTurn(inBearing: Double, outBearing: Double, others: List<Double>, exitNo: Int, leftTraffic: Boolean): Float {
+    val base = roundaboutTurn(inBearing, outBearing)
+    if (exitNo <= 0 || inBearing < 0.0) return base
+    val all = (others + outBearing).map { roundaboutTurn(inBearing, it) }.filter { it.isFinite() }
+    if (all.size < exitNo) return base
+    val ordered = if (leftTraffic) all.sorted() else all.sortedDescending()
+    return ordered[exitNo - 1]
+}
+
 /** Turn arrow drawn from the manoeuvre name (no image assets needed). */
 @Composable
 fun ManeuverArrow(

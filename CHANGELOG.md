@@ -27,6 +27,8 @@ Add user-facing Horizon Nav changes under **Unreleased** before publishing each 
   EN: Android Auto: The "Which car is this?" card no longer covers Android Auto's buttons and fits the window's size.
 - Android Auto: Die Schrift auf der Frage „Welches Fahrzeug ist das?“ ist größer, und die Knöpfe sind höher, damit sie sich besser treffen lassen.
   EN: Android Auto: The text on the "Which car is this?" card is larger, and the buttons are taller so they're easier to hit.
+- Kreisel: Der Pfeil auf der Abbiegekarte zeigt dieselbe Ausfahrt wie die Anweisung und die Karte, z. B. die 3. Ausfahrt nach links.
+  EN: Roundabouts: The arrow on the turn card now points to the same exit as the instruction and the map, e.g. the 3rd exit to the left.
 
 ### Neu
 - Stopp entlang der Route: Beim Hinzufügen eines Stopps zeigt „Entlang der Route suchen“ (oder die Suchtaste der Tastatur) alle Treffer entlang der restlichen Strecke auf der Karte, jeweils mit dem Zeitaufwand. Sortierbar nach geringstem Umweg, am frühesten oder am nächsten. Auf Android Auto als Liste nach Umweg.
