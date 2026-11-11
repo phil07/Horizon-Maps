@@ -55,11 +55,14 @@ android {
 
     buildFeatures { compose = true; buildConfig = true }
     // A release build runs noticeably faster than the debug one (no debug overhead, and the libraries' built-in speed-up profiles are applied).
-    // It is signed with the debug key so it installs like before; code shrinking stays off to avoid breaking the map library.
+    // It is signed with the debug key so it installs like before.
     buildTypes {
         release {
-            isMinifyEnabled = false
-            isShrinkResources = false
+            // R8 shrinks the code and the resources (unused classes, images and fonts of the libraries go). The app's own classes
+            // are kept by name (proguard-rules.pro), so only the libraries' unused parts are removed.
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
             isDebuggable = false
             // the key comes from the flavor: the GitHub build ("public") and the Google Play build ("play") are signed differently
         }
