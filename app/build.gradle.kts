@@ -28,7 +28,7 @@ android {
         versionName = "1.0.$run"
         resValue("string", "app_name", "Horizon Nav")
         // only the chips head units and phones use (the Mapbox map comes with a copy for each, so this keeps the APK much smaller)
-        ndk { abiFilters += listOf("arm64-v8a", "armeabi-v7a") }
+        ndk { abiFilters += listOf("arm64-v8a") }
     }
 
     // Sign every build with the same key: the signing.keystore file in your GitHub repo (found by looking up from the project folder).
