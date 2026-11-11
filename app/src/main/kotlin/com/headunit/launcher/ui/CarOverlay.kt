@@ -165,6 +165,9 @@ private fun CarScreen(engine: NavEngine, a: android.graphics.Rect?, actions: Car
         val narrow = maxWidth < 900.dp
         val wideLandscape = aspect > 2.0f
         val compact = lowVertical || narrow || wideLandscape
+        // a short car screen (or a split-screen tile): the trip is one line and the speed sign is smaller
+        val shortCar = maxHeight < 520.dp
+        if (engine.isCar && engine.carShort != shortCar) engine.carShort = shortCar
         val portrait = maxHeight > maxWidth * 1.1f || narrow
         val insL = with(dens) { (a?.left ?: 0).toDp() }
         val insT = with(dens) { (a?.top ?: 0).toDp() }
@@ -322,6 +325,8 @@ private fun CarScreen(engine: NavEngine, a: android.graphics.Rect?, actions: Car
         // an unknown car's Bluetooth device connected: which car it is
         VehicleAskCard(engine.prefs, onCar = true, Modifier.align(Alignment.TopCenter).padding(top = 12.dp))
         if (!previewing && !arriving) {
+            // the trip card steps aside while the add-a-stop or all-locations panel is open, and comes back when it closes
+            val panelOpen = engine.stopMode || engine.chain != null || engine.chainBusy || engine.alongOpen
             val hazards: @Composable () -> Unit = {
                 // (only when there's no turn card to carry them)
                 if (radarOn) HazardRadar(engine)
@@ -350,7 +355,7 @@ private fun CarScreen(engine: NavEngine, a: android.graphics.Rect?, actions: Car
                         Box(Modifier.weight(1f)) { hazards() }
                         Box(Modifier.padding(start = 30.dp, top = 14.dp)) { CompositionLocalProvider(LocalDensity provides Density(dens.density * speedScale, dens.fontScale)) { ImmSpeed(engine) } }
                     }
-                    if (guiding) CompositionLocalProvider(LocalDensity provides Density(dens.density * cardScale, dens.fontScale)) { Box(Modifier.onSizeChanged { tripPx = it.height }) { TripCard(engine, true) } }
+                    if (guiding && !panelOpen) CompositionLocalProvider(LocalDensity provides Density(dens.density * cardScale, dens.fontScale)) { Box(Modifier.onSizeChanged { tripPx = it.height }) { TripCard(engine, true, oneLine = shortCar) } }
                 }
             } else {
                 var leftColW by remember { mutableStateOf(0) }
@@ -364,7 +369,7 @@ private fun CarScreen(engine: NavEngine, a: android.graphics.Rect?, actions: Car
                     // (while guiding, the sound button is on the trip card instead of a pill of its own)
                     if (!guiding) CompositionLocalProvider(LocalDensity provides Density(dens.density * buttonScale, dens.fontScale)) { SoundPill(engine) }
                     hazards()
-                    if (guiding) CompositionLocalProvider(LocalDensity provides Density(dens.density * cardScale, dens.fontScale)) { TripCard(engine, false) }
+                    if (guiding && !panelOpen) CompositionLocalProvider(LocalDensity provides Density(dens.density * cardScale, dens.fontScale)) { TripCard(engine, false, oneLine = shortCar) }
                 }
                 // your speed and the limit, bottom right as in the app (clear of Android Auto's zoom buttons); on a small screen where
                 // it would run into the cards on the left, it sits above them instead
@@ -508,10 +513,23 @@ private fun SoundPill(engine: NavEngine) {
 /** Time left, arrival, distance and the route bar, with the sound button and the red button that ends the route.
  *  [fill]: across the width, compact (tall screens). */
 @Composable
-private fun TripCard(engine: NavEngine, fill: Boolean) {
+private fun TripCard(engine: NavEngine, fill: Boolean, oneLine: Boolean = false) {
     val e = engine.eta ?: return
     val c = LocalVw.current
     val dc = if (e.delayMin >= 10) Bad else if (e.delayMin >= 1) Warn else Good
+    // a short screen: time, arrival and distance on one line, with the end button (the figures stay, the rest goes)
+    if (oneLine) {
+        Row(Modifier.panel(10.dp, RoundedCornerShape(22.dp), c.surface).padding(start = 14.dp, end = 8.dp, top = 6.dp, bottom = 6.dp),
+            verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Text(Geo.fmtDur(e.secs), color = dc, fontSize = 22.sp, fontWeight = FontWeight.Bold, maxLines = 1)
+            Text(e.arrive, color = c.text, fontSize = 18.sp, maxLines = 1)
+            Text(Geo.fmtDist(e.dist, engine.imperial), color = c.sub, fontSize = 18.sp, maxLines = 1, modifier = Modifier.weight(1f))
+            Box(Modifier.size(46.dp).clip(androidx.compose.foundation.shape.CircleShape).background(Bad).carTap("end") { engine.endRoute() }, contentAlignment = Alignment.Center) {
+                androidx.compose.material3.Icon(androidx.compose.material.icons.Icons.Rounded.Close, null, tint = Color.White, modifier = Modifier.size(24.dp))
+            }
+        }
+        return
+    }
     // the card is as wide as its figures and buttons (at least 400dp), never the whole screen: the figures used to share a row that
     // was told to fill the space, so on a very wide car screen the card stretched right across and its sound and end buttons ended
     // up under Android Auto's own buttons on the right. The route bar is set to the row's measured width (it can't be asked for

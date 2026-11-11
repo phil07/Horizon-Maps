@@ -2017,6 +2017,8 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
     var alongBusy by mutableStateOf(false)
         private set
     var alongOpen by mutableStateOf(false)
+    /** The car screen is short (800 x 480 or a split-screen tile): slim cards, a one-line trip and a smaller speed sign. */
+    var carShort by mutableStateOf(false)
     var alongQuery by mutableStateOf("")
         private set
 

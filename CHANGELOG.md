@@ -4,6 +4,16 @@ Add user-facing Horizon Nav changes under **Unreleased** before publishing each 
 
 ## Unreleased
 
+### Behoben
+- Fahrtkarte verdeckt das Stopp-Panel nicht mehr: Solange das Panel für einen Stopp oder alle Standorte offen ist, tritt die Fahrtkarte zur Seite und kommt danach wieder.
+  EN: Trip card no longer covers the stop panel: While the add-a-stop or all-locations panel is open, the trip card steps aside and comes back when it closes.
+- Ein Shop-Filter lässt Orte weg, die den Shop nur erwähnen: Ein Western-Union-Schalter in einem Sainsbury's gehört nicht mehr zur Kette.
+  EN: Shop search leaves out places that only mention the shop: A Western Union counter inside a Sainsbury's no longer counts as a branch of the shop.
+
+### Verbessert
+- Android Auto auf kleinen Bildschirmen: Auf 800 × 480 ist die Fahrtkarte eine Zeile, das Tempolimit-Schild kleiner. Die übrige Anpassung für kleine und geteilte Bildschirme folgt.
+  EN: Android Auto on small screens: At 800 × 480 the trip card is one line and the speed sign is smaller. The rest of the layout for small and split screens follows.
+
 ### Neu
 - Stopp entlang der Route: Beim Hinzufügen eines Stopps zeigt „Entlang der Route suchen“ (oder die Suchtaste der Tastatur) alle Treffer entlang der restlichen Strecke auf der Karte, jeweils mit dem Zeitaufwand. Sortierbar nach geringstem Umweg, am frühesten oder am nächsten. Auf Android Auto als Liste nach Umweg.
   EN: Add a stop, seen along your route: When adding a stop, "See them along your route" (or the keyboard's search key) lists every match along the rest of the route, each with the time it adds. Sort by least detour, soonest or nearest. On Android Auto it's a list sorted by detour.

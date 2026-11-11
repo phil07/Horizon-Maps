@@ -24,4 +24,12 @@ class BrandLogosTest {
     }
 
     @Test fun knownChainsHaveAWebsite() = assertEquals("lidl.de", BrandLogos.domainFor(Place("Lidl", "", LL(0.0, 0.0))))
+
+    @Test fun aCounterInsideAShopIsNotABranchOfIt() {
+        assertFalse(BrandLogos.sameChain("Sainsbury's Western Union", null, "sainsbury's"))
+        assertFalse(BrandLogos.sameChain("Sainsbury's Post Office", null, "sainsbury's"))
+        assertFalse(BrandLogos.sameChain("Sainsbury's Western Union", "Sainsbury's", "sainsbury's"))
+        assertTrue(BrandLogos.sameChain("Sainsbury's Local", null, "sainsbury's"))
+        assertTrue(BrandLogos.sameChain("Sainsbury's", null, "sainsbury's"))
+    }
 }
