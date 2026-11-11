@@ -11,8 +11,8 @@ Add user-facing Horizon Nav changes under **Unreleased** before publishing each 
   EN: Shop search leaves out places that only mention the shop: A Western Union counter inside a Sainsbury's no longer counts as a branch of the shop.
 
 ### Verbessert
-- Android Auto auf kleinen Bildschirmen: Auf 800 × 480 ist die Fahrtkarte eine Zeile, das Tempolimit-Schild kleiner. Die übrige Anpassung für kleine und geteilte Bildschirme folgt.
-  EN: Android Auto on small screens: At 800 × 480 the trip card is one line and the speed sign is smaller. The rest of the layout for small and split screens follows.
+- Android Auto auf kleinen Bildschirmen: Auf 800 × 480 sind Zuhause, Arbeit und die Schnellsuche schmaler, die Fahrtkarte ist eine Zeile und das Tempolimit-Schild kleiner.
+  EN: Android Auto on small screens: At 800 × 480 Home, Work and the quick search are slimmer, the trip card is one line and the speed sign is smaller.
 
 ### Neu
 - Stopp entlang der Route: Beim Hinzufügen eines Stopps zeigt „Entlang der Route suchen“ (oder die Suchtaste der Tastatur) alle Treffer entlang der restlichen Strecke auf der Karte, jeweils mit dem Zeitaufwand. Sortierbar nach geringstem Umweg, am frühesten oder am nächsten. Auf Android Auto als Liste nach Umweg.

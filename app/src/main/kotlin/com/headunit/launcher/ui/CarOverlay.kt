@@ -725,6 +725,7 @@ private fun CarChips(engine: NavEngine, actions: CarActions, rows: Int) {
     // the drive times (the engine throttles this itself: online only, every 10 minutes or after moving 3 km)
     LaunchedEffect(Unit) { while (true) { engine.refreshSlotTimes(); kotlinx.coroutines.delay(60_000) } }
     val here = engine.fix?.pos
+    val slim = engine.carShort
     @Composable fun tile(id: String, icon: androidx.compose.ui.graphics.vector.ImageVector, tint: Color, label: String, place: com.headunit.launcher.Place?, mins: Int?, m: Modifier) {
         val sub = when {
             place == null -> Lang.t("Festlegen", "Set")
@@ -733,21 +734,22 @@ private fun CarChips(engine: NavEngine, actions: CarActions, rows: Int) {
             here != null -> Geo.fmtDist(Geo.dist(here, place.pos), engine.imperial)
             else -> place.sub
         }
-        Row(m.height(86.dp).panel(6.dp, RoundedCornerShape(30.dp), c.surface).carTap(id) { if (place != null) engine.startRoute(place) else actions.search() }
-            .padding(horizontal = 14.dp), verticalAlignment = Alignment.CenterVertically) {
-            Box(Modifier.size(60.dp).clip(androidx.compose.foundation.shape.CircleShape).background(tint.copy(alpha = 0.18f)), contentAlignment = Alignment.Center) {
-                androidx.compose.material3.Icon(icon, null, tint = tint, modifier = Modifier.size(36.dp))
+        // a short screen: slim pills (the same two lines, smaller)
+        Row(m.height(if (slim) 52.dp else 86.dp).panel(6.dp, RoundedCornerShape(if (slim) 26.dp else 30.dp), c.surface).carTap(id) { if (place != null) engine.startRoute(place) else actions.search() }
+            .padding(horizontal = if (slim) 8.dp else 14.dp), verticalAlignment = Alignment.CenterVertically) {
+            Box(Modifier.size(if (slim) 36.dp else 60.dp).clip(androidx.compose.foundation.shape.CircleShape).background(tint.copy(alpha = 0.18f)), contentAlignment = Alignment.Center) {
+                androidx.compose.material3.Icon(icon, null, tint = tint, modifier = Modifier.size(if (slim) 22.dp else 36.dp))
             }
-            Column(Modifier.padding(start = 14.dp).weight(1f)) {
+            Column(Modifier.padding(start = if (slim) 8.dp else 14.dp).weight(1f)) {
                 // (the short label even when not set yet: "Setze zuhause" was cut off at this size; the line below says "Festlegen")
-                Text(label, color = c.text, fontSize = 26.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                Text(sub, color = c.sub, fontSize = 21.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(label, color = c.text, fontSize = if (slim) 18.sp else 26.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(sub, color = c.sub, fontSize = if (slim) 15.sp else 21.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
         }
     }
     @Composable fun find(kind: String, icon: androidx.compose.ui.graphics.vector.ImageVector, tint: Color) {
-        Box(Modifier.size(78.dp).panel(6.dp, androidx.compose.foundation.shape.CircleShape, c.surface).carTap("n-$kind") { actions.nearby(kind) }, contentAlignment = Alignment.Center) {
-            androidx.compose.material3.Icon(icon, null, tint = tint, modifier = Modifier.size(42.dp))
+        Box(Modifier.size(if (slim) 50.dp else 78.dp).panel(6.dp, androidx.compose.foundation.shape.CircleShape, c.surface).carTap("n-$kind") { actions.nearby(kind) }, contentAlignment = Alignment.Center) {
+            androidx.compose.material3.Icon(icon, null, tint = tint, modifier = Modifier.size(if (slim) 26.dp else 42.dp))
         }
     }
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
