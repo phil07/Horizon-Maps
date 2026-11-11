@@ -782,7 +782,10 @@ private fun CarChips(engine: NavEngine, actions: CarActions, rows: Int) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                 finds.take(2).forEach { find(it.kind, it.icon, it.tint) }
                 Box(Modifier.size(50.dp).panel(6.dp, androidx.compose.foundation.shape.CircleShape, c.surface).carTap("n-more") { moreOpen = !moreOpen }, contentAlignment = Alignment.Center) {
-                    androidx.compose.material3.Icon(androidx.compose.material.icons.Icons.Rounded.MoreHoriz, null, tint = c.sub, modifier = Modifier.size(26.dp))
+                    // three dots drawn here (no icon to look up)
+                    Row(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
+                        repeat(3) { Box(Modifier.size(7.dp).background(c.sub, androidx.compose.foundation.shape.CircleShape)) }
+                    }
                 }
             }
             if (moreOpen) Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
