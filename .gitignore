@@ -17,3 +17,6 @@ secrets.properties
 # OS/editor noise
 .DS_Store
 Thumbs.db
+
+# Claude Code: local permission settings can hold passwords or tokens from approved commands
+.claude/settings.local.json
