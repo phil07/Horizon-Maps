@@ -5,8 +5,8 @@ Add user-facing Horizon Nav changes under **Unreleased** before publishing each 
 ## Unreleased
 
 ### Behoben
-- Eine selbst gewählte Route wird beim Losfahren nicht mehr von einer schnelleren überschrieben: Wurde die Route für Ladestopps neu berechnet, galt sie als nicht bewusst gewählt.
-  EN: A route you picked yourself is no longer replaced by a quicker one when you start: when it was worked out again for the charging stops, it counted as not picked by hand.
+- Die gewählte Route bleibt gewählt: Wenn die Ladeplanung fertig wird, nachdem du eine Alternative angetippt hast, springt die App nicht mehr auf eine andere Route zurück. Beim Losfahren fährt sie die Route, die du gewählt hast.
+  EN: Your chosen route stays chosen: When the charging plan finishes after you have tapped an alternative, the app no longer switches back to another route. When you set off, it drives the route you picked.
 
 ## 1.0.246 — 2026-10-28
 

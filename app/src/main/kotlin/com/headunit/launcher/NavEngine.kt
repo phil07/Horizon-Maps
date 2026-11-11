@@ -7001,7 +7001,8 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
                 // the routes are offered only now: pre-select the quickest one counting its charging time
                 if (routes === rs && previewing) {
                     val best = rs.indices.minByOrNull { rs[it].time + (evRoutePlans[rs[it]]?.minutes ?: 0) * 60.0 }
-                    if (best != null && best != active) selectRoute(best, byUser = false)
+                    // (not when you have picked one yourself: the charging plan finishing later must not change your choice)
+                    if (best != null && best != active && !userPicked) selectRoute(best, byUser = false)
                 }
             } finally {
                 if (routes === rs) evPlansPending = false
