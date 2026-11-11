@@ -4,6 +4,10 @@ Add user-facing Horizon Nav changes under **Unreleased** before publishing each 
 
 ## Unreleased
 
+### Verbessert
+- Schont den Akku: Die App rechnet weniger doppelt, und ein Tempolimit wird auf derselben Straße nicht gleich wieder abgefragt.
+  EN: Saves battery: The app works out less twice, and a speed limit on the same road isn't looked up again straight away.
+
 ## 1.0.246 — 2026-10-28
 
 ### Improved in-app updates
