@@ -167,6 +167,8 @@ private fun CarScreen(engine: NavEngine, a: android.graphics.Rect?, actions: Car
         val compact = lowVertical || narrow || wideLandscape
         // a short car screen (or a split-screen tile): the trip is one line and the speed sign is smaller
         val shortCar = maxHeight < 520.dp
+        // a split-screen tile (very low): just the turn, one trip line and the speed; no search, chips, sound or hazard line
+        val tile = maxHeight < 300.dp
         if (engine.isCar && engine.carShort != shortCar) engine.carShort = shortCar
         val portrait = maxHeight > maxWidth * 1.1f || narrow
         val insL = with(dens) { (a?.left ?: 0).toDp() }
@@ -237,7 +239,7 @@ private fun CarScreen(engine: NavEngine, a: android.graphics.Rect?, actions: Car
         // one slim line while the turn is far off (about 2 km), the full card as it comes up (a little either side, so it can't flicker)
         val slimHold = remember { booleanArrayOf(false) }
         if (t != null) slimHold[0] = if (t.dist > 2100.0) true else if (t.dist < 1900.0) false else slimHold[0]
-        if (showTurn && t != null) Box(Modifier.padding(start = left, top = top).width(if (portrait) topW else if (slimHold[0]) minOf(560.dp, maxWidth * 0.44f) else minOf(520.dp, maxWidth * 0.42f))
+        if (showTurn && t != null) Box(Modifier.padding(start = left, top = top).width(if (portrait) topW else if (engine.carShort) minOf(380.dp, maxWidth * 0.36f) else if (slimHold[0]) minOf(560.dp, maxWidth * 0.44f) else minOf(520.dp, maxWidth * 0.42f))
             .onSizeChanged { turnH = it.height }.onGloballyPositioned { if (topShown) report(0, it.boundsInRoot()) }) {
             // the turn card, with the junction sign or roundabout diagram under it and any advice for the conditions, as on the head unit
             Column(verticalArrangement = Arrangement.spacedBy(if (compact) 4.dp else 8.dp)) {
@@ -263,7 +265,7 @@ private fun CarScreen(engine: NavEngine, a: android.graphics.Rect?, actions: Car
         // as many saved places as fit above the sound pill / speed (0 to 3), so the list never runs into what's below it
         // (worked out here: the screen's height can't be read from inside the column below)
         val savedRows = ((maxHeight - top - bottom - 330.dp - 150.dp) / 86.dp).toInt().coerceIn(0, 3)
-        if (engine.route == null && !arriving) Column(Modifier.padding(start = left, top = top).width(topW).onSizeChanged { topBlockH = it.height }.onGloballyPositioned { if (topShown) report(0, it.boundsInRoot()) },
+        if (engine.route == null && !arriving && !tile) Column(Modifier.padding(start = left, top = top).width(topW).onSizeChanged { topBlockH = it.height }.onGloballyPositioned { if (topShown) report(0, it.boundsInRoot()) },
             verticalArrangement = Arrangement.spacedBy(10.dp)) {
             // sized like the car's own Melden button: big enough to hit and read while driving
             // (on a short screen: slimmer, so the chips below get the room)
@@ -369,8 +371,8 @@ private fun CarScreen(engine: NavEngine, a: android.graphics.Rect?, actions: Car
                     verticalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
                     // (while guiding, the sound button is on the trip card instead of a pill of its own)
-                    if (!guiding) CompositionLocalProvider(LocalDensity provides Density(dens.density * buttonScale, dens.fontScale)) { SoundPill(engine) }
-                    hazards()
+                    if (!guiding && !tile) CompositionLocalProvider(LocalDensity provides Density(dens.density * buttonScale, dens.fontScale)) { SoundPill(engine) }
+                    if (!tile) hazards()
                     if (guiding && !panelOpen) CompositionLocalProvider(LocalDensity provides Density(dens.density * cardScale, dens.fontScale)) { TripCard(engine, false, oneLine = shortCar) }
                 }
                 // your speed and the limit, bottom right as in the app (clear of Android Auto's zoom buttons); on a small screen where
@@ -759,19 +761,35 @@ private fun CarChips(engine: NavEngine, actions: CarActions, rows: Int) {
             tile("home", androidx.compose.material.icons.Icons.Rounded.Home, Color(0xFF4C8DFF), stringResource(R.string.ui_100), home, engine.slotMins["home"], Modifier.weight(1.2f))
             tile("work", androidx.compose.material.icons.Icons.Rounded.Work, Color(0xFFF29900), stringResource(R.string.ui_101), work, engine.slotMins["work"], Modifier.weight(1.2f))
         }
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            if (!(engine.prefs.s(PreferenceKeys.FUEL_TYPE, "E10") == "EV")) find("fuel", androidx.compose.material.icons.Icons.Rounded.LocalGasStation, Color(0xFFEA4335))
+        // the find buttons in the order they show; a short screen keeps the first two and folds the rest behind ⋯
+        data class Find(val kind: String, val icon: androidx.compose.ui.graphics.vector.ImageVector, val tint: Color)
+        val finds = buildList {
+            if (!(engine.prefs.s(PreferenceKeys.FUEL_TYPE, "E10") == "EV")) add(Find("fuel", androidx.compose.material.icons.Icons.Rounded.LocalGasStation, Color(0xFFEA4335)))
             if (engine.camperProfile) {
                 // a motorhome or caravan: pitches, water & waste and LPG instead of charging, food and coffee
-                find("camp", androidx.compose.material.icons.Icons.Rounded.RvHookup, Color(0xFF2E7D32))
-                find("dump", androidx.compose.material.icons.Icons.Rounded.WaterDrop, Color(0xFF0288D1))
-                find("lpg", androidx.compose.material.icons.Icons.Rounded.PropaneTank, Color(0xFFEF6C00))
+                add(Find("camp", androidx.compose.material.icons.Icons.Rounded.RvHookup, Color(0xFF2E7D32)))
+                add(Find("dump", androidx.compose.material.icons.Icons.Rounded.WaterDrop, Color(0xFF0288D1)))
+                add(Find("lpg", androidx.compose.material.icons.Icons.Rounded.PropaneTank, Color(0xFFEF6C00)))
             } else {
-            if (engine.prefs.s(PreferenceKeys.FUEL_TYPE, "E10") == "EV") find("charging", androidx.compose.material.icons.Icons.Rounded.EvStation, Color(0xFF34A853))
-            find("food", androidx.compose.material.icons.Icons.Rounded.Restaurant, Color(0xFFF29900))
-            find("coffee", androidx.compose.material.icons.Icons.Rounded.LocalCafe, Color(0xFFA56BFF))
+                if (engine.prefs.s(PreferenceKeys.FUEL_TYPE, "E10") == "EV") add(Find("charging", androidx.compose.material.icons.Icons.Rounded.EvStation, Color(0xFF34A853)))
+                add(Find("food", androidx.compose.material.icons.Icons.Rounded.Restaurant, Color(0xFFF29900)))
+                add(Find("coffee", androidx.compose.material.icons.Icons.Rounded.LocalCafe, Color(0xFFA56BFF)))
             }
-            find("parking", androidx.compose.material.icons.Icons.Rounded.LocalParking, Color(0xFF4C8DFF))
+            add(Find("parking", androidx.compose.material.icons.Icons.Rounded.LocalParking, Color(0xFF4C8DFF)))
+        }
+        var moreOpen by remember { mutableStateOf(false) }
+        if (slim && finds.size > 3) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                finds.take(2).forEach { find(it.kind, it.icon, it.tint) }
+                Box(Modifier.size(50.dp).panel(6.dp, androidx.compose.foundation.shape.CircleShape, c.surface).carTap("n-more") { moreOpen = !moreOpen }, contentAlignment = Alignment.Center) {
+                    androidx.compose.material3.Icon(androidx.compose.material.icons.Icons.Rounded.MoreHoriz, null, tint = c.sub, modifier = Modifier.size(26.dp))
+                }
+            }
+            if (moreOpen) Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                finds.drop(2).forEach { find(it.kind, it.icon, it.tint) }
+            }
+        } else Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+            finds.forEach { find(it.kind, it.icon, it.tint) }
         }
         // your own places first, then favourites, then recent ones (as in the app)
         val rawC = engine.prefs.s(PreferenceKeys.PLACES_CUSTOM, ""); val rawF = engine.prefs.s(PreferenceKeys.PLACES_FAVOURITES, ""); val rawR = engine.prefs.s(PreferenceKeys.PLACES_RECENT, "")
