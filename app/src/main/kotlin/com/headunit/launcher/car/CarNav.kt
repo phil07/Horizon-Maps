@@ -78,6 +78,9 @@ class CarNavService : CarAppService() {
     // any Android Auto host may connect: the app isn't distributed through Play, where Google would vouch for the host
     override fun createHostValidator(): HostValidator = HostValidator.ALLOW_ALL_HOSTS_VALIDATOR
     override fun onCreateSession(): Session = CarNavSession()
+    // a car with a map on the driver's display asks for a second session for it
+    override fun onCreateSession(sessionInfo: androidx.car.app.SessionInfo): Session =
+        if (sessionInfo.displayType == androidx.car.app.SessionInfo.DISPLAY_TYPE_CLUSTER) ClusterSession() else CarNavSession()
 }
 
 /** The engine and map for one connection to the car. */
@@ -180,6 +183,7 @@ class CarNavSession : Session() {
     private fun applyTheme() {
         val d = carDark()
         themeWas = d
+        ClusterLink.dark = d
         holder.engine?.applyStyle(d)
         if (::surface.isInitialized) surface.dark.value = d
     }
@@ -216,6 +220,7 @@ class CarNavSession : Session() {
                 CarTicks.tick = null
                 surface.release()
                 holder.engine = null; holder.map = null
+                ClusterLink.engine = null
             }
         })
         pendingNav = intent
@@ -254,6 +259,7 @@ class CarNavSession : Session() {
         // the Bluetooth device that just connected is the car (for "where you parked" without Android Auto)
         try { com.headunit.launcher.CarBluetooth.carStarted(app) } catch (e: Exception) { }
         holder.map = map; holder.engine = engine
+        ClusterLink.engine = engine
         surface.engine = engine
         CarTicks.tick = { surface.tick(); themeTick() }
         applyTheme()

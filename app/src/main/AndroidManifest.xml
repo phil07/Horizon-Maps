@@ -152,6 +152,8 @@
             <intent-filter>
                 <action android:name="androidx.car.app.CarAppService" />
                 <category android:name="androidx.car.app.category.NAVIGATION" />
+                <!-- cars with a map on the driver's display (behind the steering wheel) -->
+                <category android:name="androidx.car.app.category.FEATURE_CLUSTER" />
             </intent-filter>
             <!-- "Hey Google, navigate to ..." on Android Auto, and other apps' navigate links while driving -->
             <intent-filter>

@@ -5347,6 +5347,8 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
     }
 
     private var curProgress = 0.0
+    /** How far along the route you are, in metres (for the driver's display). */
+    val progressNow: Double get() = curProgress
     private var lastTrafficAt = 0L
     private var trafficBusy = false
 
