@@ -4,9 +4,13 @@ Add user-facing Horizon Nav changes under **Unreleased** before publishing each 
 
 ## Unreleased
 
-### Behoben
-- Scheinwerfer-Modus auf Teyes- und FYT-Geräten: Diese Geräte geben das Licht in einer eigenen Einstellung weiter statt im Nachtmodus. Die App liest diese Einstellung jetzt selbst. Mit „Lichtsignal umkehren“ kannst du die Erkennung umdrehen, falls sie bei deinem Gerät andersherum ist.
-  EN: Headlights mode on Teyes and FYT units: these units pass the lights on in their own setting instead of the night mode. The app now reads that setting itself. The "Lights signal is reversed" switch flips the reading for units that have it the other way round.
+### Neu
+- Pfeil seitlich lassen: Neuer Schalter (Einstellungen > Bildschirm & Größen > Beim Fahren, und unter Android Auto). Auf breitem Bildschirm bleibt der Pfeil seitlich, wenn sich die Karten einklappen, statt in die Mitte zu gleiten.
+  EN: Keep the arrow to the side: a new switch (Settings > Screen & sizes > While driving, and under Android Auto) keeps the arrow to the side on a wide screen when the cards fold away, instead of gliding back to the middle.
+
+### Verbessert
+- Gong-Lautstärke: Gong bei Tempo, Tempolimit und Blitzern läuft auf dem gleichen Kanal wie die Sprachansagen, damit die Lautstärke des Geräts während einer Ansage auch den Gong leiser stellt. Einstellung unter Ton & Stimme > Gong-Lautstärke, mit Probe-Gong.
+  EN: Chime volume: the speeding, speed limit and camera chimes now play on the same channel as the spoken directions, so the head unit's volume turned during a direction turns them down too. Settings > Sound & voice > Chime volume sets them against the voice, with a sample beep.
 
 ## 1.0.246 — 2026-10-28
 

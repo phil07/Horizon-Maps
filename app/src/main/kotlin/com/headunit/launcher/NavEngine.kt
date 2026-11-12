@@ -1401,13 +1401,17 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
                 android.media.ToneGenerator.TONE_PROP_PROMPT -> 1100.0
                 else -> 880.0
             }
+            // the chime volume against the voice (Settings > Sound & voice > Chime volume)
+            val chimeGain = prefs.i(PreferenceKeys.CHIME_VOL, 100).coerceIn(0, 100) / 100.0
             val buf = ShortArray(n) { i ->
                 val fade = minOf(1.0, minOf(i, n - i) / (rate * 0.01))
-                (Math.sin(2 * Math.PI * hz * i / rate) * fade * 0.5 * Short.MAX_VALUE).toInt().toShort()
+                (Math.sin(2 * Math.PI * hz * i / rate) * fade * 0.5 * chimeGain * Short.MAX_VALUE).toInt().toShort()
             }
             val track = android.media.AudioTrack.Builder()
                 .setAudioAttributes(android.media.AudioAttributes.Builder()
-                    .setUsage(android.media.AudioAttributes.USAGE_ASSISTANCE_NAVIGATION_GUIDANCE)
+                    // the same channel as the spoken directions (Settings > Sound & voice > Voice channel), so the head unit's volume
+                    // during a direction turns the chimes down too
+                    .setUsage(if (voiceChan == "media") android.media.AudioAttributes.USAGE_MEDIA else android.media.AudioAttributes.USAGE_ASSISTANCE_NAVIGATION_GUIDANCE)
                     .setContentType(android.media.AudioAttributes.CONTENT_TYPE_SONIFICATION).build())
                 .setAudioFormat(android.media.AudioFormat.Builder().setSampleRate(rate)
                     .setEncoding(android.media.AudioFormat.ENCODING_PCM_16BIT).setChannelMask(android.media.AudioFormat.CHANNEL_OUT_MONO).build())
@@ -1417,6 +1421,9 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
             scope.launch { delay(400); try { track.release() } catch (e: Exception) { } }
         } catch (e: Exception) { }
     }
+
+    /** A short chime at the set volume, for the sample button in Settings. */
+    fun chimeSample() = chime(android.media.ToneGenerator.TONE_PROP_BEEP2)
 
     private fun checkLimitChange(newMs: Double, estimated: Boolean) {
         if (!prefs.b(PreferenceKeys.LIMITCHANGE, false) || estimated) return
@@ -4445,6 +4452,9 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
      * when a card reaches across that height, the arrow moves to the middle of the clear part of the map, a little nearer the
      * card than the exact middle so it doesn't end up far over. Nothing beside it: dead centre.
      */
+    /** The side shift the arrow last had while a card was beside it (kept when the cards fold away, if the setting says so). */
+    private var keptSideShift = 0.0
+
     private fun arrowShift(y: Double): Double {
         // Use a slightly taller collision band so the locator clears cards in compact Android Auto
         // surfaces too (full-screen, music split, and app-launcher split layouts report different bounds).
@@ -4459,11 +4469,13 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
             }
         }
         val cover = max(coverL, coverR)
-        if (cover < 0.05) return 0.0
+        // the cards folded away: back to the middle, unless "Keep the arrow to the side" is on, then it stays where it was
+        if (cover < 0.05) return if (prefs.b(PreferenceKeys.KEEP_ARROW_SIDE, false)) keptSideShift else 0.0
         // Move farther away from the info/turn card; panel bounds are measured from the actual
         // Compose surface, so this adapts as Android Auto changes between full and split layouts.
         val shift = (cover * 0.78).coerceAtMost(0.42)
-        return if (coverR > coverL) -shift else shift
+        keptSideShift = if (coverR > coverL) -shift else shift
+        return keptSideShift
     }
 
     /**

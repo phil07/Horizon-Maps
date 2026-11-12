@@ -141,6 +141,8 @@ internal object PreferenceKeys {
     const val BUMPS = "bumps"
     const val CAMBANOBEY = "cambanobey"
     const val CARSCALE = "carscale"
+    const val KEEP_ARROW_SIDE = "keeparrowside"
+    const val CHIME_VOL = "chimevol"
     const val CARTHEME = "cartheme"
     const val CINEMATIC = "cinematic"
     const val CLEARVIEW = "clearview"

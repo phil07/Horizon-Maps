@@ -653,6 +653,8 @@ private fun SoundSection(prefs: Prefs, engine: NavEngine) {
         SToggle(prefs, "Intelligente Anweisungen", "smartvoice", true, "Anweisungen mit Ausfahrtsnummern und Schildern")
         SChoice("Sprachkanal", listOf("nav" to "Navigation", "media" to "Medien"), prefs.s(PreferenceKeys.VOICE_CHANNEL, "nav"),
             "Medien wählen, falls keine Sprache zu hören ist") { prefs.put(PreferenceKeys.VOICE_CHANNEL, it) }
+        SSlider("Gong-Lautstärke", prefs.i(PreferenceKeys.CHIME_VOL, 100).toFloat(), 0f..100f, "%", sub = "Gong bei Tempo, Tempolimit und Blitzern, zur Stimme eingestellt", steps = 19, reset = 100f) { prefs.put(PreferenceKeys.CHIME_VOL, it) }
+        SButton("Gong anhören") { engine.chimeSample() }
         SItem("Stimme und Sprache", "Nutzt die System-Sprachausgabe") { SButton("Öffnen") { openSystemSettings(ctx, "com.android.settings.TTS_SETTINGS") } }
         // the installed German voices: the more natural ones (Google's network voices) need internet, the others work offline
         val voices = remember { engine.installedVoices().take(8) }
@@ -1024,6 +1026,7 @@ private fun ScreenSection(prefs: Prefs, engine: NavEngine) {
         SSlider("Tempolimit- und Tachogröße", prefs.i(PreferenceKeys.SPEED_SIZE, 100).toFloat(), 50f..200f, "%", sub = "Auf Smartphone und Autodisplay", steps = 29, reset = 100f) { prefs.put(PreferenceKeys.SPEED_SIZE, it) }
         SToggle(prefs, "Straße und Richtung beim Fahren ohne Route", "cruise", true)
         SToggle(prefs, "Pfeil ohne Route auf der Straße halten", "snaproad", true)
+        SToggle(prefs, "Pfeil seitlich lassen", PreferenceKeys.KEEP_ARROW_SIDE, false, "Auf breitem Bildschirm bleibt der Pfeil seitlich, wenn die Karten einklappen, statt in die Mitte zu gleiten")
         SToggle(prefs, "Karte in Tunnels dimmen", "tunneldim", true)
         SToggle(prefs, "Weniger Buttons beim Fahren", "drivesimple", true)
         SToggle(prefs, "Tastatur beim Fahren sperren", "drivelock", false, "Sprachsuche funktioniert weiterhin")
@@ -1082,6 +1085,7 @@ private fun AndroidAutoSection(prefs: Prefs) {
             SChoice("Knopfgröße", listOf("normal" to "Normal", "large" to "Groß", "xl" to "Extra groß"), prefs.s(PreferenceKeys.TRIP_BTN_SIZE, "normal"),
                 "Weniger Knöpfe machen die Karte schmaler, so bleibt mehr von der Karte frei") { prefs.put(PreferenceKeys.TRIP_BTN_SIZE, it) }
         }
+        SToggle(prefs, "Pfeil seitlich lassen", PreferenceKeys.KEEP_ARROW_SIDE, false, "Auf breitem Bildschirm bleibt der Pfeil seitlich, wenn die Karten einklappen, statt in die Mitte zu gleiten")
         VehiclesGroup(prefs)
         SItem("Installiert durch", source)
         SItem("Sprachsuche im Auto", "„Hey Google, navigiere mit Horizon Nav zu …“. Ohne „mit Horizon Nav“ nur als Standard-Navigations-App.")
