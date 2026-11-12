@@ -81,6 +81,26 @@ fun rememberSystemNight(): Boolean {
     return fromConfig || polled
 }
 
+/**
+ * Whether the app on the phone is dark right now, worked out without a screen (for Android Auto's "Same as your phone"): the phone's
+ * own Day and night setting, with the same rules as [resolveDark].
+ */
+fun phoneDark(ctx: android.content.Context, prefs: com.headunit.launcher.Prefs, nowMs: Long = System.currentTimeMillis()): Boolean {
+    val lat = prefs.s(com.headunit.launcher.PreferenceKeys.LASTLAT, "").toDoubleOrNull()
+    val lon = prefs.s(com.headunit.launcher.PreferenceKeys.LASTLON, "").toDoubleOrNull()
+    val system = readSystemNight(ctx)
+    val seen = prefs.b(com.headunit.launcher.PreferenceKeys.SYSDARKSEEN, false)
+    val sun = if (lat != null && lon != null) !com.headunit.launcher.Sun.isDay(lat, lon, nowMs) else null
+    return when (prefs.s(com.headunit.launcher.PreferenceKeys.THEME, "auto")) {
+        "day" -> false
+        "night" -> true
+        "times" -> isNightByClock(nowMs, prefs.s(com.headunit.launcher.PreferenceKeys.NIGHT_FROM, "19:00"), prefs.s(com.headunit.launcher.PreferenceKeys.DAY_FROM, "07:00"))
+        "sun" -> sun ?: system
+        "lights" -> if (system) true else if (seen) false else sun ?: false
+        else -> if (system) true else if (seen) false else sun ?: false
+    }
+}
+
 fun readSystemNight(ctx: android.content.Context): Boolean = try {
     val cfg = ctx.applicationContext.resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK
     val um = (ctx.getSystemService(android.content.Context.UI_MODE_SERVICE) as? android.app.UiModeManager)?.nightMode

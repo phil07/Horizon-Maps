@@ -4,6 +4,14 @@ Add user-facing Horizon Nav changes under **Unreleased** before publishing each 
 
 ## Unreleased
 
+### Neu
+- Android Auto wie das Handy: „Tag und Nacht“ im Auto hat jetzt „Wie das Handy“. Das Auto-Display wird dann hell oder dunkel wie die App am Handy.
+  EN: Android Auto matches the phone: Day and night on the car now has "Same as your phone", so the car screen goes light or dark with the app on the phone.
+
+### Behoben
+- Falschfahrt-Warnung auf geteilten Straßen: Ein GPS, das zur Mitte driftet, setzt den Pfeil nicht mehr auf die Gegenfahrbahn und warnt nicht mehr vor falscher Richtung. Die Warnung braucht jetzt ein genaues GPS, keine Straße in deiner Richtung in der Nähe, und kommt nie, während du deiner Route folgst.
+  EN: Wrong-way warnings on divided roads: A GPS drifting towards the middle no longer puts the arrow on the other carriageway or warns that you're going the wrong way. The warning now needs a sharp fix, no road your way nearby, and is never given while you're following your route.
+
 ## 1.0.246 — 2026-10-28
 
 ### Improved in-app updates

@@ -412,6 +412,9 @@ object Overpass {
                 var diff = Math.abs(bearingOf(a, c) - heading) % 360.0
                 if (diff > 180.0) diff = 360.0 - diff
                 if (diff > 35.0 && diff < 145.0) continue
+                // a one-way road running against you is the other carriageway, not yours: a GPS drifting towards the middle of a
+                // divided road used to put the arrow over there
+                if (isOneway(w.tags)) { val agst = if (w.tags.optString("oneway") == "-1") diff <= 35.0 else diff >= 145.0; if (agst) continue }
                 bd = d
                 best = LL(p.lat + (ay + dy * t) / mLat, p.lon + (ax + dx * t) / mLon)
             }
@@ -419,10 +422,18 @@ object Overpass {
         return best
     }
 
+    /** A road going your way within this many metres means you are not on the wrong side (see [wrongWay]). */
+    private const val WRONG_WAY_CLEAR = 30.0
+
     /**
-     * True when the nearest road under you is one-way and you are heading against it, with no road going your way just as close.
+     * True when the nearest road under you is one-way and you are heading against it, with no road going your way within 30 m.
      * Uses the roads already loaded for the speed limit, so it needs no extra download.
      */
+    private fun isOneway(t: JSONObject): Boolean {
+        val ow = t.optString("oneway"); val hw = t.optString("highway"); val jn = t.optString("junction")
+        return ow == "yes" || ow == "true" || ow == "1" || ow == "-1" || jn == "roundabout" || jn == "circular" || hw == "motorway" || hw == "motorway_link"
+    }
+
     fun wrongWay(p: LL, heading: Double): Boolean {
         val ways = cacheWays
         if (ways.isEmpty()) return false
@@ -441,7 +452,7 @@ object Overpass {
                 val dd = Math.hypot(ax + t * dx, ay + t * dy)
                 if (dd < d) { d = dd; brg = bearingOf(a, b) }
             }
-            if (d > 25.0) continue
+            if (d > WRONG_WAY_CLEAR) continue
             val ow = w.tags.optString("oneway")
             val hw = w.tags.optString("highway")
             val jn = w.tags.optString("junction")
@@ -452,7 +463,9 @@ object Overpass {
             else if (diff <= 35.0) aligned = minOf(aligned, d)
             else if (diff >= 150.0) against = minOf(against, d)
         }
-        return against < 8.0 && aligned > against + 6.0
+        // no road going your way anywhere near: on a divided road the other carriageway is a few metres away, and a GPS drifting towards
+        // the middle is nearer to it than to yours
+        return against < 8.0 && aligned > WRONG_WAY_CLEAR
     }
 
     /** Traffic signals inside a box (used to draw traffic lights on the map). */

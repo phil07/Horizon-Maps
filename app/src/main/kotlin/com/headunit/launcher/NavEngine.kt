@@ -7304,7 +7304,10 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
 
     // ---- wrong way ----
     private fun checkWrongWay(p: Fix) {
-        if (simMode != 0 || !prefs.b(PreferenceKeys.WRONGWAY, false) || p.speed < 4.0 || (p.acc > 0 && p.acc > 20.0)) { wrongCount = 0; return }
+        // only with a sharp fix (10 m or better; an unknown accuracy doesn't count), and never while you're following your route:
+        // the route doesn't go the wrong way down a one-way road, a drifting GPS on a divided road just looks like it
+        val sharp = p.acc.isFinite() && p.acc > 0.0 && p.acc <= 10.0
+        if (simMode != 0 || !prefs.b(PreferenceKeys.WRONGWAY, false) || p.speed < 4.0 || !sharp || (route != null && !previewing && glideOnRoute)) { wrongCount = 0; return }
         // the check runs through every nearby road, so it's done in the background (it used to stall the screen once a second)
         if (wrongBusy) return
         wrongBusy = true

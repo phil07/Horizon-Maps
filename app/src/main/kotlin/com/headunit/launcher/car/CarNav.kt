@@ -159,11 +159,27 @@ class CarNavSession : Session() {
     private fun carDark(): Boolean = if (Prefs(carContext.applicationContext).s(PreferenceKeys.LOOK, "standard") == "neon") true else when (Prefs(carContext.applicationContext).s(PreferenceKeys.CARTHEME, "car")) {
         "day" -> false
         "night" -> true
+        // the same as the app on the phone (its own Day and night setting)
+        "phone" -> com.headunit.launcher.ui.phoneDark(carContext.applicationContext, Prefs(carContext.applicationContext))
         else -> carContext.isDarkMode
+    }
+
+    private var themeWas: Boolean? = null
+    private var themeAt = 0L
+
+    /** "Same as your phone": the phone's day and night can change with no word from the car, so it is looked at every 15 seconds. */
+    private fun themeTick() {
+        val now = android.os.SystemClock.elapsedRealtime()
+        if (now - themeAt < 15_000L) return
+        themeAt = now
+        try {
+            if (Prefs(carContext.applicationContext).s(PreferenceKeys.CARTHEME, "car") == "phone" && carDark() != themeWas) applyTheme()
+        } catch (e: Exception) { }
     }
 
     private fun applyTheme() {
         val d = carDark()
+        themeWas = d
         holder.engine?.applyStyle(d)
         if (::surface.isInitialized) surface.dark.value = d
     }
@@ -239,7 +255,7 @@ class CarNavSession : Session() {
         try { com.headunit.launcher.CarBluetooth.carStarted(app) } catch (e: Exception) { }
         holder.map = map; holder.engine = engine
         surface.engine = engine
-        CarTicks.tick = { surface.tick() }
+        CarTicks.tick = { surface.tick(); themeTick() }
         applyTheme()
         try { engine.startLocation() } catch (e: Exception) { }
         engine.restoreFreeZoomNow()
@@ -1328,9 +1344,9 @@ class CarSettingsScreen(carContext: CarContext, private val holder: CarHolder, p
             }.build()
         val th = prefs.s(PreferenceKeys.CARTHEME, "car")
         rows += Row.Builder().setTitle(Lang.t("Tag und Nacht", "Day and night"))
-            .addText(when (th) { "day" -> Lang.t("Immer Tag", "Always day"); "night" -> Lang.t("Immer Nacht", "Always night"); else -> Lang.t("Folgt dem Auto", "Follows the car") })
+            .addText(when (th) { "day" -> Lang.t("Immer Tag", "Always day"); "night" -> Lang.t("Immer Nacht", "Always night"); "phone" -> Lang.t("Wie das Handy", "Same as your phone"); else -> Lang.t("Folgt dem Auto", "Follows the car") })
             .setOnClickListener {
-                prefs.put(PreferenceKeys.CARTHEME, when (th) { "car" -> "day"; "day" -> "night"; else -> "car" })
+                prefs.put(PreferenceKeys.CARTHEME, when (th) { "car" -> "phone"; "phone" -> "day"; "day" -> "night"; else -> "car" })
                 onTheme(); invalidate()
             }.build()
         // Android Auto's templated UI does not expose a native continuous slider here,
