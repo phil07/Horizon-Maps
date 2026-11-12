@@ -69,17 +69,20 @@ private class ClusterScreen(ctx: CarContext) : Screen(ctx) {
         .build()
 }
 
-object ClusterPainter {
-    private val line = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.STROKE; strokeCap = Paint.Cap.ROUND; strokeJoin = Paint.Join.ROUND }
-    private val fill = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.FILL }
-    private val text = Paint(Paint.ANTI_ALIAS_FLAG).apply { textAlign = Paint.Align.CENTER; isFakeBoldText = true }
-
+/** The sums behind the driver's display (kept apart from the drawing, so they can be tested without a screen). */
+object ClusterMath {
     /** How far ahead the view reaches, in metres: 350 m standing, further the faster you go (25 seconds of driving more), 1.5 km at most. */
     fun reach(speedMps: Double): Double = (350.0 + speedMps.coerceAtLeast(0.0) * 25.0).coerceAtMost(1500.0)
 
     /** "17 min · 17 km · 20:13" */
     fun tripLine(secs: Double, metres: Double, arrive: String, imperial: Boolean): String =
         Geo.fmtDur(secs) + " · " + Geo.fmtDist(metres, imperial) + " · " + arrive
+}
+
+object ClusterPainter {
+    private val line = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.STROKE; strokeCap = Paint.Cap.ROUND; strokeJoin = Paint.Join.ROUND }
+    private val fill = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.FILL }
+    private val text = Paint(Paint.ANTI_ALIAS_FLAG).apply { textAlign = Paint.Align.CENTER; isFakeBoldText = true }
 
     fun paint(cv: Canvas, w: Float, h: Float, e: NavEngine?, dark: Boolean) {
         val bg = if (dark) 0xFF10141C.toInt() else 0xFFE9EDF2.toInt()
@@ -91,7 +94,7 @@ object ClusterPainter {
         val r = e?.route
         val ax = w / 2f; val ay = h * 0.66f
         if (e != null && f != null && r != null && r.pts.size >= 2 && !e.previewing) {
-            val range = reach(f.speed)
+            val range = ClusterMath.reach(f.speed)
             val scale = (h * 0.56f) / range.toFloat()
             val prog = e.progressNow
             val mLat = 111320.0; val mLon = 111320.0 * Math.cos(Math.toRadians(f.pos.lat))
@@ -129,7 +132,7 @@ object ClusterPainter {
         // the trip: time left · distance · arrival, in a small bar at the bottom centre
         e.eta?.let { eta ->
             text.textSize = 7.5f * u
-            val s = fit(tripLine(eta.secs, eta.dist, eta.arrive, e.imperial), w * 0.86f)
+            val s = fit(ClusterMath.tripLine(eta.secs, eta.dist, eta.arrive, e.imperial), w * 0.86f)
             val tw = text.measureText(s); val bh = 12f * u
             val box = RectF(w / 2f - tw / 2f - 4f * u, h - bh - 3f * u, w / 2f + tw / 2f + 4f * u, h - 3f * u)
             fill.color = if (dark) 0xE6232A36.toInt() else 0xE6FFFFFF.toInt()
