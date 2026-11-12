@@ -37,7 +37,7 @@ val Bad = Color(0xFFFF4D4D)
 
 @Composable
 fun resolveDark(mode: String, lat: Double?, lon: Double?, nowMs: Long, sysSeen: Boolean = false, system: Boolean = isSystemInDarkTheme(),
-                nightFrom: String = "19:00", dayFrom: String = "07:00"): Boolean {
+                nightFrom: String = "19:00", dayFrom: String = "07:00", lamps: Boolean? = null): Boolean {
     val sun = if (lat != null && lon != null) !Sun.isDay(lat, lon, nowMs) else null
     return when (mode) {
         "day" -> false
@@ -45,9 +45,9 @@ fun resolveDark(mode: String, lat: Double?, lon: Double?, nowMs: Long, sysSeen: 
         // your own times (for a unit with no GPS fix to work out sunset from, or if you just prefer them)
         "times" -> isNightByClock(nowMs, nightFrom, dayFrom)
         "sun" -> if (lat != null && lon != null) !Sun.isDay(lat, lon, nowMs) else system
-        // headlights: head units that switch their own night mode with the lights (the illumination wire) are followed; until this
-        // unit has been seen doing that, sunrise and sunset stand in
-        "lights" -> if (system) true else if (sysSeen) false else if (lat != null && lon != null) !Sun.isDay(lat, lon, nowMs) else false
+        // headlights: a lights setting the head unit itself exposes (Teyes, FYT) is followed when it has been learned; head units that
+        // switch their own night mode with the lights (the illumination wire) are followed next; until then, sunrise and sunset stand in
+        "lights" -> if (lamps != null) lamps else if (system) true else if (sysSeen) false else if (lat != null && lon != null) !Sun.isDay(lat, lon, nowMs) else false
         // auto: the head unit's own night mode once it has been seen switching to it; sunrise and sunset until then (many units never
         // switch their system mode, and auto then never went dark)
         else -> if (system) true else if (sysSeen) false else sun ?: false
@@ -96,7 +96,7 @@ fun phoneDark(ctx: android.content.Context, prefs: com.headunit.launcher.Prefs, 
         "night" -> true
         "times" -> isNightByClock(nowMs, prefs.s(com.headunit.launcher.PreferenceKeys.NIGHT_FROM, "19:00"), prefs.s(com.headunit.launcher.PreferenceKeys.DAY_FROM, "07:00"))
         "sun" -> sun ?: system
-        "lights" -> if (system) true else if (seen) false else sun ?: false
+        "lights" -> VendorLight.current(ctx, prefs) ?: if (system) true else if (seen) false else sun ?: false
         else -> if (system) true else if (seen) false else sun ?: false
     }
 }

@@ -305,6 +305,11 @@ private fun MapLookSection(prefs: Prefs, engine: NavEngine) {
     SGroup("Tag und Nacht") {
         SChoice("Tag und Nacht", listOf("auto" to "Auto", "lights" to "Scheinwerfer", "sun" to "Sonnenstand", "times" to "Feste Zeiten", "day" to "Tag", "night" to "Nacht"), prefs.s(PreferenceKeys.THEME, "auto"),
             "Auto folgt dem Nachtmodus des Geräts") { prefs.put(PreferenceKeys.THEME, it) }
+        if (prefs.s(PreferenceKeys.THEME, "auto") == "lights") {
+            val learned = VendorLight.learned(prefs)
+            SToggle(prefs, "Lichtsignal umkehren", PreferenceKeys.LIGHTSREVERSED, false,
+                if (learned.isEmpty()) "Noch kein Lichtsignal des Geräts erkannt: Abblendlicht einschalten und kurz warten." else "Erkannt: $learned")
+        }
         if (prefs.s(PreferenceKeys.THEME, "auto") == "times") {
             SFieldItem("Nacht beginnt um", prefs.s(PreferenceKeys.NIGHT_FROM, "19:00"), "24-Stunden-Format, z. B. 19:30", placeholder = "19:00") { prefs.put(PreferenceKeys.NIGHT_FROM, it.trim()) }
             SFieldItem("Tag beginnt um", prefs.s(PreferenceKeys.DAY_FROM, "07:00"), "24-Stunden-Format, z. B. 06:45", placeholder = "07:00") { prefs.put(PreferenceKeys.DAY_FROM, it.trim()) }

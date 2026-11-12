@@ -90,6 +90,8 @@ internal object SettingsEn {
         "Neonfarbe" to "Neon colour",
         "Gelb" to "Yellow",
         "Tag und Nacht" to "Day and night",
+        "Lichtsignal umkehren" to "Lights signal is reversed",
+        "Noch kein Lichtsignal des Geräts erkannt: Abblendlicht einschalten und kurz warten." to "No lights signal from the unit found yet: switch the headlights on and wait a moment.",
         "Scheinwerfer" to "Headlights",
         "Sonnenstand" to "Sunrise/sunset",
         "Feste Zeiten" to "Set times",

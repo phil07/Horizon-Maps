@@ -282,6 +282,8 @@ internal object PreferenceKeys {
     const val SPEEDWARN = "speedwarn"
     const val STARTPOS = "startpos"
     const val SYSDARKSEEN = "sysdarkseen"
+    const val LIGHTSREVERSED = "lightsreversed"
+    const val VENDORLIGHT = "vendorlight"
     const val TAPSELECT = "tapselect"
     const val TERRAIN = "terrain"
     const val TUNNELDIM = "tunneldim"

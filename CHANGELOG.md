@@ -4,9 +4,9 @@ Add user-facing Horizon Nav changes under **Unreleased** before publishing each 
 
 ## Unreleased
 
-### Neu
-- Fahrerdisplay: Autos, die Android Auto eine Karte hinter dem Lenkrad geben (z. B. BMW), zeigen dort jetzt die Route vor dir, deinen Pfeil und die nächste Abbiegung. Mit Route steht unten in der Mitte eine kleine Leiste mit Restzeit · Entfernung · Ankunft.
-  EN: Driver's display: Cars that give Android Auto a map behind the steering wheel (e.g. BMW) now show the route ahead, your arrow and the next turn there. With a route, a small bar at the bottom centre shows time left · distance · arrival.
+### Behoben
+- Scheinwerfer-Modus auf Teyes- und FYT-Geräten: Diese Geräte geben das Licht in einer eigenen Einstellung weiter statt im Nachtmodus. Die App liest diese Einstellung jetzt selbst. Mit „Lichtsignal umkehren“ kannst du die Erkennung umdrehen, falls sie bei deinem Gerät andersherum ist.
+  EN: Headlights mode on Teyes and FYT units: these units pass the lights on in their own setting instead of the night mode. The app now reads that setting itself. The "Lights signal is reversed" switch flips the reading for units that have it the other way round.
 
 ## 1.0.246 — 2026-10-28
 
