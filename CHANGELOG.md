@@ -4,9 +4,9 @@ Add user-facing Horizon Nav changes under **Unreleased** before publishing each 
 
 ## Unreleased
 
-### Behoben
-- Pfeil wieder in der Mitte bei eingeklappten Karten: Auf breitem Bildschirm geht der Pfeil zurück in die Mitte, wenn Zuhause, Arbeit und Zuletzt eingeklappt sind und nur die Suchleiste bleibt, wie bei Waze. Die Suchleiste allein galt bisher als Karte neben dem Pfeil.
-  EN: Arrow back in the middle with the cards folded: on a wide screen, with Home, Work and Saved & recent folded away (just the search bar left), the arrow now goes back to the middle, as in Waze. The search bar on its own used to count as a card beside it.
+### Verbessert
+- Mapbox-Logo auf Android Auto: Das Logo sitzt wieder ganz oben rechts in der Ecke des Bildschirms.
+  EN: Mapbox logo on Android Auto: the logo is back in the top-right corner of the screen.
 
 ## 1.0.246 — 2026-10-28
 

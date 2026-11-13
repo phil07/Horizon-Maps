@@ -447,8 +447,8 @@ class CarSurface(private val carContext: CarContext, private val onReady: (MapBi
         if (visibleArea.width() > 0 && visibleArea.height() > 0) {
             m.viewInset = Rect(visibleArea.left.coerceAtLeast(0), visibleArea.top.coerceAtLeast(0),
                 (width - visibleArea.right).coerceAtLeast(0), (height - visibleArea.bottom).coerceAtLeast(0))
-            // Mapbox's logo and credits stay inside the part of the screen you can see
-            m.placeBranding(m.viewInset)
+            // Mapbox's logo and credits sit in the real corner of the screen (top right by default), not in the visible part
+            m.placeBranding(null)
             // (the cards along the bottom of a tall screen are kept clear by the engine, which the overlay tells where they are)
             m.maxTopFrac = 1.0
         }
