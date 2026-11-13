@@ -4,9 +4,9 @@ Add user-facing Horizon Nav changes under **Unreleased** before publishing each 
 
 ## Unreleased
 
-### Verbessert
-- Mapbox-Logo auf Android Auto: Das Logo sitzt wieder ganz oben rechts in der Ecke des Bildschirms.
-  EN: Mapbox logo on Android Auto: the logo is back in the top-right corner of the screen.
+### Behoben
+- Geschwindigkeit auf kleinen Android-Auto-Bildschirmen: Sie bleibt unten links in der Ecke, neben der einzeiligen Fahrtleiste. Vorher lag sie unten rechts, wanderte mit den Zoomknöpfen von Android Auto, verdeckte das Mapbox-Logo und rutschte die Seite hoch.
+  EN: Speedometer on short Android Auto screens: it now stays put in the bottom-left corner, with the one-line trip strip beside it while navigating. In the bottom right it slid with Android Auto's zoom buttons, covered the Mapbox logo and moved up the side to make room for the trip strip.
 
 ## 1.0.246 — 2026-10-28
 
