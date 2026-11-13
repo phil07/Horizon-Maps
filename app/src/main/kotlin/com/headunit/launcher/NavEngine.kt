@@ -1344,7 +1344,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
             map.cameraTo(cur, null, if (tilt3d) (chosenTilt() ?: 55.0) else 0.0, 15.5, 0, 0.0)
         }
         // current weather is only used for the rain effect on the map, so it is only fetched when that is switched on
-        if (prefs.b(PreferenceKeys.RAIN_EFFECTS, false) && now - weatherAt > 20 * 60 * 1000L) {
+        if (prefs.b(PreferenceKeys.RAIN_EFFECTS, false) && now - weatherAt > 10 * 60 * 1000L) {
             weatherAt = now
             scope.launch { weather = withContext(Dispatchers.IO) { Weather.fetch(cur) } ?: weather }
         }

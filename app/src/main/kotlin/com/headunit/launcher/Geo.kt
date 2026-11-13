@@ -807,11 +807,20 @@ object Weather {
     data class Now(val tempC: Double, val code: Int)
 
     fun fetch(p: LL): Now? = try {
-        val url = "https://api.open-meteo.com/v1/forecast?latitude=${p.lat}&longitude=${p.lon}&current=temperature_2m,weather_code"
+        val url = "https://api.open-meteo.com/v1/forecast?latitude=${p.lat}&longitude=${p.lon}&current=temperature_2m,weather_code,rain,snowfall"
         val c = URL(url).openConnection() as HttpURLConnection
         c.connectTimeout = 10000; c.readTimeout = 10000
         val cur = JSONObject(c.inputStream.bufferedReader().readText()).getJSONObject("current")
-        Now(cur.getDouble("temperature_2m"), cur.getInt("weather_code"))
+        val code = cur.getInt("weather_code")
+        // the hour's summary often says "cloudy" during showers: when rain or snow is actually falling this quarter hour, it's shown as such
+        val rainNow = cur.optDouble("rain", 0.0) > 0.0
+        val snowNow = cur.optDouble("snowfall", 0.0) > 0.0
+        val effective = when {
+            snowNow && code !in 71..77 && code !in 85..86 -> 71
+            rainNow && code !in 51..67 && code !in 80..82 && code !in 95..99 && code !in 71..77 && code !in 85..86 -> 61
+            else -> code
+        }
+        Now(cur.getDouble("temperature_2m"), effective)
     } catch (e: Exception) { null }
 
     class Hour(val label: String, val temp: Double, val code: Int, val rain: Int, val windKmh: Double = 0.0, val windFrom: Double = 0.0)

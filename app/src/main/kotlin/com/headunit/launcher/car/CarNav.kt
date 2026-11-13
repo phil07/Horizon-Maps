@@ -171,6 +171,21 @@ class CarNavSession : Session() {
     private var themeAt = 0L
 
     /** "Same as your phone": the phone's day and night can change with no word from the car, so it is looked at every 15 seconds. */
+    // the rain, snow and haze of the weather on the car's map too (the phone's map got them from the app screen only)
+    private var wxShown: Any? = null
+    private fun weatherTick() {
+        val e = holder.engine ?: return
+        val m = holder.map ?: return
+        val on = try { Prefs(carContext.applicationContext).b(PreferenceKeys.RAIN_EFFECTS, false) } catch (x: Exception) { false }
+        val sky = try { Prefs(carContext.applicationContext).b(PreferenceKeys.SKYWEATHER, true) } catch (x: Exception) { true }
+        val code = if (on) e.weather?.code else null
+        val skyCode = if (sky) e.weather?.code else null
+        val key = Pair(code, skyCode)
+        if (key == wxShown) return
+        wxShown = key
+        try { m.setWeather(code); m.setSky(skyCode) } catch (x: Exception) { }
+    }
+
     private fun themeTick() {
         val now = android.os.SystemClock.elapsedRealtime()
         if (now - themeAt < 15_000L) return
@@ -261,7 +276,7 @@ class CarNavSession : Session() {
         holder.map = map; holder.engine = engine
         ClusterLink.engine = engine
         surface.engine = engine
-        CarTicks.tick = { surface.tick(); themeTick() }
+        CarTicks.tick = { surface.tick(); themeTick(); weatherTick() }
         applyTheme()
         try { engine.startLocation() } catch (e: Exception) { }
         engine.restoreFreeZoomNow()

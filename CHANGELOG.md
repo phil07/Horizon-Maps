@@ -4,9 +4,11 @@ Add user-facing Horizon Nav changes under **Unreleased** before publishing each 
 
 ## Unreleased
 
-### Verbessert
-- Navigationspfeil auf Android Auto: Standardgröße von 100 % auf 70 % verkleinert. Die Größe bleibt unter Android Auto > Erweiterte Autodisplay-Größen einstellbar; eigene Einstellungen bleiben erhalten.
-  EN: Navigation arrow on Android Auto: the default size is reduced from 100% to 70%. You can still change it under Android Auto > Advanced car display sizes; your own setting is kept.
+### Behoben
+- Regen und Schnee auf Android Auto: Wettereffekte erscheinen jetzt auch auf dem Autodisplay (bisher nur auf dem Telefon), mit dem Dunst zum Horizont.
+  EN: Rain and snow on Android Auto: weather effects now show on the car screen too (they were only ever drawn on the phone), along with the weather haze towards the horizon.
+- Regeneffekt fehlte bei Regen: Die Anzeige richtete sich nach der Stundenzusammenfassung, die bei Schauern oft „bewölkt“ sagt. Jetzt zählt auch der Regen oder Schnee, der im aktuellen Viertelstundenfenster fällt. Die Abfrage läuft alle 10 statt alle 20 Minuten.
+  EN: Rain effect missing while it rained: the effect went by the hour's weather summary, which often says "cloudy" during showers. It now also checks the rain and snow actually falling in the current quarter hour, and looks every 10 minutes instead of 20.
 
 ## 1.0.246 — 2026-10-28
 
