@@ -1074,7 +1074,7 @@ private fun AndroidAutoSection(prefs: Prefs) {
             SSlider("Karten-Größe", prefs.i(PreferenceKeys.CAR_CARD_SIZE, 100).toFloat(), 70f..150f, "%", steps = 16, reset = 100f) { prefs.put(PreferenceKeys.CAR_CARD_SIZE, it) }
             SSlider("Button-Größe", prefs.i(PreferenceKeys.CAR_BUTTON_SIZE, 100).toFloat(), 70f..150f, "%", steps = 16, reset = 100f) { prefs.put(PreferenceKeys.CAR_BUTTON_SIZE, it) }
             SSlider("Textgröße", prefs.i(PreferenceKeys.CAR_TEXT_SIZE, 100).toFloat(), 70f..150f, "%", steps = 16, reset = 100f) { prefs.put(PreferenceKeys.CAR_TEXT_SIZE, it) }
-            SSlider("Navigationspfeil-Größe", prefs.i(PreferenceKeys.CAR_ARROW_SIZE, 100).toFloat(), 30f..180f, "%", reset = 100f) { prefs.put(PreferenceKeys.CAR_ARROW_SIZE, it) }
+            SSlider("Navigationspfeil-Größe", prefs.i(PreferenceKeys.CAR_ARROW_SIZE, 70).toFloat(), 30f..180f, "%", reset = 70f) { prefs.put(PreferenceKeys.CAR_ARROW_SIZE, it) }
             SSlider("Straßennamen-Größe", prefs.i(PreferenceKeys.CAR_ROAD_NAME_SIZE, 100).toFloat(), 70f..200f, "%", steps = 12, reset = 100f) { prefs.put(PreferenceKeys.CAR_ROAD_NAME_SIZE, it) }
         }
         SGroup("Knöpfe auf der Fahrtkarte") {

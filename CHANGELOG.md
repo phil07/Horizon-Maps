@@ -4,13 +4,9 @@ Add user-facing Horizon Nav changes under **Unreleased** before publishing each 
 
 ## Unreleased
 
-### Neu
-- Pfeil seitlich lassen: Neuer Schalter (Einstellungen > Bildschirm & Größen > Beim Fahren, und unter Android Auto). Auf breitem Bildschirm bleibt der Pfeil seitlich, wenn sich die Karten einklappen, statt in die Mitte zu gleiten.
-  EN: Keep the arrow to the side: a new switch (Settings > Screen & sizes > While driving, and under Android Auto) keeps the arrow to the side on a wide screen when the cards fold away, instead of gliding back to the middle.
-
 ### Verbessert
-- Gong-Lautstärke: Gong bei Tempo, Tempolimit und Blitzern läuft auf dem gleichen Kanal wie die Sprachansagen, damit die Lautstärke des Geräts während einer Ansage auch den Gong leiser stellt. Einstellung unter Ton & Stimme > Gong-Lautstärke, mit Probe-Gong.
-  EN: Chime volume: the speeding, speed limit and camera chimes now play on the same channel as the spoken directions, so the head unit's volume turned during a direction turns them down too. Settings > Sound & voice > Chime volume sets them against the voice, with a sample beep.
+- Navigationspfeil auf Android Auto: Standardgröße von 100 % auf 70 % verkleinert. Die Größe bleibt unter Android Auto > Erweiterte Autodisplay-Größen einstellbar; eigene Einstellungen bleiben erhalten.
+  EN: Navigation arrow on Android Auto: the default size is reduced from 100% to 70%. You can still change it under Android Auto > Advanced car display sizes; your own setting is kept.
 
 ## 1.0.246 — 2026-10-28
 
