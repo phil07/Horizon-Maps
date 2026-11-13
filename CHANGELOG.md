@@ -4,11 +4,9 @@ Add user-facing Horizon Nav changes under **Unreleased** before publishing each 
 
 ## Unreleased
 
-### Neu
-- Demofahrt steuern: Während eine Demo läuft, zeigt die Karte ihre Geschwindigkeit (antippen schaltet 1×, 2× und 4× um, ohne Neustart), einen Knopf „Abbiegung“ (springt etwa 250 m vor die nächste Kreuzung) und „Demo beenden“. Auf Android Auto: Demo beenden, die Geschwindigkeit, Abbiegung und Einstellungen.
-  EN: Demo drive controls: while a demo plays, the map shows its speed (tap to switch 1×, 2× and 4× without restarting), a skip-to-the-next-turn button (jumps to about 250 m before the next junction) and an end-demo button. On Android Auto: End demo, the speed, Skip turn and Settings.
-- Demo bei der Routenwahl: Mit eingeschalteter Demofahrt steht neben Start ein Knopf „Demo“. Er startet die Fahrt als Demofahrt, auch auf Android Auto.
-  EN: Demo on the route choice: with the demo drive switched on, a Demo button sits beside Start. Choose it and Start (or the countdown) begins the trip as a demo drive. On Android Auto too.
+### Behoben
+- Pfeil wieder in der Mitte bei eingeklappten Karten: Auf breitem Bildschirm geht der Pfeil zurück in die Mitte, wenn Zuhause, Arbeit und Zuletzt eingeklappt sind und nur die Suchleiste bleibt, wie bei Waze. Die Suchleiste allein galt bisher als Karte neben dem Pfeil.
+  EN: Arrow back in the middle with the cards folded: on a wide screen, with Home, Work and Saved & recent folded away (just the search bar left), the arrow now goes back to the middle, as in Waze. The search bar on its own used to count as a card beside it.
 
 ## 1.0.246 — 2026-10-28
 

@@ -265,7 +265,11 @@ private fun CarScreen(engine: NavEngine, a: android.graphics.Rect?, actions: Car
         // as many saved places as fit above the sound pill / speed (0 to 3), so the list never runs into what's below it
         // (worked out here: the screen's height can't be read from inside the column below)
         val savedRows = ((maxHeight - top - bottom - 330.dp - 150.dp) / 86.dp).toInt().coerceIn(0, 3)
-        if (engine.route == null && !arriving && !tile) Column(Modifier.padding(start = left, top = top).width(topW).onSizeChanged { topBlockH = it.height }.onGloballyPositioned { if (topShown) report(0, it.boundsInRoot()) },
+        // the search bar alone (Home, Work and Saved folded away) is no card beside the arrow: only the block with the chips counts
+        val searchBarDp = if (engine.carShort) 56.dp else 80.dp
+        if (engine.route == null && !arriving && !tile) Column(Modifier.padding(start = left, top = top).width(topW).onSizeChanged { topBlockH = it.height }.onGloballyPositioned {
+                if (topShown) report(0, if (it.size.height > with(dens) { (searchBarDp + 24.dp).roundToPx() }) it.boundsInRoot() else androidx.compose.ui.geometry.Rect.Zero)
+            },
             verticalArrangement = Arrangement.spacedBy(10.dp)) {
             // sized like the car's own Melden button: big enough to hit and read while driving
             // (on a short screen: slimmer, so the chips below get the room)
