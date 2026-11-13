@@ -413,6 +413,7 @@ internal fun BoxScope.RoutePreview(engine: NavEngine) {
             routeCards()
             // a car screen (800–1000 dp wide) has little room left for the route cards (weighted, so measured last): compact there too
             if (engine.prefs.b(PreferenceKeys.FLYOVER, true)) FlyOverBtn(engine, compact = androidx.compose.ui.platform.LocalConfiguration.current.screenWidthDp < 1100)
+            if (engine.prefs.b(PreferenceKeys.DEMO, false)) DemoStartBtn(engine)
             startBtn(Modifier.width(210.dp))
             RoundBtn(Icons.Rounded.Close, { engine.endRoute() }, size = 46.dp)
         }
@@ -427,6 +428,7 @@ internal fun BoxScope.RoutePreview(engine: NavEngine) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
             // compact next to Start, so Start keeps most of the width
             if (engine.prefs.b(PreferenceKeys.FLYOVER, true)) FlyOverBtn(engine, compact = true)
+            if (engine.prefs.b(PreferenceKeys.DEMO, false)) DemoStartBtn(engine)
             startBtn(Modifier.weight(1f))
         }
     }
@@ -705,5 +707,14 @@ internal fun LaneHero(sec: LaneSec, maneuver: String, advice: String?) {
             drawLine(Color.White.copy(alpha = 0.9f * a), o(xAt(1f, 0f), 0f), o(w, h), 3.dp.toPx())
         }
         if (advice != null) Text(advice, color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = 6.dp, start = 16.dp, end = 16.dp))
+    }
+}
+
+/** "Demo" beside Start on the route choice (with the demo drive switched on): the trip starts as a demo drive. */
+@Composable
+private fun DemoStartBtn(engine: NavEngine) {
+    val c = LocalVw.current
+    Box(Modifier.height(72.dp).clip(RoundedCornerShape(36.dp)).background(c.surface2).clickable { engine.beginDemo() }.padding(horizontal = 16.dp), contentAlignment = Alignment.Center) {
+        Text("Demo", color = c.text, fontSize = 16.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
     }
 }

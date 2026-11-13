@@ -462,6 +462,12 @@ private fun MapScreen(engine: NavEngine, onSettings: () -> Unit) {
         }
         else androidx.compose.runtime.SideEffect { if (tripPx != 0) tripPx = 0; engine.setPanel(1, 0f, 0f, 0f, 0f) }
 
+        // ---- demo drive: its speed (tap to switch 1x, 2x, 4x), skip to the next turn, and stop
+        if (engine.simMode != 0 && !previewing) Row(Modifier.align(Alignment.BottomCenter).padding(bottom = if (narrow && tripPx > 0) tripH + 10.dp else 18.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            ImmPill("${engine.simMode}×", { engine.cycleSim() }, filled = true)
+            ImmPill(Lang.t("Abbiegung", "Skip turn"), { engine.skipSimTurn() })
+            ImmPill(Lang.t("Demo beenden", "End demo"), { engine.stopSim() })
+        }
         // ---- bottom centre: re-centre once you have panned away, or zoomed in / out with the buttons (it puts the zoom back to automatic)
         AnimatedVisibility(
             !previewing && (!engine.following || kotlin.math.abs(engine.zoomOffset) > 0.01) && engine.arrival == null, modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = if (narrow && tripPx > 0) tripH + 10.dp else if (Neon.on && !narrow) 52.dp else 18.dp),

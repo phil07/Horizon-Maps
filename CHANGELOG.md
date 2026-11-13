@@ -4,11 +4,11 @@ Add user-facing Horizon Nav changes under **Unreleased** before publishing each 
 
 ## Unreleased
 
-### Behoben
-- Regen und Schnee auf Android Auto: Wettereffekte erscheinen jetzt auch auf dem Autodisplay (bisher nur auf dem Telefon), mit dem Dunst zum Horizont.
-  EN: Rain and snow on Android Auto: weather effects now show on the car screen too (they were only ever drawn on the phone), along with the weather haze towards the horizon.
-- Regeneffekt fehlte bei Regen: Die Anzeige richtete sich nach der Stundenzusammenfassung, die bei Schauern oft „bewölkt“ sagt. Jetzt zählt auch der Regen oder Schnee, der im aktuellen Viertelstundenfenster fällt. Die Abfrage läuft alle 10 statt alle 20 Minuten.
-  EN: Rain effect missing while it rained: the effect went by the hour's weather summary, which often says "cloudy" during showers. It now also checks the rain and snow actually falling in the current quarter hour, and looks every 10 minutes instead of 20.
+### Neu
+- Demofahrt steuern: Während eine Demo läuft, zeigt die Karte ihre Geschwindigkeit (antippen schaltet 1×, 2× und 4× um, ohne Neustart), einen Knopf „Abbiegung“ (springt etwa 250 m vor die nächste Kreuzung) und „Demo beenden“. Auf Android Auto: Demo beenden, die Geschwindigkeit, Abbiegung und Einstellungen.
+  EN: Demo drive controls: while a demo plays, the map shows its speed (tap to switch 1×, 2× and 4× without restarting), a skip-to-the-next-turn button (jumps to about 250 m before the next junction) and an end-demo button. On Android Auto: End demo, the speed, Skip turn and Settings.
+- Demo bei der Routenwahl: Mit eingeschalteter Demofahrt steht neben Start ein Knopf „Demo“. Er startet die Fahrt als Demofahrt, auch auf Android Auto.
+  EN: Demo on the route choice: with the demo drive switched on, a Demo button sits beside Start. Choose it and Start (or the countdown) begins the trip as a demo drive. On Android Auto too.
 
 ## 1.0.246 — 2026-10-28
 

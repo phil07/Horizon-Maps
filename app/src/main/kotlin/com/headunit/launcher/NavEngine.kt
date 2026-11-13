@@ -2516,6 +2516,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         // way to a quicker route later, unless it is over a minute slower as before.
         if (routes.size > 1) pickedSlower = route?.let { r -> NavigationPolicy.isPickedSlower(r.time, routes.minOf { it.time }, userPicked) } == true
         previewing = false
+        if (demoOnStart) { demoOnStart = false; route?.let { cycleSim() } }
         // where this trip started, for "Route back" when you arrive
         tripFrom = fix?.pos
         // the other screen (phone or car) follows onto the same trip
@@ -2650,7 +2651,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         incMatches = emptyList(); incidentAhead = null; incAt = 0L; incAlerted.clear(); abAt = 0L; abRoads = ""; wwItems = emptyList(); wwSaid.clear(); wwAt = 0L
         routeCams = emptyList(); camsRoute = null; camsAt = 0L; camsCount = -1; hazardSig = 0; policeSig = 0; map.setHazards(emptyList())
         via = emptyList(); evPlanned = emptyList(); evAutoDest = null; evStops = emptyList(); evWarning = null; stopMode = false; destRain = null; routeWx = emptyList()
-        routes = emptyList(); active = 0; dest = null; turn = null; eta = null; lastIdx = 0; previewing = false; routeFrac = 0f; onRoad = ""
+        routes = emptyList(); active = 0; dest = null; turn = null; eta = null; lastIdx = 0; previewing = false; routeFrac = 0f; onRoad = ""; demoOnStart = false
         pushQueues(emptyList())
         departMin = 0; departAtMs = 0L; navStartMs = 0L; navTripDest = null; evStartPending = false; evPreferRoute = null; pickedSlower = false
         fuelSuggestion = null; parkingNear = emptyList(); parkingFor = null
@@ -8056,14 +8057,32 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
     }
 
     // ---- demo drive ----
+    // a tap on the demo's speed: 1x, 2x, 4x and back to 1x (it keeps going, no restart)
     fun cycleSim() {
         val r = route
         if (r == null) { toast(ctx.getString(R.string.toast_032)); return }
         when (simMode) {
             0 -> { simMode = 1; startSim(r) }
-            1 -> simMode = 4
-            else -> stopSim()
+            1 -> simMode = 2
+            2 -> simMode = 4
+            else -> simMode = 1
         }
+    }
+
+    /** Jumps the demo to about 250 m before the next junction (the next turn keeps its place on the route). */
+    fun skipSimTurn() {
+        val r = route ?: return
+        if (simMode == 0) return
+        val t = turn ?: return
+        if (t.dist > 250.0) simDist = min(r.len, simDist + t.dist - 250.0)
+    }
+
+    /** "Demo" beside Start on the route choice: the trip starts as a demo drive. */
+    var demoOnStart = false
+    fun beginDemo() {
+        if (!previewing || route == null) return
+        demoOnStart = true
+        beginNavigation()
     }
 
     private fun startSim(r: Route) {

@@ -647,6 +647,7 @@ class MapScreen(carContext: CarContext, private val holder: CarHolder) : Screen(
         if (previewing) {
             // the route choice (drawn by the app on the map): start, try the next route, or cancel
             strip.addAction(Action.Builder().setTitle("Starten").setOnClickListener { e?.beginNavigation(); invalidate() }.build())
+            if (e != null && e.prefs.b(PreferenceKeys.DEMO, false)) strip.addAction(Action.Builder().setTitle("Demo").setOnClickListener { e.beginDemo(); invalidate() }.build())
             if ((e?.routes?.size ?: 0) > 1) strip.addAction(Action.Builder().setTitle("Nächste Route").setOnClickListener {
                 e?.let { en -> en.selectRoute((en.active + 1) % en.routes.size.coerceAtMost(3)) }; invalidate()
             }.build())
@@ -666,6 +667,12 @@ class MapScreen(carContext: CarContext, private val holder: CarHolder) : Screen(
             strip.addAction(Action.Builder().setTitle("Wechseln −${fr.savedMin} Min.").setOnClickListener { e?.acceptFaster(); invalidate() }.build())
             strip.addAction(Action.Builder().setTitle("Beibehalten").setOnClickListener { e?.dismissFaster(); invalidate() }.build())
             strip.addAction(sound)
+        } else if (guiding && e != null && e.simMode != 0) {
+            // a demo drive: end it, the speed (tap to switch 1x, 2x, 4x), skip to the next turn, and Settings
+            strip.addAction(Action.Builder().setTitle(Lang.t("Demo beenden", "End demo")).setOnClickListener { e.stopSim(); invalidate() }.build())
+            strip.addAction(Action.Builder().setTitle("${e.simMode}×").setOnClickListener { e.cycleSim(); invalidate() }.build())
+            strip.addAction(Action.Builder().setTitle(Lang.t("Abbiegung", "Skip turn")).setOnClickListener { e.skipSimTurn(); invalidate() }.build())
+            strip.addAction(Action.Builder().setIcon(icon(R.drawable.ic_car_settings)).setOnClickListener { openSettings() }.build())
         } else if (guiding) {
             strip.addAction(Action.Builder().setTitle("Beenden").setOnClickListener { e?.endRoute(); invalidate() }.build())
             // the demo drive (for trying it out parked; only with Demo switched on in Settings, as in the app): starts it, speeds it
