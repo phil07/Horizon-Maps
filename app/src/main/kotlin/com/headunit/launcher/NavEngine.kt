@@ -5712,6 +5712,11 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
                     else Geo.roundaboutHeadings(r.pts, r.cum, cur.off, cur.rbEnd, nxt?.off?.minus(2.0) ?: Double.MAX_VALUE, leftTraffic)?.let { (i, o) -> 0.0 to norm(eighth(o - i)) }
                 }
             } catch (e: Exception) { null }
+            // one line per roundabout in the system log: where its angle came from, and the exit number as shown
+            if (isRb && rbLoggedAt != cur.off) {
+                rbLoggedAt = cur.off
+                android.util.Log.w("Roundabout", "routes from ${provider.ifBlank { "?" }} · ${Geo.rbNote.ifBlank { "no measure" }} · shown ${rbGeo?.second?.let { Math.round(it).toString() } ?: "route's own"} · exit ${if (cur.roundExit > 0) cur.roundExit.toString() else "no number"} · ${cur.maneuver}")
+            }
             val newTurn = TurnInfo(
                 d, street, cur.maneuver, if (thenOn) nxt?.maneuver else null,
                 if (thenOn && nxt != null) Lang.t("Dann ", "Then ") + Geo.maneuverText(nxt.maneuver, nxt.roundExit) + (if (nxt.street.isNotBlank()) Lang.t(" auf ${nxt.street}", " onto ${nxt.street}") else "") else "",
@@ -8161,6 +8166,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
     private var laneKey: Pair<Double, LaneSec>? = null
     /** The route whose roundabout rings have been asked for (once per route). */
     private var ringsAskedFor: Route? = null
+    private var rbLoggedAt = -1.0
 
     private fun laneHit(dir: String, maneuver: String): Boolean {
         val m = maneuver.uppercase()

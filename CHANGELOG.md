@@ -5,8 +5,8 @@ Add user-facing Horizon Nav changes under **Unreleased** before publishing each 
 ## Unreleased
 
 ### Verbessert
-- Ausfahrt-Zahl am Kreisel nur, wenn sie passt: Der Routendienst zählt Arme nicht mit, in die man nicht abbiegen darf, sodass „1. Ausfahrt“ die zweite Straße sein konnte, die du siehst. Bei Mapbox-Routen zählt die App jetzt die Arme, an denen du im Ring vorbeifährst. Passt das nicht zur Zahl, fällt die Zahl weg: Die Abbiegekarte zeigt nur den Pfeil, die Ansage sagt die Richtung („im Kreisverkehr geradeaus fahren“), Android Auto ebenso.
-  EN: Roundabout exit number only when it fits: the route service leaves out arms you can't turn into, so "1st exit" could be the second road you see. On Mapbox routes the app now counts the arms you pass on the ring. When that doesn't match the number, the number is dropped: the turn card shows the arrow alone, the voice says the direction, and so does Android Auto.
+- Kreisel-Quelle im Systemlog: Für jeden Kreisel schreibt die App eine Zeile „Roundabout“ ins Systemlog: von welchem Dienst die Route kommt, woraus der Winkel der Abbiegekarte stammt und welche Ausfahrt-Zahl gezeigt wird.
+  EN: Roundabout source in the system log: for each roundabout the app writes a "Roundabout" line to the system log: which service the route is from, where the turn card's angle came from and which exit number is shown.
 
 ## 1.0.246 — 2026-10-28
 
