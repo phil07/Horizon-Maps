@@ -5695,7 +5695,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
             if (ringsAskedFor !== r) { ringsAskedFor = r; searchScope.launch { try { Roundabouts.fetchFor(ctx, r) } catch (e: Exception) { } } }
             val rbGeo = if (cur.maneuver.uppercase().startsWith("ROUNDABOUT")) try {
                 val lim = nxt?.off?.minus(2.0) ?: Double.MAX_VALUE
-                Roundabouts.turnAt(ctx, r, cur.off, lim, leftTraffic)?.let { t -> 0.0 to ((t % 360.0) + 360.0) % 360.0 }
+                Roundabouts.turnAt(ctx, r, cur.off, lim, leftTraffic, cur.roundExit)?.let { t -> 0.0 to ((t % 360.0) + 360.0) % 360.0 }
                     ?: Geo.roundaboutHeadings(r.pts, r.cum, cur.off, cur.rbEnd, lim, leftTraffic)
             } catch (e: Exception) { null } else null
             val newTurn = TurnInfo(

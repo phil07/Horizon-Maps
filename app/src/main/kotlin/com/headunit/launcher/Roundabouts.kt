@@ -18,8 +18,11 @@ import kotlin.math.sqrt
  * a bend just before the ring doesn't move the exit.
  */
 object Roundabouts {
-    /** A ring: its pieces (one or more OSM ways, joined) and its middle. A mini roundabout: no pieces, [mini] true. */
-    class Ring(val id: Long, val centre: LL, val pieces: List<List<LL>>, val mini: Boolean) {
+    /**
+     * A ring: its pieces (one or more OSM ways, joined) and its middle. A mini roundabout: no pieces, [mini] true. [arms]: where
+     * the roads off it are, as angles round its middle (the two carriageways of a divided road count as one); null when not known.
+     */
+    class Ring(val id: Long, val centre: LL, val pieces: List<List<LL>>, val mini: Boolean, val arms: List<Double>? = null) {
         val radius: Double = if (pieces.isEmpty()) 0.0 else pieces.flatten().maxOf { Geo.dist(centre, it) }
     }
 
@@ -49,7 +52,9 @@ object Roundabouts {
                             val q = ps.getJSONArray(k)
                             (0 until q.length() / 2).map { j -> LL(q.getDouble(2 * j), q.getDouble(2 * j + 1)) }
                         }
-                        rings[o.getLong("id")] = Ring(o.getLong("id"), LL(o.getDouble("la"), o.getDouble("lo")), pieces, o.optBoolean("m", false))
+                        val am = o.optJSONArray("a")
+                        val arms = am?.let { q -> (0 until q.length()).map { q.getDouble(it) } }
+                        rings[o.getLong("id")] = Ring(o.getLong("id"), LL(o.getDouble("la"), o.getDouble("lo")), pieces, o.optBoolean("m", false), arms)
                     }
                 }
             } catch (e: Exception) { }
@@ -65,6 +70,7 @@ object Roundabouts {
                 val ps = JSONArray()
                 for (pc in r.pieces) { val q = JSONArray(); for (p in pc) { q.put(p.lat); q.put(p.lon) }; ps.put(q) }
                 o.put("p", ps)
+                r.arms?.let { am -> val q = JSONArray(); for (x in am) q.put(x); o.put("a", q) }
                 a.put(o)
             }
             val f = java.io.File(ctx.filesDir, FILE)
@@ -83,50 +89,107 @@ object Roundabouts {
         if (fetchedFor === route) return
         val at = route.steps.filter { it.maneuver.uppercase().startsWith("ROUNDABOUT") }.map { Geo.pointOnLine(route.pts, route.cum, it.off).first }
         if (at.isEmpty()) { fetchedFor = route; return }
-        val missing = at.filter { p -> ringNear(p) == null }
+        // (kept from before the arms were counted: asked again once, for their arms)
+        val missing = at.filter { p -> ringNear(p)?.arms == null }
         if (missing.isEmpty()) { fetchedFor = route; return }
-        val parts = StringBuilder()
+        val ringQ = StringBuilder(); val miniQ = StringBuilder()
         for (p in missing.take(60)) {
             val c = String.format(java.util.Locale.US, "%.6f,%.6f", p.lat, p.lon)
-            parts.append("way(around:90,$c)[\"junction\"~\"^(roundabout|circular)$\"];node(around:40,$c)[\"highway\"=\"mini_roundabout\"];")
+            ringQ.append("way(around:90,$c)[\"junction\"~\"^(roundabout|circular)$\"];")
+            miniQ.append("node(around:40,$c)[\"highway\"=\"mini_roundabout\"];")
         }
-        val els = try { Overpass.query("[out:json][timeout:25];($parts);out geom;", 10000, 30000) } catch (e: Exception) { return }
-        // ways sharing an end are pieces of one ring
-        val pieces = ArrayList<Pair<Long, List<LL>>>()
+        // the rings, the mini roundabouts, and the roads that meet them (their arms)
+        val q = "[out:json][timeout:25];($ringQ)->.r;($miniQ)->.m;node(w.r)->.rn;(way(bn.rn)[\"highway\"];way(bn.m)[\"highway\"];)->.a;(.r;.m;.a;);out geom;"
+        val els = try { Overpass.query(q, 10000, 30000) } catch (e: Exception) { return }
+        class W(val id: Long, val pts: List<LL>, val tags: JSONObject)
+        val ringWays = ArrayList<W>(); val armWays = ArrayList<W>()
+        val minis = ArrayList<Pair<Long, LL>>()
         for (i in 0 until els.length()) {
             val e = els.getJSONObject(i)
+            val tags = e.optJSONObject("tags") ?: JSONObject()
             when (e.optString("type")) {
-                "node" -> if (e.has("lat")) {
-                    val id = -e.getLong("id")
-                    rings[id] = Ring(id, LL(e.getDouble("lat"), e.getDouble("lon")), emptyList(), true)
-                }
+                "node" -> if (e.has("lat") && tags.optString("highway") == "mini_roundabout") minis += e.getLong("id") to LL(e.getDouble("lat"), e.getDouble("lon"))
                 "way" -> {
                     val g = e.optJSONArray("geometry") ?: continue
-                    val pts = (0 until g.length()).map { k -> val q = g.getJSONObject(k); LL(q.getDouble("lat"), q.getDouble("lon")) }
-                    if (pts.size >= 2) pieces += e.getLong("id") to pts
+                    val pts = (0 until g.length()).map { k -> val o = g.getJSONObject(k); LL(o.getDouble("lat"), o.getDouble("lon")) }
+                    if (pts.size < 2) continue
+                    val j = tags.optString("junction")
+                    if (j == "roundabout" || j == "circular") ringWays += W(e.getLong("id"), pts, tags)
+                    else if (!NOT_ARM.matches(tags.optString("highway"))) armWays += W(e.getLong("id"), pts, tags)
                 }
             }
         }
-        val parent = IntArray(pieces.size) { it }
-        fun find(x: Int): Int { var a = x; while (parent[a] != a) { parent[a] = parent[parent[a]]; a = parent[a] }; return a }
         fun key(p: LL) = Math.round(p.lat * 1e7) * 31 + Math.round(p.lon * 1e7)
+        // ways sharing an end are pieces of one ring
+        val parent = IntArray(ringWays.size) { it }
+        fun find(x: Int): Int { var a = x; while (parent[a] != a) { parent[a] = parent[parent[a]]; a = parent[a] }; return a }
         val byEnd = HashMap<Long, Int>()
-        for ((i, pc) in pieces.withIndex()) for (end in listOf(pc.second.first(), pc.second.last())) {
+        for ((i, w) in ringWays.withIndex()) for (end in listOf(w.pts.first(), w.pts.last())) {
             val k = key(end)
             val j = byEnd[k]
             if (j == null) byEnd[k] = i else parent[find(i)] = find(j)
         }
-        val groups = pieces.indices.groupBy { find(it) }
-        for ((_, idx) in groups) {
-            val ps = idx.map { pieces[it].second }
+        for ((_, idx) in ringWays.indices.groupBy { find(it) }) {
+            val ps = idx.map { ringWays[it].pts }
             val all = ps.flatten()
             // the middle: the centre of its outline (an even spread of points isn't guaranteed, so not their average)
             val c = LL((all.minOf { it.lat } + all.maxOf { it.lat }) / 2.0, (all.minOf { it.lon } + all.maxOf { it.lon }) / 2.0)
-            val id = idx.minOf { pieces[it].first }
-            rings[id] = Ring(id, c, ps, false)
+            val onRing = all.map { key(it) }.toHashSet()
+            val raw = ArrayList<Arm>()
+            for (w in armWays) for ((k, pt) in w.pts.withIndex()) if (key(pt) in onRing) {
+                // the road leaves the ring here (a road that only touches the ring at a point along it counts once each way)
+                if (k > 0 && key(w.pts[k - 1]) !in onRing) raw += Arm(angleAt(c, pt), w.tags)
+                if (k < w.pts.size - 1 && key(w.pts[k + 1]) !in onRing) raw += Arm(angleAt(c, pt), w.tags)
+            }
+            val id = idx.minOf { ringWays[it].id }
+            rings[id] = Ring(id, c, ps, false, groupArms(raw))
+        }
+        for ((nid, pt) in minis) {
+            val k0 = key(pt)
+            val raw = ArrayList<Arm>()
+            // a mini roundabout is one point: each road through it is an arm each way, pointing at its next point
+            for (w in armWays) for ((k, q2) in w.pts.withIndex()) if (key(q2) == k0) {
+                if (k > 0) raw += Arm(angleAt(pt, w.pts[k - 1]), w.tags)
+                if (k < w.pts.size - 1) raw += Arm(angleAt(pt, w.pts[k + 1]), w.tags)
+            }
+            rings[-nid] = Ring(-nid, pt, emptyList(), true, groupArms(raw))
         }
         fetchedFor = route
         save(ctx)
+    }
+
+    /** Roads that aren't arms: paths, tracks, access roads (a petrol station's way in isn't counted as an exit). */
+    private val NOT_ARM = Regex("^(footway|cycleway|path|steps|pedestrian|track|bridleway|corridor|construction|proposed|service|platform|bus_stop|busway|elevator|escape|raceway|services|rest_area)$")
+
+    private class Arm(val angle: Double, val tags: JSONObject)
+
+    /** Angle of [p] round [c] in degrees (0 east, 90 north), from local metres. */
+    private fun angleAt(c: LL, p: LL): Double {
+        val kx = 111320.0 * cos(Math.toRadians(c.lat))
+        return Math.toDegrees(atan2((p.lat - c.lat) * 110540.0, (p.lon - c.lon) * kx))
+    }
+
+    /**
+     * The arms round a ring, with the two carriageways of a divided road (one-way, the same name or number, close together)
+     * taken as one. Returns their angles in order round the ring.
+     */
+    private fun groupArms(raw: List<Arm>): List<Double> {
+        if (raw.isEmpty()) return emptyList()
+        val a = raw.sortedBy { (it.angle + 360.0) % 360.0 }
+        fun gap(x: Arm, y: Arm) = (((y.angle - x.angle) % 360.0) + 360.0) % 360.0
+        fun pair(x: Arm, y: Arm): Boolean {
+            if (gap(x, y) > 45.0) return false
+            val nx = x.tags.optString("name"); val ny = y.tags.optString("name")
+            val rx = x.tags.optString("ref"); val ry = y.tags.optString("ref")
+            val same = (nx.isNotBlank() && nx == ny) || (rx.isNotBlank() && rx == ry)
+            val oneWay = x.tags.optString("oneway") == "yes" && y.tags.optString("oneway") == "yes"
+            return same && oneWay || (gap(x, y) < 12.0)
+        }
+        val groups = ArrayList<MutableList<Arm>>()
+        for (arm in a) { val g = groups.lastOrNull(); if (g != null && pair(g.last(), arm)) g += arm else groups += mutableListOf(arm) }
+        // the last group may pair with the first across 0 degrees
+        if (groups.size > 1 && pair(groups.last().last(), groups.first().first())) { groups.first().addAll(0, groups.last()); groups.removeAt(groups.size - 1) }
+        return groups.map { g -> g.first().angle }
     }
 
     /** The kept ring (or mini roundabout) at a roundabout turn at [p], if any. */
@@ -145,12 +208,20 @@ object Roundabouts {
      * -90 a left, 0 straight on, 90 a right, -180 all the way round. Null when no ring is kept for it (or the route doesn't
      * touch it), so the line-based measure is used instead.
      */
-    fun turnAt(ctx: Context, route: Route, entry: Double, limitAt: Double, leftTraffic: Boolean): Double? {
+    fun turnAt(ctx: Context, route: Route, entry: Double, limitAt: Double, leftTraffic: Boolean, exitNo: Int = 0): Double? {
         load(ctx)
         if (route.pts.size < 2) return null
         val len = route.cum.last()
         val stepPt = Geo.pointOnLine(route.pts, route.cum, entry.coerceIn(0.0, len)).first
         val ring = ringNear(stepPt) ?: return null
+        // counted: the exit's number over the ring's arms, each arm an equal share of the way round (the third of four: three
+        // quarters round, a left). The arms as the map has them, the way in among them; where the count doesn't fit the number,
+        // the way the route goes round the ring is measured instead
+        val n = ring.arms?.size ?: 0
+        if (n >= 3 && exitNo in 1 until n) {
+            val arc = exitNo * 360.0 / n
+            return if (leftTraffic) arc - 180.0 else 180.0 - arc
+        }
         val c = ring.centre
         val kx = 111320.0 * cos(Math.toRadians(c.lat)); val ky = 110540.0
         fun xy(p: LL) = doubleArrayOf((p.lon - c.lon) * kx, (p.lat - c.lat) * ky)
