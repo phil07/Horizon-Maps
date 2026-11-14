@@ -316,9 +316,9 @@ private fun CarScreen(engine: NavEngine, a: android.graphics.Rect?, actions: Car
         // the charger filter while driving: under Android Auto's own Melden button, in the same column and the same size (Beenden
         // and Melden are Android Auto's buttons, top left; ending the trip and the sound are there or on the trip bar already).
         // Android Auto's column is the strip left of the stable area; where it's too narrow, the filter sits at the left edge.
-        // the app's own button column on the left, always there (not only when the screen is touched): end the trip, report, the
-        // charger filter while driving, zoom in and out, re-centre. A button that doesn't apply keeps its place empty, so the
-        // others stay where they are.
+        // the app's own button column on the left, always there (not only when the screen is touched): end the trip, report and the
+        // charger filter while driving. Zoom in and out and re-centre are Android Auto's own buttons on the right (more compact),
+        // which the map follows. A button that doesn't apply keeps its place empty, so the others stay where they are.
         if (ownCol) {
             val x = if (colInStrip) (insL - colBtn) / 2 else insL + edge
             val y0 = 27.dp
@@ -334,9 +334,6 @@ private fun CarScreen(engine: NavEngine, a: android.graphics.Rect?, actions: Car
                 btn("own-report", Icons.Rounded.Warning, c.text, c.surface) { actions.report() }
                 if (tripFilter) btn("trip-filter", Icons.Rounded.FilterList, if (engine.chargerMinKw > 0) Color.White else c.text, if (engine.chargerMinKw > 0) c.accent else c.surface) { engine.chargerFilterOpen = !engine.chargerFilterOpen }
                 else Box(Modifier.size(colBtn))
-                btn("own-zoomin", Icons.Rounded.Add, c.text, c.surface) { engine.zoom(0.5) }
-                btn("own-zoomout", Icons.Rounded.Remove, c.text, c.surface) { engine.zoom(-0.5) }
-                btn("own-center", Icons.Rounded.MyLocation, c.text, c.surface) { engine.recenter(true) }
             }
             // the charger list opens to the right of the filter button, level with it
             if (tripFilter) AnimatedVisibility(engine.chargerFilterOpen,
