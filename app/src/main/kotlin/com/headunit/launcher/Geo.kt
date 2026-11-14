@@ -140,9 +140,8 @@ object Geo {
      * is [exitAt] when the route data says so, otherwise where the line stops turning round the ring (anticlockwise where traffic
      * keeps right, clockwise where it keeps left). Null when the line is too short to tell.
      */
-    /** Metres before the entry and after the exit that set a roundabout's direction (20 and 30 to start: see the note at the call). */
-    /** Defaults for the roundabout window (Settings > Abbiegekarte & Spuren > Kreisel): metres before the entry, and the exit's
-     *  heading is taken between these distances after the exit point (it starts after the bend of the roundabout). */
+    /** For a mini roundabout with no ring in the line only: metres before the entry, and the exit's heading is taken between
+     *  these distances after the exit point. (A real ring is measured by the arc the route covers on it.) */
     const val ROUNDABOUT_IN_M = 10.0
     const val ROUNDABOUT_OUT_FROM_M = 20.0
     const val ROUNDABOUT_OUT_TO_M = 40.0

@@ -4,9 +4,9 @@ Add user-facing Horizon Nav changes under **Unreleased** before publishing each 
 
 ## Unreleased
 
-### Behoben
-- Kreisel in der grünen Abbiegekarte: Die Ausfahrt richtet sich jetzt nach dem Bogen, den die Route um den Ring fährt, wie auf der Karte. Bisher zählte die Richtung der Zufahrt mit; kam die Straße schräg in den Kreisel, lag die Ausfahrt 45° oder mehr zu weit herum (z. B. fast ganz herum statt drei Viertel).
-  EN: Roundabouts on the green turn card: the exit now follows the arc the route takes round the ring, as on the map. The way in used to count as well; where the road met the ring at a slant, the exit sat 45 degrees or more too far round (nearly all the way round instead of three quarters, for example).
+### Verbessert
+- Kreisel-Einstellungen entfernt: Die Regler für die Abstände vor und nach dem Kreisel sind wieder weg. Die Ausfahrt ergibt sich aus dem Bogen, den die Route auf dem Ring fährt, und braucht keine Einstellung.
+  EN: Roundabout settings removed: the sliders for the distances before and after the roundabout are gone again. The exit comes from the arc the route covers on the ring and needs no setting.
 
 ## 1.0.246 — 2026-10-28
 
