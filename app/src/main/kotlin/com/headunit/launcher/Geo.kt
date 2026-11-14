@@ -141,16 +141,20 @@ object Geo {
      * keeps right, clockwise where it keeps left). Null when the line is too short to tell.
      */
     /** Metres before the entry and after the exit that set a roundabout's direction (20 and 30 to start: see the note at the call). */
+    /** Defaults for the roundabout window (Settings > Abbiegekarte & Spuren > Kreisel): metres before the entry, and the exit's
+     *  heading is taken between these distances after the exit point (it starts after the bend of the roundabout). */
     const val ROUNDABOUT_IN_M = 10.0
-    const val ROUNDABOUT_OUT_M = 10.0
+    const val ROUNDABOUT_OUT_FROM_M = 20.0
+    const val ROUNDABOUT_OUT_TO_M = 40.0
 
-    fun roundaboutHeadings(pts: List<LL>, cum: DoubleArray, entry: Double, exitAt: Double, limitAt: Double, leftTraffic: Boolean): Pair<Double, Double>? {
+    fun roundaboutHeadings(pts: List<LL>, cum: DoubleArray, entry: Double, exitAt: Double, limitAt: Double, leftTraffic: Boolean,
+                           inM: Double = ROUNDABOUT_IN_M, outFromM: Double = ROUNDABOUT_OUT_FROM_M, outToM: Double = ROUNDABOUT_OUT_TO_M): Pair<Double, Double>? {
         if (pts.size < 2 || cum.size != pts.size) return null
         val len = cum.last()
         val e = entry.coerceIn(0.0, len)
         val limit = minOf(len, e + 250.0, limitAt)
         if (limit <= e + 5.0) return null
-        val inH = bearing(pointOnLine(pts, cum, maxOf(0.0, e - ROUNDABOUT_IN_M)).first, pointOnLine(pts, cum, e).first)
+        val inH = bearing(pointOnLine(pts, cum, maxOf(0.0, e - inM.coerceIn(0.0, 50.0))).first, pointOnLine(pts, cum, e).first)
         var exit = if (exitAt > e && exitAt <= limit) exitAt else -1.0
         if (exit < 0) {
             val step = 4.0
@@ -174,9 +178,10 @@ object Geo {
             // no ring in the line (a mini roundabout drawn as a single point): the heading a little way on
             exit = if (found >= 0) e + found * step else e + 25.0
         }
-        val outEnd = minOf(len, exit + ROUNDABOUT_OUT_M)
-        if (outEnd - exit < 5.0) return null
-        val outH = bearing(pointOnLine(pts, cum, exit).first, pointOnLine(pts, cum, outEnd).first)
+        val from = minOf(len, exit + outFromM.coerceIn(0.0, 50.0))
+        val outEnd = minOf(len, exit + maxOf(outToM.coerceIn(5.0, 60.0), outFromM.coerceIn(0.0, 50.0) + 5.0))
+        if (outEnd - from < 5.0) return null
+        val outH = bearing(pointOnLine(pts, cum, from).first, pointOnLine(pts, cum, outEnd).first)
         return inH to outH
     }
 

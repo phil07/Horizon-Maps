@@ -5691,7 +5691,8 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
             // wrong way (a third exit to the left showed as half right). The roads off the ring are left out then (their angles
             // come from the same data).
             val rbGeo = if (cur.maneuver.uppercase().startsWith("ROUNDABOUT")) try {
-                Geo.roundaboutHeadings(r.pts, r.cum, cur.off, cur.rbEnd, nxt?.off?.minus(2.0) ?: Double.MAX_VALUE, leftTraffic)
+                Geo.roundaboutHeadings(r.pts, r.cum, cur.off, cur.rbEnd, nxt?.off?.minus(2.0) ?: Double.MAX_VALUE, leftTraffic,
+                    prefs.i(PreferenceKeys.ROUNDABOUT_IN, 10).toDouble(), prefs.i(PreferenceKeys.ROUNDABOUT_OUT_FROM, 20).toDouble(), prefs.i(PreferenceKeys.ROUNDABOUT_OUT_TO, 40).toDouble())
             } catch (e: Exception) { null } else null
             val newTurn = TurnInfo(
                 d, street, cur.maneuver, if (thenOn) nxt?.maneuver else null,

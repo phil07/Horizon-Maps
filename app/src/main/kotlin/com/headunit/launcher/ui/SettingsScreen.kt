@@ -531,6 +531,11 @@ private fun GuidanceSection(prefs: Prefs) {
         SToggle(prefs, "Nächste Raststätten-Karte", "servicescard", true)
         SToggle(prefs, "Gefahrenradar", "hazardradar", false, "Kurven, Schulen, Schwellen, Blitzer (2 km)")
     }
+    SGroup("Kreisel", footer = "Die Richtung eines Kreisels wird zwischen diesen Abständen gemessen. Ausfahrt Anfang und Ende liegen nach dem Ausgang; beginnt die Messung später, ist der Bogen des Kreisels schon verlassen.") {
+        SSlider("Einfahrt: Meter vor dem Kreisel", prefs.i(PreferenceKeys.ROUNDABOUT_IN, 10).toFloat(), 0f..50f, "m", steps = 9, reset = 10f) { prefs.put(PreferenceKeys.ROUNDABOUT_IN, it) }
+        SSlider("Ausfahrt Anfang: Meter nach dem Ausgang", prefs.i(PreferenceKeys.ROUNDABOUT_OUT_FROM, 20).toFloat(), 0f..50f, "m", steps = 9, reset = 20f) { prefs.put(PreferenceKeys.ROUNDABOUT_OUT_FROM, it) }
+        SSlider("Ausfahrt Ende: Meter nach dem Ausgang", prefs.i(PreferenceKeys.ROUNDABOUT_OUT_TO, 40).toFloat(), 5f..50f, "m", steps = 8, reset = 40f) { prefs.put(PreferenceKeys.ROUNDABOUT_OUT_TO, it) }
+    }
     SGroup("Ankunft") {
         SToggle(prefs, "Ankunftsmoment", "arrivalfx", true, "Kamera schwenkt zum Ziel und zeigt Parkplätze")
         SToggle(prefs, "Parkplätze nahe dem Ziel", "parkprompt", true, "Parkplatzvorschläge vor der Ankunft")
