@@ -1,8 +1,8 @@
 ## Unreleased
 
 ### Behoben
-- Durchschnittsgeschwindigkeits-Kontrollen außerhalb Großbritanniens: Das Limit einer Kontrolle wurde immer als britisch gelesen, aus „60“ (km/h) wurden 95 km/h. Es wird jetzt in den Einheiten des Landes gelesen, in dem die Kontrolle liegt, und die Karte zeigt nie ein Limit über dem eigenen Schild der Straße.
-  EN: Average speed check limits outside the UK: a check's limit was always read as British, so one mapped as "60" (km/h) showed as 95 km/h. It's now read in the units of the country the check is in, and the card never shows a limit higher than the road's own signed limit.
+- Durchschnittsgeschwindigkeits-Kontrollen außerhalb Großbritanniens: Das Limit einer Kontrolle wurde immer als britisch gelesen, aus „60“ (km/h) wurden 95 km/h. Es wird jetzt in den Einheiten des Landes gelesen, in dem die Kontrolle liegt (in den USA also in mph), und die Karte zeigt nie ein Limit über dem eigenen Schild der Straße.
+  EN: Average speed check limits outside the UK: a check's limit was always read as British, so one mapped as "60" (km/h) showed as 95 km/h. It's now read in the units of the country the check is in (mph in the US too), and the card never shows a limit higher than the road's own signed limit.
 - Verschwinden aus Android Auto nach einem Update: Ein Update aus der App heraus bittet Androids Installationsprogramm jetzt, Google Play als Installationsquelle einzutragen. Android Auto prüft das, bevor es eine App listet, die nicht aus dem Play Store stammt. Vorher konnte ein Update in der App Horizon Nav unbemerkt aus Android Auto nehmen (gefunden von marcocebrian). Problemberichte enthalten jetzt diese Installationsangabe.
   EN: Disappearing from Android Auto after an update: updating from inside the app now asks Android's installer to record Google Play as the installer, which is what Android Auto checks before listing an app from outside the Play Store. Before, an in-app update could quietly take Horizon Nav out of Android Auto (found by marcocebrian). Problem reports now include this install record.
 

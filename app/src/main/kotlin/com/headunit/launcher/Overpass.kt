@@ -132,6 +132,8 @@ object Overpass {
         val unit = m.groupValues[2]
         // in Britain every limit is in mph, even when the mapper left the unit off
         if (country == "GB") return snapGb(if (unit == "mph" || unit.isEmpty()) v * MPH else v / 3.6)
+        // in the US every unitless limit is in mph (as in Britain); elsewhere it is km/h
+        if (country == "US" && unit.isEmpty()) return v * MPH
         return if (unit == "mph") v * MPH else v / 3.6
     }
 
