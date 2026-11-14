@@ -4043,7 +4043,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
             lookB = gHead
         }
         val gp = gPos ?: return
-        map.setBeam(prefs.b(PreferenceKeys.HEADLIGHT_BEAM, true) && lastDark, gSpeed)
+        map.setBeam(prefs.b(PreferenceKeys.HEADLIGHT_BEAM, false) && lastDark, gSpeed)
         map.setMe(gp, gHead, 0)
         if (glideOnRoute && r != null && !previewing) {
             if (now - gDoneAt >= (if (following) 350L else 1500L)) { gDoneAt = now; updateDone(r, gProg) }
@@ -7714,7 +7714,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
 
         // sharp bends: striped on the map, and a sign with a chime a few seconds before (only when you're faster than it can be taken)
         run {
-            val on = prefs.b(PreferenceKeys.SHARPBENDS, true)
+            val on = prefs.b(PreferenceKeys.SHARPBENDS, false)
             if (sharpFor !== r) {
                 sharpFor = r; sharp = emptyList(); sharpShown = false; map.setSharpBends(emptyList())
                 scope.launch { val b = withContext(Dispatchers.Default) { try { sharpBends(r) } catch (e: Exception) { emptyList() } }; if (sharpFor === r) { sharp = b; sharpShown = false } }

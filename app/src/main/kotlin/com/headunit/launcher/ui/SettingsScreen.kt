@@ -395,7 +395,7 @@ private fun ArrowSection(prefs: Prefs, engine: NavEngine) {
             SToggle(prefs, "Leuchten", PreferenceKeys.MODEL_GLOW, true, "Weiches blaues Leuchten um das Modell")
             if (prefs.mapDetail() != "full") SNote("Nur mit Kartendetails „Vollständiges 3D“")
         }
-        SToggle(prefs, "Scheinwerferkegel bei Nacht", PreferenceKeys.HEADLIGHT_BEAM, true, "Nach Einbruch der Dunkelheit liegt ein weicher Lichtkegel vor dem Pfeil, bei höherem Tempo länger")
+        SToggle(prefs, "Scheinwerferkegel bei Nacht", PreferenceKeys.HEADLIGHT_BEAM, false, "Nach Einbruch der Dunkelheit liegt ein weicher Lichtkegel vor dem Pfeil, bei höherem Tempo länger")
         val shapeCar = loc == "car" || (loc == "model" && prefs.s(PreferenceKeys.MODEL_SHAPE, "arrow") == "car")
         val shapeArrow = loc == "arrow" || (loc == "model" && !shapeCar)
         if (loc == "custom") {
@@ -606,7 +606,7 @@ private fun AlertsSection(prefs: Prefs, engine: NavEngine) {
         SToggle(prefs, "Umweltzonen", "zonewarn", true)
         SToggle(prefs, "Pausenerinnerung nach 2 Stunden", "breakremind", false)
         SToggle(prefs, "Bahnübergänge und Furten", "railford", false, "Warnschild und Sprachwarnung")
-        SToggle(prefs, "Scharfe Kurven", "sharpbends", true, "Gelb gestreift auf der Route, Warnschild und Gong kurz davor (nur wenn du zu schnell bist)")
+        SToggle(prefs, "Scharfe Kurven", "sharpbends", false, "Gelb gestreift auf der Route, Warnschild und Gong kurz davor (nur wenn du zu schnell bist)")
         SToggle(prefs, "Wetterhinweise", "wxadvice", true, "Hinweis bei Regen, Schnee, Nebel oder Glätte")
         SToggle(prefs, "Unwetterwarnungen (DWD)", "dwdwarn", true, "Amtliche Warnungen auf der Strecke (Deutschland)")
         SToggle(prefs, "Falschfahrer-Meldungen", PreferenceKeys.WRONGWAY_REPORTS, true, "Alarm bei Meldung bis 30 km voraus")

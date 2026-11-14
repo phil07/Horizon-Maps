@@ -1,8 +1,8 @@
 ## Unreleased
 
-### Behoben
-- Android Auto, Ladesäulen-Filter: Die Auswahl öffnet sich jetzt rechts neben dem Filter-Knopf, auf gleicher Höhe, statt mittig am linken Rand darüber zu liegen.
-  EN: Android Auto, charger filter: the choice now opens to the right of the Filter button, level with it, instead of sitting over it in the middle of the left edge.
+### Neu
+- Scharfe Kurven und Scheinwerferkegel sind standardmäßig aus. Du schaltest sie unter Einstellungen › Warnungen › Scharfe Kurven bzw. Einstellungen › Pfeil › Scheinwerferkegel bei Nacht ein.
+  EN: Sharp bends and the headlight beam are off by default. Turn them on under Settings › Warnings › Sharp bends, or Settings › Your arrow › Headlight beam at night.
 ## 1.0.246 — 2026-10-28
 
 ### Improved in-app updates
