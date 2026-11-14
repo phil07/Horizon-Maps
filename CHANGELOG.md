@@ -4,13 +4,9 @@ Add user-facing Horizon Nav changes under **Unreleased** before publishing each 
 
 ## Unreleased
 
-### Neu
-- Kreisel einstellen: Unter Abbiegekarte & Spuren > Kreisel lassen sich die Abstände einstellen, zwischen denen die Richtung eines Kreisels gemessen wird: vor der Einfahrt sowie Anfang und Ende nach dem Ausgang. Standard: 10 m vor der Einfahrt, 20 bis 40 m nach dem Ausgang.
-  EN: Set the roundabout: under Turn map & lanes > Roundabout you can set the distances over which a roundabout's direction is measured: before the entry, and the start and end after the exit. Default: 10 m before the entry, 20 to 40 m after the exit.
-
 ### Behoben
-- Kreisel-Winkel: Die Ausfahrt wird nicht mehr direkt am Ausgang gemessen, wo der Bogen des Kreisels noch nachwirkt. Dadurch stimmt der Winkel der grünen Abbiegekarte besser mit dem Verlauf der Karte überein.
-  EN: Roundabout angle: the exit is no longer measured right at the exit, where the roundabout's bend still counts. The green turn card's angle now matches the map's line better.
+- Kreisel in der grünen Abbiegekarte: Die Ausfahrt richtet sich jetzt nach dem Bogen, den die Route um den Ring fährt, wie auf der Karte. Bisher zählte die Richtung der Zufahrt mit; kam die Straße schräg in den Kreisel, lag die Ausfahrt 45° oder mehr zu weit herum (z. B. fast ganz herum statt drei Viertel).
+  EN: Roundabouts on the green turn card: the exit now follows the arc the route takes round the ring, as on the map. The way in used to count as well; where the road met the ring at a slant, the exit sat 45 degrees or more too far round (nearly all the way round instead of three quarters, for example).
 
 ## 1.0.246 — 2026-10-28
 

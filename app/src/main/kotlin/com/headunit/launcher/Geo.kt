@@ -155,29 +155,38 @@ object Geo {
         val limit = minOf(len, e + 250.0, limitAt)
         if (limit <= e + 5.0) return null
         val inH = bearing(pointOnLine(pts, cum, maxOf(0.0, e - inM.coerceIn(0.0, 50.0))).first, pointOnLine(pts, cum, e).first)
-        var exit = if (exitAt > e && exitAt <= limit) exitAt else -1.0
-        if (exit < 0) {
-            val step = 4.0
-            val hs = ArrayList<Double>()
-            var o = e
-            while (o <= limit) { hs += pointOnLine(pts, cum, o).second; o += step }
-            val sign = if (leftTraffic) 1.0 else -1.0
-            fun dlt(a: Double, b: Double) = ((b - a + 540.0) % 360.0) - 180.0
-            val win = 5
-            var turned = 0.0
-            var found = -1
-            for (i in 0 until hs.size - 1) {
-                val d = sign * dlt(hs[i], hs[i + 1])
-                if (turned >= 15.0) {
-                    // turning out of the ring (against its direction), or not turning round it any more
-                    if (d < -2.0) { found = i; break }
-                    if (i + win <= hs.size - 1 && (i until i + win).all { j -> sign * dlt(hs[j], hs[j + 1]) <= 1.0 }) { found = i; break }
-                }
-                if (d > 0) turned += d
+        // the line's heading every 4 m from the entry on, and how far it turns round the ring (in the ring's direction)
+        val step = 4.0
+        val hs = ArrayList<Double>()
+        var o = e
+        while (o <= limit) { hs += pointOnLine(pts, cum, o).second; o += step }
+        val sign = if (leftTraffic) 1.0 else -1.0
+        fun dlt(a: Double, b: Double) = ((b - a + 540.0) % 360.0) - 180.0
+        val given = exitAt > e && exitAt <= limit
+        var turned = 0.0
+        var found = -1
+        val win = 5
+        for (i in 0 until hs.size - 1) {
+            val d = sign * dlt(hs[i], hs[i + 1])
+            if (given) {
+                if (e + (i + 1) * step > exitAt) { found = i; break }
+            } else if (turned >= 15.0) {
+                // turning out of the ring (against its direction), or not turning round it any more
+                if (d < -2.0) { found = i; break }
+                if (i + win <= hs.size - 1 && (i until i + win).all { j -> sign * dlt(hs[j], hs[j + 1]) <= 1.0 }) { found = i; break }
             }
-            // no ring in the line (a mini roundabout drawn as a single point): the heading a little way on
-            exit = if (found >= 0) e + found * step else e + 25.0
+            if (d > 0) turned += d
         }
+        // How far round the ring the route goes is what the map shows. Its heading as it comes in isn't a good guide to that:
+        // many entries meet the ring at a slant rather than head-on, which made the exit look 45 degrees or more further round.
+        // On the ring the line turns by just the arc it covers, so that sets the exit (180 minus the arc: 270 round is a left turn)
+        if ((given || found >= 0) && turned >= 30.0) {
+            val arc = turned.coerceAtMost(360.0)
+            val turn = if (leftTraffic) arc - 180.0 else 180.0 - arc
+            return 0.0 to ((turn % 360.0) + 360.0) % 360.0
+        }
+        // no ring in the line (a mini roundabout drawn as a single point): the way in and the way out a little way on
+        val exit = if (given) exitAt else if (found >= 0) e + found * step else e + 25.0
         val from = minOf(len, exit + outFromM.coerceIn(0.0, 50.0))
         val outEnd = minOf(len, exit + maxOf(outToM.coerceIn(5.0, 60.0), outFromM.coerceIn(0.0, 50.0) + 5.0))
         if (outEnd - from < 5.0) return null
