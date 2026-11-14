@@ -132,8 +132,7 @@ jobs:
           # (The unit tests have to run on the debug variant: this project has no release unit tests.)
           TASKS=":app:testPublicDebugUnitTest :app:assemblePublicRelease"
           if [ "${PLAY_BUILD:-}" = "1" ]; then TASKS="$TASKS :app:bundlePlayRelease"; fi
-          # (one-off: --refresh-dependencies clears a "junit jar not found" that a failed run left in the restored Gradle cache)
-          gradle $TASKS --refresh-dependencies -PtomtomApiKey="$TOMTOM_API_KEY" -PreportsUrl="$REPORTS_URL"
+          gradle $TASKS -PtomtomApiKey="$TOMTOM_API_KEY" -PreportsUrl="$REPORTS_URL"
 
       - uses: actions/upload-artifact@v4
         with:
