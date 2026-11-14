@@ -38,6 +38,7 @@ Jede Anfrage der App schickt den Header `X-Device: <zufällige ID>`.
 - `POST /v1/reports` mit `{"kind":"jam","lat":48.1,"lon":11.5}` → `{"id":123,"merged":false}`
 - `GET /v1/reports?s=&w=&n=&e=` (höchstens 6° je Seite) → `{"now":…,"reports":[…]}`
 - `POST /v1/reports/<id>/vote` mit `{"still":true}` oder `{"still":false}` → `{"ok":true,"exp":…}`
+- `DELETE /v1/reports/<id>` (nur mit der eigenen Geräte-ID) → `{"ok":true}`, sonst 404. Die Meldung ist danach für alle weg.
 - `GET /v1/health` → `{"ok":true}`
 - `POST /v1/limits` mit `{"lat":48.1,"lon":11.5,"heading":90,"kmh":50}` (`kmh` 0 = kein Limit) → `{"ok":true,"replaced":0}`
 - `GET /v1/limits?s=&w=&n=&e=` (höchstens 0,2° je Seite) → `{"now":…,"limits":[{"lat","lon","h","kmh","t","mine"}]}`

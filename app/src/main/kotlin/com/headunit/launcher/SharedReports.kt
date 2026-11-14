@@ -114,6 +114,11 @@ object SharedReports {
     }
 
     /** Keeps the last fetched list (all boxes of one refresh together). */
+    /** Takes back your own report on the server (only the device that made it can; everyone stops seeing it). */
+    fun delete(prefs: Prefs, id: Long): Boolean = try {
+        request("DELETE", "${baseUrl(prefs)}/v1/reports/$id", deviceId(prefs), null); true
+    } catch (e: Exception) { false }
+
     fun remember(list: List<Item>) { items = list }
 
     /** "Noch da" (still = true) or "Weg" for a report from someone else. True when the server took it. */

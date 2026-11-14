@@ -1,6 +1,6 @@
 // Horizon Nav shared reports: a small Cloudflare Worker with a D1 database.
 // Drivers share police/accident/hazard/... reports; others confirm ("still there") or dismiss them.
-// API (JSON): POST /v1/reports, GET /v1/reports?s=&w=&n=&e=, POST /v1/reports/<id>/vote, GET /v1/health.
+// API (JSON): POST /v1/reports, GET /v1/reports?s=&w=&n=&e=, POST /v1/reports/<id>/vote, DELETE /v1/reports/<id> (own only), GET /v1/health.
 // Speed limits reported by drivers: POST /v1/limits, GET /v1/limits?s=&w=&n=&e=.
 // Shared trips: POST /v1/trips (new link), POST /v1/trips/<id> (update or end, with X-Trip-Key), GET /v1/trips/<id>,
 // and the page for the link: GET /t/<id>.
@@ -181,6 +181,15 @@ async function postReport(request, env) {
     .bind(kind, la, lo, now, now + LIFETIME[kind], device)
     .first();
   return json(200, { id: row.id, merged: false });
+}
+
+// the reporter takes back their own report (their device only); gone for everyone at once
+async function deleteReport(request, env, id) {
+  const device = deviceOf(request);
+  const res = await env.DB.prepare("DELETE FROM reports WHERE id = ?1 AND device = ?2").bind(id, device).run();
+  const changed = res?.meta?.changes ?? res?.changes ?? 0;
+  if (!changed) throw new HttpError(404, "not found");
+  return json(200, { ok: true });
 }
 
 async function getReports(request, env, url) {
@@ -458,6 +467,11 @@ async function handle(request, env) {
     if (method !== "GET" && method !== "HEAD") throw new HttpError(405, "method not allowed");
     if (!TRIP_ID_RE.test(pm[1])) throw new HttpError(404, "not found");
     return tripPage(pm[1]);
+  }
+  const del = path.match(/^\/v1\/reports\/(\d{1,15})$/);
+  if (del) {
+    if (method !== "DELETE") throw new HttpError(405, "method not allowed");
+    return deleteReport(request, env, Number(del[1]));
   }
   const m = path.match(/^\/v1\/reports\/(\d{1,15})\/vote$/);
   if (m) {

@@ -1,14 +1,8 @@
-# Changelog
-
-Add user-facing Horizon Nav changes under **Unreleased** before publishing each build, in German (the app shows them as they are), under ### Neu, ### Verbessert or ### Behoben headings, each written as "Überschrift: was es tut" (the What's new card shows the headline in bold with the rest underneath). Under each entry, an indented line "  EN: Headline: what it does" gives its English for the app in English (GitHub and Google Play get the German only). Keep entries focused on features, improvements, and fixes in the app—not GitHub Actions or release-publishing maintenance. There is no need to delete entries after publishing: notes that an earlier release already included are left out of the next one automatically. After a build has been published, remove its entries from Unreleased again: the What's new card shows exactly what is in this section, so anything left there is shown again with the next build.
-
 ## Unreleased
 
-### Behoben
-- Fehlende Straßen auf der Karte (GitHub #78, Reddit): In manchen Ländern verdeckten die HD-Straßen von Mapbox die normalen Straßen, nur Hauptstraßen blieben sichtbar. HD-Straßen sind jetzt eine Einstellung unter Einstellungen › Karte › HD-Straßen (Auto, An, Aus). Auf Auto sind sie nur in UK an, sonst kannst du sie einschalten, wenn sie richtig angezeigt werden.
-  EN: Missing streets on the map (GitHub #78, Reddit): in some countries Mapbox's HD roads hid the ordinary streets, leaving only main roads. HD roads are now a setting under Settings › Map › HD roads (Auto, On, Off). On Auto they're on only in the UK; elsewhere switch them on if they show properly.
-- Tempolimits im Ausland: Das Land kommt jetzt aus der Position, in der du bist, nicht aus der Spracheinstellung des Telefons. Ein englisches (UK) Telefon in Frankreich bekam vorher britische Regeln.
-  EN: Speed limit rules abroad: the country now comes from where you are, not the phone's language setting. An English (UK) phone in France got British rules before.
+### Verbessert
+- Meldung zurücknehmen: Eine Meldung, die aus Versehen gemacht wurde, lässt sich mit „Rückgängig“ im Hinweis „Hier gespeichert“ zurücknehmen, auch bei den anderen Fahrern.
+  EN: Taking a report back: a report made by mistake can be taken back with "Undo" on the "Saved here" message, for other drivers too.
 ## 1.0.246 — 2026-10-28
 
 ### Improved in-app updates

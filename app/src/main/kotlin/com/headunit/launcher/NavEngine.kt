@@ -4827,16 +4827,39 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         prefs.put(PreferenceKeys.POLICEREP, "")
         toast(str(R.string.toast_067, reportName(kind)), 3000)
         pushHazards(hzProgress)
+        // a report made by mistake can be taken back for a few seconds: Undo on the "saved here" message
+        lastOwnReport = mine; lastOwnSid = 0L
+        showNotice(Notice("undo_report", reportName(kind), Lang.t("Hier gespeichert", "Saved here"), 2, Lang.t("Rückgängig", "Undo")), 5000)
         // shared with other drivers (Settings, on by default): the server's id is kept with the report, so the same report coming
         // back from the server isn't shown twice
         if (SharedReports.sharing(prefs)) scope.launch {
             val sid = withContext(Dispatchers.IO) { SharedReports.send(prefs, kind, p) } ?: return@launch
             SharedReports.markOwn(sid)
+            lastOwnSid = sid
+            if (undoPendingT == mine.t) { undoPendingT = 0L; withContext(Dispatchers.IO) { SharedReports.delete(prefs, sid) } }
             val cur = reportsActive()
             if (cur.none { it.t == mine.t && it.kind == kind }) return@launch
             saveReports(cur.map { if (it.t == mine.t && it.kind == kind && it.sid == 0L) Report(it.kind, it.pos, it.t, sid) else it })
             policeSig = 0
         }
+    }
+
+    /** The report made last, for Undo: its time, and the server's id once it has one. */
+    private var lastOwnReport: Report? = null
+    private var lastOwnSid = 0L
+    private var undoPendingT = 0L
+
+    /** Takes back the report made last (it leaves the map here and, when the server has it, for everyone). */
+    fun undoLastReport() {
+        val m = lastOwnReport ?: return
+        lastOwnReport = null
+        saveReports(reportsActive().filterNot { it.t == m.t && it.kind == m.kind })
+        pushHazards(hzProgress)
+        if (lastOwnSid > 0L) {
+            val sid = lastOwnSid
+            scope.launch(Dispatchers.IO) { SharedReports.delete(prefs, sid) }
+        } else undoPendingT = m.t   // the server's id comes later: removed then
+        toast(Lang.t("Meldung zurückgenommen", "Report taken back"), 2500)
     }
 
     fun reportPolice() = report("police")
@@ -5493,6 +5516,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
     fun noticeAction() {
         val n = notice ?: return
         notice = null
+        if (n.kind == "undo_report") { undoLastReport(); return }
         if (n.kind != "reroute") return
         val old = undoRoute ?: return
         undoRoute = null
