@@ -5,8 +5,8 @@ Add user-facing Horizon Nav changes under **Unreleased** before publishing each 
 ## Unreleased
 
 ### Behoben
-- Geschwindigkeit auf kleinen Android-Auto-Bildschirmen: Sie bleibt unten links in der Ecke, neben der einzeiligen Fahrtleiste. Vorher lag sie unten rechts, wanderte mit den Zoomknöpfen von Android Auto, verdeckte das Mapbox-Logo und rutschte die Seite hoch.
-  EN: Speedometer on short Android Auto screens: it now stays put in the bottom-left corner, with the one-line trip strip beside it while navigating. In the bottom right it slid with Android Auto's zoom buttons, covered the Mapbox logo and moved up the side to make room for the trip strip.
+- Kreisel-Winkel: Die grüne Abbiegekarte und die Kartenlinie zeigen die Ausfahrt jetzt übereinstimmend. Die Richtung wird aus 20 m vor der Einfahrt und 30 m nach dem Ausgang bestimmt, nicht mehr aus der ganzen Strecke bis zum nächsten Schritt.
+  EN: Roundabout angle: the green turn card and the map line now show the exit the same way. The direction comes from 20 m before the entry and 30 m after the exit, not from the whole stretch up to the next step.
 
 ## 1.0.246 — 2026-10-28
 
