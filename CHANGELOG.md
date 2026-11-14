@@ -4,9 +4,9 @@ Add user-facing Horizon Nav changes under **Unreleased** before publishing each 
 
 ## Unreleased
 
-### Behoben
-- Kreisel in der Abbiegekarte ohne Kartendaten: Fehlen die Kreisel-Daten aus OpenStreetMap, legt die grüne Karte jetzt einen Kreis durch die Route auf dem Ring und liest Ein- und Ausfahrt 15 m außerhalb davon ab. Vorher zählte nur, wie weit die Route auf dem Ring dreht; das war zu wenig, sodass eine dritte Ausfahrt nach links wie geradeaus und geradeaus wie rechts aussah.
-  EN: Roundabouts on the turn card without map data: when the roundabout data from OpenStreetMap is missing, the green card now lays a circle through the route on the ring and reads the way in and out 15 m outside it. Before, only how far the route turns on the ring counted; that fell short, so a third exit to the left looked like straight on and straight on like a right.
+### Verbessert
+- Kreisel in der Abbiegekarte zuerst aus der Route: Bei einer Mapbox-Route nimmt die grüne Karte die Stellen, an denen du auf den Ring fährst und ihn verlässt, und misst den Winkel dazwischen um die Ringmitte. Bei einer TomTom-Route zeigt sie den Abbiegewinkel von TomTom. OpenStreetMap wird nur noch gefragt, wenn beides fehlt. Die grauen Stummel der übrigen Arme sind wieder weg.
+  EN: Roundabouts on the turn card from the route first: on a Mapbox route the green card takes the places where you join and leave the ring and measures the angle between them round its middle. On a TomTom route it shows TomTom's turn angle. OpenStreetMap is only asked when both are missing. The grey stubs for the other arms are gone again.
 
 ## 1.0.246 — 2026-10-28
 
