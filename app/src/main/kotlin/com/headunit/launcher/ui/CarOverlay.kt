@@ -30,6 +30,11 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material.icons.rounded.KeyboardArrowDown
 import androidx.compose.material.icons.rounded.KeyboardArrowUp
 import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material.icons.rounded.Warning
+import androidx.compose.material.icons.rounded.FilterList
+import androidx.compose.material.icons.rounded.Add
+import androidx.compose.material.icons.rounded.Remove
+import androidx.compose.material.icons.rounded.MyLocation
 import androidx.compose.material.icons.rounded.History
 import androidx.compose.material.icons.rounded.Home
 import androidx.compose.material.icons.rounded.Mic
@@ -122,6 +127,8 @@ interface CarActions {
  * buttons are drawn, so the search bar, chips, route cards and Start work by touch as in the app.
  */
 object CarTaps {
+    /** Set when the car passes taps on (Android Auto API 5 and up): only then can the app's own buttons be used. */
+    @Volatile var available = false
     private val regions = java.util.LinkedHashMap<String, Pair<androidx.compose.ui.geometry.Rect, () -> Unit>>()
     fun set(id: String, r: androidx.compose.ui.geometry.Rect, a: () -> Unit) { synchronized(regions) { regions.remove(id); regions[id] = r to a } }
     fun remove(id: String) { synchronized(regions) { regions.remove(id) } }
@@ -181,7 +188,14 @@ private fun CarScreen(engine: NavEngine, a: android.graphics.Rect?, actions: Car
             maxWidth < 1050.dp -> 16.dp
             else -> 24.dp
         }
-        val left = insL + edge
+        // the app's own button column: narrow, round, icons only, on the left. The cards start to its right (where Android Auto has
+        // no column of its own beside the app's area), so nothing lies over anything.
+        val ownCol = CarTaps.available && engine.arrival == null && !engine.previewing && maxHeight >= 300.dp
+        val colBtn = if (maxHeight < 440.dp) 44.dp else 56.dp
+        val colGap = 8.dp
+        val colInStrip = !portrait && insL > 156.dp
+        val colShift = if (ownCol && !colInStrip) colBtn + 14.dp else 0.dp
+        val left = insL + edge + colShift
         // Wide screens: level with Android Auto's buttons (top right); narrow/tall screens: below them.
         // (landscape: a smaller gap at the top, so the search bar sits level with Android Auto's Melden button beside it)
         val topTarget = if (portrait) insT + edge else insT.coerceAtMost(12.dp) + (edge / 2)
@@ -302,40 +316,31 @@ private fun CarScreen(engine: NavEngine, a: android.graphics.Rect?, actions: Car
         // the charger filter while driving: under Android Auto's own Melden button, in the same column and the same size (Beenden
         // and Melden are Android Auto's buttons, top left; ending the trip and the sound are there or on the trip bar already).
         // Android Auto's column is the strip left of the stable area; where it's too narrow, the filter sits at the left edge.
-        // the app's own button column on the left, always there (not only when the screen is touched): Beenden and Melden, the
-        // charger filter while driving, zoom in and out and re-centre. Each sits where Android Auto's column puts its buttons, and
-        // a button that doesn't apply keeps its place empty, so the others stay where they are.
-        if (!previewing && !arriving) {
-            val colW = 156.dp
-            val x = if (!portrait && insL > colW) (insL - colW) / 2 else left
-            val inCol = !portrait && insL > colW
-            val slotH = 80.dp
-            val gapH = 21.dp
-            val y2 = 27.dp + (slotH + gapH) * 2
-            val bg = if (engine.chargerMinKw > 0) c.accent else c.surface
-            @Composable fun btn(id: String, text: String, fill: Color, textColor: Color, on: () -> Unit) {
-                Box(Modifier.width(colW).height(slotH)
-                    .panel(10.dp, RoundedCornerShape(40.dp), fill)
-                    .carTap(id) { on() }, contentAlignment = Alignment.Center) {
-                    Text(text, color = textColor, fontSize = 26.sp, fontWeight = FontWeight.Medium, maxLines = 1)
+        // the app's own button column on the left, always there (not only when the screen is touched): end the trip, report, the
+        // charger filter while driving, zoom in and out, re-centre. A button that doesn't apply keeps its place empty, so the
+        // others stay where they are.
+        if (ownCol) {
+            val x = if (colInStrip) (insL - colBtn) / 2 else insL + edge
+            val y0 = 27.dp
+            val filterY = y0 + (colBtn + colGap) * 2
+            @Composable fun btn(id: String, icon: androidx.compose.ui.graphics.vector.ImageVector, tint: Color, fill: Color, on: () -> Unit) {
+                Box(Modifier.size(colBtn).panel(10.dp, androidx.compose.foundation.shape.CircleShape, fill).carTap(id) { on() }, contentAlignment = Alignment.Center) {
+                    Icon(icon, null, tint = tint, modifier = Modifier.size(colBtn * 0.5f))
                 }
             }
-            Column(
-                (if (inCol) Modifier.padding(start = x, top = 27.dp) else Modifier.padding(start = left, top = 27.dp)).width(colW),
-                verticalArrangement = Arrangement.spacedBy(gapH),
-            ) {
-                if (guiding) btn("own-end", Lang.t("Beenden", "End"), c.surface, c.text) { engine.endRoute() }
-                else Box(Modifier.width(colW).height(slotH))
-                btn("own-report", Lang.t("Melden", "Report"), c.surface, c.text) { actions.report() }
-                if (tripFilter) btn("trip-filter", Lang.t("Filter", "Filter"), bg, if (engine.chargerMinKw > 0) Color.White else c.text) { engine.chargerFilterOpen = !engine.chargerFilterOpen }
-                else Box(Modifier.width(colW).height(slotH))
-                btn("own-zoomin", "+", c.surface, c.text) { engine.zoom(0.5) }
-                btn("own-zoomout", "\u2212", c.surface, c.text) { engine.zoom(-0.5) }
-                btn("own-center", Lang.t("Zentrieren", "Re-centre"), c.surface, c.text) { engine.recenter(true) }
+            Column(Modifier.padding(start = x, top = y0), verticalArrangement = Arrangement.spacedBy(colGap)) {
+                if (guiding) btn("own-end", Icons.Rounded.Close, Color.White, Color(0xFFD32F2F)) { engine.endRoute() }
+                else Box(Modifier.size(colBtn))
+                btn("own-report", Icons.Rounded.Warning, c.text, c.surface) { actions.report() }
+                if (tripFilter) btn("trip-filter", Icons.Rounded.FilterList, if (engine.chargerMinKw > 0) Color.White else c.text, if (engine.chargerMinKw > 0) c.accent else c.surface) { engine.chargerFilterOpen = !engine.chargerFilterOpen }
+                else Box(Modifier.size(colBtn))
+                btn("own-zoomin", Icons.Rounded.Add, c.text, c.surface) { engine.zoom(0.5) }
+                btn("own-zoomout", Icons.Rounded.Remove, c.text, c.surface) { engine.zoom(-0.5) }
+                btn("own-center", Icons.Rounded.MyLocation, c.text, c.surface) { engine.recenter(true) }
             }
             // the charger list opens to the right of the filter button, level with it
             if (tripFilter) AnimatedVisibility(engine.chargerFilterOpen,
-                modifier = Modifier.padding(start = x + colW + 12.dp, top = y2),
+                modifier = Modifier.padding(start = x + colBtn + 12.dp, top = filterY),
                 enter = androidx.compose.animation.slideInHorizontally(tween(220)) { -it / 2 } + fadeIn(tween(200)),
                 exit = androidx.compose.animation.slideOutHorizontally(tween(200)) { -it / 2 } + fadeOut(tween(180))) { CarChargerFilter(engine) }
         }

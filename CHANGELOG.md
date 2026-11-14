@@ -1,5 +1,8 @@
 ## Unreleased
 
+### Behoben
+- Android Auto, Knöpfe: Die Leiste links ist jetzt schmal und rund (nur Symbole) und überdeckt nichts mehr. Die Karten (Abbiegekarte, Suche, Fahrtkarte) rücken rechts daneben. Bei Autos, die Berührungen weitergeben, steht in der Leiste oben rechts nur noch ein Knopf (Einstellungen, auf der Fahrt 2D/3D), weil Android Auto mindestens einen verlangt. Beenden, Melden, Filter, Zoom und Zentrieren gibt es nur noch links.
+  EN: Android Auto, buttons: the column on the left is now narrow and round (icons only) and covers nothing. The cards (turn, search, trip) move to its right. On cars that pass touches on, the bar at the top right has just one button (Settings, while driving 2D/3D), as Android Auto requires at least one. End, Report, Filter, zoom and Re-centre are only on the left.
 ## 1.0.246 — 2026-10-28
 
 ### Improved in-app updates

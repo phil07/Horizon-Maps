@@ -655,6 +655,7 @@ class MapScreen(carContext: CarContext, private val holder: CarHolder) : Screen(
             return NavigationTemplate.Builder().setActionStrip(strip.build()).build()
         }
         val taps = carContext.carAppApiLevel >= 5
+        com.headunit.launcher.ui.CarTaps.available = taps
         // voice guidance: all / alerts only / off (the same as the app's sound button)
         val soundIcon = when (e?.soundMode ?: 0) { 0 -> R.drawable.ic_car_sound_on; 1 -> R.drawable.ic_car_sound_alerts; else -> R.drawable.ic_car_sound_off }
         val sound = Action.Builder().setIcon(icon(soundIcon)).setOnClickListener { e?.cycleSound(); invalidate() }.build()
@@ -682,17 +683,17 @@ class MapScreen(carContext: CarContext, private val holder: CarHolder) : Screen(
             // bar can't be empty, though: its library refuses a strip without a button (IllegalStateException), which closed the app as
             // soon as a trip started. Melden stays there, as before. Cars that don't pass taps on can't use the buttons on the map, so
             // there Beenden and the sound are in the bar as well
-            strip.addAction(view)
+            if (taps) strip.addAction(view)
+            else {
+                strip.addAction(Action.Builder().setTitle("Beenden").setOnClickListener { e?.endRoute(); invalidate() }.build())
+                strip.addAction(reportAction())
+                strip.addAction(sound)
+            }
 
         } else if (taps) {
-            // cars that pass taps on use the app's own search bar and chips on the map, so Melden has the Search button's place
-            strip.addAction(reportAction())
-            strip.addAction(view)
+            // cars that pass taps on use the app's own search bar, chips and button column on the map (Melden, zoom and re-centre are
+            // there). The bar can't be empty: Settings, which the column doesn't have, stays as its one button
             strip.addAction(Action.Builder().setIcon(icon(R.drawable.ic_car_settings)).setOnClickListener { openSettings() }.build())
-            // electric: the charger power filter right under Einstellungen; a tap slides the list of power classes out on the map
-            if (e != null && e.prefs.s(PreferenceKeys.FUEL_TYPE, "E10") == "EV") strip.addAction(Action.Builder().setIcon(icon(R.drawable.ic_car_charger_filter)).setOnClickListener {
-                e.chargerFilterOpen = !e.chargerFilterOpen
-            }.build())
         } else {
             // cars that don't pass taps on: Melden has the Search button's place, and Suche is the first row in Orte
             strip.addAction(reportAction())
