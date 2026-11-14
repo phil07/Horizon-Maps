@@ -1,8 +1,8 @@
 ## Unreleased
 
-### Neu
-- Scharfe Kurven und Scheinwerferkegel sind standardmäßig aus. Du schaltest sie unter Einstellungen › Warnungen › Scharfe Kurven bzw. Einstellungen › Pfeil › Scheinwerferkegel bei Nacht ein.
-  EN: Sharp bends and the headlight beam are off by default. Turn them on under Settings › Warnings › Sharp bends, or Settings › Your arrow › Headlight beam at night.
+### Verbessert
+- Android Auto: Die Knöpfe Beenden, Melden, Filter, Zoom + und −, Zentrieren liegen jetzt als eigene Leiste links auf der Fahrerseite und sind immer sichtbar, auch ohne Berührung des Bildschirms.
+  EN: Android Auto: the buttons End, Report, Filter, zoom in and out and Re-centre are now the app's own column on the driver's left, always visible, even without a touch on the screen.
 ## 1.0.246 — 2026-10-28
 
 ### Improved in-app updates

@@ -302,24 +302,40 @@ private fun CarScreen(engine: NavEngine, a: android.graphics.Rect?, actions: Car
         // the charger filter while driving: under Android Auto's own Melden button, in the same column and the same size (Beenden
         // and Melden are Android Auto's buttons, top left; ending the trip and the sound are there or on the trip bar already).
         // Android Auto's column is the strip left of the stable area; where it's too narrow, the filter sits at the left edge.
-        if (tripFilter) {
+        // the app's own button column on the left, always there (not only when the screen is touched): Beenden and Melden, the
+        // charger filter while driving, zoom in and out and re-centre. Each sits where Android Auto's column puts its buttons, and
+        // a button that doesn't apply keeps its place empty, so the others stay where they are.
+        if (!previewing && !arriving) {
             val colW = 156.dp
             val x = if (!portrait && insL > colW) (insL - colW) / 2 else left
-            // Android Auto's buttons: about 80 dp tall, 21 dp apart, the first about 27 dp from the top: this is the third place
-            // (no column of Android Auto's on the left, as on a narrow split screen: halfway down the left edge, where it was before)
             val inCol = !portrait && insL > colW
-            val y = 27.dp + (80.dp + 21.dp) * 2
-            val btnMod = if (inCol) Modifier.padding(start = x, top = y) else Modifier.align(Alignment.CenterStart).padding(start = left)
-            Box(btnMod.width(colW).height(80.dp)
-                .panel(10.dp, RoundedCornerShape(40.dp), if (engine.chargerMinKw > 0) c.accent else c.surface)
-                .carTap("trip-filter") { engine.chargerFilterOpen = !engine.chargerFilterOpen }, contentAlignment = Alignment.Center) {
-                Text(Lang.t("Filter", "Filter"), color = if (engine.chargerMinKw > 0) Color.White else c.text, fontSize = 28.sp, fontWeight = FontWeight.Medium, maxLines = 1)
+            val slotH = 80.dp
+            val gapH = 21.dp
+            val y2 = 27.dp + (slotH + gapH) * 2
+            val bg = if (engine.chargerMinKw > 0) c.accent else c.surface
+            @Composable fun btn(id: String, text: String, fill: Color, textColor: Color, on: () -> Unit) {
+                Box(Modifier.width(colW).height(slotH)
+                    .panel(10.dp, RoundedCornerShape(40.dp), fill)
+                    .carTap(id) { on() }, contentAlignment = Alignment.Center) {
+                    Text(text, color = textColor, fontSize = 26.sp, fontWeight = FontWeight.Medium, maxLines = 1)
+                }
             }
-            // the list opens to the right of the filter button, level with it, and doesn't cover it
-            val gap = 12.dp
-            val popMod = if (inCol) Modifier.padding(start = x + colW + gap, top = y)
-                else Modifier.align(Alignment.CenterStart).padding(start = left + colW + gap)
-            AnimatedVisibility(engine.chargerFilterOpen, modifier = popMod,
+            Column(
+                (if (inCol) Modifier.padding(start = x, top = 27.dp) else Modifier.padding(start = left, top = 27.dp)).width(colW),
+                verticalArrangement = Arrangement.spacedBy(gapH),
+            ) {
+                if (guiding) btn("own-end", Lang.t("Beenden", "End"), c.surface, c.text) { engine.endRoute() }
+                else Box(Modifier.width(colW).height(slotH))
+                btn("own-report", Lang.t("Melden", "Report"), c.surface, c.text) { actions.report() }
+                if (tripFilter) btn("trip-filter", Lang.t("Filter", "Filter"), bg, if (engine.chargerMinKw > 0) Color.White else c.text) { engine.chargerFilterOpen = !engine.chargerFilterOpen }
+                else Box(Modifier.width(colW).height(slotH))
+                btn("own-zoomin", "+", c.surface, c.text) { engine.zoom(0.5) }
+                btn("own-zoomout", "\u2212", c.surface, c.text) { engine.zoom(-0.5) }
+                btn("own-center", Lang.t("Zentrieren", "Re-centre"), c.surface, c.text) { engine.recenter(true) }
+            }
+            // the charger list opens to the right of the filter button, level with it
+            if (tripFilter) AnimatedVisibility(engine.chargerFilterOpen,
+                modifier = Modifier.padding(start = x + colW + 12.dp, top = y2),
                 enter = androidx.compose.animation.slideInHorizontally(tween(220)) { -it / 2 } + fadeIn(tween(200)),
                 exit = androidx.compose.animation.slideOutHorizontally(tween(200)) { -it / 2 } + fadeOut(tween(180))) { CarChargerFilter(engine) }
         }
