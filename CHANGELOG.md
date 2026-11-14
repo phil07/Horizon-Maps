@@ -4,9 +4,9 @@ Add user-facing Horizon Nav changes under **Unreleased** before publishing each 
 
 ## Unreleased
 
-### Verbessert
-- Kreisel in der Abbiegekarte nach seinen Armen: Die grüne Karte liest aus OpenStreetMap, wo die Arme eines Kreisels liegen (jeder Arm in der Mitte seiner beiden Fahrbahnen), und zeigt den Weg vom Arm, auf dem du kommst, zum Arm, auf dem du rausfährst, auf Achtel gerundet. Von links rein und oben raus ist damit sauber drei Viertel herum. Die übrigen Arme sind als graue Stummel eingezeichnet, Wege und Zufahrten zählen nicht.
-  EN: Roundabouts on the turn card by their arms: the green card reads from OpenStreetMap where a roundabout's arms are (each in the middle of its two carriageways) and shows the way from the arm you come in on to the arm you leave by, to the nearest eighth. In from the left and out at the top is a clean three quarters round. The other arms are drawn as grey stubs; paths and access roads don't count.
+### Behoben
+- Kreisel in der Abbiegekarte ohne Kartendaten: Fehlen die Kreisel-Daten aus OpenStreetMap, legt die grüne Karte jetzt einen Kreis durch die Route auf dem Ring und liest Ein- und Ausfahrt 15 m außerhalb davon ab. Vorher zählte nur, wie weit die Route auf dem Ring dreht; das war zu wenig, sodass eine dritte Ausfahrt nach links wie geradeaus und geradeaus wie rechts aussah.
+  EN: Roundabouts on the turn card without map data: when the roundabout data from OpenStreetMap is missing, the green card now lays a circle through the route on the ring and reads the way in and out 15 m outside it. Before, only how far the route turns on the ring counted; that fell short, so a third exit to the left looked like straight on and straight on like a right.
 
 ## 1.0.246 — 2026-10-28
 

@@ -180,7 +180,13 @@ object Geo {
         // many entries meet the ring at a slant rather than head-on, which made the exit look 45 degrees or more further round.
         // On the ring the line turns by just the arc it covers, so that sets the exit (180 minus the arc: 270 round is a left turn)
         if ((given || found >= 0) && turned >= 30.0) {
-            val arc = turned.coerceAtMost(360.0)
+            // (how much the line turns on the ring falls short of the arms' angle: the way in joins the ring past its arm and the
+            // way out leaves before its arm, so a third exit to the left read as about 200 rather than 270. The arms' places
+            // round the ring's middle are used where the ring can be made out in the line.)
+            val exitO = if (given) exitAt else e + found * step
+            val byCircle = try { ringArc(pts, cum, e, exitO, leftTraffic) } catch (ex: Exception) { null }
+            rbNote = "line: turned ${Math.round(turned)}, by circle ${byCircle?.let { Math.round(it).toString() } ?: "none"}"
+            val arc = byCircle ?: turned.coerceAtMost(360.0)
             val turn = if (leftTraffic) arc - 180.0 else 180.0 - arc
             return 0.0 to ((turn % 360.0) + 360.0) % 360.0
         }
@@ -191,6 +197,52 @@ object Geo {
         if (outEnd - from < 5.0) return null
         val outH = bearing(pointOnLine(pts, cum, from).first, pointOnLine(pts, cum, outEnd).first)
         return inH to outH
+    }
+
+    /** What the last line-based roundabout measure did, for the feedback report. */
+    @Volatile var rbNote = ""
+
+    /**
+     * How far round a roundabout the route goes, from the route line alone: a circle is laid through the stretch of the line on
+     * the ring ([e] to [x] metres along it), and the way in and the way out are read 15 m outside that circle (at most 40 m
+     * along the line), as angles round its middle. Null when the stretch doesn't make a circle.
+     */
+    fun ringArc(pts: List<LL>, cum: DoubleArray, e: Double, x: Double, leftTraffic: Boolean): Double? {
+        val len = cum.last()
+        if (x - e < 6.0) return null
+        val p0 = pointOnLine(pts, cum, e).first
+        val kx = 111320.0 * cos(rad(p0.lat)); val ky = 110540.0
+        fun xy(o: Double): DoubleArray { val p = pointOnLine(pts, cum, o.coerceIn(0.0, len)).first; return doubleArrayOf((p.lon - p0.lon) * kx, (p.lat - p0.lat) * ky) }
+        val ps = ArrayList<DoubleArray>()
+        var o = e
+        while (o <= x) { ps += xy(o); o += 2.0 }
+        val n = ps.size
+        if (n < 4) return null
+        val mx = ps.sumOf { it[0] } / n; val my = ps.sumOf { it[1] } / n
+        var suu = 0.0; var svv = 0.0; var suv = 0.0; var suuu = 0.0; var svvv = 0.0; var suvv = 0.0; var svuu = 0.0
+        for (q in ps) {
+            val u = q[0] - mx; val v = q[1] - my
+            suu += u * u; svv += v * v; suv += u * v; suuu += u * u * u; svvv += v * v * v; suvv += u * v * v; svuu += v * u * u
+        }
+        val det = suu * svv - suv * suv
+        if (abs(det) < 1e-6) return null
+        val b1 = (suuu + suvv) / 2.0; val b2 = (svvv + svuu) / 2.0
+        val uc = (b1 * svv - b2 * suv) / det; val vc = (b2 * suu - b1 * suv) / det
+        val r = sqrt(uc * uc + vc * vc + (suu + svv) / n)
+        if (r < 4.0 || r > 90.0) return null
+        val cx = mx + uc; val cy = my + vc
+        fun dc(q: DoubleArray) = sqrt((q[0] - cx).pow(2) + (q[1] - cy).pow(2))
+        // (the stretch has to lie on the circle: a line that isn't a ring gives a circle it doesn't follow)
+        if (sqrt(ps.sumOf { (dc(it) - r).pow(2) } / n) > 3.0) return null
+        var oi = e
+        while (oi > max(0.0, e - 40.0) && dc(xy(oi)) < r + 15.0) oi -= 2.0
+        var oo = x
+        while (oo < min(len, x + 40.0) && dc(xy(oo)) < r + 15.0) oo += 2.0
+        val qi = xy(oi); val qo = xy(oo)
+        val a0 = deg(atan2(qi[1] - cy, qi[0] - cx)); val a1 = deg(atan2(qo[1] - cy, qo[0] - cx))
+        val raw = if (leftTraffic) ((a0 - a1) % 360.0 + 360.0) % 360.0 else ((a1 - a0) % 360.0 + 360.0) % 360.0
+        if (raw < 30.0 || raw > 330.0) return if (x - e > PI * r) 360.0 else null
+        return raw
     }
 
     fun rad(d: Double) = d * PI / 180.0

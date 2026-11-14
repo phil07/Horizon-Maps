@@ -1614,7 +1614,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
             try { append(SessionWatch.report(ctx)) } catch (e: Exception) { }
             if (laneDiag.isNotBlank()) appendLine(laneDiag)
             appendLine("Lane list: ${if (laneSource.isNotBlank()) laneSource else "TomTom's / the route's own"}")
-            appendLine("Roundabouts: ${Roundabouts.lastFetch.ifBlank { "no lookup yet" }} · last: ${Roundabouts.lastNote.ifBlank { "none measured" }}")
+            appendLine("Roundabouts: ${Roundabouts.lastFetch.ifBlank { "no lookup yet" }} · last: ${Roundabouts.lastNote.ifBlank { "none measured" }} · ${Geo.rbNote.ifBlank { "line: not used" }}")
             run {
                 val t = mbToken
                 val shape = when { t.isBlank() -> "none"; !MapboxRest.looksValid(t) -> "not a token"; !MapboxRest.looksWhole(t) -> "looks incomplete"; else -> "looks whole" }
