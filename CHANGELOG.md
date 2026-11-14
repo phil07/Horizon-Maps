@@ -1,8 +1,8 @@
 ## Unreleased
 
-### Verbessert
-- Meldung zurücknehmen: Eine Meldung, die aus Versehen gemacht wurde, lässt sich mit „Rückgängig“ im Hinweis „Hier gespeichert“ zurücknehmen, auch bei den anderen Fahrern.
-  EN: Taking a report back: a report made by mistake can be taken back with "Undo" on the "Saved here" message, for other drivers too.
+### Behoben
+- Android Auto, Ladesäulen-Filter: Die Auswahl öffnet sich jetzt rechts neben dem Filter-Knopf, auf gleicher Höhe, statt mittig am linken Rand darüber zu liegen.
+  EN: Android Auto, charger filter: the choice now opens to the right of the Filter button, level with it, instead of sitting over it in the middle of the left edge.
 ## 1.0.246 — 2026-10-28
 
 ### Improved in-app updates

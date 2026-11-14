@@ -293,25 +293,35 @@ private fun CarScreen(engine: NavEngine, a: android.graphics.Rect?, actions: Car
         }
 
         // the charger power filter: slides out from the left (opened by the button under Einstellungen), pick one and it closes
-        AnimatedVisibility(engine.chargerFilterOpen && !arriving, modifier = Modifier.align(Alignment.CenterStart).padding(start = left),
+        // (while driving the list opens beside the filter button further down, not here)
+        val tripFilter = guiding && !previewing && !arriving && engine.isEv
+        AnimatedVisibility(engine.chargerFilterOpen && !arriving && !tripFilter, modifier = Modifier.align(Alignment.CenterStart).padding(start = left),
             enter = androidx.compose.animation.slideInHorizontally(tween(220)) { -it } + fadeIn(tween(200)),
             exit = androidx.compose.animation.slideOutHorizontally(tween(200)) { -it } + fadeOut(tween(180))) { CarChargerFilter(engine) }
 
         // the charger filter while driving: under Android Auto's own Melden button, in the same column and the same size (Beenden
         // and Melden are Android Auto's buttons, top left; ending the trip and the sound are there or on the trip bar already).
         // Android Auto's column is the strip left of the stable area; where it's too narrow, the filter sits at the left edge.
-        if (guiding && !previewing && !arriving && engine.isEv) {
+        if (tripFilter) {
             val colW = 156.dp
             val x = if (!portrait && insL > colW) (insL - colW) / 2 else left
             // Android Auto's buttons: about 80 dp tall, 21 dp apart, the first about 27 dp from the top: this is the third place
             // (no column of Android Auto's on the left, as on a narrow split screen: halfway down the left edge, where it was before)
             val inCol = !portrait && insL > colW
             val y = 27.dp + (80.dp + 21.dp) * 2
-            Box((if (inCol) Modifier.padding(start = x, top = y) else Modifier.align(Alignment.CenterStart).padding(start = left)).width(colW).height(80.dp)
+            val btnMod = if (inCol) Modifier.padding(start = x, top = y) else Modifier.align(Alignment.CenterStart).padding(start = left)
+            Box(btnMod.width(colW).height(80.dp)
                 .panel(10.dp, RoundedCornerShape(40.dp), if (engine.chargerMinKw > 0) c.accent else c.surface)
                 .carTap("trip-filter") { engine.chargerFilterOpen = !engine.chargerFilterOpen }, contentAlignment = Alignment.Center) {
                 Text(Lang.t("Filter", "Filter"), color = if (engine.chargerMinKw > 0) Color.White else c.text, fontSize = 28.sp, fontWeight = FontWeight.Medium, maxLines = 1)
             }
+            // the list opens to the right of the filter button, level with it, and doesn't cover it
+            val gap = 12.dp
+            val popMod = if (inCol) Modifier.padding(start = x + colW + gap, top = y)
+                else Modifier.align(Alignment.CenterStart).padding(start = left + colW + gap)
+            AnimatedVisibility(engine.chargerFilterOpen, modifier = popMod,
+                enter = androidx.compose.animation.slideInHorizontally(tween(220)) { -it / 2 } + fadeIn(tween(200)),
+                exit = androidx.compose.animation.slideOutHorizontally(tween(200)) { -it / 2 } + fadeOut(tween(180))) { CarChargerFilter(engine) }
         }
 
         // alerts (cameras, limits, hazards...): beside the turn card on wide screens, under it on tall ones
