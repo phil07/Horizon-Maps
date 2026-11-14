@@ -326,7 +326,14 @@ object Geo {
         val u = m.uppercase()
         if (u.startsWith("ROUNDABOUT")) {
             if (u == "ROUNDABOUT_BACK") return if (exit > 0) "im Kreisverkehr die ${ordinalWord(exit)} Ausfahrt nehmen" else "einmal ganz um den Kreisverkehr fahren"
-            return if (exit > 0) "im Kreisverkehr die ${ordinalWord(exit)} Ausfahrt nehmen" else "in den Kreisverkehr einfahren"
+            if (exit > 0) return "im Kreisverkehr die ${ordinalWord(exit)} Ausfahrt nehmen"
+            // (no exit number: the direction instead)
+            return when (u) {
+                "ROUNDABOUT_LEFT" -> "im Kreisverkehr links abbiegen"
+                "ROUNDABOUT_RIGHT" -> "im Kreisverkehr rechts abbiegen"
+                "ROUNDABOUT_CROSS", "ROUNDABOUT_STRAIGHT" -> "im Kreisverkehr geradeaus fahren"
+                else -> "in den Kreisverkehr einfahren"
+            }
         }
         val t = mapOf(
             "ARRIVE" to "Ziel erreicht", "ARRIVE_LEFT" to "Ziel erreicht, links", "ARRIVE_RIGHT" to "Ziel erreicht, rechts",

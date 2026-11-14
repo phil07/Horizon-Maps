@@ -905,7 +905,12 @@ class MapScreen(carContext: CarContext, private val holder: CarHolder) : Screen(
             }
             val what = when {
                 isRb ->
-                    if (t.exit > 0) Lang.t("Ausfahrt ${t.exit} nehmen", "Take exit ${t.exit}") else Lang.t("In den Kreisverkehr", "Enter the roundabout")
+                    if (t.exit > 0) Lang.t("Ausfahrt ${t.exit} nehmen", "Take exit ${t.exit}") else when (m) {
+                        "ROUNDABOUT_LEFT" -> Lang.t("Im Kreisverkehr links", "Left at the roundabout")
+                        "ROUNDABOUT_RIGHT" -> Lang.t("Im Kreisverkehr rechts", "Right at the roundabout")
+                        "ROUNDABOUT_CROSS", "ROUNDABOUT_STRAIGHT" -> Lang.t("Im Kreisverkehr geradeaus", "Straight on at the roundabout")
+                        else -> Lang.t("In den Kreisverkehr", "Enter the roundabout")
+                    }
                 m.startsWith("ARRIVE") -> Lang.t("Ankunft", "Arrive")
                 // a motorway junction by name: "Frankfurter Kreuz", "Ausfahrt 17 Weiterstadt"
                 t.junction.isNotBlank() && !m.startsWith("ROUNDABOUT") -> t.junction

@@ -433,6 +433,8 @@ object MapboxRest {
         // the roundabout step waiting for its exit (the exit's own node comes as the first junction of the step after it)
         var rbIdx = -1
         val rbOthers = ArrayList<Double>()
+        // how many arms the roundabout step being read passes before its exit (-1 not known)
+        var rbPassed = -1
         // tunnels: each junction marked "tunnel" starts one, running to the next junction (or the end of its step)
         val tunnelSpots = ArrayList<Pair<LL, LL?>>()
         // motorway and trunk stretches (from the junctions' road classes), for the slip roads (see slipForks)
@@ -466,11 +468,24 @@ object MapboxRest {
                     }
                     if (type == "roundabout" || type == "rotary") {
                         rbOthers.clear()
+                        // the arms you pass on the ring before your exit: every junction with a road off the ring, the two
+                        // carriageways of one arm (close together, pointing the same way) taken as one
+                        var arms = 0; var lastAt: LL? = null; var lastB = 0.0
                         if (ints != null) for (ii in 1 until ints.length()) {
                             val x = ints.getJSONObject(ii); val b = x.optJSONArray("bearings") ?: continue
                             val outI = x.optInt("out", -1); val inI = x.optInt("in", -1)
-                            for (bi in 0 until b.length()) if (bi != outI && bi != inI) rbOthers += b.getDouble(bi)
+                            var offB = -1.0
+                            for (bi in 0 until b.length()) if (bi != outI && bi != inI) { rbOthers += b.getDouble(bi); if (offB < 0) offB = b.getDouble(bi) }
+                            val loc = x.optJSONArray("location")
+                            if (offB >= 0 && loc != null && loc.length() >= 2) {
+                                val at2 = LL(loc.getDouble(1), loc.getDouble(0))
+                                val la = lastAt
+                                val same = la != null && Geo.dist(la, at2) < 25.0 && Math.abs(((offB - lastB + 540.0) % 360.0) - 180.0) < 40.0
+                                if (!same) arms++
+                                lastAt = at2; lastB = offB
+                            }
                         }
+                        rbPassed = if (ints != null) arms else -1
                     }
                 } catch (e: Exception) { rbIdx = -1 }
                 try {
@@ -498,7 +513,11 @@ object MapboxRest {
                     val name = s.optString("name")
                     // "A 4; E 40": the national number, not the European one (see RoadRefs)
                     val street = if (type == "off ramp" && name.isBlank()) s.optString("destinations") else RoadRefs.street(name, listOf(s.optString("ref")), refCc)
-                    val exit = if (man.startsWith("ROUNDABOUT")) m.optInt("exit", 0) else 0
+                    // The exit's number, as the route gives it. It leaves out arms you can't turn into (a way in only), so "first
+                    // exit" can be the second road you see. Where it doesn't match the arms you pass, no number is given: the turn
+                    // card shows the arrow alone and the voice says the direction.
+                    val exitGiven = if (man.startsWith("ROUNDABOUT")) m.optInt("exit", 0) else 0
+                    val exit = if (exitGiven > 0 && (type == "roundabout" || type == "rotary") && rbPassed >= 0 && rbPassed + 1 != exitGiven) 0 else exitGiven
                     // (a junction's name comes with the step in some regions only; elsewhere it's looked up in OpenStreetMap, see Junctions)
                     steps += Step(at, man, street, m.optString("instruction"), exit, if (type == "off ramp") s.optString("exits").substringBefore(';') else "", s.optString("destinations"),
                         rbIn = if (type == "roundabout" || type == "rotary") m.optDouble("bearing_before", -1.0) else -1.0,

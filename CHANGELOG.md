@@ -5,8 +5,8 @@ Add user-facing Horizon Nav changes under **Unreleased** before publishing each 
 ## Unreleased
 
 ### Verbessert
-- Kreisel in der Abbiegekarte zuerst aus der Route: Bei einer Mapbox-Route nimmt die grüne Karte die Stellen, an denen du auf den Ring fährst und ihn verlässt, und misst den Winkel dazwischen um die Ringmitte. Bei einer TomTom-Route zeigt sie den Abbiegewinkel von TomTom. OpenStreetMap wird nur noch gefragt, wenn beides fehlt. Die grauen Stummel der übrigen Arme sind wieder weg.
-  EN: Roundabouts on the turn card from the route first: on a Mapbox route the green card takes the places where you join and leave the ring and measures the angle between them round its middle. On a TomTom route it shows TomTom's turn angle. OpenStreetMap is only asked when both are missing. The grey stubs for the other arms are gone again.
+- Ausfahrt-Zahl am Kreisel nur, wenn sie passt: Der Routendienst zählt Arme nicht mit, in die man nicht abbiegen darf, sodass „1. Ausfahrt“ die zweite Straße sein konnte, die du siehst. Bei Mapbox-Routen zählt die App jetzt die Arme, an denen du im Ring vorbeifährst. Passt das nicht zur Zahl, fällt die Zahl weg: Die Abbiegekarte zeigt nur den Pfeil, die Ansage sagt die Richtung („im Kreisverkehr geradeaus fahren“), Android Auto ebenso.
+  EN: Roundabout exit number only when it fits: the route service leaves out arms you can't turn into, so "1st exit" could be the second road you see. On Mapbox routes the app now counts the arms you pass on the ring. When that doesn't match the number, the number is dropped: the turn card shows the arrow alone, the voice says the direction, and so does Android Auto.
 
 ## 1.0.246 — 2026-10-28
 
