@@ -150,9 +150,10 @@ object RouteExtras {
                 when (m.optString("role")) { "from" -> from += p; "to" -> to += p; else -> dev += p }
             }
             val t = rel.optJSONObject("tags") ?: JSONObject()
-            val lim = t.optString("maxspeed").takeIf { it.isNotBlank() }?.let { Overpass.parseSpeed(it, "GB") }
             val starts = from.ifEmpty { dev }; val ends = to.ifEmpty { dev }
             if (starts.isEmpty() || ends.isEmpty()) continue
+            // the check's limit is in the units of the country it stands in (mph in Britain, km/h elsewhere)
+            val lim = t.optString("maxspeed").takeIf { it.isNotBlank() }?.let { Overpass.parseSpeed(it, RoadRefs.countryFor(starts.first())) }
             avgs += AvgDef(rel.optLong("id"), t.optString("name").ifBlank { Lang.t("Abschnittskontrolle", "Average speed check") }, starts, ends, lim)
         }
         return pois to avgs

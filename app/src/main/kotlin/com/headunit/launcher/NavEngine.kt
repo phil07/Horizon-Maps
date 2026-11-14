@@ -1625,6 +1625,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
             appendLine("Unit: ${android.os.Build.MANUFACTURER} ${android.os.Build.MODEL}, Android ${android.os.Build.VERSION.RELEASE} (API ${android.os.Build.VERSION.SDK_INT}), screen ${dm.widthPixels}x${dm.heightPixels}")
             appendLine("Country: ${detectedCountry.ifBlank { "unknown" }} · map: ${prefs.mapSource()} · TomTom key: ${if (hasKey) "yes" else "no"} · Mapbox token: ${if (hasMapbox) "yes" else "no"} · routes from: ${provider.ifBlank { "offline" }} · online: ${if (online()) "yes" else "no"}")
             appendLine("Offline area: ${installedPackId() ?: "none"}")
+            appendLine("Installed by: ${Updater.installerPackage(ctx) ?: "unknown (from a file)"}")
             appendLine("Frame rate: ${prefs.s(PreferenceKeys.MAP_FPS, "auto")} · map detail: ${prefs.mapDetail()} · driving side: ${if (mirrored) "left-hand" else "right-hand"}")
             if (perfLine.isNotBlank()) appendLine("Performance: $perfLine")
             try { append(SessionWatch.report(ctx)) } catch (e: Exception) { }
@@ -7747,7 +7748,8 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
                 }
                 val secs = (now - avgEnterAt) / 1000.0
                 val avg = if (secs > 4.0) (progress - avgEnterProg) / secs else sp
-                val lim = cur.def.limit ?: speedLimit
+                // never more than the road's own signed limit (a mapped check limit can be a different unit's number)
+                val lim = cur.def.limit?.let { l -> speedLimit?.let { min(it, l) } ?: l } ?: speedLimit
                 val over = lim != null && secs > 15.0 && avg > lim + 0.45
                 if (over && !avgOverWarned) {
                     avgOverWarned = true
@@ -7765,7 +7767,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
             } else {
                 if (avgIn != null) { avgIn = null; toast(ctx.getString(R.string.toast_008), 2500) }
                 val next = pl.avg.filter { it.start > progress && it.start - progress < 1200.0 }.minByOrNull { it.start }
-                avgInfo = next?.let { AvgInfo(0.0, it.def.limit ?: speedLimit, it.end - it.start, false, true, it.start - progress) }
+                avgInfo = next?.let { n -> AvgInfo(0.0, n.def.limit?.let { l -> speedLimit?.let { min(it, l) } ?: l } ?: speedLimit, n.end - n.start, false, true, n.start - progress) }
                 if (next != null && next.start - progress < 500.0 && avgAlerted.add(next.def.id)) {
                     chime(android.media.ToneGenerator.TONE_PROP_PROMPT)
                     raiseAlert("avg", Lang.t("Abschnittskontrolle voraus, ${Geo.fmtDist(next.end - next.start, imperial)} lang", "Average speed check ahead, ${Geo.fmtDist(next.end - next.start, imperial)} long"), 6000)

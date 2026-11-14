@@ -350,6 +350,9 @@ object Updater {
                         progress(Lang.t("Installationsprogramm wird geöffnet…", "Opening the installer…"))
                         val i = Intent(Intent.ACTION_VIEW).setDataAndType(uri, "application/vnd.android.package-archive")
                             .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK)
+                            // Ask the installer to record Google Play as the installer: Android Auto lists an app from outside the
+                            // Play Store only when its installer is Play, and an update from here would otherwise drop it from Android Auto
+                            .putExtra(Intent.EXTRA_INSTALLER_PACKAGE_NAME, PLAY_STORE)
                         // Explicit ClipData helps the package installer receive the content-URI read grant
                         // consistently across Android versions and installer implementations.
                         i.clipData = android.content.ClipData.newRawUri(Lang.t("Horizon-Nav-Update", "Horizon Nav update"), uri)
@@ -383,11 +386,15 @@ object Updater {
      * Horizon Nav isn't on Google Play, so "installed by Google Play" means a tool like AAEnabler installed it, to get it into
      * Android Auto. Android Auto drops an app that then updates itself.
      */
-    fun installedViaAaTool(ctx: Context): Boolean = try {
-        val inst = if (android.os.Build.VERSION.SDK_INT >= 30) ctx.packageManager.getInstallSourceInfo(ctx.packageName).installingPackageName
-            else @Suppress("DEPRECATION") ctx.packageManager.getInstallerPackageName(ctx.packageName)
-        inst == "com.android.vending"
-    } catch (e: Exception) { false }
+    fun installedViaAaTool(ctx: Context): Boolean = installerPackage(ctx) == PLAY_STORE
+
+    /** The package that installed this app as Android records it (null when unknown or installed from a file). */
+    fun installerPackage(ctx: Context): String? = try {
+        if (android.os.Build.VERSION.SDK_INT >= 30) ctx.packageManager.getInstallSourceInfo(ctx.packageName).installingPackageName
+        else @Suppress("DEPRECATION") ctx.packageManager.getInstallerPackageName(ctx.packageName)
+    } catch (e: Exception) { null }
+
+    private const val PLAY_STORE = "com.android.vending"
 
     /** Copies the checked update into the phone's Downloads folder (Android 10 and newer: no permission needed). */
     @androidx.annotation.RequiresApi(29)
