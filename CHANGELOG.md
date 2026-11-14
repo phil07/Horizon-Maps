@@ -4,9 +4,9 @@ Add user-facing Horizon Nav changes under **Unreleased** before publishing each 
 
 ## Unreleased
 
-### Verbessert
-- Kreisel-Quelle im Systemlog: Für jeden Kreisel schreibt die App eine Zeile „Roundabout“ ins Systemlog: von welchem Dienst die Route kommt, woraus der Winkel der Abbiegekarte stammt und welche Ausfahrt-Zahl gezeigt wird.
-  EN: Roundabout source in the system log: for each roundabout the app writes a "Roundabout" line to the system log: which service the route is from, where the turn card's angle came from and which exit number is shown.
+### Behoben
+- Ansage am Kreisel nach dem Pfeil: Fällt die Ausfahrt-Zahl weg, sagt die Ansage („im Kreisverkehr geradeaus fahren“) und Android Auto die Richtung jetzt nach dem Pfeil der Abbiegekarte. Vorher kam sie aus der Richtungsangabe der Route, die an schiefen Kreiseln „rechts abbiegen“ sagte, obwohl es geradeaus ging.
+  EN: Roundabout voice by the arrow: when the exit number is dropped, the voice ("straight on at the roundabout") and Android Auto now give the direction from the turn card's arrow. Before it came from the route's own direction, which said "turn right" at oddly shaped roundabouts where the way was straight on.
 
 ## 1.0.246 — 2026-10-28
 

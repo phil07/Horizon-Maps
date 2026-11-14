@@ -5712,13 +5712,19 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
                     else Geo.roundaboutHeadings(r.pts, r.cum, cur.off, cur.rbEnd, nxt?.off?.minus(2.0) ?: Double.MAX_VALUE, leftTraffic)?.let { (i, o) -> 0.0 to norm(eighth(o - i)) }
                 }
             } catch (e: Exception) { null }
+            // Without an exit number the voice and Android Auto give a direction. It comes from the angle the turn card shows, not
+            // from the route's own left/right/straight, which can differ at an oddly shaped roundabout.
+            val rbMan = if (isRb && cur.roundExit <= 0 && rbGeo != null && !cur.maneuver.equals("ROUNDABOUT_BACK", true)) {
+                val a = ((rbGeo.second % 360.0) + 360.0) % 360.0
+                if (a < 1.0) "ROUNDABOUT_CROSS" else if (a < 170.0) "ROUNDABOUT_RIGHT" else if (a < 190.0) "ROUNDABOUT_BACK" else "ROUNDABOUT_LEFT"
+            } else cur.maneuver
             // one line per roundabout in the system log: where its angle came from, and the exit number as shown
             if (isRb && rbLoggedAt != cur.off) {
                 rbLoggedAt = cur.off
                 android.util.Log.w("Roundabout", "routes from ${provider.ifBlank { "?" }} · ${Geo.rbNote.ifBlank { "no measure" }} · shown ${rbGeo?.second?.let { Math.round(it).toString() } ?: "route's own"} · exit ${if (cur.roundExit > 0) cur.roundExit.toString() else "no number"} · ${cur.maneuver}")
             }
             val newTurn = TurnInfo(
-                d, street, cur.maneuver, if (thenOn) nxt?.maneuver else null,
+                d, street, rbMan, if (thenOn) nxt?.maneuver else null,
                 if (thenOn && nxt != null) Lang.t("Dann ", "Then ") + Geo.maneuverText(nxt.maneuver, nxt.roundExit) + (if (nxt.street.isNotBlank()) Lang.t(" auf ${nxt.street}", " onto ${nxt.street}") else "") else "",
                 laneSec, Geo.stepTag(cur), laneAdv, cur.roundExit, cur.sign,
                 exitNo = cur.exitNo, rbIn = rbGeo?.first ?: cur.rbIn, rbOut = rbGeo?.second ?: cur.rbOut, rbExits = emptyList(), thenGap = if (thenOn) gap else 0.0, thenExit = if (thenOn) (nxt?.roundExit ?: 0) else 0,
@@ -5727,7 +5733,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
             // only publish a new turn card when something a driver can see changed (about 3 m of distance), so the screen is not redrawn four times a second for nothing
             val ot = turn
             if (ot == null || ot.maneuver != newTurn.maneuver || ot.street != newTurn.street || ot.lanes !== newTurn.lanes || ot.thenText != newTurn.thenText || ot.junction != newTurn.junction || abs(ot.dist - newTurn.dist) >= 3.0 || newTurn.dist < 30.0) turn = newTurn
-            val word = Geo.maneuverText(cur.maneuver, cur.roundExit)
+            val word = Geo.maneuverText(rbMan, cur.roundExit)
             // (Settings > Sound > Say road names off: just the direction, "In 200 metres, turn left")
             // a road number takes its article in German ("auf die A 4"); a street name is said as it is ("auf Hauptstraße")
             val tail = if (arriving || cur.street.isBlank() || !prefs.b(PreferenceKeys.VOICE_ROADS, true)) "" else Lang.t(if (RoadRefs.isRef(cur.street)) " auf die ${cur.street}" else " auf ${cur.street}", " onto ${cur.street}")
