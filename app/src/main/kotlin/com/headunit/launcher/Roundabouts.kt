@@ -13,8 +13,8 @@ import kotlin.math.sqrt
  * The roundabouts on a route, from OpenStreetMap: each ring as drawn there (or the single point of a mini roundabout), fetched
  * once when a trip starts and kept on the device, so roads you know work without signal too.
  *
- * The turn card places a roundabout's exit by where the route meets and leaves the ring, as angles round its middle (like a clock
- * face: in at 8, out at 11 is three quarters round). The way the road comes in or goes out plays no part, so a slanted entry or
+ * The turn card places a roundabout's exit by the arms the route comes in on and leaves by, as angles round its middle (like a
+ * clock face: in from 9, out at 12 is three quarters round). The way the road comes in or goes out plays no part, so a slanted entry or
  * a bend just before the ring doesn't move the exit.
  */
 object Roundabouts {
@@ -27,6 +27,8 @@ object Roundabouts {
     @Volatile private var loaded = false
     private const val FILE = "roundabouts.json"
     private const val MAX_KEPT = 4000
+    /** How far out along the arms the way in and out are read (past the funnels where they meet the ring). */
+    private const val ARM_M = 40.0
 
     /** Rings already looked up for this trip, by route: the same route isn't asked again. */
     @Volatile private var fetchedFor: Any? = null
@@ -186,8 +188,11 @@ object Roundabouts {
                 o += 2.0
             }
             if (join < 0 || leave - join < 4.0) return null
-            pIn = Geo.pointOnLine(route.pts, route.cum, join).first
-            pOut = Geo.pointOnLine(route.pts, route.cum, leave).first
+            // the arms, not where they touch the ring: the funnels in and out move those round by 30 degrees or more (in from the
+            // left and out at the top met the ring at 8 and half past 1, which looked like the second exit instead of the third).
+            // So the route's place 40 m out along each arm sets the angles
+            pIn = Geo.pointOnLine(route.pts, route.cum, max(0.0, join - ARM_M)).first
+            pOut = Geo.pointOnLine(route.pts, route.cum, min(len, leave + ARM_M)).first
             // the whole way round: in and out at nearly the same place, after more than half the ring
             val circ = 2.0 * Math.PI * max(ring.radius, 5.0)
             val a0 = ang(pIn); val a1 = ang(pOut)

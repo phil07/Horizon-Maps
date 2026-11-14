@@ -4,9 +4,9 @@ Add user-facing Horizon Nav changes under **Unreleased** before publishing each 
 
 ## Unreleased
 
-### Verbessert
-- Kreisel nach OpenStreetMap: Die Ausfahrt in der grünen Abbiegekarte ergibt sich jetzt daraus, wo die Route den Ring erreicht und wieder verlässt, gemessen um die Mitte des Kreisels. Wie die Straße hinein- oder hinausführt, spielt keine Rolle mehr. Die Kreisel einer Route werden beim Start auf einmal geholt und auf dem Gerät gespeichert, bekannte Strecken klappen so auch ohne Netz. Gilt auch auf Android Auto und dem Fahrerdisplay.
-  EN: Roundabouts from OpenStreetMap: the exit on the green turn card now comes from where the route meets and leaves the ring, measured round the roundabout's middle. How the road leads in or out no longer counts. A route's roundabouts are fetched together when it starts and kept on the device, so known roads work without signal too. Also on Android Auto and the driver's display.
+### Behoben
+- Kreisel-Ausfahrt nach den Armen: Die grüne Abbiegekarte misst die Ausfahrt jetzt an den Armen des Kreisels, 40 m vor und nach dem Ring, statt an den Stellen, wo die Route den Ring berührt. Die Ein- und Ausfahrtstrichter verschoben diese Stellen so weit, dass eine 3. Ausfahrt wie die 2. aussah.
+  EN: Roundabout exit by its arms: the green turn card now reads the exit from the roundabout's arms, 40 m before and after the ring, instead of where the route touches the ring. The funnels in and out moved those places so far that a third exit looked like the second.
 
 ## 1.0.246 — 2026-10-28
 
