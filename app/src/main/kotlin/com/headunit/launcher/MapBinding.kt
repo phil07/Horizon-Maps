@@ -1244,36 +1244,63 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
     }
 
     // ---- headlight beam: a soft cone of light on the road ahead of your arrow, after dark, while you move ----
+    // One picture (a cone, its tip at the arrow) on one point: the point's place and heading are updated, and only when the arrow has
+    // really moved (or turned, or the speed changed the length), at most about 10 times a second. It stays through a short dip in
+    // speed instead of being taken off the map and put back.
     private var beamOn = false
     private var beamSpeed = 0.0
-    private var beamKey = ""
+    private var beamHold = 0L
+    private var beamShown = false
+    private var beamAt: LL? = null
+    private var beamH = 0.0
+    private var beamK = 0.0
+    private var beamPushedAt = 0L
 
-    fun setBeam(on: Boolean, speedMs: Double) { if (on == beamOn && Math.abs(speedMs - beamSpeed) < 0.5) return; beamOn = on; beamSpeed = speedMs; main0.post { pushBeam() } }
+    /** Cheap (no work on the map): the engine calls this with every position. */
+    fun setBeam(on: Boolean, speedMs: Double) {
+        beamOn = on; beamSpeed = speedMs
+        // (taken off the map only once it has really stopped or been switched off)
+        if (beamShown && (!on || android.os.SystemClock.uptimeMillis() >= beamHold)) main0.post { pushBeam() }
+    }
 
     private fun pushBeam() {
         val s = src("dl-beam") ?: return
         val p = me
-        if (!beamOn || p == null || beamSpeed < 2.0) { if (beamKey.isNotEmpty()) { beamKey = ""; s.featureCollection(empty()) }; return }
-        // longer the faster you go: about 30 m at a crawl, 110 m at motorway speed
-        val len = (25.0 + beamSpeed * 2.6).coerceIn(30.0, 110.0)
-        val half = 17.0
-        val feats = ArrayList<Feature>()
-        for ((k, f) in listOf(0 to 1.0, 1 to 0.68, 2 to 0.38)) {
-            val pts = ArrayList<Point>()
-            val o = Furniture.offset(p, meHeading, 3.0)
-            pts += Point.fromLngLat(o.lon, o.lat)
-            for (i in 0..8) {
-                val a = meHeading - half + 2.0 * half * i / 8.0
-                val q = Furniture.offset(o, a, len * f)
-                pts += Point.fromLngLat(q.lon, q.lat)
-            }
-            pts += Point.fromLngLat(o.lon, o.lat)
-            val ft = Feature.fromGeometry(Polygon.fromLngLats(listOf(pts)))
-            ft.addNumberProperty("k", k)
-            feats += ft
+        val now = android.os.SystemClock.uptimeMillis()
+        if (beamOn && beamSpeed >= 2.0) beamHold = now + 1500L
+        if (!beamOn || p == null || now >= beamHold) {
+            if (beamShown) { beamShown = false; beamAt = null; s.featureCollection(empty()) }
+            return
         }
-        beamKey = "on"
-        s.featureCollection(FeatureCollection.fromFeatures(feats))
+        // the length in screen metres: about 30 m at a crawl, 110 m at motorway speed
+        val len = (25.0 + beamSpeed * 2.6).coerceIn(30.0, 110.0)
+        val k = len * Math.cos(Math.toRadians(p.lat))
+        val prev = beamAt
+        if (beamShown && prev != null) {
+            val dh = Math.abs(((meHeading - beamH + 540.0) % 360.0) - 180.0)
+            if (Geo.dist(prev, p) < 0.4 && dh < 0.7 && Math.abs(k - beamK) < 2.0) return
+            if (now - beamPushedAt < 100L) return
+        }
+        val f = Feature.fromGeometry(Point.fromLngLat(p.lon, p.lat))
+        f.addNumberProperty("h", meHeading)
+        f.addNumberProperty("k", k)
+        s.feature(f)
+        beamAt = p; beamH = meHeading; beamK = k; beamShown = true; beamPushedAt = now
+    }
+
+    /** The cone, pointing up with its tip at the bottom middle, fading out towards its far end (256 px long). */
+    private fun beamBitmap(): Bitmap {
+        val w = 200; val h = 256
+        val b = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
+        val c = Canvas(b)
+        val half = (h * Math.tan(Math.toRadians(17.0))).toFloat()
+        val path = Path().apply { moveTo(w / 2f, h - 2f); lineTo(w / 2f - half, 4f); lineTo(w / 2f + half, 4f); close() }
+        val p = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            shader = android.graphics.LinearGradient(0f, h.toFloat(), 0f, 0f, intArrayOf(0x88FFF1C2.toInt(), 0x44FFF1C2.toInt(), 0x00FFF1C2), floatArrayOf(0f, 0.55f, 1f), android.graphics.Shader.TileMode.CLAMP)
+            maskFilter = android.graphics.BlurMaskFilter(6f, android.graphics.BlurMaskFilter.Blur.NORMAL)
+        }
+        c.drawPath(path, p)
+        return b
     }
 
     // ---- sharp bends on the route: striped yellow with black chevrons ----
@@ -1991,6 +2018,8 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
                 if (cur.size >= 2) chunks += cur
                 var usedPack = false
                 var n = 0
+                // stretches that couldn't be searched (a busy server): the search is tried again later (see refreshSignals)
+                var gaps = 0
                 for (ch in chunks) {
                     if (token != signalToken) return@Thread
                     n++
@@ -2030,7 +2059,7 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
                             Thread.sleep(longArrayOf(5000L, 10000L, 20000L, 30000L, 30000L)[attempt])
                         }
                     }
-                    if (found == null) { sigFailAt = android.os.SystemClock.uptimeMillis(); continue }
+                    if (found == null) { gaps++; sigFailAt = android.os.SystemClock.uptimeMillis(); continue }
                     // keep only lights near this stretch (the offline search is a box, and the corridor search is a little generous)
                     val keep = found.filter { p ->
                         val k = cellKey(p.lat, p.lon)
@@ -2052,12 +2081,14 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
                         snap = ArrayList(sigAll.values)
                     }
                     if (token != signalToken) return@Thread
-                    signalErr = ""
+                    if (camsMissed) { gaps++; sigFailAt = android.os.SystemClock.uptimeMillis() }
+                    if (gaps == 0) signalErr = ""
                     main0.post {
                         if (token == signalToken) { signalPts = snap; pushSignals() }
                         try { onRouteCameras?.invoke(camSnap) } catch (e: Throwable) { }
                     }
                 }
+                if (gaps > 0) { if (signalErr.isEmpty()) signalErr = "some stretches not searched"; sigFailAt = android.os.SystemClock.uptimeMillis() }
                 val snap = synchronized(sigLock) { ArrayList(sigAll.values) }
                 main0.post {
                     if (token == signalToken) {
@@ -2232,11 +2263,16 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
         addS(st, GeoJsonSource.Builder("dl-tunnels").featureCollection(FeatureCollection.fromFeatures(tunnelLines.filter { it.size >= 2 }.map { line(it) })).build())
         addL(st, ln("dl-tunnel-dash", "dl-tunnels").lineCap(LineCap.BUTT).lineColor(if (dayLook) "#EEF2F7" else "#2B3150")
             .lineWidth(routeW(if (im) 1.55f else 1.3f)).lineOpacity(0.6).lineDasharray(listOf(0.9, 1.1)))
-        // the headlight beam: three nested cones, the inner ones brighter
+        // the headlight beam: one picture of a cone on one point (see pushBeam)
+        addImg(st, "dl-beam-img", beamBitmap())
         addS(st, GeoJsonSource.Builder("dl-beam").featureCollection(empty()).build())
-        addL(st, FillLayer("dl-beam-fill", "dl-beam").inSlot(MID).fillEmissiveStrength(1.0).fillColor("#FFF1C2")
-            .fillOpacity(Expression.match(Expression.get("k"), Expression.literal(0.0), Expression.literal(0.10), Expression.literal(1.0), Expression.literal(0.13), Expression.literal(2.0), Expression.literal(0.18), Expression.literal(0.1))))
-        beamKey = ""
+        addL(st, SymbolLayer("dl-beam-l", "dl-beam").inSlot(MID)
+            .iconImage("dl-beam-img").iconAnchor(IconAnchor.BOTTOM).iconRotate(Expression.get("h"))
+            .iconRotationAlignment(IconRotationAlignment.MAP).iconPitchAlignment(IconPitchAlignment.MAP)
+            .iconAllowOverlap(true).iconIgnorePlacement(true).iconEmissiveStrength(1.0)
+            // (its 256 px are the beam's length: screen metres times the map's pixels per metre at this zoom, over 256)
+            .iconSize(Expression.product(zoomed(2.0, 10 to 2.555e-5, 20 to 2.6165e-2), Expression.get("k"))))
+        beamShown = false; beamAt = null
         // sharp bends: the line striped yellow and black, with black chevrons along it
         addS(st, GeoJsonSource.Builder("dl-sharp").featureCollection(FeatureCollection.fromFeatures(sharpLines.filter { it.size >= 2 }.map { line(it) })).build())
         addL(st, ln("dl-sharp-yellow", "dl-sharp").lineCap(LineCap.BUTT).lineColor("#FFCC00").lineWidth(routeW(if (im) 1.0f else 0.85f)))

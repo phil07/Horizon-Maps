@@ -4575,7 +4575,8 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         // the list the warnings use: empty where they're off, so nothing is announced; the map draws its own list below
         cameras = if (camerasOn()) out else emptyList()
         // on a route only the cameras on it are drawn (the ones still ahead); otherwise every camera around you
-        val shown = if (!camerasOnMap()) emptyList() else if (navigatingNow()) routeCams.filter { it.second > curProg - 20.0 }.map { it.first } else out
+        // (while you choose the route, or in a demo, all of the route's cameras show, not only those within 10 km of you)
+        val shown = if (!camerasOnMap()) emptyList() else if (route != null) routeCams.filter { previewing || it.second > curProg - 20.0 }.map { it.first } else out
         if (shown != camsShown) { camsShown = shown; map.setCameras(shown) }
     }
     private var camsShown: List<LL>? = null
