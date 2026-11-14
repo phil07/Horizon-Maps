@@ -1033,7 +1033,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
             val up = cc.uppercase()
             val changed = up != detectedCountry
             if (changed) { detectedCountry = up; prefs.put(PreferenceKeys.COUNTRYDETECTED, up) }
-            map.setHdRoads(hdRoadsWanted())
+            map.applyHdRoads(hdRoadsWanted())
             RoadRefs.country = up
             // the low emission zones are the country's own (Germany's Umweltzonen, Britain's clean air zones): fetch them for a new country
             if (changed) try { if (Zones.needsRefresh(ctx) && online()) { withContext(Dispatchers.IO) { Zones.fetch(ctx) }; zonesVersion++ } } catch (e: Exception) { }
@@ -1222,7 +1222,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
     fun applyStyle(dark: Boolean) {
         lastDark = dark
         map.nightStyle = dark
-        map.setHdRoads(hdRoadsWanted())
+        map.applyHdRoads(hdRoadsWanted())
         if (map.onRestyle == null) map.onRestyle = { restyle() }
         watchNetwork()
         styleJob?.cancel()

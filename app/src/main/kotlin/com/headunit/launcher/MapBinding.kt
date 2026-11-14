@@ -378,7 +378,7 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
 
     /** HD roads (lane markings, turn arrows, 3D overpasses) on Mapbox's map: set by Settings > Map style, on by itself only in the UK. */
     @Volatile var hdRoads = false
-    fun setHdRoads(on: Boolean) {
+    fun applyHdRoads(on: Boolean) {
         if (on == hdRoads) return
         hdRoads = on
         main0.post { try { setBase("showHdRoads", Value.valueOf(on)) } catch (e: Throwable) { } }
