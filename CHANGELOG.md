@@ -1,8 +1,8 @@
 ## Unreleased
 
 ### Verbessert
-- Android Auto: Die Knöpfe Beenden, Melden, Filter, Zoom + und −, Zentrieren liegen jetzt als eigene Leiste links auf der Fahrerseite und sind immer sichtbar, auch ohne Berührung des Bildschirms.
-  EN: Android Auto: the buttons End, Report, Filter, zoom in and out and Re-centre are now the app's own column on the driver's left, always visible, even without a touch on the screen.
+- Android Auto: Während der Fahrt stehen die Knöpfe Beenden, Melden, Filter, Zoom + und −, Zentrieren nur noch als eigene Leiste links auf der Fahrerseite. Die doppelten Knöpfe oben rechts sind weg.
+  EN: Android Auto: while driving, the buttons End, Report, Filter, zoom in and out and Re-centre are only in the app's own column on the driver's left. The duplicate buttons at the top right are gone.
 ## 1.0.246 — 2026-10-28
 
 ### Improved in-app updates
