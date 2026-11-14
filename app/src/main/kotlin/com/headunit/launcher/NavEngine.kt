@@ -5690,8 +5690,13 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
             // a roundabout's way in and out from the route line itself, as the map draws it: the route data's angles sent the arrow the
             // wrong way (a third exit to the left showed as half right). The roads off the ring are left out then (their angles
             // come from the same data).
+            // The rings of all the route's roundabouts come from OpenStreetMap once per route (kept on the device); the exit is then
+            // where the route leaves the ring, as an angle round its middle. Without them, the turn of the route line on the ring.
+            if (ringsAskedFor !== r) { ringsAskedFor = r; searchScope.launch { try { Roundabouts.fetchFor(ctx, r) } catch (e: Exception) { } } }
             val rbGeo = if (cur.maneuver.uppercase().startsWith("ROUNDABOUT")) try {
-                Geo.roundaboutHeadings(r.pts, r.cum, cur.off, cur.rbEnd, nxt?.off?.minus(2.0) ?: Double.MAX_VALUE, leftTraffic)
+                val lim = nxt?.off?.minus(2.0) ?: Double.MAX_VALUE
+                Roundabouts.turnAt(ctx, r, cur.off, lim, leftTraffic)?.let { t -> 0.0 to ((t % 360.0) + 360.0) % 360.0 }
+                    ?: Geo.roundaboutHeadings(r.pts, r.cum, cur.off, cur.rbEnd, lim, leftTraffic)
             } catch (e: Exception) { null } else null
             val newTurn = TurnInfo(
                 d, street, cur.maneuver, if (thenOn) nxt?.maneuver else null,
@@ -8140,6 +8145,8 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         if (roadNow != n) roadNow = n
     }
     private var laneKey: Pair<Double, LaneSec>? = null
+    /** The route whose roundabout rings have been asked for (once per route). */
+    private var ringsAskedFor: Route? = null
 
     private fun laneHit(dir: String, maneuver: String): Boolean {
         val m = maneuver.uppercase()

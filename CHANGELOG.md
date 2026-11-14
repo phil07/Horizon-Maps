@@ -5,8 +5,8 @@ Add user-facing Horizon Nav changes under **Unreleased** before publishing each 
 ## Unreleased
 
 ### Verbessert
-- Kreisel-Einstellungen entfernt: Die Regler für die Abstände vor und nach dem Kreisel sind wieder weg. Die Ausfahrt ergibt sich aus dem Bogen, den die Route auf dem Ring fährt, und braucht keine Einstellung.
-  EN: Roundabout settings removed: the sliders for the distances before and after the roundabout are gone again. The exit comes from the arc the route covers on the ring and needs no setting.
+- Kreisel nach OpenStreetMap: Die Ausfahrt in der grünen Abbiegekarte ergibt sich jetzt daraus, wo die Route den Ring erreicht und wieder verlässt, gemessen um die Mitte des Kreisels. Wie die Straße hinein- oder hinausführt, spielt keine Rolle mehr. Die Kreisel einer Route werden beim Start auf einmal geholt und auf dem Gerät gespeichert, bekannte Strecken klappen so auch ohne Netz. Gilt auch auf Android Auto und dem Fahrerdisplay.
+  EN: Roundabouts from OpenStreetMap: the exit on the green turn card now comes from where the route meets and leaves the ring, measured round the roundabout's middle. How the road leads in or out no longer counts. A route's roundabouts are fetched together when it starts and kept on the device, so known roads work without signal too. Also on Android Auto and the driver's display.
 
 ## 1.0.246 — 2026-10-28
 
