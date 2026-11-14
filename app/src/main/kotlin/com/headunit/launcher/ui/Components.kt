@@ -250,6 +250,8 @@ fun ManeuverArrow(
     roundaboutClockwise: Boolean = true,
     /** The real exit direction at a roundabout (degrees, 0 ahead, 90 right), when the route data has it. */
     exitAngle: Float = Float.NaN,
+    /** The roundabout's other arms (degrees like [exitAngle]), drawn as grey stubs so the exits can be counted. */
+    otherExits: List<Float> = emptyList(),
 ) {
     Canvas(modifier) {
         val s = size.minDimension / 48f
@@ -295,6 +297,11 @@ fun ManeuverArrow(
             val ringRect = Rect(Offset((cx - rr) * s, (cy - rr) * s), Size(rr * 2f * s, rr * 2f * s))
             val ringStroke = Stroke(width = 3.5f * s, cap = StrokeCap.Round)
             drawCircle(color.copy(alpha = 0.3f), rr * s, p(cx, cy), style = ringStroke)
+            for (o in otherExits) if (o.isFinite()) {
+                val a = Math.toRadians((o - 90f).toDouble())
+                val ox = kotlin.math.cos(a).toFloat(); val oy = kotlin.math.sin(a).toFloat()
+                drawLine(color.copy(alpha = 0.4f), p(cx + ox * (rr + 1.5f), cy + oy * (rr + 1.5f)), p(cx + ox * (rr + 9f), cy + oy * (rr + 9f)), 3.5f * s, StrokeCap.Round)
+            }
             drawLine(color, p(24f, 46f), p(24f, cy + rr), sw, StrokeCap.Round)
             val turn = if (exitAngle.isFinite()) exitAngle else angle
             // screen angle of the exit on the ring (0 = right, 90 = down, where you come in)

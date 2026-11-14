@@ -1614,6 +1614,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
             try { append(SessionWatch.report(ctx)) } catch (e: Exception) { }
             if (laneDiag.isNotBlank()) appendLine(laneDiag)
             appendLine("Lane list: ${if (laneSource.isNotBlank()) laneSource else "TomTom's / the route's own"}")
+            appendLine("Roundabouts: ${Roundabouts.lastFetch.ifBlank { "no lookup yet" }} · last: ${Roundabouts.lastNote.ifBlank { "none measured" }}")
             run {
                 val t = mbToken
                 val shape = when { t.isBlank() -> "none"; !MapboxRest.looksValid(t) -> "not a token"; !MapboxRest.looksWhole(t) -> "looks incomplete"; else -> "looks whole" }
@@ -5693,16 +5694,20 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
             // The rings of all the route's roundabouts come from OpenStreetMap once per route (kept on the device); the exit is then
             // where the route leaves the ring, as an angle round its middle. Without them, the turn of the route line on the ring.
             if (ringsAskedFor !== r) { ringsAskedFor = r; searchScope.launch { try { Roundabouts.fetchFor(ctx, r) } catch (e: Exception) { } } }
-            val rbGeo = if (cur.maneuver.uppercase().startsWith("ROUNDABOUT")) try {
-                val lim = nxt?.off?.minus(2.0) ?: Double.MAX_VALUE
-                Roundabouts.turnAt(ctx, r, cur.off, lim, leftTraffic, cur.roundExit)?.let { t -> 0.0 to ((t % 360.0) + 360.0) % 360.0 }
-                    ?: Geo.roundaboutHeadings(r.pts, r.cum, cur.off, cur.rbEnd, lim, leftTraffic)
+            val isRb = cur.maneuver.uppercase().startsWith("ROUNDABOUT")
+            val rbMap = if (isRb) try { Roundabouts.turnAt(ctx, r, cur.off, leftTraffic) } catch (e: Exception) { null } else null
+            fun norm(t: Double) = ((t % 360.0) + 360.0) % 360.0
+            // (shown to the nearest eighth of a turn, as the roundabout's arms are drawn)
+            val rbGeo = if (rbMap != null) 0.0 to norm(rbMap.turn) else if (isRb) try {
+                Geo.roundaboutHeadings(r.pts, r.cum, cur.off, cur.rbEnd, nxt?.off?.minus(2.0) ?: Double.MAX_VALUE, leftTraffic)?.let { (i, o) ->
+                    0.0 to norm(Math.round((((o - i + 540.0) % 360.0) - 180.0) / 45.0) * 45.0)
+                }
             } catch (e: Exception) { null } else null
             val newTurn = TurnInfo(
                 d, street, cur.maneuver, if (thenOn) nxt?.maneuver else null,
                 if (thenOn && nxt != null) Lang.t("Dann ", "Then ") + Geo.maneuverText(nxt.maneuver, nxt.roundExit) + (if (nxt.street.isNotBlank()) Lang.t(" auf ${nxt.street}", " onto ${nxt.street}") else "") else "",
                 laneSec, Geo.stepTag(cur), laneAdv, cur.roundExit, cur.sign,
-                exitNo = cur.exitNo, rbIn = rbGeo?.first ?: cur.rbIn, rbOut = rbGeo?.second ?: cur.rbOut, rbExits = if (rbGeo != null) emptyList() else cur.rbExits, thenGap = if (thenOn) gap else 0.0, thenExit = if (thenOn) (nxt?.roundExit ?: 0) else 0,
+                exitNo = cur.exitNo, rbIn = rbGeo?.first ?: cur.rbIn, rbOut = rbGeo?.second ?: cur.rbOut, rbExits = if (rbMap != null) rbMap.others.map { norm(it) } else if (rbGeo != null) emptyList() else cur.rbExits, thenGap = if (thenOn) gap else 0.0, thenExit = if (thenOn) (nxt?.roundExit ?: 0) else 0,
                 junction = jc?.let { Junctions.label(it.first, it.second) }.orEmpty(), junctionName = jc?.first.orEmpty(),
             )
             // only publish a new turn card when something a driver can see changed (about 3 m of distance), so the screen is not redrawn four times a second for nothing

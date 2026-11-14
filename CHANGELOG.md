@@ -4,9 +4,9 @@ Add user-facing Horizon Nav changes under **Unreleased** before publishing each 
 
 ## Unreleased
 
-### Behoben
-- Kreisel-Ausfahrt nach Zahl der Arme: Die grüne Abbiegekarte verteilt die Arme eines Kreisels jetzt gleichmäßig und setzt die Ausfahrt nach ihrer Nummer, z. B. bei vier Armen die 3. Ausfahrt drei Viertel herum, also links. Die Arme kommen aus OpenStreetMap; die beiden Fahrbahnen einer geteilten Straße zählen als einer, Wege und Zufahrten wie zu einer Tankstelle gar nicht. Passt die Zahl nicht zur Ausfahrt, misst die App wie bisher.
-  EN: Roundabout exit by its number of arms: the green turn card now spaces a roundabout's arms evenly and places the exit by its number; with four arms the third exit is three quarters round, a left. The arms come from OpenStreetMap; the two carriageways of a divided road count as one, paths and access roads such as to a petrol station not at all. Where the count doesn't fit the exit, the app measures as before.
+### Verbessert
+- Kreisel in der Abbiegekarte nach seinen Armen: Die grüne Karte liest aus OpenStreetMap, wo die Arme eines Kreisels liegen (jeder Arm in der Mitte seiner beiden Fahrbahnen), und zeigt den Weg vom Arm, auf dem du kommst, zum Arm, auf dem du rausfährst, auf Achtel gerundet. Von links rein und oben raus ist damit sauber drei Viertel herum. Die übrigen Arme sind als graue Stummel eingezeichnet, Wege und Zufahrten zählen nicht.
+  EN: Roundabouts on the turn card by their arms: the green card reads from OpenStreetMap where a roundabout's arms are (each in the middle of its two carriageways) and shows the way from the arm you come in on to the arm you leave by, to the nearest eighth. In from the left and out at the top is a clean three quarters round. The other arms are drawn as grey stubs; paths and access roads don't count.
 
 ## 1.0.246 — 2026-10-28
 
