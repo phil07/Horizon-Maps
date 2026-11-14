@@ -27,8 +27,9 @@ object Roundabouts {
     @Volatile private var loaded = false
     private const val FILE = "roundabouts.json"
     private const val MAX_KEPT = 4000
-    /** How far out along the arms the way in and out are read (past the funnels where they meet the ring). */
-    private const val ARM_M = 40.0
+    /** The way in and out are read where the route is this far outside the ring (past the funnels), at most [ARM_MAX_M] along it. */
+    private const val ARM_OUT_M = 15.0
+    private const val ARM_MAX_M = 40.0
 
     /** Rings already looked up for this trip, by route: the same route isn't asked again. */
     @Volatile private var fetchedFor: Any? = null
@@ -190,9 +191,16 @@ object Roundabouts {
             if (join < 0 || leave - join < 4.0) return null
             // the arms, not where they touch the ring: the funnels in and out move those round by 30 degrees or more (in from the
             // left and out at the top met the ring at 8 and half past 1, which looked like the second exit instead of the third).
-            // So the route's place 40 m out along each arm sets the angles
-            pIn = Geo.pointOnLine(route.pts, route.cum, max(0.0, join - ARM_M)).first
-            pOut = Geo.pointOnLine(route.pts, route.cum, min(len, leave + ARM_M)).first
+            // So the route's place a little way out along each arm sets the angles
+            // (just past the funnel: where the route is 15 m outside the ring, never more than 40 m along it, so a sharp bend
+            // further out on the way in, as before many roundabouts, doesn't turn the arm)
+            val outR = ring.radius + ARM_OUT_M
+            var oi = join
+            while (oi > max(0.0, join - ARM_MAX_M) && Geo.dist(Geo.pointOnLine(route.pts, route.cum, oi).first, c) < outR) oi -= 2.0
+            var oo = leave
+            while (oo < min(len, leave + ARM_MAX_M) && Geo.dist(Geo.pointOnLine(route.pts, route.cum, oo).first, c) < outR) oo += 2.0
+            pIn = Geo.pointOnLine(route.pts, route.cum, max(0.0, oi)).first
+            pOut = Geo.pointOnLine(route.pts, route.cum, min(len, oo)).first
             // the whole way round: in and out at nearly the same place, after more than half the ring
             val circ = 2.0 * Math.PI * max(ring.radius, 5.0)
             val a0 = ang(pIn); val a1 = ang(pOut)

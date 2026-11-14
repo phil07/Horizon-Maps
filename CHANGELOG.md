@@ -5,8 +5,8 @@ Add user-facing Horizon Nav changes under **Unreleased** before publishing each 
 ## Unreleased
 
 ### Behoben
-- Kreisel-Ausfahrt nach den Armen: Die grüne Abbiegekarte misst die Ausfahrt jetzt an den Armen des Kreisels, 40 m vor und nach dem Ring, statt an den Stellen, wo die Route den Ring berührt. Die Ein- und Ausfahrtstrichter verschoben diese Stellen so weit, dass eine 3. Ausfahrt wie die 2. aussah.
-  EN: Roundabout exit by its arms: the green turn card now reads the exit from the roundabout's arms, 40 m before and after the ring, instead of where the route touches the ring. The funnels in and out moved those places so far that a third exit looked like the second.
+- Kreisel-Ausfahrt nach den Armen: Die grüne Abbiegekarte misst die Ausfahrt jetzt an den Armen des Kreisels, knapp hinter den Trichtern (15 m außerhalb des Rings, höchstens 40 m entlang der Route), statt an den Stellen, wo die Route den Ring berührt. Die Ein- und Ausfahrtstrichter verschoben diese Stellen so weit, dass eine 3. Ausfahrt wie die 2. aussah.
+  EN: Roundabout exit by its arms: the green turn card now reads the exit from the roundabout's arms just past the funnels (15 m outside the ring, at most 40 m along the route), instead of where the route touches the ring. The funnels in and out moved those places so far that a third exit looked like the second.
 
 ## 1.0.246 — 2026-10-28
 
