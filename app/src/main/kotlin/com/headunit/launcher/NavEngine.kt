@@ -230,10 +230,14 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
     var radar by mutableStateOf<List<RadarItem>>(emptyList())
     private var radarSig = 0
     private var bendsFor: Route? = null
+    private var sharpFor: Route? = null
+    private var sharp: List<SharpBend> = emptyList()
+    private var sharpShown = false
     private var bends: List<Pair<Double, Int>> = emptyList()
     var prediction by mutableStateOf<Prediction?>(null)
     private var predictionAt = 0L
     var arrivalParking by mutableStateOf<Nearby?>(null)
+    private var entranceOf: LL? = null
     /** Roads driven on this trip, counted into the familiar-roads list when the trip ends. */
     private val tripRoads = HashSet<String>()
     private val roadFam: HashMap<String, Int> by lazy {
@@ -644,6 +648,8 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         val tomtomOk = hasKey && refusedKey != apiKey && System.currentTimeMillis() >= ttDownUntil
         if (tomtomOk && (with == "tomtom" || (with == "auto") || !hasMapbox)) {
             val tt = try { TomTomRest.geocode(apiKey, country, q, near) } catch (e: Exception) { if (e is kotlinx.coroutines.CancellationException) throw e; null }
+            // both TomTom searches turned the key away: said once per key, instead of quietly showing thin results
+            TomTomRest.searchRefusal?.let { why -> if (searchRefusalShownFor != apiKey) { searchRefusalShownFor = apiKey; scope.launch { toast(why, 9000) } } }
             if (tt != null && (tt.size >= 4 || !hasMapbox)) return tt
             if (!hasMapbox) return tt ?: OsmSearch.geocode(country, q, near)
             val mb = try { MapboxRest.geocode(mbToken, country, q, near) } catch (e: Exception) { if (e is kotlinx.coroutines.CancellationException) throw e; emptyList() }
@@ -1113,6 +1119,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
     /** The map style failed to load (usually a signal blip): try again a few times, then fall back to the downloaded map if there is one. */
     /** A key TomTom's map server turned away (it may still work for search and routes): the OpenStreetMap map is used instead. */
     @Volatile private var refusedKey: String? = null
+    private var searchRefusalShownFor: String? = null
 
     private fun onMapError(msg: String) {
         val m = msg.lowercase()
@@ -2657,7 +2664,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         departMin = 0; departAtMs = 0L; navStartMs = 0L; navTripDest = null; evStartPending = false; evPreferRoute = null; pickedSlower = false
         fuelSuggestion = null; parkingNear = emptyList(); parkingFor = null
         turnArrowKey = -1; map.setTurnArrow(emptyList())
-        clearLiveAlts(); liveSaid.clear(); radar = emptyList(); radarSig = 0; bendsFor = null; bends = emptyList()
+        clearLiveAlts(); liveSaid.clear(); radar = emptyList(); radarSig = 0; bendsFor = null; bends = emptyList(); sharpFor = null; sharp = emptyList()
         flushRoads()
         sessionAvoid.clear(); routeZones = emptyList(); avgInfo = null; avgIn = null; servicesAhead = emptyList(); barEvents = emptyList()
         rawServices = emptyList(); servicesFor = null; rawHz = emptyList(); rawAvg = emptyList(); rawJcts = emptyList(); jctsOn = null; jctsSig = 0; hzWinRoute = null; hzWinEnd = -1.0
@@ -4027,6 +4034,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
             lookB = gHead
         }
         val gp = gPos ?: return
+        map.setBeam(prefs.b(PreferenceKeys.HEADLIGHT_BEAM, true) && lastDark, gSpeed)
         map.setMe(gp, gHead, 0)
         if (glideOnRoute && r != null && !previewing) {
             if (now - gDoneAt >= (if (following) 350L else 1500L)) { gDoneAt = now; updateDone(r, gProg) }
@@ -6065,6 +6073,19 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
             recentreToken++
             map.cameraTo(d, fix?.heading ?: map.cameraNow()?.get(2), 58.0, 17.4, 2600, 0.25)
         }
+        // the building stays lit while the arrival card is up, its entrance (the side nearest where you pulled up) is marked
+        if (prefs.b(PreferenceKeys.LIGHT_DEST, true)) {
+            val stopped = fix?.pos
+            scope.launch {
+                scope.launch { while (arrival === a) { map.highlightDestination(d); delay(2500) }; map.highlightDestination(null); map.setEntrance(null); map.setArrivalWalk(emptyList()) }
+                val ents = try { withContext(Dispatchers.IO) { Overpass.query("[out:json][timeout:15];(node(around:60,${d.lat},${d.lon})[entrance];);out;", 8000, 15000) } } catch (e: Exception) { null }
+                val pts = ents?.let { arr -> (0 until arr.length()).mapNotNull { i -> arr.getJSONObject(i).takeIf { it.has("lat") }?.let { LL(it.getDouble("lat"), it.getDouble("lon")) } } }.orEmpty()
+                val from = stopped ?: d
+                val ent = pts.minByOrNull { Geo.dist(from, it) }
+                if (arrival === a && ent != null) map.setEntrance(ent)
+                entranceOf = if (arrival === a) ent else null
+            }
+        }
         if (simMode != 0) return
         scope.launch {
             val list = kotlinx.coroutines.withTimeoutOrNull(15_000L) {
@@ -6077,6 +6098,13 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
             }
             // the nearest one with free spaces (a full one only when there's nothing else)
             if (arrival === a) arrivalParking = list?.let { ParkingLive.sortNearby(it).firstOrNull() }
+            // a dotted line for the walk from the suggested parking to the entrance (or the destination)
+            val park = arrivalParking?.place?.pos
+            if (arrival === a && park != null && prefs.b(PreferenceKeys.LIGHT_DEST, true) && hasMapbox && online()) {
+                val to = entranceOf ?: d
+                val wr = withContext(Dispatchers.IO) { try { MapboxRest.walkRoutes(mbToken, park, to).firstOrNull() } catch (e: Exception) { null } }
+                if (arrival === a) map.setArrivalWalk(wr?.pts ?: listOf(park, to))
+            }
         }
     }
 
@@ -7562,7 +7590,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         run {
             val dp = dest?.pos
             val left = r.len - progress
-            map.highlightDestination(if (dp != null && left in 15.0..400.0) dp else null)
+            map.highlightDestination(if (dp != null && left in 15.0..400.0 && prefs.b(PreferenceKeys.LIGHT_DEST, true)) dp else null)
         }
         val now = System.currentTimeMillis()
         barProgress = progress
@@ -7650,6 +7678,26 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         val pl = placed?.takeIf { it.route === r }
         if (pl == null) { if (avgInfo != null) avgInfo = null; return }
         val sp = fix?.speed ?: 0.0
+
+        // sharp bends: striped on the map, and a sign with a chime a few seconds before (only when you're faster than it can be taken)
+        run {
+            val on = prefs.b(PreferenceKeys.SHARPBENDS, true)
+            if (sharpFor !== r) {
+                sharpFor = r; sharp = emptyList(); sharpShown = false; map.setSharpBends(emptyList())
+                scope.launch { val b = withContext(Dispatchers.Default) { try { sharpBends(r) } catch (e: Exception) { emptyList() } }; if (sharpFor === r) { sharp = b; sharpShown = false } }
+            }
+            if (on != sharpShown && (sharp.isNotEmpty() || !on)) { sharpShown = on; map.setSharpBends(if (on) sharp.map { slice(r, it.start, it.end) } else emptyList()) }
+            if (on) for (b in sharp) {
+                val ahead = b.start - progress
+                if (ahead < 0.0 || ahead > max(60.0, sp * 9.0) || sp < b.safeMs * 1.1) continue
+                val key = "sharp${Math.round(b.start)}"
+                if (!hzAlerted.add(key)) continue
+                val k = if (imperial) 2.23694 else 3.6
+                val v = max(5L, Math.round(b.safeMs * k / 5.0) * 5L)
+                chime(android.media.ToneGenerator.TONE_PROP_PROMPT)
+                raiseAlert("bend", Lang.t("Scharfe Kurve · mit $v ${if (imperial) "mph" else "km/h"} nehmen", "Sharp bend · take it at $v ${if (imperial) "mph" else "km/h"}"), 5000)
+            }
+        }
 
         // average speed check
         if (prefs.b(PreferenceKeys.AVGZONES, true)) {

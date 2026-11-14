@@ -393,6 +393,7 @@ private fun ArrowSection(prefs: Prefs, engine: NavEngine) {
             SToggle(prefs, "Leuchten", PreferenceKeys.MODEL_GLOW, true, "Weiches blaues Leuchten um das Modell")
             if (prefs.mapDetail() != "full") SNote("Nur mit Kartendetails „Vollständiges 3D“")
         }
+        SToggle(prefs, "Scheinwerferkegel bei Nacht", PreferenceKeys.HEADLIGHT_BEAM, true, "Nach Einbruch der Dunkelheit liegt ein weicher Lichtkegel vor dem Pfeil, bei höherem Tempo länger")
         val shapeCar = loc == "car" || (loc == "model" && prefs.s(PreferenceKeys.MODEL_SHAPE, "arrow") == "car")
         val shapeArrow = loc == "arrow" || (loc == "model" && !shapeCar)
         if (loc == "custom") {
@@ -534,6 +535,7 @@ private fun GuidanceSection(prefs: Prefs) {
     SGroup("Ankunft") {
         SToggle(prefs, "Ankunftsmoment", "arrivalfx", true, "Kamera schwenkt zum Ziel und zeigt Parkplätze")
         SToggle(prefs, "Parkplätze nahe dem Ziel", "parkprompt", true, "Parkplatzvorschläge vor der Ankunft")
+        SToggle(prefs, "Ziel beleuchten", PreferenceKeys.LIGHT_DEST, true, "Das Gebäude bleibt bei der Ankunft beleuchtet, der Eingang bekommt eine Markierung, eine gepunktete Linie zeigt den Fußweg vom Parkplatz")
         SToggle(prefs, "Rückroute", "routeback", true, "Ein Tipp für den Weg zurück zum Startort")
         SToggle(prefs, "Parkplatz über Bluetooth merken", "parkbt", true, "Speichert den Standort beim Trennen vom Auto-Bluetooth")
     }
@@ -602,6 +604,7 @@ private fun AlertsSection(prefs: Prefs, engine: NavEngine) {
         SToggle(prefs, "Umweltzonen", "zonewarn", true)
         SToggle(prefs, "Pausenerinnerung nach 2 Stunden", "breakremind", false)
         SToggle(prefs, "Bahnübergänge und Furten", "railford", false, "Warnschild und Sprachwarnung")
+        SToggle(prefs, "Scharfe Kurven", "sharpbends", true, "Gelb gestreift auf der Route, Warnschild und Gong kurz davor (nur wenn du zu schnell bist)")
         SToggle(prefs, "Wetterhinweise", "wxadvice", true, "Hinweis bei Regen, Schnee, Nebel oder Glätte")
         SToggle(prefs, "Unwetterwarnungen (DWD)", "dwdwarn", true, "Amtliche Warnungen auf der Strecke (Deutschland)")
         SToggle(prefs, "Falschfahrer-Meldungen", PreferenceKeys.WRONGWAY_REPORTS, true, "Alarm bei Meldung bis 30 km voraus")

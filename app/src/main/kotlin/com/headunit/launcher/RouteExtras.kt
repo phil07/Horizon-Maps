@@ -266,3 +266,64 @@ fun routeBends(r: Route): List<Pair<Double, Int>> {
     }
     return out
 }
+
+/** A bend that needs slowing for: its stretch of the route ([start] to [end] metres along it), the speed it can be taken at (m/s) and its side. */
+class SharpBend(val start: Double, val end: Double, val safeMs: Double, val dir: Int)
+
+/**
+ * Bends that need slowing for, worked out from the shape of the route alone: the radius at each point (the way the route turns over
+ * 20 m either side), and from it the speed a car takes it at without feeling it (a sideways pull of about 2.2 m/s²). A bend counts
+ * when that speed is under [limitMs] and it turns at least 40 degrees. Junction turns (a step of the route) and roundabouts
+ * don't count.
+ */
+fun sharpBends(r: Route, limitMs: Double = 19.4): List<SharpBend> {
+    val n = r.pts.size
+    if (n < 4 || r.len < 80.0) return emptyList()
+    val half = 20.0
+    val stepOffs = r.steps.map { it.off }
+    // the safe speed every 5 m along the route (a big number where it's straight)
+    val ds = 5.0
+    val count = (r.len / ds).toInt() + 1
+    val safe = DoubleArray(count) { 99.0 }
+    val turn = DoubleArray(count)
+    for (k in 0 until count) {
+        val c = k * ds
+        if (c < half || c > r.len - half) continue
+        val a = Geo.pointOnLine(r.pts, r.cum, c - half).first
+        val m = Geo.pointOnLine(r.pts, r.cum, c).first
+        val b = Geo.pointOnLine(r.pts, r.cum, c + half).first
+        if (Geo.dist(a, m) < 4.0 || Geo.dist(m, b) < 4.0) continue
+        val d = (Geo.bearing(m, b) - Geo.bearing(a, m) + 540.0) % 360.0 - 180.0
+        turn[k] = d
+        val theta = Math.toRadians(Math.abs(d))
+        if (theta < 0.05) continue
+        val radius = half / theta
+        safe[k] = Math.sqrt(2.2 * radius)
+    }
+    val out = ArrayList<SharpBend>()
+    var k = 0
+    while (k < count) {
+        if (safe[k] >= limitMs) { k++; continue }
+        // a run of sharp points on one side
+        val side = if (turn[k] < 0) -1 else 1
+        var e = k; var minS = safe[k]; var sum = 0.0
+        while (e + 1 < count && safe[e + 1] < limitMs && (if (turn[e + 1] < 0) -1 else 1) == side) { e++; minS = Math.min(minS, safe[e]) }
+        for (i in k..e) sum += Math.abs(turn[i])
+        val start = Math.max(0.0, k * ds - half); val end = Math.min(r.len, e * ds + half)
+        val total = Math.abs(Geo.bearing(Geo.pointOnLine(r.pts, r.cum, start).first, Geo.pointOnLine(r.pts, r.cum, (start + end) / 2).first) -
+            Geo.bearing(Geo.pointOnLine(r.pts, r.cum, (start + end) / 2).first, Geo.pointOnLine(r.pts, r.cum, end).first))
+        val turned = Math.min(total, 360.0 - total)
+        // not a junction turn: no step of the route inside it or just before or after
+        val atStep = stepOffs.any { it > start - 35.0 && it < end + 35.0 && it > 20.0 && it < r.len - 20.0 }
+        if (turned >= 40.0 && !atStep) out += SharpBend(start, end, minS, side)
+        k = e + 1
+    }
+    // bends close together are one: warned once, at the first
+    val merged = ArrayList<SharpBend>()
+    for (b in out) {
+        val last = merged.lastOrNull()
+        if (last != null && b.start - last.end < 60.0) merged[merged.size - 1] = SharpBend(last.start, b.end, Math.min(last.safeMs, b.safeMs), last.dir)
+        else merged += b
+    }
+    return merged
+}

@@ -85,6 +85,7 @@ private fun alertLabel(kind: String): String = when (kind) {
     "rail" -> Lang.t("BAHNÜBERGANG", "LEVEL CROSSING")
     "ford" -> Lang.t("FURT", "FORD")
     "school" -> Lang.t("SCHULE", "SCHOOL")
+    "bend" -> Lang.t("SCHARFE KURVE", "SHARP BEND")
     "zone" -> Lang.t("UMWELTZONE", "CLEAN AIR ZONE")
     "report" -> Lang.t("GEMELDET VORAUS", "REPORTED AHEAD")
     "wrongway" -> Lang.t("FALSCHE RICHTUNG", "WRONG WAY")
@@ -148,6 +149,20 @@ fun AlertSign(a: AlertInfo, size: Dp) {
                 // the no-entry sign
                 Box(Modifier.fillMaxSize().clip(CircleShape).background(Bad).border(size * 0.05f, Color.White, CircleShape), contentAlignment = Alignment.Center) {
                     Box(Modifier.size(width = size * 0.62f, height = size * 0.16f).background(Color.White))
+                }
+            }
+            // a sharp bend: the yellow chevron sign
+            "bend" -> {
+                Canvas(Modifier.fillMaxSize()) {
+                    val w = this.size.width
+                    val h = this.size.height
+                    drawRoundRect(Color(0xFFFFCC00), Offset(w * 0.06f, h * 0.18f), androidx.compose.ui.geometry.Size(w * 0.88f, h * 0.64f), androidx.compose.ui.geometry.CornerRadius(w * 0.08f))
+                    drawRoundRect(Color.Black, Offset(w * 0.06f, h * 0.18f), androidx.compose.ui.geometry.Size(w * 0.88f, h * 0.64f), androidx.compose.ui.geometry.CornerRadius(w * 0.08f), style = Stroke(w * 0.05f))
+                    for (i in 0..1) {
+                        val x0 = w * (0.30f + i * 0.24f)
+                        val ch = Path().apply { moveTo(x0, h * 0.30f); lineTo(x0 + w * 0.16f, h * 0.50f); lineTo(x0, h * 0.70f) }
+                        drawPath(ch, Color.Black, style = Stroke(w * 0.07f, cap = androidx.compose.ui.graphics.StrokeCap.Round, join = StrokeJoin.Round))
+                    }
                 }
             }
             // UK warning signs drawn in full: a level crossing (gate) and a ford (water)

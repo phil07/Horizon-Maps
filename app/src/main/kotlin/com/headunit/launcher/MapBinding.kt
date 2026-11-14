@@ -636,6 +636,20 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
         }
     }
 
+    // ---- arrival: the destination's entrance, and the dotted walk to it from the suggested parking ----
+    private var entranceAt: LL? = null
+    private var arrWalk: List<LL> = emptyList()
+
+    fun setEntrance(p: LL?) {
+        entranceAt = p
+        main0.post { try { src("dl-entrance")?.featureCollection(FeatureCollection.fromFeatures(p?.let { listOf(Feature.fromGeometry(Point.fromLngLat(it.lon, it.lat))) } ?: emptyList())) } catch (e: Throwable) { } }
+    }
+
+    fun setArrivalWalk(p: List<LL>) {
+        arrWalk = p
+        main0.post { try { src("dl-arrwalk")?.featureCollection(if (p.size >= 2) FeatureCollection.fromFeatures(listOf(line(p))) else empty()) } catch (e: Throwable) { } }
+    }
+
     fun setParked(p: LL?) {
         if (p == parkedAt || (p != null && parkedAt != null && Geo.dist(p, parkedAt!!) < 1.0)) return
         parkedAt = p
@@ -1219,6 +1233,57 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
             tunnelLines = lines
             try { src("dl-tunnels")?.featureCollection(FeatureCollection.fromFeatures(lines.filter { it.size >= 2 }.map { line(it) })) } catch (e: Throwable) { }
         }
+    }
+
+    // ---- headlight beam: a soft cone of light on the road ahead of your arrow, after dark, while you move ----
+    private var beamOn = false
+    private var beamSpeed = 0.0
+    private var beamKey = ""
+
+    fun setBeam(on: Boolean, speedMs: Double) { if (on == beamOn && Math.abs(speedMs - beamSpeed) < 0.5) return; beamOn = on; beamSpeed = speedMs; main0.post { pushBeam() } }
+
+    private fun pushBeam() {
+        val s = src("dl-beam") ?: return
+        val p = me
+        if (!beamOn || p == null || beamSpeed < 2.0) { if (beamKey.isNotEmpty()) { beamKey = ""; s.featureCollection(empty()) }; return }
+        // longer the faster you go: about 30 m at a crawl, 110 m at motorway speed
+        val len = (25.0 + beamSpeed * 2.6).coerceIn(30.0, 110.0)
+        val half = 17.0
+        val feats = ArrayList<Feature>()
+        for ((k, f) in listOf(0 to 1.0, 1 to 0.68, 2 to 0.38)) {
+            val pts = ArrayList<Point>()
+            val o = Furniture.offset(p, meHeading, 3.0)
+            pts += Point.fromLngLat(o.lon, o.lat)
+            for (i in 0..8) {
+                val a = meHeading - half + 2.0 * half * i / 8.0
+                val q = Furniture.offset(o, a, len * f)
+                pts += Point.fromLngLat(q.lon, q.lat)
+            }
+            pts += Point.fromLngLat(o.lon, o.lat)
+            val ft = Feature.fromGeometry(Polygon.fromLngLats(listOf(pts)))
+            ft.addNumberProperty("k", k)
+            feats += ft
+        }
+        beamKey = "on"
+        s.featureCollection(FeatureCollection.fromFeatures(feats))
+    }
+
+    // ---- sharp bends on the route: striped yellow with black chevrons ----
+    private var sharpLines: List<List<LL>> = emptyList()
+
+    fun setSharpBends(lines: List<List<LL>>) {
+        main0.post {
+            sharpLines = lines
+            try { src("dl-sharp")?.featureCollection(FeatureCollection.fromFeatures(lines.filter { it.size >= 2 }.map { line(it) })) } catch (e: Throwable) { }
+        }
+    }
+
+    private fun sharpChevBitmap(): Bitmap {
+        val b = Bitmap.createBitmap(64, 64, Bitmap.Config.ARGB_8888)
+        val c = Canvas(b)
+        val p = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xFF000000.toInt(); style = Paint.Style.STROKE; strokeWidth = 11f; strokeCap = Paint.Cap.ROUND; strokeJoin = Paint.Join.ROUND }
+        c.drawPath(Path().apply { moveTo(18f, 10f); lineTo(42f, 32f); lineTo(18f, 54f) }, p)
+        return b
     }
 
     // ---- average speed zones on the route ----
@@ -2159,6 +2224,21 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
         addS(st, GeoJsonSource.Builder("dl-tunnels").featureCollection(FeatureCollection.fromFeatures(tunnelLines.filter { it.size >= 2 }.map { line(it) })).build())
         addL(st, ln("dl-tunnel-dash", "dl-tunnels").lineCap(LineCap.BUTT).lineColor(if (dayLook) "#EEF2F7" else "#2B3150")
             .lineWidth(routeW(if (im) 1.55f else 1.3f)).lineOpacity(0.6).lineDasharray(listOf(0.9, 1.1)))
+        // the headlight beam: three nested cones, the inner ones brighter
+        addS(st, GeoJsonSource.Builder("dl-beam").featureCollection(empty()).build())
+        addL(st, FillLayer("dl-beam-fill", "dl-beam").inSlot(MID).fillEmissiveStrength(1.0).fillColor("#FFF1C2")
+            .fillOpacity(Expression.match(Expression.get("k"), Expression.literal(0.0), Expression.literal(0.10), Expression.literal(1.0), Expression.literal(0.13), Expression.literal(2.0), Expression.literal(0.18), Expression.literal(0.1))))
+        beamKey = ""
+        // sharp bends: the line striped yellow and black, with black chevrons along it
+        addS(st, GeoJsonSource.Builder("dl-sharp").featureCollection(FeatureCollection.fromFeatures(sharpLines.filter { it.size >= 2 }.map { line(it) })).build())
+        addL(st, ln("dl-sharp-yellow", "dl-sharp").lineCap(LineCap.BUTT).lineColor("#FFCC00").lineWidth(routeW(if (im) 1.0f else 0.85f)))
+        addL(st, ln("dl-sharp-black", "dl-sharp").lineCap(LineCap.BUTT).lineColor("#111111").lineWidth(routeW(if (im) 1.0f else 0.85f)).lineDasharray(listOf(1.0, 1.0)))
+        addImg(st, "dl-sharp-chev", sharpChevBitmap())
+        addL(st, SymbolLayer("dl-sharp-chevs", "dl-sharp").inSlot(MID)
+            .symbolPlacement(SymbolPlacement.LINE).iconImage("dl-sharp-chev").symbolSpacing(60.0)
+            .iconAllowOverlap(true).iconIgnorePlacement(true)
+            .iconRotationAlignment(IconRotationAlignment.MAP).iconPitchAlignment(IconPitchAlignment.MAP)
+            .iconEmissiveStrength(1.0).iconSize(zoomed(1.0, 13 to 0.4, 16 to 0.8, 19 to 1.2)).minZoom(12.0))
         // a band of light that runs along the route towards the destination
         val flow = ln("dl-flow-line", "dl-flow").lineWidth(routeW(if (im) 0.6f else 0.5f)).lineBlur(3.0)
             .lineGradient(flowGradient(0.5f)).visibility(vis(flowOn))
@@ -2273,6 +2353,13 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
         addS(st, GeoJsonSource.Builder("dl-walk").featureCollection(if (walkPts.size >= 2) FeatureCollection.fromFeatures(listOf(line(walkPts))) else empty()).build())
         addL(st, LineLayer("dl-walk-l", "dl-walk").lineColor("#2F7BF6").lineEmissiveStrength(1.0).lineCap(LineCap.ROUND)
             .lineWidth(zoomed(2.0, 12 to 2.5, 16 to 5.0, 20 to 9.0)).lineDasharray(listOf(0.1, 1.9)))
+        // arrival: the walk from the parking to the entrance (white dots), and the entrance itself (a green ring)
+        addS(st, GeoJsonSource.Builder("dl-arrwalk").featureCollection(if (arrWalk.size >= 2) FeatureCollection.fromFeatures(listOf(line(arrWalk))) else empty()).build())
+        addL(st, LineLayer("dl-arrwalk-l", "dl-arrwalk").inSlot(TOP).lineColor("#FFFFFF").lineEmissiveStrength(1.0).lineCap(LineCap.ROUND)
+            .lineWidth(zoomed(2.0, 14 to 2.5, 17 to 5.0, 20 to 9.0)).lineDasharray(listOf(0.1, 2.0)))
+        addS(st, GeoJsonSource.Builder("dl-entrance").featureCollection(FeatureCollection.fromFeatures(entranceAt?.let { listOf(Feature.fromGeometry(Point.fromLngLat(it.lon, it.lat))) } ?: emptyList())).build())
+        addL(st, CircleLayer("dl-entrance-l", "dl-entrance").inSlot(TOP).circleColor("#2EC27E").circleOpacity(0.35).circleEmissiveStrength(1.0)
+            .circleRadius(zoomed(1.5, 15 to 7.0, 18 to 14.0, 20 to 22.0)).circleStrokeColor("#FFFFFF").circleStrokeWidth(2.5).circlePitchAlignment(CirclePitchAlignment.MAP))
         addL(st, SymbolLayer("dl-parked-l", "dl-parked").iconImage("dl-car-pin").iconAllowOverlap(true).iconIgnorePlacement(true)
             .iconPitchAlignment(IconPitchAlignment.VIEWPORT).iconEmissiveStrength(1.0).iconSize(zoomed(1.0, 10 to 0.4, 15 to 0.55, 18 to 0.7)))
         // the stops on the way (under the destination, so the pin stays on top where they meet). Pictures in both looks:
@@ -3074,7 +3161,7 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
     // ---- data from the engine ----
     fun setRoute(mainPts: List<LL>, altPts: List<List<LL>>, sev: IntArray? = null) {
         main = mainPts; alts = altPts; mainSev = sev; mainOff = 0; pushRoute(); pushSignals()
-        if (mainPts.isEmpty()) { setAvgZones(emptyList(), emptyList()); setTunnels(emptyList()); setCrossings(emptyList()); setStopSigns(emptyList()) }
+        if (mainPts.isEmpty()) { setAvgZones(emptyList(), emptyList()); setTunnels(emptyList()); setSharpBends(emptyList()); setCrossings(emptyList()); setStopSigns(emptyList()) }
         if (mainPts.size >= 2) loadSignalsAlong(mainPts) else { sigRoute = null; signalToken++; signalBusy = false; signalStage = Lang.t("keine Route", "no route") }
         val on = mainPts.isNotEmpty()
         if (on != routing) { routing = on; applyTraffic(); applyNearLook() }
@@ -4397,6 +4484,7 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
 
     private fun pushMe() {
         pushModel(false)
+        pushBeam()
         updateClear(false)
         // the map's own (flat) arrow only needs moving when it's the one showing; the 3D one is a view over the map
         val flat = locatorStyle == "flat"

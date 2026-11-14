@@ -415,7 +415,18 @@ object TomTomRest {
     }
 
     /** A failed request, explained in plain words for the common cases (a missing or wrong key, the daily limit). */
-    private fun httpError(code: Int, body: String): IOException = IOException(when (code) {
+    /** TomTom turned the key away (401/403): the key, not the network, is the trouble. */
+    class Refused(msg: String) : IOException(msg)
+
+    /** Why the search (classic and Orbis) refused the key, when both did; null otherwise. Shown once by the app. */
+    @Volatile var searchRefusal: String? = null
+
+    private fun httpError(code: Int, body: String): IOException {
+        val msg = httpMessage(code, body)
+        return if (code == 401 || code == 403) Refused(msg) else IOException(msg)
+    }
+
+    private fun httpMessage(code: Int, body: String): String = (when (code) {
         401, 403 -> Lang.t("TomTom hat den API-Schlüssel abgelehnt. Prüfe ihn unter Einstellungen > Schlüssel & Konten (ein kostenloser Schlüssel von developer.tomtom.com braucht die Search- und Routing-APIs)", "TomTom didn't accept the API key. Check it in Settings > Keys & accounts (a free key from developer.tomtom.com needs the Search and Routing APIs)")
         429 -> Lang.t("Dieser TomTom-Schlüssel hat sein Tageslimit erreicht. Es wird morgen zurückgesetzt", "This TomTom key has reached its daily limit. It resets tomorrow")
         else -> "HTTP $code ${body.take(140)}"
@@ -462,19 +473,29 @@ object TomTomRest {
         val cc = country.trim().uppercase()
         val out = ArrayList<Place>()
         // 1. classic fuzzy search
+        var classicRefused = false
         try {
             var url = "$SEARCH/$enc.json?key=$k&limit=15&language=${if (Lang.de) "de-DE" else "en-GB"}&typeahead=true&minFuzzyLevel=1&maxFuzzyLevel=2&idxSet=POI,Addr,Str,Xstr,Geo,PAD&openingHours=nextSevenDays"
             if (cc.isNotEmpty()) url += "&countrySet=$cc"
             if (near != null) url += "&lat=${near.lat}&lon=${near.lon}"
             parsePlaces(JSONObject(get(url)).optJSONArray("results") ?: JSONArray(), q, out)
-        } catch (e: Exception) { /* fall through to the next source */ }
+        } catch (e: Exception) { if (e is Refused) classicRefused = true /* fall through to the next source */ }
+        // 1b. Newer keys can come with the Orbis APIs only: the classic search refuses them, so the same search goes to Orbis
+        var orbisRefused = false
+        if (classicRefused) try {
+            var url = "$API/places/search/$enc.json?key=$k&apiVersion=1&limit=15&language=${if (Lang.de) "de-DE" else "en-GB"}&typeahead=true"
+            if (cc.isNotEmpty()) url += "&countrySet=$cc"
+            if (near != null) url += "&lat=${near.lat}&lon=${near.lon}"
+            parsePlaces(JSONObject(get(url)).optJSONArray("results") ?: JSONArray(), q, out)
+        } catch (e: Exception) { if (e is Refused) orbisRefused = true }
         // 2. Orbis geocoder
         if (out.size < 4) try {
             var url = "$API/places/geocode/$enc.json?key=$k&apiVersion=1&limit=8"
             if (cc.isNotEmpty()) url += "&countrySet=$cc"
             if (near != null) url += "&lat=${near.lat}&lon=${near.lon}"
             parsePlaces(JSONObject(get(url)).optJSONArray("results") ?: JSONArray(), q, out)
-        } catch (e: Exception) { }
+        } catch (e: Exception) { if (e is Refused && classicRefused) orbisRefused = true }
+        searchRefusal = if (classicRefused && orbisRefused && out.isEmpty()) Lang.t("TomTom lehnt den Schlüssel für die Suche ab (die klassische Suche und die Orbis-Suche). Prüfe den Schlüssel unter Einstellungen > Schlüssel & Konten, die Suche braucht die Search-API", "TomTom refuses the key for search (both the classic and the Orbis search). Check the key under Settings > Keys & accounts; search needs the Search API") else null
         // 3. Nominatim
         if (out.size < 8) try {
             var url = "https://nominatim.openstreetmap.org/search?format=jsonv2&limit=10&q=$enc"
@@ -665,7 +686,14 @@ object TomTomRest {
         val url = "https://api.tomtom.com/search/2/$api/$enc.json?key=$k&lat=${near.lat}&lon=${near.lon}&radius=$radius&limit=25" +
             "&language=${if (Lang.de) "de-DE" else "en-GB"}&openingHours=nextSevenDays" + (if (kind == null) "&typeahead=true" else "")
         val out = ArrayList<Place>()
-        parsePlaces(JSONObject(get(url, 8000, 9000)).optJSONArray("results") ?: JSONArray(), q, out)
+        try {
+            parsePlaces(JSONObject(get(url, 8000, 9000)).optJSONArray("results") ?: JSONArray(), q, out)
+        } catch (e: Refused) {
+            // the classic search turned the key away: the same search on Orbis (a kind of place goes in as the search words)
+            val orbis = "$API/places/search/$enc.json?key=$k&apiVersion=1&lat=${near.lat}&lon=${near.lon}&radius=$radius&limit=25" +
+                "&language=${if (Lang.de) "de-DE" else "en-GB"}" + (if (kind == null) "&typeahead=true" else "")
+            parsePlaces(JSONObject(get(orbis, 8000, 9000)).optJSONArray("results") ?: JSONArray(), q, out)
+        }
         return out.filter { Geo.dist(near, it.pos) <= radius * 1.2 }.sortedBy { Geo.dist(near, it.pos) }
     }
 
