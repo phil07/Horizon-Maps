@@ -334,6 +334,8 @@ internal object SettingsEn {
         "Pausenerinnerung nach 2 Stunden" to "Break reminder after 2 hours",
         "Bahnübergänge und Furten" to "Level crossings and fords",
         "Scharfe Kurven" to "Sharp bends",
+        "HD-Straßen" to "HD roads",
+        "Fahrspuren, Abbiegepfeile und 3D-Brücken. Auto: nur in UK an, sonst zeigt die Karte in manchen Ländern nur die Hauptstraßen." to "Lane markings, turn arrows and 3D overpasses. Auto: on in the UK only; elsewhere some maps show only the main roads.",
         "Ziel beleuchten" to "Light up your destination",
         "Das Gebäude bleibt bei der Ankunft beleuchtet, der Eingang bekommt eine Markierung, eine gepunktete Linie zeigt den Fußweg vom Parkplatz" to "The building stays lit on arrival, its entrance gets a marker and a dotted line shows the walk from the parking",
         "Scheinwerferkegel bei Nacht" to "Headlight beam at night",

@@ -5,17 +5,10 @@ Add user-facing Horizon Nav changes under **Unreleased** before publishing each 
 ## Unreleased
 
 ### Behoben
-- Suche mit TomTom-Schlüssel: Lehnt TomTom die klassische Suche für den Schlüssel ab (neuere Schlüssel können nur die neuen „Orbis“-APIs mitbringen), probiert die App dieselbe Suche jetzt bei TomTom Orbis. Geschäfte, Orte und Adressen werden wieder gefunden, nicht nur Postleitzahlen. Lehnt TomTom beides ab, sagt die App einmal warum, statt still dünne Ergebnisse zu zeigen.
-  EN: Searching with a TomTom key: if TomTom's classic search refuses the key (newer keys can come with only the newer "Orbis" APIs), the same search is now tried on TomTom's Orbis service. Shops, places and addresses are found again, not only postcodes. If TomTom refuses both, the app now says why once, instead of quietly showing thin results.
-
-### Neu
-- Warnung vor scharfen Kurven: Kurven, die man langsamer nehmen muss, sind auf der Route gelb-schwarz gestreift mit schwarzen Pfeilen. Etwa 9 Sekunden davor erscheint ein gelbes Schild „Scharfe Kurve · mit 40 km/h nehmen“ mit Gong, nur wenn du schneller fährst. Aus der Form der Route berechnet, Abbiegungen zählen nicht. Einstellungen › Warnungen › Scharfe Kurven.
-  EN: Sharp bend warnings: bends that need slowing for are striped yellow with black chevrons on the route, and about 9 seconds before each a yellow chevron sign says "Sharp bend · take it at 25 mph" with a chime (only when you're going faster than that). Worked out from the route's shape; junction turns don't count. Settings › Warnings › Sharp bends.
-- Scheinwerferkegel bei Nacht: Nach Einbruch der Dunkelheit liegt ein weicher Lichtkegel vor deinem Pfeil auf der Straße, solange du fährst, bei höherem Tempo länger. Einstellungen › Pfeil › Scheinwerferkegel bei Nacht.
-  EN: Headlight beam: after dark, a soft cone of light lies on the road ahead of your arrow while you're moving, longer at speed. Settings › Your arrow › Headlight beam at night.
-- Ziel bei der Ankunft beleuchtet: Das Gebäude bleibt beleuchtet, solange die Ankunftskarte da ist, der Eingang (die Seite, die am nächsten zu deinem Halteplatz liegt) bekommt eine Markierung, und eine gepunktete Linie zeigt den Fußweg vom vorgeschlagenen Parkplatz. Einstellungen › Ankunft › Ziel beleuchten.
-  EN: Destination lit up on arrival: the building stays lit while the arrival card is up, its entrance (the side nearest where you pulled up) gets a marker, and a dotted line shows the walk from the suggested parking. Settings › Arrival › Light up your destination.
-
+- Fehlende Straßen auf der Karte (GitHub #78, Reddit): In manchen Ländern verdeckten die HD-Straßen von Mapbox die normalen Straßen, nur Hauptstraßen blieben sichtbar. HD-Straßen sind jetzt eine Einstellung unter Einstellungen › Karte › HD-Straßen (Auto, An, Aus). Auf Auto sind sie nur in UK an, sonst kannst du sie einschalten, wenn sie richtig angezeigt werden.
+  EN: Missing streets on the map (GitHub #78, Reddit): in some countries Mapbox's HD roads hid the ordinary streets, leaving only main roads. HD roads are now a setting under Settings › Map › HD roads (Auto, On, Off). On Auto they're on only in the UK; elsewhere switch them on if they show properly.
+- Tempolimits im Ausland: Das Land kommt jetzt aus der Position, in der du bist, nicht aus der Spracheinstellung des Telefons. Ein englisches (UK) Telefon in Frankreich bekam vorher britische Regeln.
+  EN: Speed limit rules abroad: the country now comes from where you are, not the phone's language setting. An English (UK) phone in France got British rules before.
 ## 1.0.246 — 2026-10-28
 
 ### Improved in-app updates

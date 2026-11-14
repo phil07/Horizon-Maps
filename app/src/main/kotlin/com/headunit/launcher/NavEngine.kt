@@ -981,6 +981,13 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
     /** The speed limit sign to draw: the white "SPEED LIMIT" board in the US, "MAXIMUM" in Canada, the red roundel elsewhere. */
     val limitSignStyle: String get() = when (detectedCountry.uppercase()) { "US", "PR", "GU", "VI", "AS", "MP" -> "us"; "CA" -> "ca"; else -> "round" }
 
+    /** HD roads on Mapbox's map: Settings > Map style; "auto" is on in the UK only. */
+    fun hdRoadsWanted(): Boolean = when (prefs.s(PreferenceKeys.HD_ROADS2, "auto")) {
+        "on" -> true
+        "off" -> false
+        else -> detectedCountry.uppercase() == "GB"
+    }
+
     fun countryCode(): String { val v = prefs.s(PreferenceKeys.COUNTRY, "auto"); return if (v == "auto") detectedCountry else v }
 
     /** The country you're in (from the GPS), remembered between drives; blank until it's known. */
@@ -1026,6 +1033,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
             val up = cc.uppercase()
             val changed = up != detectedCountry
             if (changed) { detectedCountry = up; prefs.put(PreferenceKeys.COUNTRYDETECTED, up) }
+            map.setHdRoads(hdRoadsWanted())
             RoadRefs.country = up
             // the low emission zones are the country's own (Germany's Umweltzonen, Britain's clean air zones): fetch them for a new country
             if (changed) try { if (Zones.needsRefresh(ctx) && online()) { withContext(Dispatchers.IO) { Zones.fetch(ctx) }; zonesVersion++ } } catch (e: Exception) { }
@@ -1214,6 +1222,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
     fun applyStyle(dark: Boolean) {
         lastDark = dark
         map.nightStyle = dark
+        map.setHdRoads(hdRoadsWanted())
         if (map.onRestyle == null) map.onRestyle = { restyle() }
         watchNetwork()
         styleJob?.cancel()

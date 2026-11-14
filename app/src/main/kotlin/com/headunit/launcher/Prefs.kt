@@ -262,6 +262,8 @@ internal object PreferenceKeys {
     const val RAILFORD = "railford"
     const val SHARPBENDS = "sharpbends"
     const val HEADLIGHT_BEAM = "headlightbeam"
+    /** HD roads: "auto" (on in the UK only), "on" or "off". A new key, so every install starts from the standard. */
+    const val HD_ROADS2 = "hdroads2"
     const val LIGHT_DEST = "lightdest"
     const val REPORTS = "reports"
     const val RESUME = "resume"

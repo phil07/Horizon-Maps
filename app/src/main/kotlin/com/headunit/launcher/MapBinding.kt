@@ -376,6 +376,14 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
     /** Puts a layer in one of Standard's slots (only when the style has them). */
     private fun <T : Layer> T.inSlot(s: String): T { if (slotsOn) slot(s); return this }
 
+    /** HD roads (lane markings, turn arrows, 3D overpasses) on Mapbox's map: set by Settings > Map style, on by itself only in the UK. */
+    @Volatile var hdRoads = false
+    fun setHdRoads(on: Boolean) {
+        if (on == hdRoads) return
+        hdRoads = on
+        main0.post { try { setBase("showHdRoads", Value.valueOf(on)) } catch (e: Throwable) { } }
+    }
+
     fun setMapDetail(d: String) {
         val v = if (d in setOf("full", "lite", "lightest")) d else "full"
         if (v == mapDetail) return
@@ -390,7 +398,7 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
             setBase("showPointOfInterestLabels", Value.valueOf(!lite && !poiMoving))
             setBase("showTransitLabels", Value.valueOf(!lite))
             setBase("showLandmarkIcons", Value.valueOf(!lite))
-            setBase("showHdRoads", Value.valueOf(v == "full"))
+            setBase("showHdRoads", Value.valueOf(hdRoads))
             // the real 3D arrow only shows on the full map
             if (style != null) reinstall()
         }
@@ -2127,7 +2135,7 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
         if (!satellite) {
             setBase("show3dTrees", Value.valueOf(treesOn)); setBase("showLandmarkIcons", Value.valueOf(!lite))
             // lane markings, turn arrows, stop lines and 3D overpasses where Mapbox has them (Full 3D only)
-            setBase("showHdRoads", Value.valueOf(MapStylePolicy.supportsFullDetailFeatures(mapDetail)))
+            setBase("showHdRoads", Value.valueOf(hdRoads))
             // detailed building fronts, landmark buildings, footpaths (Settings > Map)
             setBase("show3dFacades", Value.valueOf(facadesOn && b3dStd() && MapStylePolicy.supportsFullDetailFeatures(mapDetail)))
             setBase("show3dLandmarks", Value.valueOf(landmarksOn && !neonMap && MapStylePolicy.supportsFullDetailFeatures(mapDetail)))
