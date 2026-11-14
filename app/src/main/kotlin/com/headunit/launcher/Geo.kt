@@ -141,8 +141,8 @@ object Geo {
      * keeps right, clockwise where it keeps left). Null when the line is too short to tell.
      */
     /** Metres before the entry and after the exit that set a roundabout's direction (20 and 30 to start: see the note at the call). */
-    const val ROUNDABOUT_IN_M = 10.0
-    const val ROUNDABOUT_OUT_M = 10.0
+    const val ROUNDABOUT_IN_M = 20.0
+    const val ROUNDABOUT_OUT_M = 30.0
 
     fun roundaboutHeadings(pts: List<LL>, cum: DoubleArray, entry: Double, exitAt: Double, limitAt: Double, leftTraffic: Boolean): Pair<Double, Double>? {
         if (pts.size < 2 || cum.size != pts.size) return null

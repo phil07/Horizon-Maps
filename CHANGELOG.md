@@ -5,8 +5,8 @@ Add user-facing Horizon Nav changes under **Unreleased** before publishing each 
 ## Unreleased
 
 ### Behoben
-- Kreisel-Winkel: Die grüne Abbiegekarte und die Kartenlinie zeigen die Ausfahrt jetzt übereinstimmend. Die Richtung wird aus 10 m vor der Einfahrt und 10 m nach dem Ausgang bestimmt, nicht mehr aus der ganzen Strecke bis zum nächsten Schritt.
-  EN: Roundabout angle: the green turn card and the map line now show the exit the same way. The direction comes from 10 m before the entry and 10 m after the exit, not from the whole stretch up to the next step.
+- Kreisel-Winkel: Die grüne Abbiegekarte und die Kartenlinie zeigen die Ausfahrt jetzt übereinstimmend. Die Richtung wird aus 20 m vor der Einfahrt und 30 m nach dem Ausgang bestimmt, nicht mehr aus der ganzen Strecke bis zum nächsten Schritt.
+  EN: Roundabout angle: the green turn card and the map line now show the exit the same way. The direction comes from 20 m before the entry and 30 m after the exit, not from the whole stretch up to the next step.
 
 ## 1.0.246 — 2026-10-28
 
