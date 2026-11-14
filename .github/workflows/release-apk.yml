@@ -128,10 +128,9 @@ jobs:
           # the GitHub APK and the Google Play app bundle (the bundle is only signed, published and uploaded when the
           # Play upload key is there; built anyway, so a mistake in the Play build shows up right away)
           # the unit tests run first: a failing test stops the build
-          # Faster: the tests run on the release variant, which the APK needs compiled anyway (the debug variant was compiled
-          # a second time just for them), and the Play bundle (a third compile and R8 run) is only built where it is used:
-          # when the Play upload key is there.
-          TASKS=":app:testPublicReleaseUnitTest :app:assemblePublicRelease"
+          # Faster: the Play bundle (another compile and R8 run) is only built where it is used: when the Play upload key is there.
+          # (The unit tests have to run on the debug variant: this project has no release unit tests.)
+          TASKS=":app:testPublicDebugUnitTest :app:assemblePublicRelease"
           if [ "${PLAY_BUILD:-}" = "1" ]; then TASKS="$TASKS :app:bundlePlayRelease"; fi
           gradle $TASKS -PtomtomApiKey="$TOMTOM_API_KEY" -PreportsUrl="$REPORTS_URL"
 
