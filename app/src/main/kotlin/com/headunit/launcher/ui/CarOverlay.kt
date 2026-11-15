@@ -87,6 +87,7 @@ import androidx.compose.ui.unit.sp
 import com.headunit.launcher.Geo
 import com.headunit.launcher.NavEngine
 import com.headunit.launcher.PreferenceKeys
+import com.headunit.launcher.mapDetail
 import com.headunit.launcher.locatorSpec
 
 /**
@@ -107,6 +108,28 @@ fun CarOverlay(engine: NavEngine, area: State<android.graphics.Rect?>, dark: Sta
     // the locator follows the look and its accent colour live too (the neon arrow in the chosen colour)
     val (carLoc, carLocCol) = engine.prefs.locatorSpec().let { if (it.first == "custom") "arrow" to engine.prefs.s(PreferenceKeys.ARROW_COLOUR, "#F2F2F6") else it }
     LaunchedEffect(carLoc, carLocCol, Neon.accentId) { engine.map.setLocator(carLoc, carLocCol) }
+    // the rest of the car's map settings follow Settings live too (they used to be read only when Android Auto connected)
+    val carDetail = engine.prefs.mapDetail()
+    LaunchedEffect(carDetail) { engine.map.setMapDetail(carDetail) }
+    val carArrowPct = engine.prefs.s(PreferenceKeys.ARROW_PERCENT, "240").toIntOrNull() ?: 240
+    val carArrowSize = engine.prefs.i(PreferenceKeys.CAR_ARROW_SIZE, 70).coerceIn(30, 180)
+    LaunchedEffect(carArrowPct, carArrowSize) { engine.map.setArrowScale((carArrowPct / 100f).coerceIn(1f, 5f) * 0.9f * (carArrowSize / 100f)) }
+    val carKind = engine.prefs.s(PreferenceKeys.CAR_MODEL, "saloon")
+    LaunchedEffect(carKind) { engine.map.setCarModel(carKind) }
+    val carRoadName = engine.prefs.i(PreferenceKeys.CAR_ROAD_NAME_SIZE, 100).coerceIn(70, 200)
+    LaunchedEffect(carRoadName) { engine.map.setRoadNameScale(carRoadName / 100f) }
+    val carFlags = engine.prefs.b(PreferenceKeys.FLAGS_3D, true); val carWave = engine.prefs.b(PreferenceKeys.FLAGS_WAVE, true)
+    LaunchedEffect(carFlags, carWave) { engine.map.refreshFlags() }
+    val carLamps = engine.prefs.b(PreferenceKeys.LAMPS, true)
+    LaunchedEffect(carLamps) { engine.map.lampsEnabled(carLamps) }
+    val carTrees = engine.prefs.b(PreferenceKeys.TREES, true)
+    LaunchedEffect(carTrees) { engine.map.treesEnabled(carTrees) }
+    val carSat = engine.prefs.b(PreferenceKeys.SATELLITE, false); val car3d = engine.prefs.b(PreferenceKeys.BUILDINGS_3D, true)
+    LaunchedEffect(carSat, car3d) { engine.map.setView(carSat, car3d) }
+    // the light (day, dusk, night) is worked out again when the setting changes (the first time it is set when the car connects)
+    val carLight = engine.prefs.s(PreferenceKeys.MAP_LIGHT, "")
+    val carLightFirst = remember { booleanArrayOf(true) }
+    LaunchedEffect(carLight) { if (carLightFirst[0]) carLightFirst[0] = false else engine.restyle() }
     // [scale] is worked out from the car screen's size (see CarSurface); the Android Auto size setting adjusts it either way
     val user = engine.prefs.i(PreferenceKeys.CARSCALE, 100).coerceIn(40, 300) / 100f
     val textScale = engine.prefs.i(PreferenceKeys.CAR_TEXT_SIZE, 100).coerceIn(75, 150) / 100f
@@ -244,6 +267,9 @@ private fun CarScreen(engine: NavEngine, a: android.graphics.Rect?, actions: Car
         // the turn card, top left (as in the app)
         val t = engine.turn
         val showTurn = guiding && t != null && !arriving
+        // where the speed sits (Settings > Android Auto): bottom left (the default), under the turn card, or top right.
+        // "Under the turn card" needs the card showing; without it the speed stays in the bottom corner.
+        val speedHere = when (engine.prefs.s(PreferenceKeys.CAR_SPEED_POS, "bottom")) { "turn" -> if (showTurn) "turn" else "bottom"; "top" -> "top"; else -> "bottom" }
         // hazards ahead (an incident, a speed camera) go along the bottom of the turn card when it's showing, instead of a
         // separate pill: the left side is then just the turn card and the trip card
         val alert = engine.alert
@@ -275,6 +301,14 @@ private fun CarScreen(engine: NavEngine, a: android.graphics.Rect?, actions: Car
                     AvgSpeedCard(engine); ServicesCard(engine); ParkingCard(engine)
                 }
             }
+        }
+
+        // the speed under the turn card, or in the top right, when Settings puts it there
+        if (speedHere == "turn") Box(Modifier.padding(start = left, top = top + with(dens) { turnH.toDp() } + 12.dp)) {
+            CompositionLocalProvider(LocalDensity provides Density(dens.density * speedScale, dens.fontScale)) { ImmSpeed(engine) }
+        }
+        if (speedHere == "top") Box(Modifier.align(Alignment.TopEnd).padding(end = rightTop, top = top)) {
+            CompositionLocalProvider(LocalDensity provides Density(dens.density * speedScale, dens.fontScale)) { ImmSpeed(engine) }
         }
 
         // not navigating: the app's search bar and quick chips, top left (tap them as in the app)
@@ -387,6 +421,10 @@ private fun CarScreen(engine: NavEngine, a: android.graphics.Rect?, actions: Car
                     if (camShown && cam != null) HazardBadge("camera", "Blitzer", Geo.fmtDist(cam.toDouble(), engine.imperial))
                 }
             }
+            // a split-screen tile: the trip strip is a bar along the bottom edge, centred
+            if (tile && guiding && !panelOpen) Box(Modifier.align(Alignment.BottomCenter).padding(start = left, end = insR + edge, bottom = bottom)) {
+                CompositionLocalProvider(LocalDensity provides Density(dens.density * cardScale, dens.fontScale)) { TripCard(engine, false, oneLine = true) }
+            }
             if (portrait) {
                 // tall: laid out like the app on a phone. The sound button sits on the right edge under the top cards; along the
                 // bottom, the trip card spans the width (clear of Android Auto's buttons) with the hazards on the left above it and
@@ -406,14 +444,13 @@ private fun CarScreen(engine: NavEngine, a: android.graphics.Rect?, actions: Car
                     // (the row keeps the speed's height, so the hazards line up with it)
                     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.Bottom) {
                         Box(Modifier.weight(1f)) { hazards() }
-                        Box(Modifier.padding(start = 30.dp, top = 14.dp)) { CompositionLocalProvider(LocalDensity provides Density(dens.density * speedScale, dens.fontScale)) { ImmSpeed(engine) } }
+                        if (speedHere == "bottom") Box(Modifier.padding(start = 30.dp, top = 14.dp)) { CompositionLocalProvider(LocalDensity provides Density(dens.density * speedScale, dens.fontScale)) { ImmSpeed(engine) } }
                     }
                     if (guiding && !panelOpen) CompositionLocalProvider(LocalDensity provides Density(dens.density * cardScale, dens.fontScale)) { Box(Modifier.onSizeChanged { tripPx = it.height }) { TripCard(engine, true, oneLine = shortCar) } }
                 }
             } else {
                 var leftColW by remember { mutableStateOf(0) }
                 var leftColH by remember { mutableStateOf(0) }
-                var speedW by remember { mutableStateOf(0) }
                 Column(
                     Modifier.align(Alignment.BottomStart).padding(start = left, bottom = bottom).onSizeChanged { leftColW = it.width; leftColH = it.height }
                         .onGloballyPositioned { report(1, it.boundsInRoot()) },
@@ -425,33 +462,17 @@ private fun CarScreen(engine: NavEngine, a: android.graphics.Rect?, actions: Car
                     // a short screen: the speed stays here in the bottom-left corner, with the one-line trip strip beside it (not in the
                     // bottom right, where it slid with Android Auto's zoom buttons, covered the Mapbox logo and climbed the side)
                     if (shortCar) Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        CompositionLocalProvider(LocalDensity provides Density(dens.density * speedScale, dens.fontScale)) { ImmSpeed(engine) }
-                        if (guiding && !panelOpen) Box(Modifier.weight(1f)) {
+                        if (speedHere == "bottom") CompositionLocalProvider(LocalDensity provides Density(dens.density * speedScale, dens.fontScale)) { ImmSpeed(engine) }
+                        if (guiding && !panelOpen && !tile) Box(Modifier.weight(1f)) {
                             CompositionLocalProvider(LocalDensity provides Density(dens.density * cardScale, dens.fontScale)) { TripCard(engine, false, oneLine = true) }
                         }
                     }
+                    if (!shortCar && speedHere == "bottom") CompositionLocalProvider(LocalDensity provides Density(dens.density * speedScale, dens.fontScale)) { ImmSpeed(engine) }
                     if (!shortCar && guiding && !panelOpen) CompositionLocalProvider(LocalDensity provides Density(dens.density * cardScale, dens.fontScale)) { TripCard(engine, false, oneLine = shortCar) }
                 }
-                // your speed and the limit, bottom right as in the app (clear of Android Auto's zoom buttons); on a small screen where
-                // it would run into the cards on the left, it sits above them instead
-                val crowded = with(dens) { (left + 16.dp + 34.dp + rightBottom).toPx() } + leftColW + speedW > wPx
-                // Down in the bottom corner, level with the trip card and just left of Android Auto's zoom and re-centre buttons
-                // (halfway up the side it looked lost in the middle of the screen)
-                val speedBottom = if (crowded && leftColH > 0) bottom + with(dens) { leftColH.toDp() } + 10.dp else bottom
-                // right up against the edge of the clear map: Android Auto reports the part of the screen its own buttons leave free,
-                // which shrinks while its zoom and re-centre buttons are showing, so the sign sits just beside them then and slides
-                // into the corner when they hide (it used to keep a fixed 92dp gap as well, so it sat well in from either)
+                // battery and range from the car (or the widget), bottom right, clear of Android Auto's zoom buttons
                 val speedEnd by androidx.compose.animation.core.animateDpAsState(insR + 6.dp, tween(280), label = "speedEnd")
-                var speedH by remember { mutableStateOf(0) }
-                if (!shortCar) BoxWithConstraints(Modifier.align(Alignment.BottomEnd).padding(end = speedEnd, bottom = speedBottom, start = 34.dp, top = 20.dp)
-                    .onSizeChanged { speedW = it.width; speedH = it.height }) {
-                    val availableFit = minOf(1f, (maxWidth.value / 220f).coerceAtLeast(0.25f), (maxHeight.value / 150f).coerceAtLeast(0.25f))
-                    val fittedScale = requestedSpeedScale * availableFit
-                    CompositionLocalProvider(LocalDensity provides Density(dens.density * fittedScale, dens.fontScale)) { ImmSpeed(engine) }
-                }
-                // battery and range from the car (or the widget), always shown, right above the speed (the speed keeps its own
-                // place in the corner; the pill is placed by the speed's measured height, so it never pushes the speed away)
-                if (!shortCar) Box(Modifier.align(Alignment.BottomEnd).padding(end = speedEnd, bottom = speedBottom + with(dens) { speedH.toDp() } + 10.dp)) { EvPill(engine) }
+                if (!shortCar) Box(Modifier.align(Alignment.BottomEnd).padding(end = speedEnd, bottom = bottom)) { EvPill(engine) }
             }
         }
 

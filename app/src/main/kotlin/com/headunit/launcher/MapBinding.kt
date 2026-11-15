@@ -1281,7 +1281,11 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
             if (Geo.dist(prev, p) < 0.4 && dh < 0.7 && Math.abs(k - beamK) < 2.0) return
             if (now - beamPushedAt < 100L) return
         }
-        val f = Feature.fromGeometry(Point.fromLngLat(p.lon, p.lat))
+        // the cone starts at the front of the arrow, not under it: 12 m ahead of you along your heading
+        val ahead = 12.0
+        val hr = Math.toRadians(meHeading)
+        val q = LL(p.lat + ahead * Math.cos(hr) / 111_320.0, p.lon + ahead * Math.sin(hr) / (111_320.0 * Math.cos(Math.toRadians(p.lat)).coerceAtLeast(0.01)))
+        val f = Feature.fromGeometry(Point.fromLngLat(q.lon, q.lat))
         f.addNumberProperty("h", meHeading)
         f.addNumberProperty("k", k)
         s.feature(f)

@@ -65,6 +65,10 @@ internal object PreferenceKeys {
     const val CAR_CARD_SIZE = "carcardsize"
     const val CAR_TEXT_SIZE = "cartextsize"
     const val CAR_SPEED_SIZE = "carspeedsize"
+    /** "normal" (the big speed ring or block) or "compact" (a small dark pill with the limit sign and speed) on the car screen */
+    const val CAR_SPEED_STYLE = "carspeedstyle"
+    /** where the car screen's speed sits: "bottom" (bottom left corner), "turn" (under the turn card) or "top" (top right) */
+    const val CAR_SPEED_POS = "carspeedpos"
     const val CAR_BUTTON_SIZE = "carbuttonsize"
     const val CAR_ARROW_SIZE = "cararrowsize"
     const val MAP_THEME = "maptheme"

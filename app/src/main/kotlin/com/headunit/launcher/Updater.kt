@@ -215,6 +215,8 @@ object Updater {
             .filterNot { line ->
                 val value = line.trim()
                 value.startsWith("Horizon Nav 1.0.") ||
+                    // a version heading ("### 1.0.567", or a stray "(567, ### 1.0.567" from a joined list) is not a note
+                    Regex("^[(\\[]?\\d*,?\\s*#*\\s*1\\.0\\.\\d+\\b.*").matches(value) ||
                     value.startsWith("## Horizon Nav 1.0.") ||
                     value.startsWith("### Downloads", ignoreCase = true) ||
                     value.startsWith("**HorizonNav-public.apk", ignoreCase = true) ||

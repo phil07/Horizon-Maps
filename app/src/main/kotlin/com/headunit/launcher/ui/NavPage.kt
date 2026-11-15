@@ -425,12 +425,14 @@ internal fun BoxScope.RoutePreview(engine: NavEngine) {
         }
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) { routeCards() }
         wxLine()
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-            // compact next to Start, so Start keeps most of the width
-            if (engine.prefs.b(PreferenceKeys.FLYOVER, true)) FlyOverBtn(engine, compact = true)
-            if (engine.prefs.b(PreferenceKeys.DEMO, false)) DemoStartBtn(engine)
-            startBtn(Modifier.weight(1f))
+        // Fly over and Demo share a row of their own, so Start navigation keeps the full width (it was squeezed into a column of broken words)
+        if (engine.prefs.b(PreferenceKeys.FLYOVER, true) || engine.prefs.b(PreferenceKeys.DEMO, false)) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                if (engine.prefs.b(PreferenceKeys.FLYOVER, true)) FlyOverBtn(engine, compact = true)
+                if (engine.prefs.b(PreferenceKeys.DEMO, false)) DemoStartBtn(engine)
+            }
         }
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) { startBtn(Modifier.fillMaxWidth()) }
     }
     }
 }

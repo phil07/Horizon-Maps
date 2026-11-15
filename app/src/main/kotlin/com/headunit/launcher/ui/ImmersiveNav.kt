@@ -909,6 +909,8 @@ internal fun EvNowChip(engine: NavEngine) {
 /** Speed limit sign beside a large readout of your current speed. */
 @Composable
 internal fun ImmSpeed(engine: NavEngine) {
+    // the car screen can show the compact pill instead: a small dark pill with the limit sign and speed side by side
+    if (engine.isCar && engine.prefs.s(PreferenceKeys.CAR_SPEED_STYLE, "normal") == "compact") { CompactSpeed(engine); return }
     // the size from Settings (100% = the standard size): it's laid out at that size, so it keeps clear of the edges and other cards
     val pct = engine.prefs.i(PreferenceKeys.SPEED_SIZE, 100).coerceIn(50, 200)
     if (pct == 100) { SpeedBlock(engine); return }
@@ -916,6 +918,25 @@ internal fun ImmSpeed(engine: NavEngine) {
     androidx.compose.runtime.CompositionLocalProvider(
         androidx.compose.ui.platform.LocalDensity provides androidx.compose.ui.unit.Density(base.density * pct / 100f, base.fontScale),
     ) { SpeedBlock(engine) }
+}
+
+@Composable
+private fun CompactSpeed(engine: NavEngine) {
+    val show = engine.prefs.b(PreferenceKeys.MAPSPEED, true)
+    val lim = engine.speedLimit
+    val sign = lim != null || engine.noLimit
+    if (!sign && !show) return
+    val k = if (engine.imperial) 2.23694 else 3.6
+    Row(
+        Modifier.clip(RoundedCornerShape(50)).background(Color(0xE6101418)).padding(start = 8.dp, end = 14.dp, top = 6.dp, bottom = 6.dp),
+        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        if (sign) SpeedLimitSign(engine, 44.dp)
+        if (show) Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text("${Math.round(engine.shownSpeed * k)}", color = speedTint(engine) ?: Color.White, fontSize = 28.sp, fontWeight = FontWeight.Bold, maxLines = 1)
+            Text(if (engine.imperial) "mph" else "km/h", color = Color.White.copy(alpha = 0.7f), fontSize = 12.sp, maxLines = 1, modifier = Modifier.padding(bottom = 4.dp))
+        }
+    }
 }
 
 @Composable
