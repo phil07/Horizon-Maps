@@ -1,8 +1,10 @@
 ## Unreleased
 
-### Behoben
-- Android Auto: Tempolimit und Geschwindigkeit sind wieder unten rechts, wie vorher. Auf kurzen Bildschirmen bleiben sie unten links. Die Auswahl „Untere Ecke“ ist der Standard. Unter der Abbiege-Karte und Oben rechts gibt es weiterhin als Alternativen.
-  EN: Android Auto: the speed limit and speed are back at the bottom right, as before. On short screens they stay bottom left. "Bottom corner" is the default. "Under the turn card" and "Top right" remain as alternatives.
+### Verbessert
+- Ladeplanung unterwegs: Es werden nur noch die Ladesäulen auf dem Rest der Route abgefragt, nicht mehr die der ganzen Strecke. Das spart Datenabrufe und lässt mehr Platz für die Säulen, die noch vor dir liegen.
+  EN: Charging plan on the way: only the chargers on the rest of the route are looked up, no longer those of the whole trip. That saves data and leaves more room for the chargers still ahead of you.
+- Leistungsanzeige (Einstellungen › Leistungsanzeige): zeigt jetzt auch, wie lange die App für jede neue Position rechnet, und wie oft das Android-Auto-Bild neu aufgebaut wird.
+  EN: Performance meter (Settings › Performance meter): now also shows how long the app works on each new position, and how often the Android Auto screen is laid out again.
 
 ## 1.0.246 — 2026-10-28
 

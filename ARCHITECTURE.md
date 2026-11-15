@@ -52,7 +52,7 @@ API-key, map-style/detail, Mapbox migration/prompt, locator appearance, and comm
 
 ## Verification status
 
-The new geometry helpers have standalone Kotlin smoke coverage and corresponding JUnit tests. The repository workflow already runs `:app:testPublicDebugUnitTest`, assembles the release APK, and verifies its signature. A full local Android build remains unavailable where this archive was prepared because Gradle and the Android SDK are not installed; CI must pass before treating a release as verified.
+The new geometry helpers have standalone Kotlin smoke coverage and corresponding JUnit tests. The repository workflow already runs `:app:testPublicReleaseUnitTest`, assembles the release APK, and verifies its signature. A full local Android build remains unavailable where this archive was prepared because Gradle and the Android SDK are not installed; CI must pass before treating a release as verified.
 
 
 ### Map worker lifecycle hardening

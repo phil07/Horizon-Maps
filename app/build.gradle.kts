@@ -68,6 +68,8 @@ android {
             // the key comes from the flavor: the GitHub build ("public") and the Google Play build ("play") are signed differently
         }
     }
+    // the unit tests run against the release build, so CI compiles the app once for the tests and the APK (not a debug build as well)
+    testBuildType = "release"
     testOptions { unitTests.isReturnDefaultValues = true }
     lint { checkReleaseBuilds = false; abortOnError = false }
     // The public flavor suffix gives the package ID com.headunit.nav.public, preserving update compatibility with existing releases.

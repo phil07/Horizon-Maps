@@ -3964,6 +3964,9 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
     /** One line for the performance meter, refreshed every second while it's turned on. */
     var perfLine by mutableStateOf("")
     private var perfRenders = 0; private var perfTicks = 0; private var perfNs = 0L
+    private var perfFixes = 0; private var perfFixNs = 0L; private var perfCarDraws = 0
+    // this engine's positions worked through, the time they took and the slowest since the meter last read it (the phone and the car each have an engine)
+    private var fixCount = 0; private var fixNsSum = 0L; private var fixNsMax = 0L
 
     private fun perfSample() {
         val r = PerfStats.renders - perfRenders; val t = PerfStats.ticks - perfTicks
@@ -3972,7 +3975,15 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         val p = prefs.s(PreferenceKeys.MAP_FPS, "auto")
         val cam = if (p == "auto") "$autoFps auto" else p
         perfLine = "Map $r fps · camera $t/s ($cam) · app " + String.format(Locale.UK, "%.1f", if (t > 0) ns / t / 1e6 else 0.0) +
-            " ms · longest pause ${PerfStats.gapMsMax} ms · lights ${try { map.signalShort() } catch (e: Throwable) { "?" }}"
+            " ms · longest pause ${PerfStats.gapMsMax} ms · lights ${try { map.signalShort() } catch (e: Throwable) { "?" }}" +
+            // each position worked through: how many a second, the average and the slowest (ms); and the car screen's redraws a second
+            run {
+                val f = fixCount - perfFixes; val fns = fixNsSum - perfFixNs; val cd = PerfStats.carDraws - perfCarDraws
+                perfFixes = fixCount; perfFixNs = fixNsSum; perfCarDraws = PerfStats.carDraws
+                val mx = fixNsMax; fixNsMax = 0L
+                " · position $f/s " + String.format(Locale.UK, "%.1f", if (f > 0) fns / f / 1e6 else 0.0) + " ms (max " + String.format(Locale.UK, "%.1f", mx / 1e6) + ")" +
+                    (if (isCar) " · car screen $cd/s" else "")
+            }
         PerfStats.gapMsMax = 0
     }
 
@@ -4134,6 +4145,17 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
     }
 
     private fun onPosition(p: Fix, force: Boolean) {
+        if (!PerfStats.on) { onPositionInner(p, force); return }
+        // the performance meter: how long each position takes on the main thread (the map can't draw meanwhile)
+        val t0 = System.nanoTime()
+        try { onPositionInner(p, force) } finally {
+            val ns = System.nanoTime() - t0
+            fixCount++; fixNsSum += ns
+            if (ns > fixNsMax) fixNsMax = ns
+        }
+    }
+
+    private fun onPositionInner(p: Fix, force: Boolean) {
         fix = p
         val newFix = p !== lastMeasured
         if (newFix) isStill = try { stillCheck(p) } catch (e: Exception) { false }
@@ -6944,7 +6966,8 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         val leftKm = (r.len - here) / 1000.0
         fun aheadKm(n: Nearby) = (n.dist - here) / 1000.0
         // the chargers along the route are looked up while the heights load (both are network calls)
-        val candsJob = scope.async { withContext(Dispatchers.IO) { chargersAlong(r) } }
+        // (while driving only the rest of the route is asked about: the chargers behind you are of no use, and the lists are capped)
+        val candsJob = scope.async { withContext(Dispatchers.IO) { chargersAlong(r, here) } }
         // the heights along the route first (hills change the range a lot)
         evElevNow(r)
         if (route !== r && routes.none { it === r }) { candsJob.cancel(); return null }
@@ -7269,7 +7292,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
     }
 
     /** Chargers along the whole route, with where they are on it (metres) and the detour. */
-    private fun chargersAlong(r: Route): List<Nearby> {
+    private fun chargersAlong(r: Route, from: Double = 0.0): List<Nearby> {
         val out = ArrayList<Nearby>()
         val minKw = prefs.i(PreferenceKeys.EV_MIN_KW, 50)
         // the power filter from Settings drops chargers known to be slower. Ones of unknown power stay, as a last resort
@@ -7281,7 +7304,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
                 val ttJob = async(Dispatchers.IO) {
                     val l = ArrayList<Nearby>()
                     if (hasKey && online()) {
-                        val line = RouteExtras.line(r, 0.0, r.len, 800.0, 140)
+                        val line = RouteExtras.line(r, from, r.len, 800.0, 140)
                         try {
                             for ((n, secs) in TomTomRest.poiAlong(apiKey, "charging", line, 600)) {
                                 val pr = RouteExtras.project(r, n.place.pos, 3000.0) ?: continue
@@ -7294,7 +7317,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
                 val regJob = async(Dispatchers.IO) {
                     // the German register / Open Charge Map: the power and operator of chargers TomTom lists without them (filled in before
                     // the power filter, so one of unknown power can turn out fast or slow), and the fast chargers TomTom left out
-                    val regLine = RouteExtras.line(r, 0.0, r.len, 1000.0, 150)
+                    val regLine = RouteExtras.line(r, from, r.len, 1000.0, 150)
                     val reg0: List<Nearby> = if (online()) ChargerInfo.along(prefs, regLine) else emptyList()
                     // the Netherlands: NDW's national register too, each site counted once with the others
                     val regNl: List<Nearby> = if (online() && regLine.any { it.lat in 50.7..53.6 && it.lon in 3.3..7.3 })
@@ -7318,7 +7341,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
             out += added
             // TomTom gives at most 20 along the route: add OpenStreetMap's when few of known power are left
             if (out.count { it.kw != null } < 10 && online()) {
-                val line = RouteExtras.line(r, 0.0, r.len, 1500.0, 45)
+                val line = RouteExtras.line(r, from, r.len, 1500.0, 45)
                 for (n in ChargerInfo.enrich(Overpass.nearbyAlong("charging", line, 900), reg)) {
                     // (one the register already added would be listed twice)
                     if (!fast(n) || ChargerInfo.near(n.place.pos, added)) continue

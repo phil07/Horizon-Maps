@@ -175,6 +175,8 @@ internal fun Modifier.carTap(id: String, action: () -> Unit): Modifier {
 @Composable
 private fun CarScreen(engine: NavEngine, a: android.graphics.Rect?, actions: CarActions, onCover: (Int) -> Unit) {
     BoxWithConstraints(Modifier.fillMaxSize()) {
+        // (counted for the performance meter: how often this whole layout is worked out again)
+        if (com.headunit.launcher.PerfStats.on) androidx.compose.runtime.SideEffect { com.headunit.launcher.PerfStats.carDraws++ }
         val dens = LocalDensity.current
         val cardScale = engine.prefs.i(PreferenceKeys.CAR_CARD_SIZE, 100).coerceIn(70, 150) / 100f
         val buttonScale = engine.prefs.i(PreferenceKeys.CAR_BUTTON_SIZE, 100).coerceIn(70, 150) / 100f
