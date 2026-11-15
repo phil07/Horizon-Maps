@@ -1,5 +1,6 @@
 package com.headunit.launcher.ui
 
+import com.headunit.launcher.beginDemo
 import com.headunit.launcher.R
 import com.headunit.launcher.Lang
 import androidx.compose.ui.res.stringResource

@@ -31,8 +31,8 @@ import kotlin.math.max
 import kotlin.math.min
 import androidx.compose.ui.res.stringResource
 
-class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding) : LocationListener {
-    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
+class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding) : LocationListener {
+    internal val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
     /** Place searches run here, apart from everything else, so one stuck on a slow server can just be left behind. */
     private val searchScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
@@ -106,20 +106,20 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
     private var limitFails = 0
     var cameraDist by mutableStateOf<Int?>(null)
     var incidentAhead by mutableStateOf<IncidentAhead?>(null)
-    private var incAt = 0L
-    private var incMatches: List<Triple<Incident, Double, String>> = emptyList()
+    internal var incAt = 0L
+    internal var incMatches: List<Triple<Incident, Double, String>> = emptyList()
     /** Autobahn GmbH's roadworks and closures on the motorways of the route (AutobahnRest): fetched at the route's start and every 5 minutes. */
-    private var abAt = 0L
-    private var abRoads = ""
-    private var abItems: List<Incident> = emptyList()
-    private var routeCams: List<Pair<LL, Double>> = emptyList()
+    internal var abAt = 0L
+    internal var abRoads = ""
+    internal var abItems: List<Incident> = emptyList()
+    internal var routeCams: List<Pair<LL, Double>> = emptyList()
     private var camsRoute: Route? = null
     private var camsAt = 0L
-    private var hazardSig = 0
-    private var hzProgress = 0.0
-    private var policeSig = 0
-    private val policeAlerted = HashSet<Long>()
-    private val incAlerted = HashSet<String>()
+    internal var hazardSig = 0
+    internal var hzProgress = 0.0
+    internal var policeSig = 0
+    internal val policeAlerted = HashSet<Long>()
+    internal val incAlerted = HashSet<String>()
     var nearby by mutableStateOf<List<Nearby>>(emptyList())
     var nearbyKind by mutableStateOf<String?>(null)
     var nearbyBusy by mutableStateOf(false)
@@ -133,7 +133,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
     var tripFrom: LL? = null
     /** A short, quiet piece of advice for the conditions ("Heavy rain · take it steady"), or null. */
     var advice by mutableStateOf<String?>(null)
-    private var adviceAt = 0L
+    internal var adviceAt = 0L
 
     /** Flying over the chosen route in 3D (Fly over route): the start countdown waits while it plays. */
     var flyingOver by mutableStateOf(false)
@@ -237,10 +237,10 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
     var radar by mutableStateOf<List<RadarItem>>(emptyList())
     private var radarSig = 0
     private var bendsFor: Route? = null
-    private var sharpFor: Route? = null
-    private var sharp: List<SharpBend> = emptyList()
-    private var sharpShown = false
-    private var bends: List<Pair<Double, Int>> = emptyList()
+    internal var sharpFor: Route? = null
+    internal var sharp: List<SharpBend> = emptyList()
+    internal var sharpShown = false
+    internal var bends: List<Pair<Double, Int>> = emptyList()
     var prediction by mutableStateOf<Prediction?>(null)
     private var predictionAt = 0L
     var arrivalParking by mutableStateOf<Nearby?>(null)
@@ -252,7 +252,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         try { val o = org.json.JSONObject(prefs.s(PreferenceKeys.ROADFAM, "{}")); for (k in o.keys()) m[k] = o.optInt(k) } catch (e: Exception) { }
         m
     }
-    private var lastFasterCheck = 0L
+    internal var lastFasterCheck = 0L
     /** Destination of a trip that was still running when the app last closed. */
     var resume by mutableStateOf<Place?>(null)
     private var navStartMs = 0L
@@ -305,7 +305,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
     /** The charging stops that were put on this trip (by the plan or the "Add stops" pill), kept for their charge and minutes. */
     var evPlanned by mutableStateOf<List<EvStop>>(emptyList())
     /** Where the charging stops were last added on their own: once per destination, so stops you took off don't come back. */
-    private var evAutoDest: LL? = null
+    internal var evAutoDest: LL? = null
     /** The warning that came with the plan put on the trip (a stretch it couldn't cover), shown again once the stops are on. */
     private var evPlanWarn: String? = null
     /** The route whose charging stops are still being worked out (the countdown waits for them, as they may be added to it). */
@@ -316,41 +316,41 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
     private var wrongCount = 0
     private var wrongAt = 0L
 
-    private class Placed(
+    internal class Placed(
         val route: Route, val services: List<PoiOnRoute>, val serviceFuel: Map<RoutePoi, String>, val hz: List<PoiOnRoute>,
         val avg: List<AvgOnRoute>, val stops: List<Double>, val zones: List<Triple<String, Double, String>>,   // name, where, country
     )
-    private var rawServices: List<RoutePoi> = emptyList()
-    private var servicesFor: Place? = null
-    private var servicesBusy = false
-    private var servicesRetryAt = 0L
-    private var rawHz: List<RoutePoi> = emptyList()
-    private var rawAvg: List<AvgDef> = emptyList()
-    private var hzWinEnd = -1.0
-    private var hzWinRoute: Route? = null
-    private var hzBusy = false
-    private var hzRetryAt = 0L
-    private var hzLastAt = 0L
+    internal var rawServices: List<RoutePoi> = emptyList()
+    internal var servicesFor: Place? = null
+    internal var servicesBusy = false
+    internal var servicesRetryAt = 0L
+    internal var rawHz: List<RoutePoi> = emptyList()
+    internal var rawAvg: List<AvgDef> = emptyList()
+    internal var hzWinEnd = -1.0
+    internal var hzWinRoute: Route? = null
+    internal var hzBusy = false
+    internal var hzRetryAt = 0L
+    internal var hzLastAt = 0L
     // motorway junctions (names and numbers) from OpenStreetMap, found with the hazards, and where they are on the route
-    private var rawJcts: List<Jct> = emptyList()
-    @Volatile private var jctsOn: Pair<Route, List<JctOnRoute>>? = null
-    private var jctsSig = 0
-    private var jctsVersion = 0
-    private var jctsPlacing = false
-    private var placed: Placed? = null
-    private var placing = false
-    private var placedSig = 0
-    private var zonesVersion = 0
-    private var avgIn: AvgOnRoute? = null
-    private var avgEnterAt = 0L
-    private var avgEnterProg = 0.0
-    private var avgOverWarned = false
-    private val avgAlerted = HashSet<Long>()
-    private val hzAlerted = HashSet<String>()
-    private var lastBumpAt = 0L
-    private val zoneAlerted = HashSet<String>()
-    private var barSig = 0
-    private var servicesSig = 0
+    internal var rawJcts: List<Jct> = emptyList()
+    @Volatile internal var jctsOn: Pair<Route, List<JctOnRoute>>? = null
+    internal var jctsSig = 0
+    internal var jctsVersion = 0
+    internal var jctsPlacing = false
+    internal var placed: Placed? = null
+    internal var placing = false
+    internal var placedSig = 0
+    internal var zonesVersion = 0
+    internal var avgIn: AvgOnRoute? = null
+    internal var avgEnterAt = 0L
+    internal var avgEnterProg = 0.0
+    internal var avgOverWarned = false
+    internal val avgAlerted = HashSet<Long>()
+    internal val hzAlerted = HashSet<String>()
+    internal var lastBumpAt = 0L
+    internal val zoneAlerted = HashSet<String>()
+    internal var barSig = 0
+    internal var servicesSig = 0
     /** Moving at speed on a route: the map UI simplifies itself. */
     val driving: Boolean get() = route != null && (fix?.speed ?: 0.0) > 8.0
     private var lastSpd = 0.0
@@ -414,7 +414,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
     @Volatile private var ttDownUntil = 0L
     @Volatile private var mbDownUntil = 0L
     /** TomTom is being skipped for now (so the speed limits and incidents come from Mapbox too). */
-    private fun ttDown() = System.currentTimeMillis() < ttDownUntil && hasMapbox
+    internal fun ttDown() = System.currentTimeMillis() < ttDownUntil && hasMapbox
 
     /**
      * Runs [call] with the service in use, and if that service itself fails (not a lack of signal, and not "no route there"),
@@ -519,7 +519,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
     }
 
     /** Routes from one service ("mapbox" or "tomtom"). */
-    private fun routesFrom(p: String, from: LL, to: LL, alternatives: Boolean, departAtMs: Long, via: List<LL>, headingDeg: Double, quick: Boolean): List<Route> =
+    internal fun routesFrom(p: String, from: LL, to: LL, alternatives: Boolean, departAtMs: Long, via: List<LL>, headingDeg: Double, quick: Boolean): List<Route> =
         if (p == "mapbox") try { MapboxRest.curbArrival = prefs.b(PreferenceKeys.CURB_ARRIVAL, true); MapboxRest.routes(mbToken, from, to, alternatives, departAtMs, via, headingDeg, quick, leftTraffic) } catch (e: Exception) { noteMbRefused(e); throw e }
         else TomTomRest.routes(apiKey, from, to, alternatives, departAtMs, via, headingDeg, quick)
 
@@ -533,14 +533,14 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
      */
     /** The way you're driving (degrees), when moving and [from] is where you are; -1 otherwise. Sent with every route request, so
      *  the route starts the way you're going (not with a U-turn behind you) and a check for a faster way compares like with like. */
-    private fun driveHeading(from: LL? = null): Double {
+    internal fun driveHeading(from: LL? = null): Double {
         val f = fix ?: return -1.0
         if (f.speed < 2.0 || f.heading < 0) return -1.0
         if (from != null && Geo.dist(from, f.pos) > 80.0) return -1.0
         return f.heading
     }
 
-    private fun netRoutes(from: LL, to: LL, alternatives: Boolean, departAtMs: Long = 0L, via: List<LL> = emptyList(), headingDeg: Double = -1.0, quick: Boolean = false,
+    internal fun netRoutes(from: LL, to: LL, alternatives: Boolean, departAtMs: Long = 0L, via: List<LL> = emptyList(), headingDeg: Double = -1.0, quick: Boolean = false,
                           askBoth: Boolean = false): List<Route> =
         netRoutesRaw(from, to, alternatives, departAtMs, via, headingDeg, quick, askBoth)
             .also { rs -> if (lastRouteProvider == "tomtom" && rs.isNotEmpty()) mapboxLanesFor(rs, from, to, via, headingDeg) }
@@ -700,9 +700,9 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         withBackup { p -> if (p == "mapbox") MapboxRest.poiNearby(mbToken, kind, c, radius) else TomTomRest.poiNearby(apiKey, kind, c, radius) }
 
     // ---- internals ----
-    private var tts: TextToSpeech? = null
-    private var ttsReady = false
-    private val said = HashSet<String>()
+    internal var tts: TextToSpeech? = null
+    internal var ttsReady = false
+    internal val said = HashSet<String>()
     /** The road point for a fix, when it is within reach of the fix (the GPS error plus a little), otherwise the fix itself. */
     private fun snapNear(p: Fix): LL {
         val s = Overpass.snapToRoad(p.pos, p.heading) ?: map.snapToRoad(p.pos, p.heading) ?: return p.pos
@@ -710,8 +710,8 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         return if (Geo.dist(s, p.pos) <= reach) s else p.pos
     }
 
-    private var lastIdx = 0
-    private var offCount = 0
+    internal var lastIdx = 0
+    internal var offCount = 0
     /** When the car first left the route in the current stretch of being off it (0 when it's on the route). */
     private var offSince = 0L
     /** Off-route strikes before the route is recalculated: 1 (was 3, then 2) so a wrong turn is caught at the first clear sign. */
@@ -728,14 +728,14 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
     private val SIDE_HOLD_MS = 8000L
     private var sideSince = 0L
     /** How far along the route you last were for certain, and when: a jump far beyond it is a different road, not progress. */
-    private var trustProg = -1.0
+    internal var trustProg = -1.0
     private var trustAt = 0L
-    private var lastReroute = 0L
-    private var lastDraw = 0L
+    internal var lastReroute = 0L
+    internal var lastDraw = 0L
     private var drawnWhole = false
-    private var lastDrawProg = 0.0
-    private var simJob: Job? = null
-    private var simDist = 0.0
+    internal var lastDrawProg = 0.0
+    internal var simJob: Job? = null
+    internal var simDist = 0.0
     private var lastRaw: LL? = null
     private var lastGpsTime = 0L
     private var msgToken = 0
@@ -745,7 +745,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
     private var limitPos: LL? = null
     private var camAt = 0L
     private var camPos: LL? = null
-    private var cameras: List<LL> = emptyList()
+    internal var cameras: List<LL> = emptyList()
     private val camAlerted = HashSet<LL>()
     private var drove = false
     private var stillSince = 0L
@@ -900,18 +900,18 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
     /** Which sound channel the voice uses: "nav" (navigation, the normal one) or "media" (Settings > Sound > Voice channel). Some
      *  head units have the navigation channel turned right down or not wired to the speakers, so the beeps (on the media channel)
      *  sounded but the spoken directions never did. */
-    private var voiceChan = "nav"
-    private val speechAttrs: android.media.AudioAttributes get() = android.media.AudioAttributes.Builder()
+    internal var voiceChan = "nav"
+    internal val speechAttrs: android.media.AudioAttributes get() = android.media.AudioAttributes.Builder()
         .setUsage(if (voiceChan == "media") android.media.AudioAttributes.USAGE_MEDIA else android.media.AudioAttributes.USAGE_ASSISTANCE_NAVIGATION_GUIDANCE)
         .setContentType(android.media.AudioAttributes.CONTENT_TYPE_SPEECH).build()
     private val audioMgr = ctx.getSystemService(Context.AUDIO_SERVICE) as android.media.AudioManager
     private var focusReq: android.media.AudioFocusRequest? = null
 
     /** Announcements not yet finished. The music is ducked (lowered, not paused) while there are any. */
-    private var spoken = 0
+    internal var spoken = 0
 
     /** Lowers the music while a spoken instruction plays, so it can be heard. Asks for "may duck" only: the music keeps playing. */
-    private fun duck() {
+    internal fun duck() {
         if (focusReq != null) return
         try {
             val req = android.media.AudioFocusRequest.Builder(android.media.AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_MAY_DUCK)
@@ -925,7 +925,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
     }
 
     /** Puts the music back up once every announcement has finished (not after each one, so it doesn't flicker between them). */
-    private fun unduck() {
+    internal fun unduck() {
         spoken = (spoken - 1).coerceAtLeast(0)
         if (spoken > 0) return
         try { focusReq?.let { audioMgr.abandonAudioFocusRequest(it) } } catch (e: Exception) { }
@@ -999,7 +999,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
 
     /** The country you're in (from the GPS), remembered between drives; blank until it's known. */
     var detectedCountry by mutableStateOf(prefs.s(PreferenceKeys.COUNTRYDETECTED, ""))
-        private set
+        internal set
     // road numbers on routes are written the way this country signs them ("A 4" in Germany, never the E-number)
     init { RoadRefs.country = detectedCountry.uppercase() }
 
@@ -1412,7 +1412,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
      * The short beep (speeding, camera ahead, turn prompts). It plays on the navigation channel, as the spoken directions do, so it is
      * heard over the radio or the car's own music too (a ToneGenerator on the music stream was drowned out or silent in the car).
      */
-    private fun chime(tone: Int = android.media.ToneGenerator.TONE_PROP_ACK) {
+    internal fun chime(tone: Int = android.media.ToneGenerator.TONE_PROP_ACK) {
         if (soundMode == 2 || quiet()) return
         try {
             val rate = 22050
@@ -1594,7 +1594,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
     }
 
     /** Before the border: once per country and route, about 30 km ahead (or straight away when it's nearer). */
-    private fun checkVignette(r: Route, progress: Double) {
+    internal fun checkVignette(r: Route, progress: Double) {
         if (vignetteRoute !== r || previewing || simMode != 0 || !prefs.b(PreferenceKeys.VIGNETTE_WARN, true)) return
         for (n in routeVignette) {
             val ahead = n.off - progress
@@ -1606,7 +1606,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         }
     }
 
-    private fun updateRouteZones() {
+    internal fun updateRouteZones() {
         val r = route ?: run { routeZones = emptyList(); routeVignette = emptyList(); vignetteRoute = null; return }
         if (vignetteRoute !== r) {
             scope.launch {
@@ -2291,7 +2291,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
     }
 
     /** Pushes the route preferences from Settings into the routing client. */
-    private fun syncRoutePrefs(from: LL? = null, to: LL? = null) {
+    internal fun syncRoutePrefs(from: LL? = null, to: LL? = null) {
         // areas to keep out of: roads you asked to avoid on this trip, and clean air zones when that is switched on
         // (a zone you start or finish in cannot be avoided, so it is left out)
         val rects = ArrayList<Pair<LL, LL>>(sessionAvoid)
@@ -2454,9 +2454,9 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
     }
 
     /** The route chosen on the cards, while the trip is worked out again through its charging stops (see startRoute). */
-    private var evPreferRoute: Route? = null
+    internal var evPreferRoute: Route? = null
     /** The route being driven was picked over a quicker one: faster ways are only offered (a card for 7 s), never switched to. */
-    private var pickedSlower = false
+    internal var pickedSlower = false
     /** Starting was asked for while the charging was still being planned: it starts as soon as the plan is in. */
     private var evStartPending = false
 
@@ -2489,7 +2489,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         return out
     }
 
-    private fun routeOverlap(a: Route, b: Route): Double {
+    internal fun routeOverlap(a: Route, b: Route): Double {
         if (a.pts.isEmpty()) return 0.0
         val step = maxOf(1, a.pts.size / 60)
         var n = 0; var on = 0
@@ -2591,7 +2591,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
     private var queueMarks: List<QueueMark> = emptyList()
     private fun pushQueues(list: List<QueueMark>) { if (list == queueMarks) return; queueMarks = list; map.setQueues(list) }
 
-    private fun drawRoutes() {
+    internal fun drawRoutes() {
         val r = route ?: return
         // while choosing a route: the queues of every route, the others dimmed
         if (previewing) pushQueues(routes.indices.flatMap { i -> queuesFor(routes[i], 0.0, i != active) })
@@ -2615,9 +2615,9 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         if (d != null) startRoute(d, 0, true)
     }
 
-    private var rerouting = false
+    internal var rerouting = false
 
-    private fun reroute() {
+    internal fun reroute() {
         val d = dest ?: return
         if (rerouting || fix == null) return
         if (System.currentTimeMillis() - lastReroute < 4000) return
@@ -3125,7 +3125,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
     /** A notice card under the turn card: [kind] "wx" (weather warning) or "lane" (rescue lane). */
     class Notice(val kind: String, val title: String, val text: String, val level: Int = 2, val action: String? = null)
     var notice by mutableStateOf<Notice?>(null)
-    private fun showNotice(n: Notice, ms: Long) { notice = n; scope.launch { delay(ms); if (notice === n) notice = null } }
+    internal fun showNotice(n: Notice, ms: Long) { notice = n; scope.launch { delay(ms); if (notice === n) notice = null } }
     fun dismissNotice() { notice = null }
 
     private var wxAt = 0L
@@ -3856,7 +3856,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
     }
 
     // ---- guidance ----
-    private fun snap(r: Route, p: LL): RouteSnap {
+    internal fun snap(r: Route, p: LL): RouteSnap {
         val result = RouteMatcher.snap(r, p, lastIdx)
         lastIdx = result.segmentIndex
         return result
@@ -3896,7 +3896,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
     private var camPad = 0.0
     private var camLeft = 0.0
 
-    private fun angDiff(a: Double, b: Double): Double = ((a - b + 540.0) % 360.0 + 360.0) % 360.0 - 180.0
+    internal fun angDiff(a: Double, b: Double): Double = ((a - b + 540.0) % 360.0 + 360.0) % 360.0 - 180.0
     private fun easeAngle(cur: Double, tgt: Double, dt: Double, tau: Double): Double =
         ((cur + angDiff(tgt, cur) * (1.0 - Math.exp(-dt / tau))) % 360.0 + 360.0) % 360.0
 
@@ -4144,7 +4144,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         return true
     }
 
-    private fun onPosition(p: Fix, force: Boolean) {
+    internal fun onPosition(p: Fix, force: Boolean) {
         if (!PerfStats.on) { onPositionInner(p, force); return }
         // the performance meter: how long each position takes on the main thread (the map can't draw meanwhile)
         val t0 = System.nanoTime()
@@ -4548,7 +4548,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         return (2.0 * ((left + right) / 2.0 - 0.5)).coerceIn(-0.42, 0.42)
     }
 
-    private fun incidentLabel(i: Incident): String = when (i.cat) {
+    internal fun incidentLabel(i: Incident): String = when (i.cat) {
         "roadWorks" -> Lang.t("Baustelle", "Roadworks"); "roadClosed" -> Lang.t("Straße gesperrt", "Road closed"); "accident" -> Lang.t("Unfall", "Accident")
         "jam" -> Lang.t("Stau", "Traffic jam"); "laneClosed" -> Lang.t("Fahrstreifen gesperrt", "Lane closed"); "danger" -> Lang.t("Gefahr", "Hazard")
         "wrongway" -> Lang.t("Falschfahrer", "Wrong-way driver")
@@ -4788,7 +4788,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         return when (sigOffs.count { it > progress - 5.0 && it <= turnOff + 25.0 }) { 1 -> 1; 2 -> 2; else -> 0 }
     }
 
-    private fun updateRouteCams(r: Route, @Suppress("UNUSED_PARAMETER") progress: Double) {
+    internal fun updateRouteCams(r: Route, @Suppress("UNUSED_PARAMETER") progress: Double) {
         // (the ones found along the route and the ones from the search around you: either can hold a camera on the route)
         val cams = (knownCams + aroundCams).distinctBy { Math.round(it.lat * 1e5) * 1000003L + Math.round(it.lon * 1e5) }.filterNot { atAvgEnd(it) }
         if (camsRoute === r && camsCount == cams.size) return
@@ -4844,11 +4844,11 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
     class Report(val kind: String, val pos: LL, val t: Long, val sid: Long = 0L, val shared: Boolean = false)
 
     /** How long each kind of report lasts, its map icon, and what is said when you come up to it. */
-    private fun reportLife(k: String) = when (k) { "roadworks" -> 12 * 3_600_000L; "closed" -> 3 * 3_600_000L; "jam" -> 1_800_000L; "hazard" -> 3_600_000L; "accident", "breakdown" -> 2 * 3_600_000L; "mobilecam" -> 4 * 3_600_000L; else -> 3 * 3_600_000L }
-    private fun reportIcon(k: String) = when (k) { "roadworks" -> 1; "closed" -> 2; "accident" -> 4; "hazard" -> 5; "breakdown" -> 6; "mobilecam" -> 7; "jam" -> 8; else -> 3 }
+    internal fun reportLife(k: String) = when (k) { "roadworks" -> 12 * 3_600_000L; "closed" -> 3 * 3_600_000L; "jam" -> 1_800_000L; "hazard" -> 3_600_000L; "accident", "breakdown" -> 2 * 3_600_000L; "mobilecam" -> 4 * 3_600_000L; else -> 3 * 3_600_000L }
+    internal fun reportIcon(k: String) = when (k) { "roadworks" -> 1; "closed" -> 2; "accident" -> 4; "hazard" -> 5; "breakdown" -> 6; "mobilecam" -> 7; "jam" -> 8; else -> 3 }
     fun reportName(k: String) = when (k) { "roadworks" -> Lang.t("Baustelle", "Roadworks"); "closed" -> Lang.t("Straße gesperrt", "Road closed"); "accident" -> str(R.string.ui_077); "hazard" -> str(R.string.ui_076); "breakdown" -> str(R.string.ui_078); "mobilecam" -> str(R.string.ui_079); "jam" -> str(R.string.ui_103); else -> str(R.string.ui_075) }
     /** The kinds this version knows (a shared report of a kind added later is left out rather than shown as police). */
-    private val reportKinds = setOf("police", "accident", "hazard", "breakdown", "mobilecam", "jam", "roadworks", "closed")
+    internal val reportKinds = setOf("police", "accident", "hazard", "breakdown", "mobilecam", "jam", "roadworks", "closed")
 
     /** Your own reports still in force (older police-only reports are read too). Stored as "kind,lat,lon,time[,server id]". */
     fun reportsActive(): List<Report> {
@@ -4924,254 +4924,19 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
 
     // ---- reports shared by other drivers ----
     /** Other drivers' reports near you or along the route, from the last fetch (already narrowed down). */
-    @Volatile private var sharedShown: List<SharedReports.Item> = emptyList()
-    private var sharedAt = 0L
-    private var sharedRoute: Route? = null
-    @Volatile private var sharedBusy = false
+    @Volatile internal var sharedShown: List<SharedReports.Item> = emptyList()
+    internal var sharedAt = 0L
+    internal var sharedRoute: Route? = null
+    @Volatile internal var sharedBusy = false
 
     /** "<Name> noch da?" for a shared report you are passing: answered with [answerVote], or gone by itself after 12 s. */
     class VotePrompt(val id: Long, val kind: String, val name: String)
     var votePrompt by mutableStateOf<VotePrompt?>(null)
-    private val votePrompted = HashSet<Long>()
+    internal val votePrompted = HashSet<Long>()
 
-    /** Your own reports and the shared ones from others (each shown once: one that came back from the server as yours is left out). */
-    private fun allReports(): List<Report> {
-        val own = reportsActive()
-        val shared = sharedShown
-        if (shared.isEmpty() || !SharedReports.sharing(prefs)) return own
-        val mine = own.mapTo(HashSet()) { it.sid }
-        val now = System.currentTimeMillis()
-        val out = ArrayList<Report>(own)
-        for (s in shared) if (s.exp > now && !s.mine && s.kind in reportKinds && s.id !in mine && !SharedReports.isOwn(s.id) && !SharedReports.isGone(s.id))
-            out += Report(s.kind, s.pos, s.t, s.id, shared = true)
-        return out
-    }
-
-    /** Fetches the shared reports every 2 minutes, and at once when the route changes (a new one, a reroute, or none any more). */
-    private fun refreshShared(p: Fix) {
-        // sharing off (or no server): no requests at all, and nothing shared shown
-        if (!SharedReports.sharing(prefs)) { if (sharedShown.isNotEmpty()) { sharedShown = emptyList(); SharedReports.shownCount = 0 }; return }
-        val now = System.currentTimeMillis()
-        val r = route
-        if (sharedBusy || (r === sharedRoute && now - sharedAt < 120_000L)) return
-        sharedBusy = true; sharedAt = now; sharedRoute = r
-        val car = p.pos
-        scope.launch {
-            try {
-                val found = withContext(Dispatchers.IO) { try { fetchShared(car, r) } catch (e: Throwable) { null } }
-                if (found != null) { sharedShown = found; SharedReports.shownCount = found.size; policeSig = 0 }
-            } finally { sharedBusy = false }
-        }
-    }
-
-    /**
-     * The shared reports within 30 km of the car or within about 1 km of the route. The area asked for is the car's 30 km box and
-     * the route's box (1 km wider) together; when that is more than the server's 6 degrees a side, the route is asked for in parts
-     * instead. Null when every request failed.
-     */
-    private fun fetchShared(car: LL, r: Route?): List<SharedReports.Item>? {
-        fun padLon(lat: Double, m: Double) = m / (111_320.0 * max(0.15, cos(Math.toRadians(lat))))
-        fun grow(b: DoubleArray, m: Double): DoubleArray {
-            val dLat = m / 111_320.0
-            val dLon = padLon(if (abs(b[0]) > abs(b[2])) b[0] else b[2], m)
-            return doubleArrayOf((b[0] - dLat).coerceAtLeast(-90.0), (b[1] - dLon).coerceAtLeast(-180.0), (b[2] + dLat).coerceAtMost(90.0), (b[3] + dLon).coerceAtMost(180.0))
-        }
-        // boxes as south, west, north, east
-        val boxes = ArrayList<DoubleArray>()
-        boxes += grow(doubleArrayOf(car.lat, car.lon, car.lat, car.lon), 30_000.0)
-        if (r != null && r.pts.size >= 2) {
-            var cur: DoubleArray? = null
-            var prev: LL? = null
-            for (q in r.pts) {
-                // across the 180th meridian the box would wrap the whole world: close the part here and start a new one
-                if (prev != null && abs(q.lon - prev.lon) > 180.0) { cur?.let { boxes += grow(it, 1_000.0) }; cur = null }
-                val b = cur
-                if (b == null) { cur = doubleArrayOf(q.lat, q.lon, q.lat, q.lon); prev = q; continue }
-                val s = min(b[0], q.lat); val w = min(b[1], q.lon); val n = max(b[2], q.lat); val e = max(b[3], q.lon)
-                if (n - s > 4.0 || e - w > 4.0) {
-                    // this part is full: the next one starts at the last point, so the stretch in between is covered too
-                    boxes += grow(b, 1_000.0)
-                    val pv = prev ?: q
-                    cur = doubleArrayOf(min(pv.lat, q.lat), min(pv.lon, q.lon), max(pv.lat, q.lat), max(pv.lon, q.lon))
-                } else { b[0] = s; b[1] = w; b[2] = n; b[3] = e }
-                prev = q
-            }
-            cur?.let { boxes += grow(it, 1_000.0) }
-        }
-        val all = doubleArrayOf(boxes.minOf { it[0] }, boxes.minOf { it[1] }, boxes.maxOf { it[2] }, boxes.maxOf { it[3] })
-        val ask = if (all[2] - all[0] <= 6.0 && all[3] - all[1] <= 6.0) listOf(all) else boxes.take(16)
-        val byId = LinkedHashMap<Long, SharedReports.Item>()
-        var anyOk = false
-        for (b in ask) {
-            val got = SharedReports.fetch(prefs, b[0], b[1], b[2], b[3]) ?: continue
-            anyOk = true
-            for (x in got) byId[x.id] = x
-        }
-        if (!anyOk) return null
-        SharedReports.remember(byId.values.toList())
-        // the route as points about every 300 m, in a coarse grid (cells of roughly 2 km) so each report only checks the route nearby
-        val grid = HashMap<Long, ArrayList<LL>>()
-        fun key(lat: Double, lon: Double) = Math.floor(lat / 0.02).toLong() * 1000003L + Math.floor(lon / 0.03).toLong()
-        if (r != null) {
-            var last = -1e9
-            for (n in r.pts.indices) if (n < r.cum.size && (r.cum[n] - last >= 300.0 || n == r.pts.size - 1)) {
-                val q = r.pts[n]
-                grid.getOrPut(key(q.lat, q.lon)) { ArrayList() }.add(q)
-                last = r.cum[n]
-            }
-        }
-        val out = ArrayList<SharedReports.Item>()
-        for (x in byId.values) {
-            if (x.mine) continue
-            if (Geo.dist(car, x.pos) <= 30_000.0) { out += x; continue }
-            if (grid.isEmpty()) continue
-            val k = key(x.pos.lat, x.pos.lon)
-            var near = false
-            // (points 300 m apart: within 1.15 km of one is within about 1 km of the line between them)
-            for (dy in -1..1) for (dx in -1..1) {
-                if (!near && grid[k + dy * 1000003L + dx]?.any { q -> Geo.dist(q, x.pos) <= 1_150.0 } == true) near = true
-            }
-            if (near) out += x
-        }
-        return out
-    }
-
-    /** "Noch da" (true) or "Weg" (false) for the report in [votePrompt]. "Weg" takes it off the map at once. */
-    fun answerVote(still: Boolean) {
-        val vp = votePrompt ?: return
-        votePrompt = null
-        if (!still) { SharedReports.markGone(vp.id); policeSig = 0; pushHazards(hzProgress) }
-        scope.launch(Dispatchers.IO) { SharedReports.vote(prefs, vp.id, still) }
-    }
-
-    /** Closes the "noch da?" question without answering. */
-    fun dismissVote() { votePrompt = null }
-
-    /**
-     * How many kinds of source can report traffic here at all: the drivers' reports (when sharing is on), Mapbox and TomTom traffic
-     * (with their keys), and the Autobahn GmbH (in Germany). With fewer than three, an older report isn't doubted for having no second source.
-     */
-    private fun sourcesPossible(): Int =
-        (if (SharedReports.sharing(prefs)) 1 else 0) + (if (hasMapbox) 1 else 0) + (if (hasKey) 1 else 0) + (if (detectedCountry == "DE") 1 else 0)
-
-    /**
-     * How many sources say what [r] says: the report itself, a "still there" vote from another driver, a second report of the same
-     * kind within 300 m, and an incident of the traffic feeds (Autobahn GmbH, Mapbox, TomTom) of the same kind within 600 m.
-     */
-    private fun reportSources(r: Report, list: List<Report>): Int {
-        fun related(c: String) = when (r.kind) {
-            "jam" -> c.contains("jam", true)
-            "roadworks" -> c.contains("work", true) || c.contains("laneclosed", true)
-            "accident" -> c.contains("accident", true)
-            "hazard" -> c.contains("danger", true)
-            "closed" -> isClosure(c)
-            else -> false
-        }
-        var n = 1
-        if (r.shared && (sharedShown.firstOrNull { it.id == r.sid }?.up ?: 0) > 0) n++
-        if (list.any { it !== r && it.kind == r.kind && Geo.dist(it.pos, r.pos) < 300.0 }) n++
-        if (incMatches.any { (inc, _, _) -> related(inc.cat) && inc.pts.any { Geo.dist(it, r.pos) < 600.0 } }) n++
-        return n
-    }
-
-    /** Refreshes the map icons when reports change or expire, and warns when one is just ahead. */
-    private fun checkPolice(p: Fix) {
-        try { refreshShared(p) } catch (e: Exception) { }
-        val list = allReports()
-        var sig = list.size
-        for (r in list) sig = sig * 31 + (r.t % 100000).toInt() + (r.sid % 100000).toInt()
-        if (sig != policeSig) { policeSig = sig; pushHazards(hzProgress) }
-        // passing someone else's report: is it still there? (asked once per report, only while moving)
-        if (votePrompt == null && p.speed > 3.0 && SharedReports.sharing(prefs)) {
-            val hit = list.firstOrNull { it.shared && it.sid !in votePrompted && Geo.dist(p.pos, it.pos) < 150.0 }
-            if (hit != null) {
-                votePrompted.add(hit.sid)
-                val vp = VotePrompt(hit.sid, hit.kind, reportName(hit.kind))
-                votePrompt = vp
-                // a jam or a closure driven through at 50 km/h or more is gone: left unanswered, it is voted "weg" by itself
-                val fast = p.speed >= 14.0 && hit.kind in setOf("jam", "closed")
-                scope.launch {
-                    delay(12_000)
-                    if (votePrompt === vp) {
-                        if (fast && (fix?.speed ?: 0.0) >= 11.0) answerVote(false) else votePrompt = null
-                    }
-                }
-            }
-        }
-        if (!prefs.b(PreferenceKeys.POLICEALERTS, true) || p.speed < 4.0) return
-        for (r in list) {
-            val d = Geo.dist(p.pos, r.pos)
-            if (d < 40 || d > 600) continue
-            // weighed by its sources: a fresh report counts alone. One that has run most of its life (70 %) is only announced when another
-            // source says the same, because the others (a driver's vote, a second report, a traffic feed) would have it too, but only where
-            // there are other sources at all: the fewer there are here, the more the one that exists is trusted
-            if (System.currentTimeMillis() - r.t > reportLife(r.kind) * 7 / 10 && sourcesPossible() >= 3 && reportSources(r, list) < 2) continue
-            val diff = abs(((Geo.bearing(p.pos, r.pos) - p.heading + 540.0) % 360.0) - 180.0)
-            // (a shared report is remembered by its server id: two drivers' reports can carry the same time)
-            if (diff < 50 && policeAlerted.add(if (r.shared) -r.sid else r.t)) {
-                chime(android.media.ToneGenerator.TONE_PROP_PROMPT)
-                raiseAlert(if (r.kind == "mobilecam") "camera" else "report", str(R.string.toast_068, reportName(r.kind)))
-                speak(str(R.string.toast_068, reportName(r.kind)), true)
-            }
-        }
-    }
-
-    /** Pushes the camera, roadworks and closure icons for what is still ahead on the route (only when something changed). */
-    private fun pushHazards(progress: Double) {
-        hzProgress = progress
-        val list = ArrayList<Pair<LL, Int>>()
-        if (prefs.b(PreferenceKeys.HAZARD_ICONS, true)) {
-            for (r in allReports()) list += r.pos to reportIcon(r.kind)
-            for ((inc, off, _) in incMatches) {
-                if (off <= progress - 20) continue
-                val k = when (inc.cat.lowercase()) { "roadclosed" -> 2; "roadworks", "laneclosed" -> 1; else -> -1 }
-                if (k >= 0) list += inc.pts.first() to k
-            }
-        }
-        var sig = list.size
-        for ((p, k) in list) sig = sig * 31 + (p.lat * 1e5).toInt() * 7 + (p.lon * 1e5).toInt() + k
-        if (sig == hazardSig) return
-        hazardSig = sig
-        map.setHazards(list)
-    }
-
-    private var yieldAt: LL? = null
-    @Volatile private var yieldNear: List<Pair<LL, Boolean>> = emptyList()
-    private val yieldAlerted = HashSet<LL>()
-
-    private fun checkYieldSigns(p: LL, heading: Double) {
-        val last = yieldAt
-        if (last == null || Geo.dist(last, p) > 300.0) {
-            yieldAt = p
-            Thread {
-                yieldNear = try { Overpass.yieldSigns(p.lat - 0.005, p.lon - 0.007, p.lat + 0.005, p.lon + 0.007) } catch (e: Exception) { emptyList() }
-            }.start()
-        }
-        // stop signs and "give way" signs have their own switches; both are off by default
-        val stopOn = prefs.b(PreferenceKeys.STOP_SIGNS, false)
-        val giveWayOn = prefs.b(PreferenceKeys.GIVE_WAY, false)
-        val hit = yieldNear.firstOrNull { (s, stop) ->
-            (if (stop) stopOn else giveWayOn) && s !in yieldAlerted && Geo.dist(p, s) < 200.0 && abs(angDiff(Geo.bearing(p, s), heading)) <= 60.0
-        } ?: return
-        yieldAlerted.add(hit.first)
-        val text = if (hit.second) "Stoppschild voraus" else "Vorfahrt gewähren"
-        raiseAlert("yield", text)
-        speak(text, alert = true)
-    }
-
-    /** Autobahn GmbH's roadworks, warnings and closures on the motorways of [r]. Asked for when the route starts and every 5 minutes. */
-    private fun autobahnIncidents(r: Route): List<Incident> {
-        if (!prefs.b(PreferenceKeys.INCIDENTS, true)) return emptyList()
-        val roads = r.steps.mapNotNull { AutobahnRest.roadOf(it.street) }.distinct()
-        if (roads.isEmpty()) return emptyList()
-        val key = roads.joinToString(",")
-        val now = System.currentTimeMillis()
-        if (key != abRoads || now - abAt > 300_000L) {
-            abAt = now; abRoads = key
-            scope.launch { abItems = withContext(Dispatchers.IO) { try { AutobahnRest.incidents(roads) } catch (e: Exception) { emptyList() } } }
-        }
-        return abItems
-    }
+    internal var yieldAt: LL? = null
+    @Volatile internal var yieldNear: List<Pair<LL, Boolean>> = emptyList()
+    internal val yieldAlerted = HashSet<LL>()
 
     // ---- wrong-way drivers reported on the motorway ahead ----
     private var wwAt = 0L
@@ -5183,7 +4948,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
      * A driver going the wrong way reported on the motorway you're on, up to 30 km ahead (either carriageway: which way they're
      * going is often not known). From Autobahn GmbH's warnings (asked every minute) and the traffic incidents already loaded.
      */
-    private fun checkWrongWay(r: Route, progress: Double) {
+    internal fun checkWrongWay(r: Route, progress: Double) {
         if (!prefs.b(PreferenceKeys.WRONGWAY_REPORTS, true) || simMode != 0 || previewing) return
         val now = System.currentTimeMillis()
         val roads = r.steps.filter { it.off < progress + 30_000.0 }.let { st ->
@@ -5228,325 +4993,22 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
 
     // ---- road closures: routes find a way round them ----
     /** Closures known from the traffic feeds (TomTom, Mapbox, Autobahn GmbH): their points and until when they're kept (by id). */
-    private val closures = java.util.concurrent.ConcurrentHashMap<String, Pair<List<LL>, Long>>()
+    internal val closures = java.util.concurrent.ConcurrentHashMap<String, Pair<List<LL>, Long>>()
     /** Closures a reroute was already asked for (each once), and one waiting to be said once the new route is in. */
-    private val closureRerouted = HashSet<String>()
-    private var closurePending: Incident? = null
+    internal val closureRerouted = HashSet<String>()
+    internal var closurePending: Incident? = null
 
-    private fun isClosure(cat: String) = cat.equals("roadClosed", true) || cat == "8"
-
-    private fun noteClosures(list: List<Incident>) {
-        val now = System.currentTimeMillis()
-        closures.entries.removeIf { it.value.second < now }
-        for (inc in list) if (isClosure(inc.cat) && inc.pts.isNotEmpty()) closures[inc.id.ifBlank { "${inc.pts.first().lat},${inc.pts.first().lon}" }] = inc.pts to now + 30 * 60_000L
-    }
-
-    /** Points on closed roads: from the feeds (start, middle and end of each), and drivers' "Straße gesperrt" reports. */
-    private fun closurePts(from: LL?, to: LL?): List<LL> {
-        val now = System.currentTimeMillis()
-        val pts = ArrayList<LL>()
-        for ((ps, until) in closures.values) if (until >= now) pts.addAll(listOf(ps.first(), ps[ps.size / 2], ps.last()).distinct())
-        try { for (rp in allReports()) if (rp.kind == "closed") pts += rp.pos } catch (e: Exception) { }
-        // the start or the end of the trip: the only way there or away, so it is not avoided
-        val ok = pts.filter { p -> (from == null || Geo.dist(p, from) > 300.0) && (to == null || Geo.dist(p, to) > 300.0) }
-        val here = from ?: fix?.pos
-        return if (here != null) ok.sortedBy { Geo.dist(it, here) } else ok
-    }
-
-    /** About 40 m round each closure point, for TomTom and the offline router. */
-    private fun closureBoxes(from: LL?, to: LL?): List<Pair<LL, LL>> = closurePts(from, to).take(20).map { p ->
-        val dLat = 40.0 / 110574.0; val dLon = 40.0 / (111320.0 * cos(Geo.rad(p.lat)))
-        LL(p.lat - dLat, p.lon - dLon) to LL(p.lat + dLat, p.lon + dLon)
-    }
-
-    /** True when [r] runs within 30 m of a point of [pts] ahead of [from] metres along it. */
-    private fun passes(r: Route, pts: List<LL>, from: Double): Boolean {
-        for (q in pts) for (n in r.pts.indices) { if (r.cum[n] < from) continue; if (Geo.dist(r.pts[n], q) < 30.0) return true }
-        return false
-    }
-
-    /** A closure on the route ahead: a new route round it (once per closure). */
-    private fun closureAhead(r: Route) {
-        if (previewing || simMode != 0 || rerouting || route !== r) return
-        val prog = curProgress
-        val feed = incMatches.filter { (inc, off, _) -> isClosure(inc.cat) && off > prog + 50 && off < prog + 40_000 }.map { it.first }
-        val own = try { allReports().filter { it.kind == "closed" }.map { Incident("rep${it.t}", "roadClosed", "", 0, listOf(it.pos)) } } catch (e: Exception) { emptyList() }
-        val d = dest?.pos
-        val hit = (feed + own).firstOrNull { inc -> inc.id !in closureRerouted && (d == null || inc.pts.none { Geo.dist(it, d) < 300.0 }) && passes(r, inc.pts.take(30), prog + 50) } ?: return
-        closureRerouted += hit.id
-        if (hit.id.startsWith("rep")) noteClosures(emptyList()) else closures[hit.id] = hit.pts to System.currentTimeMillis() + 30 * 60_000L
-        closurePending = hit
-        lastReroute = 0L
-        reroute()
-    }
-
-    /** After a reroute for a closure: says the new way round, or that there is none (the route still goes through). */
-    private fun closureAfterReroute(r: Route) {
-        val c = closurePending ?: return
-        closurePending = null
-        if (passes(r, c.pts.take(30), 0.0)) {
-            speak(Lang.t("Sperrung auf der Route, kein Umweg gefunden.", "Road closed on the route, no way round found."), true)
-            showNotice(Notice("closure", Lang.t("Straße gesperrt", "Road closed"), Lang.t("Kein Umweg gefunden", "No way round found"), 2), 15_000L)
-        } else {
-            speak(Lang.t("Straße gesperrt. Neue Route.", "Road closed. New route."), true)
-            showNotice(Notice("closure", Lang.t("Straße gesperrt", "Road closed"), Lang.t("Neue Route um die Sperrung", "New route round the closure"), 2), 10_000L)
-        }
-    }
-
-    private fun checkIncidents(r: Route, progress: Double) {
-        try { checkWrongWay(r, progress) } catch (e: Exception) { }
-        try { if (camerasOnMap()) updateRouteCams(r, progress); pushHazards(progress) } catch (e: Exception) { }
-        // TomTom's incident data when there's a key; otherwise the incidents that came with a Mapbox route
-        val fromRoute = (!hasKey || ttDown()) && r.incidents.isNotEmpty()
-        val ab = autobahnIncidents(r)
-        if ((!hasKey && !fromRoute && ab.isEmpty()) || simMode != 0 || !prefs.b(PreferenceKeys.INCIDENTS, true)) { incidentAhead = null; return }
-        val now = System.currentTimeMillis()
-        // (the phone in the background while the car screen runs the trip: the car asks, not both)
-        if (now - incAt > 180_000 && !shadow()) {
-            incAt = now
-            scope.launch {
-                val found = withContext(Dispatchers.IO) {
-                    try {
-                        var minLat = 90.0; var maxLat = -90.0; var minLon = 180.0; var maxLon = -180.0
-                        var any = false
-                        for (n in r.pts.indices) {
-                            if (r.cum[n] < progress - 200 || r.cum[n] > progress + 40_000) continue
-                            val q = r.pts[n]; any = true
-                            minLat = min(minLat, q.lat); maxLat = max(maxLat, q.lat); minLon = min(minLon, q.lon); maxLon = max(maxLon, q.lon)
-                        }
-                        if (!any) emptyList() else {
-                            val list = (if (fromRoute) r.incidents else if (hasKey) TomTomRest.incidents(apiKey, minLon - 0.01, minLat - 0.01, maxLon + 0.01, maxLat + 0.01) else emptyList<Incident>()) + ab
-                            noteClosures(list)
-                            val out = ArrayList<Triple<Incident, Double, String>>()
-                            for (inc in list) {
-                                var bestOff = -1.0; var bestD = 70.0
-                                val q = inc.pts.first()
-                                for (n in r.pts.indices) {
-                                    if (r.cum[n] < progress - 200 || r.cum[n] > progress + 40_000) continue
-                                    val d = Geo.dist(r.pts[n], q)
-                                    if (d < bestD) { bestD = d; bestOff = r.cum[n] }
-                                }
-                                if (bestOff >= 0) out += Triple(inc, bestOff, incidentLabel(inc))
-                            }
-                            out
-                        }
-                    } catch (e: Exception) { null }
-                }
-                if (found != null) { incMatches = found; try { applyIncidentSev(r, found) } catch (e: Exception) { }; try { closureAhead(r) } catch (e: Exception) { } }
-            }
-        }
-        // (wrong-way drivers have their own, louder warning: checkWrongWay)
-        val next = incMatches.filter { it.second > progress - 30 && it.first.cat != "wrongway" && !AutobahnRest.isWrongWay(it.first.text) }.minByOrNull { it.second }
-        if (next == null) { incidentAhead = null; return }
-        val d = max(0.0, next.second - progress)
-        if (d > 15_000) { incidentAhead = null; return }
-        incidentAhead = IncidentAhead(next.third, d, next.first.delaySec)
-        if (d < 8000 && incAlerted.add(next.first.id)) {
-            val mins = next.first.delaySec / 60
-            val extra = if (mins >= 2) Lang.t(", etwa $mins Minuten Verzögerung", ", about $mins minutes delay") else ""
-            raiseAlert("incident", Lang.t("${next.third} in ${Geo.fmtDist(d, imperial)}$extra", "${next.third} ahead, ${Geo.fmtDist(d, imperial)}$extra"), 7000)
-            speak(Lang.t("In ${Geo.spoken(d, imperial)}: ${next.third}$extra", "${next.third} ahead in ${Geo.spoken(d, imperial)}$extra"), true)
-        }
-    }
-
-    private var sevBase: IntArray? = null
-    private var sevBaseRoute: Route? = null
+    internal var sevBase: IntArray? = null
+    internal var sevBaseRoute: Route? = null
     /** The route service's own traffic colours for [svcSevRoute], before any refresh, TomTom or incident was painted on. */
-    private var svcSev: IntArray? = null
-    private var svcSevRoute: Route? = null
+    internal var svcSev: IntArray? = null
+    internal var svcSevRoute: Route? = null
 
-    /** Colours the stretch of road around each live incident amber (slow) or red (heavy), on top of the route's own traffic data. */
-    private fun applyIncidentSev(r: Route, found: List<Triple<Incident, Double, String>>) {
-        if (sevBaseRoute !== r) { sevBase = r.sev.copyOf(); sevBaseRoute = r }
-        val base = sevBase ?: return
-        if (base.size != r.sev.size) return
-        System.arraycopy(base, 0, r.sev, 0, base.size)
-        for ((inc, startOff, _) in found) {
-            val level = when {
-                inc.cat.contains("close", true) || inc.delaySec >= 300 -> 2
-                // every jam ahead colours the route (amber; red above from 5 minutes, see above)
-                inc.delaySec >= 90 || inc.cat.contains("jam", true) -> 1
-                else -> 0
-            }
-            if (level == 0) continue
-            var endOff = startOff + 250.0
-            if (inc.pts.size > 1) {
-                val last = inc.pts.last()
-                var bd = 70.0
-                for (n in r.pts.indices) {
-                    if (r.cum[n] < startOff - 50) continue
-                    val d = Geo.dist(r.pts[n], last)
-                    if (d < bd) { bd = d; endOff = r.cum[n] }
-                }
-            }
-            if (endOff < startOff) endOff = startOff + 250.0
-            for (i in r.sev.indices) if (r.cum[i] >= startOff - 20 && r.cum[i] <= endOff + 20) r.sev[i] = max(r.sev[i], level)
-        }
-    }
-
-    private fun p0Speed(): Double = fix?.speed ?: 0.0
-
-    /** Every few minutes while driving, asks for fresh routes and offers a different one if it saves a few minutes. */
-    private fun checkFaster(cur: Route, remainingSecs: Double) {
-        val now = System.currentTimeMillis()
-        val f = fix ?: return
-        val d = dest ?: return
-        val live = prefs.b(PreferenceKeys.LIVE_ALTERNATIVES, true)
-        if (previewing || simMode != 0 || faster != null || !prefs.b(PreferenceKeys.FASTER_ROUTE, true) || shadow()) return
-        // live: every 2 minutes up to the last 5 minutes, in slow traffic too (a jam is when another way matters most)
-        if (remainingSecs < (if (live) 300 else 900) || now - lastFasterCheck < (if (!live) 240_000L else if (f.speed < 0.5) 360_000L else 120_000L) || (!live && f.speed < 3.0)) return
-        lastFasterCheck = now
-        val ahead = cur.pts.drop(lastIdx.coerceIn(0, max(0, cur.pts.size - 2))).filterIndexed { i, _ -> i % 3 == 0 }
-        val viaPts = via.map { it.pos }
-        scope.launch {
-            try {
-                syncRoutePrefs(f.pos, d.pos)
-                // live: from both route services when there are keys for both (each finds ways the other misses)
-                val rs = withContext(Dispatchers.IO) { netRoutes(f.pos, d.pos, true, 0L, viaPts, driveHeading(f.pos), askBoth = live) }
-                if (rs.size < 2 || route !== cur) return@launch
-                // how much of each candidate runs along the road we are already following
-                fun overlap(r: Route): Double {
-                    val s = r.pts.filterIndexed { i, _ -> i % 10 == 0 }
-                    if (s.isEmpty()) return 0.0
-                    return s.count { p -> ahead.any { Geo.dist(p, it) < 40.0 } }.toDouble() / s.size
-                }
-                val same = rs.maxByOrNull { overlap(it) } ?: return@launch
-                try { refreshTraffic(cur, same) } catch (e: Exception) { android.util.Log.w("NavEngine", "traffic refresh failed", e) }
-                if (live) {
-                    // live comparison: every other way stays on the map in grey with how it compares, to tap any time
-                    val others = rs.filter { it !== same && overlap(it) < 0.8 }.take(2)
-                    val list = withContext(Dispatchers.Default) { altsFor(cur, same, others, curProgress) }
-                    if (route !== cur) return@launch
-                    liveAlts = list
-                    map.setLiveAlts(list.map { it.line() }, list.map { it.bubble }, list.map { it.diffMin }, list.map { it.traffic })
-                    val best = list.minByOrNull { it.diffMin }
-                    // a slower way you picked yourself: a quicker one only as a card to take or leave (7 s), never switched to or said
-                    if (pickedSlower) {
-                        if (best != null && best.diffMin <= -3 && liveSaid.add(best.diffMin / 2)) offerFaster(best.route, -best.diffMin)
-                        return@launch
-                    }
-                    if (best != null && autoOn() && -best.diffMin >= autoMin()) {
-                        switchToAlt(list.indexOf(best), auto = true)
-                        announceAuto(cur, -best.diffMin)
-                        return@launch
-                    }
-                    if (best != null && best.diffMin <= -3 && liveSaid.add(best.diffMin / 2)) speak(Lang.t("Eine schnellere Route spart ${-best.diffMin} Minuten. Tippe sie auf der Karte an, um zu wechseln.", "A faster route is available, saving ${-best.diffMin} minutes. Tap it on the map to switch."), true)
-                    return@launch
-                }
-                val best = rs.filter { it !== same && overlap(it) < 0.8 }.minByOrNull { it.time } ?: return@launch
-                val saved = ((same.time - best.time) / 60.0).toInt()
-                if (pickedSlower) { if (saved >= 3 && best.time < same.time * 0.95) offerFaster(best, saved); return@launch }
-                if (autoOn() && saved >= autoMin()) {
-                    routes = listOf(best); active = 0
-                    said.clear(); offCount = 0; lastIdx = 0; trustProg = -1.0
-                    drawRoutes()
-                    updateRouteZones()
-                    fix?.let { onPosition(it, true) }
-                    announceAuto(cur, saved)
-                    return@launch
-                }
-                if (saved >= 3 && best.time < same.time * 0.95) {
-                    faster = FasterRoute(best, saved)
-                    speak(Lang.t("Eine schnellere Route spart $saved Minuten", "A faster route is available, saving $saved minutes"), true)
-                    val shown = faster
-                    delay(25_000)
-                    if (faster === shown) { faster = null; lastFasterCheck = System.currentTimeMillis() + 300_000L }
-                }
-            } catch (e: Exception) { }
-        }
-    }
-
-    private var curProgress = 0.0
+    internal var curProgress = 0.0
     /** How far along the route you are, in metres (for the driver's display). */
     val progressNow: Double get() = curProgress
-    private var lastTrafficAt = 0L
-    private var trafficBusy = false
-
-    /** Every few minutes asks TomTom for the same trip again, so the amber/red road and the time left follow the traffic as it changes. */
-    private fun checkTraffic(cur: Route) {
-        val now = System.currentTimeMillis()
-        val f = fix ?: return
-        val d = dest ?: return
-        if (previewing || simMode != 0 || trafficBusy || !hasOnline || shadow()) return
-        if (lastTrafficAt == 0L) { lastTrafficAt = now - 120_000L }   // first refresh about a minute after setting off
-        // in a queue (crawling, under about 20 km/h) the traffic is asked for every 2 minutes, so the arrival time catches up with a jam sooner
-        val crawling = (fix?.speed ?: 99.0) < 5.5
-        if (now - lastTrafficAt < (if (crawling) 120_000L else 180_000L)) return
-        lastTrafficAt = now
-        trafficBusy = true
-        val viaPts = via.map { it.pos }
-        val at = curProgress
-        scope.launch {
-            try {
-                syncRoutePrefs(f.pos, d.pos)
-                val rs = withContext(Dispatchers.IO) { netRoutes(f.pos, d.pos, false, 0L, viaPts, driveHeading(f.pos), true) }
-                val fresh = rs.firstOrNull() ?: return@launch
-                if (route !== cur) return@launch
-                // on a Mapbox route with a TomTom key, TomTom times the same road too: each stretch keeps the worse of the two
-                val others = ArrayList<Route>()
-                if (provider == "mapbox" && apiKey.isNotBlank() && !prefs.b(PreferenceKeys.ROUTE_ECO, false)) {
-                    val tt: Route? = try { withContext(Dispatchers.IO) { routesFrom("tomtom", f.pos, d.pos, false, 0L, viaPts, driveHeading(f.pos), true).firstOrNull() } } catch (e: Exception) { null }
-                    tt?.let { others += it }
-                }
-                refreshTraffic(cur, fresh, at, others)
-            } catch (e: Exception) { }
-            finally { trafficBusy = false }
-        }
-    }
-
-    /** Copies the latest traffic colouring from a fresh request for the same road onto the route being driven, so amber and red stay current. */
-    private fun refreshTraffic(cur: Route, fresh: Route, at: Double = curProgress, others: List<Route> = emptyList()) {
-        if (fresh.sev.isEmpty() || cur.sev.isEmpty()) return
-        fun key(p: LL) = Math.round(p.lat * 1e4) * 1000003L + Math.round(p.lon * 1e4)
-        val m = HashMap<Long, Int>(fresh.sev.size * 2)
-        for (i in fresh.sev.indices) m[key(fresh.pts[i])] = fresh.sev[i]
-        // the route service's own traffic for this route, kept from before anything was painted on it: a refresh starts from that
-        // (plus the fresh answer), never from the painted line, or a jam or incident that had cleared stayed red for good
-        if (svcSevRoute !== cur || svcSev?.size != cur.sev.size) {
-            svcSev = (if (sevBaseRoute === cur && sevBase?.size == cur.sev.size) sevBase!! else cur.sev).copyOf(); svcSevRoute = cur
-        }
-        val own = svcSev!!
-        var hit = 0
-        val base = IntArray(cur.sev.size)
-        for (i in cur.sev.indices) { val v = m[key(cur.pts[i])]; if (v != null) { base[i] = v; hit++ } else base[i] = own[i] }
-        // the other service's view of the same stretch: the worse of the two counts
-        for (o in others) {
-            if (o.sev.isEmpty()) continue
-            val mo = HashMap<Long, Int>(o.sev.size * 2)
-            for (i in o.sev.indices) mo[key(o.pts[i])] = o.sev[i]
-            for (i in cur.sev.indices) { val v = mo[key(cur.pts[i])]; if (v != null) base[i] = max(base[i], v) }
-        }
-        // only trust it when it is the same road: a good share of the points still ahead must line up with the fresh route
-        val firstAhead = max(0, idxAt(cur, at))
-        var ahead = 0; var match = 0
-        for (i in firstAhead until cur.sev.size) { ahead++; if (m.containsKey(key(cur.pts[i]))) match++ }
-        if (ahead > 0 && match < ahead * 0.6) return
-        // fresh offsets count from where you were when it was asked, so shift them onto the full route
-        if (fresh.len > 0) {
-            cur.freeFlow = max(0.0, fresh.time - fresh.delay) / fresh.len * cur.len
-            cur.delays = fresh.delays.map { DelaySeg(it.off + at, it.end + at, it.secs) }
-        }
-        sevBase = base.copyOf(); sevBaseRoute = cur
-        System.arraycopy(base, 0, cur.sev, 0, base.size)
-        try { applyIncidentSev(cur, incMatches) } catch (e: Exception) { }
-        lastDraw = 0L
-    }
-
-    /** The quicker way as a card at the top (phone and car) to take or leave; it goes again by itself after 7 seconds. */
-    private fun offerFaster(r: Route, saved: Int) {
-        val fr = FasterRoute(r, saved)
-        faster = fr
-        scope.launch { delay(7_000); if (faster === fr) { faster = null; lastFasterCheck = System.currentTimeMillis() } }
-    }
-
-    fun acceptFaster() {
-        val fr = faster ?: return
-        routes = listOf(fr.route); active = 0
-        said.clear(); offCount = 0; lastIdx = 0; trustProg = -1.0
-        faster = null
-        drawRoutes()
-        toast(ctx.getString(R.string.toast_043), 2500)
-    }
+    internal var lastTrafficAt = 0L
+    internal var trafficBusy = false
 
     // ---- automatic rerouting: a faster way saving at least the set minutes is taken straight away, with a card to go back ----
 
@@ -5555,10 +5017,10 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
     /** After going back to the old route, no automatic switch for a while (a faster way is still offered). */
     private var autoPausedUntil = 0L
 
-    private fun autoOn() = prefs.b(PreferenceKeys.AUTO_REROUTE, true) && System.currentTimeMillis() > autoPausedUntil
-    private fun autoMin() = prefs.i(PreferenceKeys.AUTO_REROUTE_MIN, 5).coerceAtLeast(1)
+    internal fun autoOn() = prefs.b(PreferenceKeys.AUTO_REROUTE, true) && System.currentTimeMillis() > autoPausedUntil
+    internal fun autoMin() = prefs.i(PreferenceKeys.AUTO_REROUTE_MIN, 5).coerceAtLeast(1)
 
-    private fun announceAuto(old: Route, saved: Int) {
+    internal fun announceAuto(old: Route, saved: Int) {
         undoRoute = old
         speak(Lang.t("Schnellere Route gefunden. Die Route wurde geändert und spart etwa $saved Minuten.",
             "Faster route found. Your route has been changed, saving about $saved minutes."), true)
@@ -5590,7 +5052,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
 
     fun dismissFaster() { faster = null; lastFasterCheck = System.currentTimeMillis() + 300_000L }
 
-    private val liveSaid = HashSet<Int>()
+    internal val liveSaid = HashSet<Int>()
     private var lastBeat = 0L
 
     /** While navigating, notes every 20 s that a route is running (with its stops), so a restart can carry straight on. */
@@ -5644,7 +5106,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
      * The other ways to go, as cards on the map: where each leaves your road, a spot a little way along its own road for its card,
      * the minutes it saves or costs compared with [same] (your way, worked out at the same moment) and how its traffic compares.
      */
-    private fun altsFor(cur: Route, same: Route, others: List<Route>, progress: Double, altFrom: Double = 0.0): List<LiveAlt> = others.mapNotNull { alt ->
+    internal fun altsFor(cur: Route, same: Route, others: List<Route>, progress: Double, altFrom: Double = 0.0): List<LiveAlt> = others.mapNotNull { alt ->
         // [altFrom]: how far along the other route you are (it may have started further back, like the way you just left)
         var div = -1
         for (i in alt.pts.indices step 2) {
@@ -6016,7 +5478,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
     }
 
     // ---- turn arrow on the route ----
-    private var turnArrowKey = -1
+    internal var turnArrowKey = -1
 
     /** Draws a white arrow on the route through the next junction once it's within ~700 m (not for "carry straight on"). */
     private fun updateTurnArrow(r: Route, k: Int, cur: Step, d: Double, arriving: Boolean) {
@@ -6052,7 +5514,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
     }
 
     /** The hazard radar: everything in the next two miles, nearest first. Only republished when what you would see changes. */
-    private fun updateRadar(r: Route, progress: Double, pl: Placed) {
+    internal fun updateRadar(r: Route, progress: Double, pl: Placed) {
         if (bendsFor !== r) {
             bendsFor = r; bends = emptyList()
             scope.launch { val b = withContext(Dispatchers.Default) { try { routeBends(r) } catch (e: Exception) { emptyList() } }; if (bendsFor === r) bends = b }
@@ -6097,7 +5559,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
 
     /** "take junction 9 towards Winchester, then keep left for the A34", from the route's step and sign data. */
     /** Junction names are used outside the UK and Ireland (there the junction number is what's signed and said). */
-    private fun jctCountry(): Boolean { val c = detectedCountry.uppercase(); return c.isNotBlank() && c !in setOf("GB", "IE", "IM", "JE", "GG") }
+    internal fun jctCountry(): Boolean { val c = detectedCountry.uppercase(); return c.isNotBlank() && c !in setOf("GB", "IE", "IM", "JE", "GG") }
 
     /** The motorway junction at a step ([Junctions.forStep]): its name and the exit number to go with it, or null. */
     private fun junctionAt(r: Route, s: Step): Pair<String, String>? {
@@ -7506,532 +6968,12 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         }
     }
 
-    // ---- voice commands ----
-    /**
-     * Understands simple spoken commands. Returns null when it isn't a command (the words are then searched for),
-     * "share" when the ETA should be shared, "search:<place>" to search for a place, or "" when it was handled.
-     */
-    /** Understands spoken commands in English and German ("take me home", "bring mich nach Hause", "nächste Tankstelle"…). */
-    /**
-     * The default voice of many head units sounds robotic. Pick the best installed voice for the spoken language
-     * (the highest quality; Google's own voices are the highest). Falls back to the system voice if none is found.
-     */
-    private fun pickBestVoice() {
-        val t = tts ?: return
-        try {
-            // the voice chosen in Settings, when it is still installed
-            val chosen = prefs.s(PreferenceKeys.TTS_VOICE, "").takeIf { it.isNotBlank() }
-            // (only while it speaks the app's language: after switching the language the matching voice is picked instead)
-            if (chosen != null) { t.voices?.firstOrNull { it.name == chosen && it.locale.language == Locale.getDefault().language }?.let { t.voice = it; return } }
-            val lang = t.language?.language ?: return
-            val best = t.voices
-                ?.filter { it.locale.language == lang && it.features?.contains(TextToSpeech.Engine.KEY_FEATURE_NOT_INSTALLED) != true }
-                ?.maxByOrNull { it.quality }
-            if (best != null) t.voice = best
-        } catch (e: Exception) { }
-    }
-
-    /** The installed voices in the app's language, best first, for the Settings list. */
-    fun installedVoices(): List<android.speech.tts.Voice> {
-        val t = tts ?: return emptyList()
-        return try {
-            val lang = t.language?.language ?: return emptyList()
-            (t.voices ?: emptySet()).filter { it.locale.language == lang && it.features?.contains(TextToSpeech.Engine.KEY_FEATURE_NOT_INSTALLED) != true }
-                .sortedByDescending { it.quality }
-        } catch (e: Exception) { emptyList() }
-    }
-
-    /** Uses the voice [name] from now on (kept across restarts). */
-    fun useVoice(name: String) {
-        prefs.put(PreferenceKeys.TTS_VOICE, name)
-        try { tts?.voices?.firstOrNull { it.name == name }?.let { tts?.voice = it } } catch (e: Exception) { }
-    }
-
-    fun handleVoice(raw: String): String? {
-        val t = raw.lowercase(Locale.GERMAN).trim().removePrefix("hey horizon").removePrefix("hallo horizon").trim(' ', ',', '.', '!', '?')
-        fun has(vararg w: String) = w.any { t.contains(it) }
-        val f = SimpleDateFormat("HH:mm", Locale.UK)
-        fun say(s: String) { toast(s, 3500); speak(s, true) }
-        // German verbs that start a trip: "fahr / navigiere / bring mich / route / führe mich / ich will …"
-        val deGo = "(?:bitte )?(?:fahr(?:e)?(?: mich)?|navigier(?:e)?(?: mich)?|bring(?:e)?(?: mich)?|führ(?:e)?(?: mich)?|leite mich|route|ich will|ich möchte|wir fahren|zeig mir den weg)"
-        // places you have saved
-        if (Regex("^(go|take me|navigate|drive|directions|head)( back)?( to)? ?home$").matches(t) || t == "home" ||
-            Regex("^(?:$deGo )?(?:nach hause|heim|zu hause|nachhause)(?: fahren| bitte)?$").matches(t) || t == "zuhause") {
-            val h = places.slot("home"); if (h != null) { say(Lang.t("Fahre nach Hause", "Going home")); startRoute(h) } else say(Lang.t("Zuhause ist noch nicht festgelegt", "Home isn't set yet")); return ""
-        }
-        if (Regex("^(go|take me|navigate|drive|directions|head)( to)? ?work$").matches(t) || t == "work" ||
-            Regex("^(?:$deGo )?(?:zur arbeit|in die arbeit|ins büro|zum büro|zur firma|in die firma)(?: fahren| bitte)?$").matches(t) || t == "arbeit") {
-            val w = places.slot("work"); if (w != null) { say(Lang.t("Fahre zur Arbeit", "Going to work")); startRoute(w) } else say(Lang.t("Arbeit ist noch nicht festgelegt", "Work isn't set yet")); return ""
-        }
-        // reports
-        if (t.startsWith("report") || t.startsWith("melde") || t.startsWith("meldung")) {
-            val k = when {
-                has("police", "cop", "polizei", "kontrolle") -> "police"; has("accident", "crash", "unfall") -> "accident"
-                has("breakdown", "broken", "panne", "liegengeblieben") -> "breakdown"; has("camera", "blitzer", "radar") -> "mobilecam"
-                has("traffic jam", "jam", "stau") -> "jam"
-                else -> "hazard"
-            }
-            report(k); return ""
-        }
-        // finding things
-        val kind = when {
-            has("charg", "ladesäule", "ladestation", "ladepunkt", "aufladen", "e-tankstelle", "strom tanken") -> "charging"
-            has("fuel", "petrol", "diesel", "filling station", "gas station", "tankstelle", "tanken", "sprit", "benzin") -> "fuel"
-            has("toilet", "loo", "bathroom", "klo", "wc", "toilette") -> "toilets"
-            has("coffee", "cafe", "café", "kaffee") -> "coffee"
-            has("food", "eat", "restaurant", "hungry", "essen", "hunger", "imbiss") -> "food"
-            has("services", "rest stop", "rest area", "raststätte", "rastplatz", "raststelle", "autohof") -> "services"
-            has("parking", "car park", "somewhere to park", "parkplatz", "parkhaus", "parken") -> "parking"
-            else -> null
-        }
-        // "fahr nach Ladenburg" is a place, "fahr zur nächsten Tankstelle" is a search nearby
-        val deDest = Regex("^$deGo\\s+(?:nach|zu|zum|zur|in die|ins|in den|an den|an die|zu der|zu dem)\\s+(.+?)(?:\\s+fahren|\\s+bitte)?$").find(t)?.groupValues?.get(1)
-        val nearbyWords = Regex("(^|\\s)(nächste|günstig|billig|eine[mnr]?\\s|in der nähe)").containsMatchIn(deDest ?: "")
-        if (deDest != null && !nearbyWords) return "search:$deDest"
-        if (kind != null && has("find", "nearest", "look for", "search for", "where", "any ", "need", "show", "cheap", "stop for", "add a stop", "add stop", "near",
-                "such", "finde", "nächste", "wo ist", "wo gibt", "brauche", "zeig", "günstig", "billig", "stopp", "halt", "zwischenstopp", "in der nähe", "muss", "will", "möchte")) {
-            nearbySort = if (has("cheap", "günstig", "billig")) "cheap" else "near"
-            if (has("stop", "zwischenstopp", "halt") && route != null) stopMode = true
-            loadNearby(kind, has("destination", "when i get there", "am ziel", "beim ziel", "dort"))
-            say(if (Lang.de) "Suche " + Overpass.kindLabel(kind) + if (route != null) " entlang der Route" else " in der Nähe"
-                else "Looking for " + Overpass.kindLabel(kind).lowercase() + if (route != null) " along your route" else " nearby")
-            return ""
-        }
-        // route preferences
-        if (has("avoid toll", "maut")) { prefs.put(PreferenceKeys.AVOID_TOLL, true); say(Lang.t("Mautstraßen werden gemieden", "Avoiding toll roads")); dest?.let { startRoute(it, departMin, true, startNow = route != null && !previewing) }; return "" }
-        if (has("avoid motorway", "keine autobahn", "ohne autobahn", "autobahn vermeiden", "autobahnen vermeiden", "meide autobahn")) { prefs.put(PreferenceKeys.AVOID_MOTORWAY, true); say(Lang.t("Autobahnen werden gemieden", "Avoiding motorways")); dest?.let { startRoute(it, departMin, true, startNow = route != null && !previewing) }; return "" }
-        if (has("avoid this road", "avoid the road", "diese straße vermeiden", "straße meiden", "umfahrung", "umleitung", "andere route", "anderen weg")) { if (route != null) { say(Lang.t("Suche eine Umfahrung", "Looking for a way round")); avoidRoadAhead() } else say(Lang.t("Es gibt keine Route zum Ändern", "There's no route to change")); return "" }
-        // trip info
-        if (has("eta", "arrive", "how long", "how far", "time left", "when will i", "wann komme", "wann sind wir", "wie lange", "wie weit", "ankunft", "restzeit", "wie viel zeit")) {
-            val e = eta
-            if (e == null) say(Lang.t("Gerade ist keine Route aktiv", "There's no route at the moment"))
-            else say(Lang.t("Ankunft um ${e.arrive}, in ${Geo.fmtDur(e.secs)}. Noch ${Geo.spokenPlain(e.dist, imperial)}.", "You'll arrive at ${e.arrive}, in ${Geo.fmtDur(e.secs)}. ${Geo.spoken(e.dist, imperial)} to go.") + if (e.delayMin >= 1) Lang.t(" ${e.delayMin} Minuten Verzögerung durch Verkehr.", " ${e.delayMin} minutes of traffic.") else "")
-            return ""
-        }
-        if (has("share", "teilen", "teile", "schicke", "sende")) return "share"
-        // sound
-        if (has("unmute", "sound on", "turn the voice on", "voice on", "ton an", "ton ein", "stimme an", "sprache an", "ansagen an", "lauter")) { prefs.put(PreferenceKeys.SOUND_MODE, 0); say(Lang.t("Sprachansagen an", "Voice guidance on")); return "" }
-        if (has("alerts only", "nur warnungen", "nur warnung")) { prefs.put(PreferenceKeys.SOUND_MODE, 1); say(Lang.t("Nur Warnungen", "Alerts only")); return "" }
-        if (has("mute", "be quiet", "quiet", "stop talking", "silence", "voice off", "stumm", "ruhe", "leise", "ton aus", "sprache aus", "ansagen aus", "sei still", "halt die klappe")) { say(Lang.t("Sprachansagen aus", "Voice off")); prefs.put(PreferenceKeys.SOUND_MODE, 2); return "" }
-        // the map
-        if (has("stop navigation", "end route", "end navigation", "cancel route", "cancel navigation", "stop the route", "stop route",
-                "navigation beenden", "navigation stoppen", "route beenden", "route abbrechen", "navigation abbrechen", "beende die", "stoppe die", "abbrechen")) { endRoute(); say(Lang.t("Route beendet", "Route ended")); return "" }
-        if (has("overview", "show the route", "show route", "whole route", "übersicht", "ganze route", "route zeigen", "zeig die route", "zeige die route")) { overview(); return "" }
-        if (has("zoom in", "reinzoomen", "hineinzoomen", "näher", "vergrößern")) { zoom(1.0); return "" }
-        if (has("zoom out", "rauszoomen", "herauszoomen", "weiter weg", "verkleinern")) { zoom(-1.0); return "" }
-        if (has("north up", "norden oben", "nach norden")) { if (!northUp) toggleNorthUp(); return "" }
-        if (t == "3d" || t == "2d" || has("three d", "two d", "drei d", "zwei d")) { if ((t.contains("3") || t.contains("three") || t.contains("drei")) != tilt3d) toggleTilt(); return "" }
-        // where you parked: "wo steht mein Auto", "zum Auto", "hier geparkt"
-        if (has("where did i park", "where is my car", "where's my car", "back to the car", "wo steht mein auto", "wo ist mein auto", "wo hab ich geparkt", "wo habe ich geparkt", "zum auto", "zurück zum auto")) {
-            val spot = parkedSpot()
-            if (spot == null) { say(Lang.t("Es ist kein Parkplatz gespeichert", "No parking spot is saved")); return "" }
-            val d = fix?.pos?.let { Geo.dist(it, spot) }
-            // the way on foot in the app (it used to open the phone's maps app, or this app's own driving route)
-            toast(if (d != null) Lang.t("Dein Auto steht ${Geo.fmtDist(d, imperial)} entfernt", "Your car is ${Geo.fmtDist(d, imperial)} away") else Lang.t("Fußweg zu deinem Auto", "Walking to your car"), 3500)
-            startWalk(spot)
-            return ""
-        }
-        if (has("i parked here", "remember where i parked", "hier geparkt", "parkplatz merken", "merk dir den parkplatz", "ich parke hier")) {
-            val p = fix?.pos
-            if (p == null) say(Lang.t("Ich kenne deinen Standort gerade nicht", "I don't know where you are right now"))
-            else { prefs.put(PreferenceKeys.PARKED_SPOT, String.format(Locale.US, "%.6f,%.6f,%d", p.lat, p.lon, System.currentTimeMillis())); say(Lang.t("Parkplatz gemerkt", "Parking spot saved")) }
-            return ""
-        }
-        // satellite photos on or off
-        if (has("satellite", "satellit", "luftbild")) {
-            val on = !has(" off", "aus", "normal", "standard")
-            prefs.put(PreferenceKeys.SATELLITE, on); say(if (on) Lang.t("Satellitenkarte an", "Satellite on") else Lang.t("Satellitenkarte aus", "Satellite off")); return ""
-        }
-        // the speed limit here
-        if (has("speed limit", "tempolimit", "wie schnell darf ich", "geschwindigkeitsbegrenzung", "höchstgeschwindigkeit", "wie schnell ist hier erlaubt")) {
-            val lim = speedLimit?.let { Math.round(it * 3.6) }
-            say(if (lim == null && noLimit) Lang.t("Hier gibt es kein Tempolimit", "There's no speed limit here")
-                else if (lim == null) Lang.t("Das Tempolimit hier kenne ich nicht", "I don't know the speed limit here")
-                else if (imperial) Lang.t("Hier gilt ${Math.round(lim / 1.609)} Meilen pro Stunde", "The limit here is ${Math.round(lim / 1.609)} miles per hour")
-                else Lang.t("Hier gilt $lim Kilometer pro Stunde", "The limit here is $lim kilometres per hour"))
-            return ""
-        }
-        if (has("what time", "wie spät", "uhrzeit", "wieviel uhr", "wie viel uhr")) { say(Lang.t("Es ist ${f.format(Date())}", "It's ${f.format(Date())}")); return "" }
-        // "take me to …", "navigate to …", "fahr nach …", "navigiere zu …"
-        Regex("^(?:go to|take me to|navigate to|drive to|directions to|head to|find|search for|show me)\\s+(.+)$").find(t)?.let { return "search:" + it.groupValues[1] }
-        deDest?.let { return "search:$it" }
-        Regex("^(?:suche?|such mal|finde?|zeig(?:e)? mir|wo ist|wo gibt es)\\s+(?:nach\\s+)?(.+)$").find(t)?.let { return "search:" + it.groupValues[1] }
-        Regex("^(?:nach|zu|zum|zur)\\s+(.+)$").find(t)?.let { return "search:" + it.groupValues[1] }
-        return null
-    }
-
-    /** The route's line from [a] to [b] metres along it. */
-    private fun slice(r: Route, a: Double, b: Double): List<LL> {
-        val out = ArrayList<LL>()
-        out += pointAt(r, a).first
-        for (i in r.pts.indices) { val c = r.cum[i]; if (c > a && c < b) out += r.pts[i] }
-        out += pointAt(r, b).first
-        return out
-    }
-
-    /** Draws the average speed zones on the route on the map: the road between the cameras, and the cameras at each end. */
-    private fun pushAvgZones(r: Route, zones: List<AvgOnRoute>) {
-        val lines = ArrayList<List<LL>>()
-        val cams = ArrayList<Pair<LL, Double>>()
-        for (z in zones) {
-            val pts = ArrayList<LL>()
-            val step = if (z.end - z.start > 20_000.0) 60.0 else 25.0
-            var o = z.start
-            while (o < z.end) { pts += pointAt(r, o).first; o += step }
-            pts += pointAt(r, z.end).first
-            lines += pts
-            cams += pointAt(r, z.start); cams += pointAt(r, z.end)
-        }
-        map.setAvgZones(lines, cams)
-    }
-
-    /** Once a second while navigating: fetches and places services, bumps, schools and average speed checks, and raises their alerts. */
-    private fun routeExtrasTick(r: Route, progress: Double) {
-        try { checkVignette(r, progress) } catch (e: Exception) { }
-        if (previewing) return
-        // your destination's building lights up for the last 400 m (and goes back to normal when you get there)
-        run {
-            val dp = dest?.pos
-            val left = r.len - progress
-            map.highlightDestination(if (dp != null && left in 15.0..400.0 && prefs.b(PreferenceKeys.LIGHT_DEST, true)) dp else null)
-        }
-        val now = System.currentTimeMillis()
-        barProgress = progress
-        val d = dest
-        // motorway services: once per destination, for longer trips
-        if (d != null && servicesFor !== d && !servicesBusy && r.len > 15_000 && now > servicesRetryAt && online()) {
-            servicesBusy = true
-            val line = RouteExtras.line(r, progress, progress + 400_000.0, 2000.0, 220)
-            scope.launch {
-                try { rawServices = withContext(Dispatchers.IO) { RouteExtras.services(line) }; servicesFor = d }
-                catch (e: Exception) { servicesRetryAt = System.currentTimeMillis() + 120_000L }
-                finally { servicesBusy = false }
-            }
-        }
-        // speed bumps, schools and average speed checks: a window of the next 20 km, fetched again before you reach its end
-        // (and motorway junction names, outside the UK and Ireland: they come in the same request)
-        val wantJct = jctCountry()
-        val wantHz = prefs.b(PreferenceKeys.BUMPS, false) || prefs.b(PreferenceKeys.SCHOOLS, false) || prefs.b(PreferenceKeys.AVGZONES, true) || wantJct
-        // (a new route after a reroute is looked up again, but not more than once every 45 seconds)
-        if (wantHz && !hzBusy && (progress + 6000.0 > hzWinEnd || (hzWinRoute !== r && now - hzLastAt > 45_000L)) && now > hzRetryAt && online()) {
-            hzBusy = true; hzLastAt = now
-            val to = progress + 20_000.0
-            val line = RouteExtras.line(r, progress - 300.0, to, 250.0, 90)
-            scope.launch {
-                try {
-                    val jl = ArrayList<Jct>()
-                    val (p, a) = withContext(Dispatchers.IO) { RouteExtras.hazards(line, if (wantJct) jl else null) }
-                    rawHz = (rawHz + p).distinctBy { "${it.kind}${Math.round(it.pos.lat * 1e5)},${Math.round(it.pos.lon * 1e5)}" }.takeLast(1500)
-                    if (jl.isNotEmpty()) { rawJcts = (rawJcts + jl).distinctBy { "${Math.round(it.pos.lat * 1e5)},${Math.round(it.pos.lon * 1e5)}" }.takeLast(600); jctsVersion++ }
-                    rawAvg = (rawAvg + a).distinctBy { it.id }.takeLast(60)
-                    hzWinRoute = r; hzWinEnd = to
-                } catch (e: Exception) { hzRetryAt = System.currentTimeMillis() + 60_000L }
-                finally { hzBusy = false }
-            }
-        }
-        // the junctions on this route (kept apart from the hazards: nothing to warn about, only names for the turn card and the voice)
-        val js = System.identityHashCode(r) * 31 + jctsVersion
-        if (js != jctsSig && !jctsPlacing) {
-            jctsPlacing = true
-            val jl = rawJcts
-            scope.launch {
-                try {
-                    val on = withContext(Dispatchers.Default) { jl.mapNotNull { j -> RouteExtras.project(r, j.pos, 30.0)?.let { JctOnRoute(j, it.first) } }.sortedBy { it.off } }
-                    jctsOn = r to on
-                } catch (e: Exception) { }
-                finally { jctsSig = js; jctsPlacing = false }
-            }
-        }
-        // place everything on this route (in the background) whenever the route or what was found changes
-        val sig = ((System.identityHashCode(r) * 31 + rawServices.size) * 31 + rawHz.size) * 31 + rawAvg.size * 7 + via.size * 13 + zonesVersion * 17
-        if (sig != placedSig && !placing) {
-            placing = true
-            val sv = rawServices; val hz = rawHz; val av = rawAvg; val vs = via
-            val zoneWarn = prefs.b(PreferenceKeys.ZONEWARN, true)
-            val fuel = prefs.s(PreferenceKeys.FUEL_TYPE, "E10")
-            val fuelOn = FuelFinder.configured(prefs) && fuel != "EV"
-            scope.launch {
-                try {
-                    val pl = withContext(Dispatchers.Default) {
-                        val svc = sv.mapNotNull { poi -> RouteExtras.project(r, poi.pos, 400.0)?.let { (o, side) -> PoiOnRoute(poi, o, side) } }.sortedBy { it.off }
-                        val fuelText = HashMap<RoutePoi, String>()
-                        if (fuelOn) {
-                            val st = FuelFinder.stations(ctx)
-                            for (s in svc) {
-                                val near = st.filter { Geo.dist(it.pos, s.poi.pos) < 700.0 }.minByOrNull { Geo.dist(it.pos, s.poi.pos) } ?: continue
-                                FuelFinder.priceOf(ctx, near.id, fuel)?.let { fuelText[s.poi] = String.format(java.util.Locale.UK, "%s %.1fp", if (fuel == "B7") "Diesel" else fuel, it.pence) }
-                            }
-                        }
-                        val hzOn = hz.mapNotNull { poi -> RouteExtras.project(r, poi.pos, if (poi.kind == "school") 90.0 else if (poi.kind == "crossing") 12.0 else 15.0)?.let { (o, side) -> PoiOnRoute(poi, o, side) } }
-                        val avg = av.mapNotNull { RouteExtras.placeAvg(r, it) }.sortedBy { it.start }
-                        val stops = vs.mapNotNull { RouteExtras.project(r, it.pos, 300.0)?.first }
-                        val zs = if (zoneWarn) Zones.entries(r, Zones.all(ctx)).map { Triple(it.first.name, it.second, it.first.country) } else emptyList()
-                        Placed(r, svc, fuelText, hzOn, avg, stops, zs)
-                    }
-                    placed = pl; placedSig = sig
-                    pushAvgZones(r, if (prefs.b(PreferenceKeys.AVGZONES, true)) pl.avg else emptyList())
-                    // zebra and other marked crossings on the route, painted on the road
-                    map.setCrossings(if (prefs.b(PreferenceKeys.ZEBRAS, true)) pl.hz.filter { it.poi.kind == "crossing" && it.poi.name in setOf("zebra", "marked", "uncontrolled") }
-                        .take(300).map { Triple(it.poi.pos, pointAt(r, it.off).second, it.poi.name == "zebra") } else emptyList())
-                    // stop signs on the route
-                    map.setStopSigns(if (prefs.b(PreferenceKeys.STOP_SIGNS, false)) pl.hz.filter { it.poi.kind == "stop" }.take(300).map { it.poi.pos } else emptyList())
-                } catch (e: Exception) { placedSig = sig } finally { placing = false }
-            }
-        }
-        val pl = placed?.takeIf { it.route === r }
-        if (pl == null) { if (avgInfo != null) avgInfo = null; return }
-        val sp = fix?.speed ?: 0.0
-
-        // sharp bends: striped on the map, and a sign with a chime a few seconds before (only when you're faster than it can be taken)
-        run {
-            val on = prefs.b(PreferenceKeys.SHARPBENDS, false)
-            if (sharpFor !== r) {
-                sharpFor = r; sharp = emptyList(); sharpShown = false; map.setSharpBends(emptyList())
-                scope.launch { val b = withContext(Dispatchers.Default) { try { sharpBends(r) } catch (e: Exception) { emptyList() } }; if (sharpFor === r) { sharp = b; sharpShown = false } }
-            }
-            if (on != sharpShown && (sharp.isNotEmpty() || !on)) { sharpShown = on; map.setSharpBends(if (on) sharp.map { slice(r, it.start, it.end) } else emptyList()) }
-            if (on) for (b in sharp) {
-                val ahead = b.start - progress
-                if (ahead < 0.0 || ahead > max(60.0, sp * 9.0) || sp < b.safeMs * 1.1) continue
-                val key = "sharp${Math.round(b.start)}"
-                if (!hzAlerted.add(key)) continue
-                val k = if (imperial) 2.23694 else 3.6
-                val v = max(5L, Math.round(b.safeMs * k / 5.0) * 5L)
-                chime(android.media.ToneGenerator.TONE_PROP_PROMPT)
-                raiseAlert("bend", Lang.t("Scharfe Kurve · mit $v ${if (imperial) "mph" else "km/h"} nehmen", "Sharp bend · take it at $v ${if (imperial) "mph" else "km/h"}"), 5000)
-            }
-        }
-
-        // average speed check
-        if (prefs.b(PreferenceKeys.AVGZONES, true)) {
-            val cur = pl.avg.firstOrNull { progress >= it.start && progress < it.end }
-            if (cur != null) {
-                if (avgIn !== cur) {
-                    avgIn = cur; avgEnterAt = now; avgEnterProg = progress; avgOverWarned = false
-                    if (avgAlerted.add(cur.def.id)) {
-                        chime(android.media.ToneGenerator.TONE_PROP_PROMPT)
-                        raiseAlert("avg", Lang.t("Abschnittskontrolle noch ${Geo.fmtDist(cur.end - progress, imperial)}", "Average speed check for ${Geo.fmtDist(cur.end - progress, imperial)}"), 6000)
-                        speak(Lang.t("Abschnittskontrolle noch ${Geo.spokenPlain(cur.end - progress, imperial)}", "Average speed check for ${Geo.spoken(cur.end - progress, imperial)}"), true)
-                    }
-                }
-                val secs = (now - avgEnterAt) / 1000.0
-                val avg = if (secs > 4.0) (progress - avgEnterProg) / secs else sp
-                // never more than the road's own signed limit (a mapped check limit can be a different unit's number)
-                val lim = cur.def.limit?.let { l -> speedLimit?.let { min(it, l) } ?: l } ?: speedLimit
-                val over = lim != null && secs > 15.0 && avg > lim + 0.45
-                if (over && !avgOverWarned) {
-                    avgOverWarned = true
-                    chime(android.media.ToneGenerator.TONE_PROP_BEEP2)
-                    speak(Lang.t("Ihre Durchschnittsgeschwindigkeit liegt über dem Limit", "Your average speed is over the limit"), true)
-                } else if (!over && lim != null && avg < lim - 0.5) avgOverWarned = false
-                // the speed you can do for the rest of the zone and still average under the limit: the time the whole zone may take
-                // at the limit, less the time used so far, spread over what's left
-                val left = cur.end - progress
-                val safe = if (lim != null && secs > 4.0) {
-                    val allowed = (cur.end - avgEnterProg) / lim - secs
-                    if (allowed > 1.0) left / allowed else 0.0
-                } else null
-                avgInfo = AvgInfo(avg, lim, left, over, false, 0.0, safe)
-            } else {
-                if (avgIn != null) { avgIn = null; toast(ctx.getString(R.string.toast_008), 2500) }
-                val next = pl.avg.filter { it.start > progress && it.start - progress < 1200.0 }.minByOrNull { it.start }
-                avgInfo = next?.let { n -> AvgInfo(0.0, n.def.limit?.let { l -> speedLimit?.let { min(it, l) } ?: l } ?: speedLimit, n.end - n.start, false, true, n.start - progress) }
-                // as early as a camera is warned about (the same distance, which grows with speed)
-                if (next != null && next.start - progress < max(500.0, sp * 18.0) && avgAlerted.add(next.def.id)) {
-                    chime(android.media.ToneGenerator.TONE_PROP_PROMPT)
-                    raiseAlert("avg", Lang.t("Abschnittskontrolle voraus, ${Geo.fmtDist(next.end - next.start, imperial)} lang", "Average speed check ahead, ${Geo.fmtDist(next.end - next.start, imperial)} long"), 6000)
-                    speak(Lang.t("Abschnittskontrolle voraus", "Average speed check ahead"), true)
-                }
-            }
-        } else if (avgInfo != null) avgInfo = null
-
-        if (prefs.b(PreferenceKeys.HAZARDRADAR, false)) updateRadar(r, progress, pl)
-
-        // weather and night advice: a quiet note (no sound) in heavy rain, snow, fog or ice when you're near the limit, once per 10 minutes
-        run {
-            val code = weather?.code
-            val lim = speedLimit
-            val what = when (code) {
-                45, 48 -> Lang.t("Nebel", "Fog")
-                63, 65, 81, 82 -> Lang.t("Starkregen", "Heavy rain")
-                in 95..99 -> Lang.t("Gewitter", "Thunderstorms")
-                56, 57, 66, 67 -> Lang.t("Eisregen", "Freezing rain")
-                in 71..77, 85, 86 -> Lang.t("Schnee", "Snow")
-                else -> null
-            }
-            val nowMs = System.currentTimeMillis()
-            if (prefs.b(PreferenceKeys.WXADVICE, true) && what != null && lim != null && sp > lim * 0.85 && nowMs - adviceAt > 600_000L) {
-                adviceAt = nowMs
-                val k = if (imperial) 2.23694 else 3.6
-                advice = Lang.t("$what · vorsichtig fahren, Tempo ${Math.round(lim * k / 5.0) * 5}", "$what · take it steady, ${Math.round(lim * k / 5.0) * 5} limit")
-                scope.launch { delay(9000); advice = null }
-            }
-        }
-
-        // stop signs on the route just ahead: a short chime and a pill (Settings > Junctions and lanes > Stop signs)
-        if (prefs.b(PreferenceKeys.STOP_SIGNS, false)) for (h in pl.hz) {
-            if (h.poi.kind != "stop") continue
-            val ahead = h.off - progress
-            if (ahead < 0.0 || ahead > max(80.0, sp * 6.0)) continue
-            val key = "stop${Math.round(h.poi.pos.lat * 1e5)},${Math.round(h.poi.pos.lon * 1e5)}"
-            if (!hzAlerted.add(key)) continue
-            chime(android.media.ToneGenerator.TONE_PROP_ACK)
-            raiseAlert("stop", Lang.t("Stoppschild voraus", "Stop sign ahead"), 4000)
-        }
-
-        // level crossings and fords just ahead: a sign and a spoken warning
-        if (prefs.b(PreferenceKeys.RAILFORD, false)) for (h in pl.hz) {
-            if (h.poi.kind != "rail" && h.poi.kind != "ford") continue
-            val ahead = h.off - progress
-            if (ahead < 0.0 || ahead > max(220.0, sp * 9.0)) continue
-            val key = "${h.poi.kind}${Math.round(h.poi.pos.lat * 1e5)},${Math.round(h.poi.pos.lon * 1e5)}"
-            if (!hzAlerted.add(key)) continue
-            if (h.poi.kind == "rail") { raiseAlert("rail", Lang.t("Bahnübergang voraus", "Level crossing ahead"), 6000); speak(Lang.t("Bahnübergang voraus", "Level crossing ahead"), true) }
-            else { raiseAlert("ford", Lang.t("Furt voraus: Die Straße kann überflutet sein", "Ford ahead: the road may be flooded"), 7000); speak(Lang.t("Furt voraus. Die Straße kann überflutet sein", "Ford ahead. The road may be flooded"), true) }
-        }
-
-        // speed bumps and schools just ahead
-        for (h in pl.hz) {
-            val ahead = h.off - progress
-            if (ahead < 0.0 || ahead > 320.0 || h.poi.kind == "crossing" || h.poi.kind == "rail" || h.poi.kind == "ford" || h.poi.kind == "stop") continue
-            val key = "${h.poi.kind}${Math.round(h.poi.pos.lat * 1e5)},${Math.round(h.poi.pos.lon * 1e5)}"
-            if (h.poi.kind == "bump") {
-                if (prefs.b(PreferenceKeys.BUMPS, false) && sp > 6.7 && ahead < max(70.0, sp * 6.0) && now - lastBumpAt > 25_000L && hzAlerted.add(key)) {
-                    lastBumpAt = now
-                    chime(android.media.ToneGenerator.TONE_PROP_ACK)
-                    raiseAlert("bump", Lang.t("Bodenwelle voraus", "Speed bump ahead"), 3500)
-                }
-            } else if (prefs.b(PreferenceKeys.SCHOOLS, false) && ahead < 300.0 && RouteExtras.schoolTime(now) && hzAlerted.add(key)) {
-                raiseAlert("school", Lang.t("Schule voraus: ${h.poi.name}", "School ahead: ${h.poi.name}"), 5000)
-                speak(Lang.t("Schule voraus", "School ahead"), true)
-            }
-        }
-
-        // clean air / low emission zones
-        if (prefs.b(PreferenceKeys.ZONEWARN, true)) for ((name, off, zc) in pl.zones) {
-            val ahead = off - progress
-            if (ahead in -50.0..1500.0 && zoneAlerted.add(name)) {
-                // the zone's own country decides the rules (the German download also holds Strasbourg, Basel, Prague, Arnhem...)
-                if (zc == "DE") {
-                    // a German Umweltzone: no charge, but only cars with the green sticker may drive in
-                    val zn = if (name.contains("umweltzone", true)) name else "Umweltzone $name"
-                    raiseAlert("zone", if (ahead <= 0) Lang.t("In der $zn", "In the $zn") else Lang.t("$zn in ${Geo.fmtDist(ahead, imperial)}", "$zn in ${Geo.fmtDist(ahead, imperial)}"), 7000)
-                    speak(if (ahead <= 0) Lang.t("Sie sind in der Umweltzone. Nur mit grüner Plakette.", "You are in a low emission zone. Green sticker required.")
-                          else Lang.t("Sie fahren gleich in die Umweltzone ein. Nur mit grüner Plakette.", "You are about to enter a low emission zone. Green sticker required."), true)
-                } else if (zc != "GB") {
-                    // a zone abroad: its own rules (France's Crit'Air sticker, the Dutch milieuzones by emission class...), not the green sticker
-                    val note = when (zc) {
-                        "FR" -> Lang.t("Crit'Air-Vignette nötig", "Crit'Air sticker required")
-                        else -> Lang.t("Regeln vor Ort beachten", "Check the local rules")
-                    }
-                    val zn = when {
-                        zc == "NL" && !name.contains("milieuzone", true) -> "Milieuzone $name"
-                        zc != "NL" && !Regex("zone|zóna|zfe|strefa", RegexOption.IGNORE_CASE).containsMatchIn(name) -> Lang.t("Umweltzone $name", "Low emission zone $name")
-                        else -> name
-                    }
-                    raiseAlert("zone", if (ahead <= 0) Lang.t("In $zn – $note", "In $zn – $note") else Lang.t("$zn in ${Geo.fmtDist(ahead, imperial)} – $note", "$zn in ${Geo.fmtDist(ahead, imperial)} – $note"), 7000)
-                    speak(if (ahead <= 0) Lang.t("Sie sind in einer Umweltzone. $note.", "You are in a low emission zone. $note.")
-                          else Lang.t("Sie fahren gleich in eine Umweltzone ein. $note.", "You are about to enter a low emission zone. $note."), true)
-                } else {
-                    raiseAlert("zone", if (ahead <= 0) Lang.t("Sie sind in $name", "You are in $name") else Lang.t("Einfahrt in $name in ${Geo.fmtDist(ahead, imperial)}", "Entering $name in ${Geo.fmtDist(ahead, imperial)}"), 7000)
-                    speak(if (ahead <= 0) Lang.t("Sie sind in $name. Es kann eine Gebühr anfallen.", "You are in $name. A charge may apply.") else Lang.t("Sie fahren gleich in $name ein. Es kann eine Gebühr anfallen.", "You are about to enter $name. A charge may apply."), true)
-                }
-            }
-        }
-
-        // next services (only republished when what a driver would see changes)
-        // (one entry per services: the map data often has the same services twice, as the services and as its fuel station or car park,
-        // or once per side of the motorway, which showed the same name twice)
-        val nextSvc = ArrayList<PoiOnRoute>()
-        for (sv in pl.services.filter { it.off > progress + 150.0 && it.off - progress < 130_000.0 && it.side < 400.0 }.sortedBy { it.off }) {
-            val nm = sv.poi.name.lowercase().replace(Regex("\\b(services|service area|motorway services|moto|welcome break|roadchef|extra)\\b"), "").replace(Regex("[^a-z0-9]"), "")
-            if (nextSvc.any { o -> Math.abs(o.off - sv.off) < 2500.0 || (nm.isNotEmpty() && o.poi.name.lowercase().replace(Regex("\\b(services|service area|motorway services|moto|welcome break|roadchef|extra)\\b"), "").replace(Regex("[^a-z0-9]"), "") == nm) }) continue
-            nextSvc += sv
-            if (nextSvc.size >= 1) break
-        }
-        var ss = nextSvc.size
-        for (s in nextSvc) ss = ss * 31 + s.poi.name.hashCode() + ((s.off - progress) / 160.0).toInt()
-        if (ss != servicesSig) {
-            servicesSig = ss
-            servicesAhead = nextSvc.map { ServiceAhead(it.poi.name, it.off - progress, pl.serviceFuel[it.poi].orEmpty()) }
-        }
-
-        // route bar markers
-        if (prefs.b(PreferenceKeys.ROUTEBAR, true)) {
-            val span = r.len
-            val ev = ArrayList<BarEvent>()
-            if (camerasOn()) for ((_, off) in routeCams) ev += BarEvent(off, "camera")
-            for ((inc, off, _) in incMatches) ev += BarEvent(off, if (inc.cat.contains("work", true)) "works" else "incident")
-            for (s in pl.services) if (s.side < 400.0) ev += BarEvent(s.off, "services")
-            for (a in pl.avg) ev += BarEvent(a.start, "avg")
-            // charging stops get the lightning marker, as on the map
-            val chargeOffs = evPlanned.mapNotNull { RouteExtras.project(r, it.n.place.pos, 300.0)?.first }
-            for (o in pl.stops) ev += BarEvent(o, if (chargeOffs.any { Math.abs(it - o) < 150.0 }) "charge" else "stop")
-            for ((_, o) in pl.zones) ev += BarEvent(o, "zone")
-            val shown = ev.filter { it.off >= progress - 30.0 && it.off <= span }
-            var bs = shown.size
-            for (e in shown) bs = bs * 31 + e.off.toInt() / 50 + e.kind.hashCode()
-            if (bs != barSig) { barSig = bs; barEvents = shown }
-        }
-    }
-
-    fun speakForce(text: String) {
-        if (!ttsReady) return
-        tts?.speak(text, TextToSpeech.QUEUE_FLUSH, null, "read")
-    }
-
     /** Turn-by-turn guidance is spoken only in "all" mode; alerts are also spoken in "alerts only". */
     /** True for the engine running the Android Auto screen. */
     @Volatile var isCar = false
 
-    /** The phone keeps quiet while the car screen is connected: the car says the directions and alerts. */
-    private fun quiet() = !isCar && RouteSync.carConnected()
-
     /** The phone's app is showing its own map (set by the screen; with Android Auto connected it normally shows the trip in brief). */
     @Volatile var showingMap = true
-
-    /**
-     * The phone while the car screen runs the trip and the phone isn't showing its map: it keeps following the route (so it can
-     * carry on by itself when the phone is unplugged) but leaves the lookups to the car: speed limits, cameras, traffic and faster
-     * routes aren't fetched twice, which halves the requests on your TomTom key and saves the phone's battery.
-     */
-    private fun shadow() = quiet() && !showingMap
-
-    /** Joins a trip started on the other screen (the phone or the car): the same destination and stops, straight into guidance. */
-    fun followRoute(to: Place, stops: List<Place>, ev: List<EvStop> = emptyList(), chosen: Route? = null) {
-        val d = dest
-        if (d != null && Geo.dist(d.pos, to.pos) < 30.0 && route != null) {
-            val sameStops = via.size == stops.size && via.zip(stops).all { (a, b) -> Geo.dist(a.pos, b.pos) < 30.0 }
-            if (sameStops) {
-                // already showing this route's choice (a place shared to both screens): set off with the way picked on the other
-                // screen, not this screen's own pick (it was always the quickest)
-                if (previewing) {
-                    if (chosen != null && routes.size > 1) {
-                        val i = routes.indices.maxByOrNull { routeOverlap(routes[it], chosen) } ?: active
-                        if (i != active && routeOverlap(routes[i], chosen) > 0.8) selectRoute(i)
-                    }
-                    beginNavigation()
-                }
-                return
-            }
-            // same trip, but the other screen changed its stops (e.g. charging stops added once the chargers were found mid-drive)
-            via = stops
-            evPlanned = ev; evAutoDest = to.pos
-            evPreferRoute = chosen
-            startRoute(to, departMin, keepVia = true, startNow = true)
-            return
-        }
-        scope.launch {
-            // a screen that has only just started may not know where it is yet: give the GPS a moment first
-            var n = 0
-            while (fix == null && n < 40) { delay(500); n++ }
-            via = stops
-            // the screen that started the trip planned its charging stops: this one takes them over and doesn't add its own
-            evPlanned = ev; evAutoDest = to.pos
-            evPreferRoute = chosen
-            startRoute(to, keepVia = true, startNow = true)
-        }
-    }
 
     // ---- the announcement queue ----
     // Announcements used to go straight into the speech engine's own queue, each waiting for the one before: after a weather note,
@@ -8040,12 +6982,12 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
     // anything that has waited too long to still be right is dropped.
 
     /** [kind]: 0 a note, 1 a warning, 2 a turn call. */
-    private class Utt(val text: String, val kind: Int, val at: Long)
-    private val speechQ = ArrayDeque<Utt>()
-    private var playing: Utt? = null
-    private var playingId = ""
-    private var uttSeq = 0
-    private val speechMain = android.os.Handler(android.os.Looper.getMainLooper())
+    internal class Utt(val text: String, val kind: Int, val at: Long)
+    internal val speechQ = ArrayDeque<Utt>()
+    internal var playing: Utt? = null
+    internal var playingId = ""
+    internal var uttSeq = 0
+    internal val speechMain = android.os.Handler(android.os.Looper.getMainLooper())
 
     /** [turn]: a turn-by-turn call ("In 500 m, take the exit"), which has to be on time. */
     fun speak(text: String, alert: Boolean = false, turn: Boolean = false) {
@@ -8063,558 +7005,63 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
     class WalkInfo(val text: String, val stepDist: Double, val maneuver: String, val leftM: Double, val leftMin: Int)
 
     /** Where the walk goes (your car), null when not walking. A walk is kept apart from a drive: no route, no cameras, no battery. */
-    var walkTo by mutableStateOf<LL?>(null); private set
-    var walkInfo by mutableStateOf<WalkInfo?>(null); private set
+    var walkTo by mutableStateOf<LL?>(null); internal set
+    var walkInfo by mutableStateOf<WalkInfo?>(null); internal set
     /** The walk's spoken directions: on at the start, the sound button on the map turns them off and on again. */
-    var walkMuted by mutableStateOf(false); private set
+    var walkMuted by mutableStateOf(false); internal set
     val walking: Boolean get() = walkTo != null
-    private var walkRoute: Route? = null
-    private var walkIdx = 0
-    private var walkOffCount = 0
-    private var walkBusy = false
-    private var walkAskedAt = 0L
-    private val walkSaid = HashSet<Int>()
-    private var walkStartSaid = false
-
-    /** Where you parked (saved when the car's connection ended, or by "hier geparkt"), for two days; null when none. */
-    fun parkedSpot(): LL? {
-        val ps = prefs.s(PreferenceKeys.PARKED_SPOT, "").split(',')
-        val la = ps.getOrNull(0)?.toDoubleOrNull() ?: return null
-        val lo = ps.getOrNull(1)?.toDoubleOrNull() ?: return null
-        val at = ps.getOrNull(2)?.toLongOrNull() ?: 0L
-        if (at > 0 && System.currentTimeMillis() - at > 48 * 3600_000L) return null
-        return LL(la, lo)
-    }
-
-    /** Walks you back to your parked car, in the app (a route on foot, not on the roads). False when no spot is saved. */
-    fun startWalkToCar(): Boolean {
-        val spot = parkedSpot() ?: run { toast(Lang.t("Es ist kein Parkplatz gespeichert", "No parking spot is saved"), 3000); return false }
-        startWalk(spot)
-        return true
-    }
-
-    /** Starts a walk to [to]. A drive on the screen (or a route choice) ends first: you are on foot now. */
-    fun startWalk(to: LL) {
-        if (route != null) endRoute()
-        walkTo = to; walkInfo = null; walkMuted = false; walkRoute = null; walkIdx = 0; walkOffCount = 0; walkSaid.clear(); walkStartSaid = false
-        // no speed limit or camera on foot
-        speedLimit = null; limitEstimated = false; noLimit = false; nextLimitMs = null
-        following = true
-        computeWalk()
-    }
-
-    fun endWalk() {
-        walkTo = null; walkInfo = null; walkRoute = null
-        map.setWalk(emptyList())
-    }
-
-    /** The sound button while walking: the walk's directions off or on again (the sound for driving stays as it is). */
-    private fun toggleWalkSound() {
-        walkMuted = !walkMuted
-        toast(if (walkMuted) Lang.t("Fußweg-Ansagen aus", "Walking directions muted") else Lang.t("Fußweg-Ansagen an", "Walking directions on"), 1800)
-    }
-
-    /** Spoken on the walk, unless muted with the sound button (the drive's sound setting doesn't apply on foot). */
-    private fun walkSpeak(text: String) {
-        if (walkMuted || !ttsReady) return
-        val u = Utt(text, 2, android.os.SystemClock.elapsedRealtime())
-        if (android.os.Looper.myLooper() == android.os.Looper.getMainLooper()) enqueue(u) else speechMain.post { enqueue(u) }
-    }
-
-    /** The way on foot: Mapbox's walking route online, the offline pack's footpaths without signal, else a straight line. */
-    private fun computeWalk() {
-        val to = walkTo ?: return
-        val from = fix?.pos ?: return   // the first position starts it (see updateWalk)
-        if (walkBusy) return
-        walkBusy = true; walkAskedAt = System.currentTimeMillis()
-        scope.launch {
-            val r = withContext(Dispatchers.IO) {
-                (if (hasMapbox && online()) try { MapboxRest.walkRoutes(mbToken, from, to).firstOrNull() } catch (e: Exception) { null } else null)
-                    ?: (if (OfflineRouter.installed(ctx)) try { OfflineRouter.routes(ctx, from, to, emptyList(), -1.0, "pedestrian").firstOrNull() } catch (e: Exception) { null } else null)
-                    ?: straightWalk(from, to)
-            }
-            walkBusy = false
-            if (walkTo != to) return@launch
-            walkRoute = r; walkIdx = 0; walkOffCount = 0; walkSaid.clear()
-            map.setWalk(r.pts)
-            fix?.let { updateWalk(it) }
-        }
-    }
-
-    /** No route on foot to be had: the straight line to the car, with its direction and distance. */
-    private fun straightWalk(from: LL, to: LL): Route {
-        val d = Geo.dist(from, to)
-        return Route(listOf(from, to), doubleArrayOf(0.0, d), listOf(Step(d, "ARRIVE", "", "")), d, d / 1.3, 0.0)
-    }
-
-    /** Each new position on the walk: the next instruction, the spoken call before it, a new way when you leave it, and arriving. */
-    private fun updateWalk(p: Fix) {
-        val to = walkTo ?: return
-        if (walkRoute == null) { computeWalk(); return }
-        val r = walkRoute ?: return
-        if (Geo.dist(p.pos, to) < 20.0) {
-            val msg = Lang.t("Du bist bei deinem Auto", "You're at your car")
-            toast(msg, 4000)
-            walkSpeak(msg)
-            endWalk()
-            return
-        }
-        if (r.pts.size < 2) return
-        val s = RouteMatcher.snap(r, p.pos, walkIdx)
-        walkIdx = s.segmentIndex
-        // gone another way (more than 40 m off, with a good fix, several times): the way from here is asked again
-        if (s.dist > 40.0 && p.acc in 0.1..30.0) {
-            if (++walkOffCount >= 4 && System.currentTimeMillis() - walkAskedAt > 15_000L) { walkOffCount = 0; walkRoute = null; computeWalk(); return }
-        } else walkOffCount = 0
-        val prog = s.progress
-        val total = r.cum.last()
-        val left = max(0.0, total - prog)
-        var k = r.steps.indexOfFirst { it.off > prog + 3.0 }
-        if (k < 0) k = r.steps.size - 1
-        val st = r.steps.getOrNull(k)
-        val arriving = st == null || st.maneuver.uppercase().startsWith("ARRIVE")
-        val stepD = if (st != null && !arriving) max(0.0, st.off - prog) else left
-        val word = if (arriving) "" else Geo.maneuverText(st!!.maneuver, st.roundExit)
-        val street = if (arriving || st!!.street.isBlank()) "" else Lang.t(" auf ${st.street}", " onto ${st.street}")
-        val text = if (arriving) Lang.t("Zu deinem Auto", "To your car") else word.replaceFirstChar { it.uppercase() } + street
-        val mins = maxOf(1, Math.ceil(left / 80.0).toInt())
-        walkInfo = WalkInfo(text, stepD, st?.maneuver ?: "ARRIVE", left, mins)
-        if (!walkStartSaid) {
-            walkStartSaid = true
-            walkSpeak(Lang.t("Fußweg zu deinem Auto, ${walkMetres(left)}, etwa $mins Minuten", "Walking to your car, ${walkMetres(left)}, about $mins minutes"))
-        }
-        // one call per turn, about 25 m before it ("In 20 Metern links abbiegen")
-        if (!arriving && stepD <= 25.0 && k !in walkSaid) {
-            walkSaid += k
-            walkSpeak(Lang.t("In ${walkMetres(stepD)} $word$street", "In ${walkMetres(stepD)}, $word$street"))
-        }
-    }
-
-    /** A walking distance to say: to 10 m, "Metern" in German after "in". */
-    private fun walkMetres(m: Double): String {
-        if (imperial) return Geo.spoken(m, true)
-        val r = maxOf(10, (Math.round(m / 10.0) * 10).toInt())
-        return if (r < 1000) Lang.t("$r Metern", "$r metres") else String.format(Locale.GERMANY, "%.1f Kilometern", r / 1000.0).let { Lang.t(it, String.format(Locale.US, "%.1f kilometres", r / 1000.0)) }
-    }
-
-    private fun enqueue(u: Utt) {
-        if (u.kind == 2) {
-            // older turn calls and plain notes still waiting are out of date now
-            speechQ.removeAll { it.kind != 1 }
-            speechQ.addFirst(u)
-            val p = playing
-            // a plain note being read out is cut short; a warning or a turn call is finished first (cutting a turn call off mid
-            // sentence left half a direction)
-            if (p != null && p.kind == 0) { playing = null; playingId = ""; try { tts?.stop() } catch (e: Exception) { } }
-        } else speechQ.addLast(u)
-        playNext()
-    }
-
-    private fun playNext() {
-        if (playing != null) return
-        val now = android.os.SystemClock.elapsedRealtime()
-        while (true) {
-            val u = speechQ.removeFirstOrNull() ?: break
-            // how long each may wait: a turn call only a few seconds (the distance in it is soon wrong), a warning half a minute
-            val maxAge = when (u.kind) { 2 -> 6_000L; 1 -> 30_000L; else -> 15_000L }
-            if (now - u.at > maxAge) continue
-            val ch = prefs.s(PreferenceKeys.VOICE_CHANNEL, "nav")
-            if (ch != voiceChan) { voiceChan = ch; try { tts?.setAudioAttributes(speechAttrs) } catch (e: Exception) { } }
-            spoken = 1
-            duck()
-            val id = "nav${++uttSeq}"
-            playing = u; playingId = id
-            val r = tts?.speak(u.text, TextToSpeech.QUEUE_ADD, null, id)
-            if (r == TextToSpeech.ERROR) { playing = null; playingId = ""; continue }
-            return
-        }
-        // nothing left to say: the music comes back up
-        spoken = 1; unduck()
-    }
-
-    /** The speech engine finished (or stopped) [id]: the next one, if it's still the current one. */
-    private fun uttDone(id: String?) {
-        speechMain.post {
-            if (id == null || id != playingId) return@post
-            playing = null; playingId = ""
-            playNext()
-        }
-    }
-
-    // ---- demo drive ----
-    // a tap on the demo's speed: 1x, 2x, 4x and back to 1x (it keeps going, no restart)
-    fun cycleSim() {
-        val r = route
-        if (r == null) { toast(ctx.getString(R.string.toast_032)); return }
-        when (simMode) {
-            0 -> { simMode = 1; startSim(r) }
-            1 -> simMode = 2
-            2 -> simMode = 4
-            else -> simMode = 1
-        }
-    }
-
-    /** Jumps the demo to about 250 m before the next junction (the next turn keeps its place on the route). */
-    fun skipSimTurn() {
-        val r = route ?: return
-        if (simMode == 0) return
-        val t = turn ?: return
-        if (t.dist > 250.0) simDist = min(r.len, simDist + t.dist - 250.0)
-    }
+    internal var walkRoute: Route? = null
+    internal var walkIdx = 0
+    internal var walkOffCount = 0
+    internal var walkBusy = false
+    internal var walkAskedAt = 0L
+    internal val walkSaid = HashSet<Int>()
+    internal var walkStartSaid = false
 
     /** "Demo" beside Start on the route choice: the trip starts as a demo drive. */
     var demoOnStart = false
-    fun beginDemo() {
-        if (!previewing || route == null) return
-        demoOnStart = true
-        beginNavigation()
-    }
-
-    private fun startSim(r: Route) {
-        simJob?.cancel()
-        simDist = fix?.let { snap(r, it.pos).progress } ?: 0.0
-        following = true
-        simJob = scope.launch {
-            while (true) {
-                val cur = route ?: break
-                // the position moves by exactly the speed it reports, so the arrow glide never sees a gap it has to jump to close
-                // (the old demo moved 16 m a second while claiming 7 m/s near a turn, which the glide "corrected" with a jump halfway round the roundabout)
-                val td = turn?.dist ?: 1000.0
-                val demoSpeed = (if (td < 150) 7.0 else if (td < 400) 13.0 else if (td < 1200) 20.0 else 27.0) * simMode
-                simDist = min(cur.len, simDist + demoSpeed)
-                val (pt, hd) = pointAt(cur, simDist)
-                onPosition(Fix(pt, hd, demoSpeed, 0.0), false)
-                if (simDist >= cur.len) break
-                delay(1000)
-            }
-            simMode = 0
-        }
-    }
-
-    fun stopSim() { simJob?.cancel(); simJob = null; simMode = 0 }
-
     var onRoad by mutableStateOf("")
-    private var limitRoad = ""
-    private var roadShown = ""
+    internal var limitRoad = ""
+    internal var roadShown = ""
 
-    private var limitRoadAt = 0L
-    private var limitRoadHead = -1.0
-    private var roadCandidate = ""
+    internal var limitRoadAt = 0L
+    internal var limitRoadHead = -1.0
+    internal var roadCandidate = ""
 
-    /**
-     * A road name from the lookup round you. A different name only shows once a second lookup agrees, or straight away if you've
-     * clearly turned (40 degrees or more), so it no longer jumps to a side road for a moment at junctions. An empty name (no road
-     * found, like a car park) clears it.
-     */
-    private fun noteRoad(name: String, heading: Double) {
-        val now = System.currentTimeMillis()
-        val turned = heading >= 0 && limitRoadHead >= 0 && abs(((heading - limitRoadHead + 540.0) % 360.0) - 180.0) >= 40.0
-        if (name == limitRoad || name.isBlank() || limitRoad.isBlank() || turned || name == roadCandidate) {
-            limitRoad = name; roadCandidate = ""
-            limitRoadAt = now; if (heading >= 0) limitRoadHead = heading
-        } else roadCandidate = name
-        refreshRoad()
-    }
-
-    /** Name of the road you are on: from the route while navigating, otherwise from the map data around you. */
-    private fun refreshRoad() {
-        // the map-data name is dropped once it's 45 seconds old (lookups that kept failing used to leave the last road up)
-        val mapRoad = if (System.currentTimeMillis() - limitRoadAt < 45_000L) limitRoad else ""
-        val n = Geo.shortRoad(if (route != null && !previewing && onRoad.isNotBlank()) onRoad else mapRoad)
-        if (n != roadShown) { roadShown = n; map.setRoadName(n) }
-        if (roadNow != n) roadNow = n
-    }
-    private var laneKey: Pair<Double, LaneSec>? = null
+    internal var laneKey: Pair<Double, LaneSec>? = null
     /** The route whose roundabout rings have been asked for (once per route). */
     private var ringsAskedFor: Route? = null
     private var rbLoggedAt = -1.0
 
-    private fun laneHit(dir: String, maneuver: String): Boolean {
-        val m = maneuver.uppercase()
-        return when {
-            m.contains("U_TURN") -> dir.endsWith("U_TURN")
-            m.contains("LEFT") -> dir.contains("LEFT")
-            m.contains("RIGHT") -> dir.contains("RIGHT")
-            else -> dir == "STRAIGHT"
-        }
-    }
-
     /** Paints the lane arrows on the road ahead of the junction (approximate: placed across the route line). */
     /** Set when you're on a motorway or dual carriageway: lane guidance then starts further out. */
-    private var laneFast = false
+    internal var laneFast = false
     private var earlyLaneFor = -1.0
 
-    private fun updateLaneMarks(r: Route, cur: Step, sec: LaneSec?, d: Double) {
-        val key = if (sec != null && d < (if (laneFast) 1300.0 else 400.0) && prefs.b(PreferenceKeys.LANEMAP, true)) Pair(cur.off, sec) else null
-        // the route line stays in its lane until you're past the end of its ease back after the junction (clearing it as soon as
-        // the lane guidance ended made the line just ahead of you jump sideways)
-        if (laneShiftEnd > 0.0 && key == null && curProgress >= laneShiftEnd) { map.setRouteShift(emptyList()); laneLatAt = null; laneShiftEnd = 0.0; turnArrowKey = -2 }
-        // where Mapbox has HD roads (the lanes it paints on motorways), the real lanes are read off the map just before the junction,
-        // so the lanes drawn and the route line sit exactly on the painted ones (asked every 3 s until found, up to 8 times)
-        if (key != null && hdLanesFor != cur.off) {
-            if (hdTriesFor != cur.off) { hdTriesFor = cur.off; hdTries = 0 }
-            val now = android.os.SystemClock.uptimeMillis()
-            if (hdTries < 8 && now - hdAskAt > 3000L && d < 700.0) {
-                hdAskAt = now; hdTries++
-                val askOff = cur.off
-                val nLanes = sec?.lanes?.size ?: 0
-                // several places across the approach: close to the junction the exit lanes have often already split off behind
-                // the hatched area, so the lanes are looked at further back too, and followed from one place to the next
-                val backs = listOf(150.0, 120.0, 90.0, 60.0, 35.0, 15.0).filter { cur.off - it > 0.0 }
-                map.laneCentresAlong(backs.map { pointAt(r, cur.off - it) }) { res, lines ->
-                    if (hdTriesFor != askOff) return@laneCentresAlong
-                    val prof = ArrayList<Pair<Double, List<Double>>>()
-                    res?.forEachIndexed { k, offs -> pickLaneWindow(offs, nLanes)?.let { prof += (askOff - backs[k]) to it } }
-                    laneDiag = when {
-                        res == null -> "Lane data: the junction isn't on screen yet"
-                        lines == 0 -> "Lane data: no HD lanes from Mapbox here (lanes laid out from the road's line)"
-                        prof.isEmpty() -> "Lane data: HD lanes found ($lines lines) but they didn't match the $nLanes lanes listed (found " + res.joinToString(", ") { it.size.toString() } + " across the road)"
-                        else -> "Lane data: HD lanes lined up at ${prof.size} of ${backs.size} points along the approach"
-                    }
-                    if (res != null && (prof.size >= 3 || hdTries >= 8) && laneDiagFor != askOff && prefs.b(PreferenceKeys.DEMO, false)) { laneDiagFor = askOff; toast(laneDiag, 5000) }
-                    // a better read (more places matched) replaces the last; it keeps looking until at least 3 places match
-                    if (prof.isNotEmpty() && (hdProfileFor != askOff || prof.size > hdProfile.size)) { hdProfile = prof.sortedBy { it.first }; hdProfileFor = askOff; laneKey = null }
-                    if (prof.size >= 3) hdLanesFor = askOff
-                }
-            }
-        }
-        // the lane sign goes once you're up to it
-        if (laneSignFor >= 0.0 && curProgress > laneSignFor - 15.0) { map.setLaneSign(null, emptyList()); laneSignFor = -1.0 }
-        // the lane bubble rides just ahead of the arrow until you reach the junction
-        bubbleLanes?.let { bl ->
-            if (key != null && curProgress < cur.off - 20.0) map.setLaneBubble(pointAt(r, min(r.len, curProgress + 24.0)).first, bl) else map.setLaneBubble(null, emptyList())
-        }
-        if (key == laneKey) return
-        laneKey = key
-        if (key == null || sec == null) {
-            map.setLaneSign(null, emptyList()); laneSignFor = -1.0
-            bubbleLanes = null; map.setLaneBubble(null, emptyList())
-            map.setLanes(emptyList())
-            if (laneShiftEnd <= 0.0 || curProgress >= laneShiftEnd) { map.setRouteShift(emptyList()); laneLatAt = null; laneShiftEnd = 0.0 }
-            return
-        }
-        val n = sec.lanes.size
-        val anyFollow = sec.lanes.any { it.follow != null }
-        val activeIdx = sec.lanes.indices.filter { i -> val ln = sec.lanes[i]; if (anyFollow) ln.follow != null else ln.dirs.any { laneHit(it, cur.maneuver) } }
-        // Lined up with the real lanes (the ones Mapbox's map paints where it has them): the route line runs down the middle of the
-        // road as mapped, so the lanes are laid out from there, at real lane widths. On a one-way road or a dual carriageway the
-        // lanes are centred on the line; on a two-way road they're all on your side of it (the left in the UK).
-        val (approach, approachB) = pointAt(r, max(0.0, cur.off - 45.0))
-        val road = map.roadAt(approach, approachB, maxDistance = 10.0, headingTolerance = 25.0)
-        // Require a close, direction-compatible road match here: at exits and junctions a nearby ramp or cross-road can
-        // otherwise supply the wrong one-way/road-centre metadata and offset the highlighted lane away from the route.
-        // If the match is ambiguous, use the lane-relative fallback below so the route remains in the selected lane.
-        // (with no road data from the map the old way is used: the lanes laid out with the lane to be in under the route line)
-        // Only lined up with the road on one-way motorway and trunk carriageways (not slip roads), where the mapped line really
-        // runs down the middle of the lanes. On ordinary A roads and town junctions the lanes often widen or gain a turning lane
-        // that the mapped line doesn't follow, which put the lanes (and the route line moved into them) off the road; there the
-        // lanes are laid out with the lane to be in under the route line, and the route line stays where it is.
-        val big = road?.cls?.let { (it == "motorway" || it == "trunk") } == true
-        val aligned = road != null && road.oneway == true && big
-        val laneW = if (!aligned) 3.6 else if (big) 3.65 else 3.5
-        // Lined up: before a junction the mapped line runs down the middle of the main carriageway, which is the lanes that carry
-        // straight on. The lanes peeling off to an exit are extra lanes beside it (at the junction Mapbox lists them all together),
-        // so the straight-on lanes are centred on the line and the exit lanes sit off to their side. Centring all of them on the
-        // line put every lane a lane or two out towards the exit, over the verge. A true split (no straight-on lane) stays centred.
-        val throughIdx = sec.lanes.indices.filter { i -> sec.lanes[i].dirs.any { it == "STRAIGHT" } }
-        val centre = if (!aligned) (if (activeIdx.isEmpty()) (n - 1) / 2.0 else activeIdx.average())
-            else if (throughIdx.isNotEmpty() && throughIdx.size < n && isContiguous(throughIdx)) throughIdx.average()
-            else (n - 1) / 2.0
-        // each lane's middle and edges, sideways from the route line (metres, + to the right): the real ones read off the map when
-        // they match the lane list, else laid out at standard widths as described above
-        // Lanes are only painted on the road (and the route line moved into them) once the real lanes have been read off the
-        // map and matched at 3 or more places along the approach. Everywhere else a lane sign stands over the road at the junction
-        // instead, like a motorway gantry, so nothing is drawn that might not sit on the painted lanes.
-        val prof = if (hdLanesFor == cur.off && hdProfileFor == cur.off) hdProfile.filter { it.second.size == n } else emptyList()
-        val lined = prof.isNotEmpty()
-        if (!lined && curProgress < cur.off - 15.0) {
-            map.setLaneSign(pointAt(r, max(0.0, cur.off - 10.0)).first, sec.lanes.mapIndexed { i, lane ->
-                val active = i in activeIdx
-                lane.dirs.map { dir -> dir to (active && (if (anyFollow) dir == lane.follow else laneHit(dir, cur.maneuver))) } to active
-            })
-            laneSignFor = cur.off
-            bubbleLanes = null
-        } else {
-            map.setLaneSign(null, emptyList()); laneSignFor = -1.0
-            bubbleLanes = if (lined) sec.lanes.mapIndexed { i, lane ->
-                val active = i in activeIdx
-                lane.dirs.map { dir -> dir to (active && (if (anyFollow) dir == lane.follow else laneHit(dir, cur.maneuver))) } to active
-            } else null
-        }
-        // each lane's middle at [o] metres along the route: from the real lanes (in between the places they were read, and held
-        // at the first / last beyond them), else the standard layout
-        fun mids(o: Double): DoubleArray {
-            if (prof.isEmpty()) return DoubleArray(n) { i -> (i - centre) * laneW }
-            if (o <= prof.first().first) return prof.first().second.toDoubleArray()
-            if (o >= prof.last().first) return prof.last().second.toDoubleArray()
-            val k = prof.indexOfLast { it.first <= o }
-            val (oa, a) = prof[k]; val (ob, b) = prof[k + 1]
-            val t = if (ob > oa) (o - oa) / (ob - oa) else 0.0
-            return DoubleArray(n) { i -> a[i] + (b[i] - a[i]) * t }
-        }
-        fun leftE(m: DoubleArray, i: Int) = if (prof.isEmpty()) m[i] - laneW / 2 else if (i > 0) (m[i - 1] + m[i]) / 2 else m[0] - (m[1] - m[0]) / 2
-        fun rightE(m: DoubleArray, i: Int) = if (prof.isEmpty()) m[i] + laneW / 2 else if (i < n - 1) (m[i] + m[i + 1]) / 2 else m[n - 1] + (m[n - 1] - m[n - 2]) / 2
-        fun shifted(p: LL, brg: Double, lateral: Double): LL {
-            val rad = Math.toRadians(brg + 90.0)
-            return LL(p.lat + lateral * Math.cos(rad) / 111320.0, p.lon + lateral * Math.sin(rad) / (111320.0 * Math.cos(Math.toRadians(p.lat))))
-        }
-        val marks = ArrayList<MapBinding.LaneMark>()
-        for (back in if (lined) listOf(28.0, 65.0, 105.0) else emptyList()) {
-            val off = cur.off - back
-            if (off < 0) continue
-            val (p, brg) = pointAt(r, off)
-            val m = mids(off)
-            sec.lanes.forEachIndexed { i, lane ->
-                val at = shifted(p, brg, m[i])
-                val active = i in activeIdx
-                lane.dirs.forEach { dir ->
-                    val hit = active && (if (anyFollow) dir == lane.follow else laneHit(dir, cur.maneuver))
-                    marks += MapBinding.LaneMark(at, brg, dir, hit)
-                }
-            }
-        }
-        // lane strips from up to 130 m before the junction to just short of it
-        // TomTom's lane section can be short, but the lanes carry on back along the approach, so the strips do not stop where the section starts
-        // (only the last stretch before the junction, where the lanes really are: about 110 m on motorways, 60 m elsewhere,
-        // so lanes aren't painted far back along a road that only widens at the junction)
-        val from = max(0.0, cur.off - (if (lined) 150.0 else 60.0))
-        val to = cur.off - 6.0
-        val bands = ArrayList<MapBinding.LaneBand>()
-        val divs = ArrayList<MapBinding.LaneEdge>()
-        if (lined && to - from > 20.0) {
-            val samples = ArrayList<Pair<LL, Double>>()
-            val sampleMids = ArrayList<DoubleArray>()
-            var o = from
-            while (o < to) { samples += pointAt(r, o); sampleMids += mids(o); o += 10.0 }
-            samples += pointAt(r, to); sampleMids += mids(to)
-            val last = samples.size - 1
-            for (i in 0 until n) {
-                // cut into short pieces so the ribbon can fade in softly at its start
-                for (k in 0 until last) {
-                    val l = ArrayList<LL>(); val rt = ArrayList<LL>()
-                    for (m in k..k + 1) { val (p, brg) = samples[m]; l += shifted(p, brg, leftE(sampleMids[m], i)); rt += shifted(p, brg, rightE(sampleMids[m], i)) }
-                    val a = 0.5 + 0.5 * min(1.0, k / 3.0)
-                    bands += MapBinding.LaneBand(l + rt.asReversed(), i in activeIdx, a)
-                }
-                val edge = ArrayList<LL>(); for ((j, sp) in samples.withIndex()) edge += shifted(sp.first, sp.second, rightE(sampleMids[j], i))
-                divs += MapBinding.LaneEdge(edge, i == n - 1)
-            }
-            val outer = ArrayList<LL>(); for ((j, sp) in samples.withIndex()) outer += shifted(sp.first, sp.second, leftE(sampleMids[j], 0))
-            divs += MapBinding.LaneEdge(outer, true)
-        }
-        map.setLaneBands(bands, divs)
-        // the route line moved into the lane you need (when the lanes are lined up with the road). One sideways offset along the
-        // route, used for both the route line and the turn arrow so they always meet with no step: it eases across (over up to
-        // 60 m), stays in the middle of the lit-up lanes right up to the junction, then eases back onto the road's line over the first
-        // 25 m after it (where the route carries on along the slip road or the main road). Before, the line only came back in the
-        // last 8 m while the turn arrow, drawn on the road's own line from 38 m out, left a gap and a step where they met.
-        val shift = ArrayList<LL>()
-        laneLatAt = null; laneShiftEnd = 0.0
-        if (lined && activeIdx.isNotEmpty()) {
-            // the middle of the lit-up lanes, wherever they are along the approach
-            fun midAt(o: Double): Double { val m = mids(o); return activeIdx.map { m[it] }.average() }
-            val mid = midAt(cur.off - 40.0)
-            val s0 = max(0.0, max(sec.off, cur.off - 250.0))
-            val s1 = min(r.len, cur.off + 25.0)
-            // (fully in the lane by the time the lane strips start, 110 m out, when there's room; else over the first half)
-            val stripStart = cur.off - 150.0
-            val ramp = if (stripStart - s0 >= 20.0) min(60.0, stripStart - s0) else max(10.0, (cur.off - s0) * 0.5)
-            if (maxOf(Math.abs(mid), Math.abs(midAt(cur.off - 100.0)), Math.abs(midAt(cur.off - 10.0))) > 0.3 && cur.off - s0 > 30.0) {
-                val fn: (Double) -> Double = { o ->
-                    val inF = ((o - s0) / ramp).coerceIn(0.0, 1.0)
-                    val outF = ((s1 - o) / 35.0).coerceIn(0.0, 1.0)     // from 10 m before the junction to 25 m after it
-                    val f = minOf(inF, outF)
-                    midAt(min(o, cur.off)) * f * f * (3 - 2 * f)
-                }
-                laneLatAt = fn; laneShiftEnd = s1
-                var o = s0
-                while (true) {
-                    val (p, brg) = pointAt(r, o)
-                    shift += shifted(p, brg, fn(o))
-                    if (o >= s1) break
-                    o = minOf(s1, o + 5.0)
-                }
-            }
-        }
-        map.setRouteShift(shift)
-        map.setLanes(marks)
-    }
-
     /** The sideways offset (metres, + to the right) of the route line in the lane you need, by distance along the route; null when none. */
-    private var laneLatAt: ((Double) -> Double)? = null
+    internal var laneLatAt: ((Double) -> Double)? = null
     /** The real lanes' middles (sideways from the route line, left to right) read off the map for the junction at [hdLanesFor]. */
-    private var hdProfile: List<Pair<Double, List<Double>>> = emptyList()
+    internal var hdProfile: List<Pair<Double, List<Double>>> = emptyList()
     /** What the last look for the real lanes found (for Demo mode and the feedback report). */
     var laneDiag = ""
-        private set
-    private var laneDiagFor = -1.0
-    private var hdProfileFor = -1.0
+        internal set
+    internal var laneDiagFor = -1.0
+    internal var hdProfileFor = -1.0
     /** The junction the lane sign is standing at (−1 for none). */
-    private var laneSignFor = -1.0
+    internal var laneSignFor = -1.0
     /** The lanes shown in the bubble just ahead of the arrow (null when none). */
-    private var bubbleLanes: List<Pair<List<Pair<String, Boolean>>, Boolean>>? = null
-    private var hdLanesFor = -1.0
-    private var hdTriesFor = -1.0
-    private var hdTries = 0
-    private var hdAskAt = 0L
-
-    /**
-     * The [n] real lanes that make up your carriageway, out of [offs] (all the lanes found across the road there, left to right):
-     * the block of [n] side by side (no gap wider than a lane and a half between them) nearest the route line. Null when they
-     * don't match the lane list, so the standard layout is used instead.
-     */
-    private fun pickLaneWindow(offs: List<Double>, n: Int): List<Double>? {
-        if (n < 2 || offs.size < n) return null
-        var best: List<Double>? = null; var bestD = Double.MAX_VALUE
-        for (s in 0..offs.size - n) {
-            val w = offs.subList(s, s + n)
-            if ((1 until n).any { w[it] - w[it - 1] !in 2.4..5.5 }) continue
-            val mid = w.average()
-            if (Math.abs(mid) < bestD) { bestD = Math.abs(mid); best = w }
-        }
-        // the route line has to be somewhere on that carriageway, or it's another road
-        return best?.takeIf { it.first() - 3.0 < 0.0 && it.last() + 3.0 > 0.0 }
-    }
+    internal var bubbleLanes: List<Pair<List<Pair<String, Boolean>>, Boolean>>? = null
+    internal var hdLanesFor = -1.0
+    internal var hdTriesFor = -1.0
+    internal var hdTries = 0
+    internal var hdAskAt = 0L
 
     /** Where along the route that offset has eased back to nothing (0 when there's none). */
-    private var laneShiftEnd = 0.0
-
-    /** True when the lane numbers follow on from each other (2, 3, 4), so they form one block of lanes. */
-    private fun isContiguous(idx: List<Int>): Boolean = idx.isNotEmpty() && idx.last() - idx.first() == idx.size - 1
-
-    /** Index of the last route point at or before [d] metres along the route. */
-    private fun idxAt(r: Route, d: Double): Int {
-        val c = r.cum
-        var lo = 0; var hi = c.size - 1
-        while (lo < hi) { val m = (lo + hi + 1) ushr 1; if (c[m] <= d) lo = m else hi = m - 1 }
-        return lo
-    }
+    internal var laneShiftEnd = 0.0
 
     private var gDoneAt = 0L
-    private var doneShown = false
+    internal var doneShown = false
 
-    private fun updateDone(r: Route, prog: Double) {
-        // grey right back to where the blue line starts (it's drawn from a little behind the car), so no blue shows behind you;
-        // with the whole route on screen (map moved by hand), the whole driven part is grey
-        val start = if (!following) 0.0 else max(0.0, min(prog - 800.0, lastDrawProg - 950.0))
-        if (prog - start < 2.0) { if (doneShown) { map.setDone(emptyList()); doneShown = false }; return }
-        val pts = ArrayList<LL>()
-        pts += pointAt(r, start).first
-        var i = idxAt(r, start) + 1
-        while (i < r.pts.size && r.cum[i] < prog) { pts += r.pts[i]; i++ }
-        pts += pointAt(r, prog).first
-        map.setDone(pts); doneShown = true
-    }
-
-    private fun pointAt(r: Route, d: Double): Pair<LL, Double> {
-        val c = r.cum
-        var lo = 0; var hi = c.size - 1
-        while (lo < hi - 1) { val m = (lo + hi) ushr 1; if (c[m] <= d) lo = m else hi = m }
-        val seg = (c[hi] - c[lo]).takeIf { it > 0 } ?: 1.0
-        val t = ((d - c[lo]) / seg).coerceIn(0.0, 1.0)
-        val a = r.pts[lo]; val b = r.pts[hi]
-        return Pair(LL(a.lat + (b.lat - a.lat) * t, a.lon + (b.lon - a.lon) * t), Geo.bearing(a, b))
-    }
 }
 
 /**

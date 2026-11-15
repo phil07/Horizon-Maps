@@ -1,5 +1,6 @@
 package com.headunit.launcher.ui
 
+import com.headunit.launcher.acceptFaster
 import com.headunit.launcher.R
 import com.headunit.launcher.Lang
 import androidx.compose.material.icons.rounded.RvHookup

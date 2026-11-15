@@ -1,10 +1,8 @@
 ## Unreleased
 
 ### Verbessert
-- Ladeplanung unterwegs: Es werden nur noch die Ladesäulen auf dem Rest der Route abgefragt, nicht mehr die der ganzen Strecke. Das spart Datenabrufe und lässt mehr Platz für die Säulen, die noch vor dir liegen.
-  EN: Charging plan on the way: only the chargers on the rest of the route are looked up, no longer those of the whole trip. That saves data and leaves more room for the chargers still ahead of you.
-- Leistungsanzeige (Einstellungen › Leistungsanzeige): zeigt jetzt auch, wie lange die App für jede neue Position rechnet, und wie oft das Android-Auto-Bild neu aufgebaut wird.
-  EN: Performance meter (Settings › Performance meter): now also shows how long the app works on each new position, and how often the Android Auto screen is laid out again.
+- Aufräumarbeiten im Code der App (ein sehr großer Teil wurde in kleinere Dateien aufgeteilt). Es ändert sich nichts Sichtbares.
+  EN: Housekeeping in the app's code (one very large part was split into smaller files). Nothing visible changes.
 
 ## 1.0.246 — 2026-10-28
 
