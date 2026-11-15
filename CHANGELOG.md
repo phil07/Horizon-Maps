@@ -1,8 +1,10 @@
 ## Unreleased
 
-### Verbessert
-- Kartenvorschau in den Einstellungen auf dem Handy: Auf den Kartenseiten (Kartenstil, Auf der Karte, Pfeil) bleibt die Live-Karte oben stehen, während du in den Einstellungen scrollst. So siehst du jede Änderung, sobald du sie machst.
-  EN: Map preview in Settings on a phone: on the map pages (Map style, Light & 3D, On the map, Your arrow) the live preview now stays at the top while you scroll the settings, as it does in landscape, so you can see each change as you make it
+### Neu
+- Schnellere Route auf Android Auto: Wird eine schnellere Route gefunden, kommt ein Pop-up mit Wechseln und Beibehalten. Es zeigt die gesparte Zeit und die Kilometer-Differenz, z. B. „Schnellere Route: spart 4 Min. · 2,3 km kürzer“.
+  EN: Faster route on Android Auto: when a faster route is found, a pop-up offers Switch and Keep. It shows the time saved and the distance difference, e.g. "Faster route: saves 4 min · 2.3 km shorter".
+- Knöpfe unten links auf Android Auto: Hineinzoomen, Herauszoomen, Einstellungen und Zentrieren auf deinen Standort. Sie sind so groß und haben dieselben Icons wie die Knöpfe oben links.
+  EN: Buttons bottom left on Android Auto: zoom in, zoom out, settings and re-centre on your position. They are the same size and use the same icons as the buttons top left.
 
 ## 1.0.246 — 2026-10-28
 

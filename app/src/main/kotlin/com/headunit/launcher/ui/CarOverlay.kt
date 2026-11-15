@@ -330,6 +330,15 @@ private fun CarScreen(engine: NavEngine, a: android.graphics.Rect?, actions: Car
                     Icon(icon, null, tint = tint, modifier = Modifier.size(colBtn * 0.5f))
                 }
             }
+            // the map's own buttons, bottom left, the same size and style as the column above: zoom in and out, settings and
+            // re-centre. Lifted above the trip card where that covers the bottom of the screen.
+            val coverDp = with(dens) { (vH * engine.bottomCover.toFloat()).toDp() }
+            Column(Modifier.align(Alignment.BottomStart).padding(start = x, bottom = bottom + coverDp + 12.dp), verticalArrangement = Arrangement.spacedBy(colGap)) {
+                btn("own-zoomin", Icons.Rounded.Add, c.text, c.surface) { engine.zoom(1.0) }
+                btn("own-zoomout", Icons.Rounded.Remove, c.text, c.surface) { engine.zoom(-1.0) }
+                btn("own-settings", Icons.Rounded.Settings, c.text, c.surface) { actions.settings() }
+                btn("own-recentre", Icons.Rounded.MyLocation, c.text, c.surface) { engine.recenter(true) }
+            }
             Column(Modifier.padding(start = x, top = y0), verticalArrangement = Arrangement.spacedBy(colGap)) {
                 if (guiding) btn("own-end", Icons.Rounded.Close, Color.White, Color(0xFFD32F2F)) { engine.endRoute() }
                 else Box(Modifier.size(colBtn))

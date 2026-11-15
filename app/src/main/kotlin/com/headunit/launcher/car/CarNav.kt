@@ -529,6 +529,9 @@ class MapScreen(carContext: CarContext, private val holder: CarHolder) : Screen(
     private var lastTrip = ""
     /** The shared report last asked about in the car ("Stau noch da?"), so each is asked only once. */
     private var lastVoteId = 0L
+    /** The faster route offer last shown as a pop-up (by identity; 0 when none), and the pop-up's id. */
+    private var lastFasterKey = 0
+    private val FASTER_ALERT_ID = 4711
     private var navigating = false
     private var autoDrive = false
     /** Opens the car's quick settings (set by the session). */
@@ -596,7 +599,42 @@ class MapScreen(carContext: CarContext, private val holder: CarHolder) : Screen(
             lastVoteId = vp.id
             if (carContext.carAppApiLevel >= 5) try { showVoteAlert(e, vp) } catch (x: Exception) { }
         }
+        // a faster route found: the same offer as a pop-up with the minutes and the distance saved (Android Auto's alert with two
+        // buttons, car API 5 and newer); it goes when the offer is gone
+        val fr = e.faster
+        val frKey = fr?.let { System.identityHashCode(it) } ?: 0
+        if (frKey != lastFasterKey) {
+            val had = lastFasterKey != 0
+            lastFasterKey = frKey
+            if (carContext.carAppApiLevel >= 5) try {
+                if (fr != null) showFasterAlert(e, fr)
+                else if (had) carContext.getCarService(AppManager::class.java).dismissAlert(FASTER_ALERT_ID)
+            } catch (x: Exception) { }
+        }
         CarTicks.tick?.invoke()
+    }
+
+    private fun showFasterAlert(e: NavEngine, fr: NavEngine.FasterRoute) {
+        val am = carContext.getCarService(AppManager::class.java)
+        // the distance saved: the current route against the faster one (negative when the faster one is longer)
+        val diff = (e.route?.len ?: fr.route.len) - fr.route.len
+        val dist = com.headunit.launcher.Geo.fmtDist(kotlin.math.abs(diff), e.imperial)
+        val text = if (diff >= 0) Lang.t("Schnellere Route: spart ${fr.savedMin} Min. · $dist kürzer", "Faster route: saves ${fr.savedMin} min · $dist shorter")
+            else Lang.t("Schnellere Route: spart ${fr.savedMin} Min. · $dist länger", "Faster route: saves ${fr.savedMin} min · $dist longer")
+        val yes = Action.Builder().setTitle(Lang.t("Wechseln", "Switch")).setOnClickListener {
+            e.acceptFaster(); try { am.dismissAlert(FASTER_ALERT_ID) } catch (x: Exception) { }
+        }.build()
+        val no = Action.Builder().setTitle(Lang.t("Beibehalten", "Keep")).setOnClickListener {
+            e.dismissFaster(); try { am.dismissAlert(FASTER_ALERT_ID) } catch (x: Exception) { }
+        }.build()
+        val alert = androidx.car.app.model.Alert.Builder(FASTER_ALERT_ID, androidx.car.app.model.CarText.create(text), 20_000L)
+            .addAction(yes).addAction(no)
+            .setCallback(object : androidx.car.app.model.AlertCallback {
+                override fun onCancel(reason: Int) { }
+                override fun onDismiss() { }
+            })
+            .build()
+        am.showAlert(alert)
     }
 
     private fun showVoteAlert(e: NavEngine, vp: NavEngine.VotePrompt) {
