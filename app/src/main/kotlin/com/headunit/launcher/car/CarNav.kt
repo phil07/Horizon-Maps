@@ -776,7 +776,10 @@ class MapScreen(carContext: CarContext, private val holder: CarHolder) : Screen(
             .addAction(if (e == null || e.following) Action.Builder().setIcon(icon(R.drawable.ic_car_layers)).setOnClickListener { screenManager.push(LayersScreen(carContext, holder)) }.build()
                 else Action.Builder().setIcon(icon(R.drawable.ic_car_recenter)).setOnClickListener { e.recenter(byUser = true) }.build())
             .build()
-        val b = NavigationTemplate.Builder().setActionStrip(strip.build()).setMapActionStrip(mapStrip)
+        val b = NavigationTemplate.Builder().setActionStrip(strip.build())
+        // cars that pass taps on: the app's own column on the left has zoom, settings and re-centre, so Android Auto's map buttons on
+        // the right (zoom and layers) are left off. Cars without taps keep them: there they are the only zoom
+        if (!taps) b.setMapActionStrip(mapStrip)
         // the turn card, trip figures and the "working out the route" spinner are the app's own, drawn on the map (see CarOverlay):
         // Android Auto's own loading card took the top-left corner and pushed the app's cards aside. The turns still go to Android
         // Auto through updateTrip, for the car's dashboard display and notifications.

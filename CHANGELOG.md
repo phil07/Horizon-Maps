@@ -1,8 +1,8 @@
 ## Unreleased
 
 ### Behoben
-- Ladeplanung: Ein bevorzugter Ladeanbieter wird jetzt auch eingeplant, wenn seine Säule keine bekannte Leistung hat und daneben eine Säule mit bekannter Leistung eines anderen Anbieters steht. Die Minuten, die du in den Einstellungen erlaubt hast, bestimmen weiterhin, ob der Umweg gemacht wird.
-  EN: Charging plan: a preferred provider is now picked even when its charger has no known power and a charger of another provider with known power is next to it. The extra minutes allowed in Settings still decide whether the detour is made.
+- Android Auto: Die doppelten Zoom- und Ebenen-Knöpfe rechts auf dem Autodisplay sind weg. Zoom, Einstellungen und Zentrieren gibt es links, wie in der App. Autos ohne Berührungsunterstützung behalten die Knöpfe rechts.
+  EN: Android Auto: the duplicate zoom and layer buttons on the right of the car screen are gone. Zoom, settings and re-centre are on the left, as in the app. Cars without touch support keep the buttons on the right.
 
 ## 1.0.246 — 2026-10-28
 
