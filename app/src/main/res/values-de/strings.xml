@@ -129,7 +129,7 @@
     <string name="rest_438">Suche fehlgeschlagen: %1$s</string>
     <string name="rest_439">Route fehlgeschlagen: %1$s</string>
     <string name="rest_440">Karte: %1$s</string>
-    <string name="rest_441">Blitzerwarnungen sind in %1$s aus, weil sie dort nicht erlaubt sind. Du kannst das unter Einstellungen &gt; Warnungen ändern.</string>
+    <string name="rest_441">Blitzerwarnungen sind in %1$s aus, weil sie dort nicht erlaubt sind. Der Schalter „Aus, wo verboten“ unter Einstellungen &gt; Warnungen hält sie aus.</string>
     <string name="rest_442">Mapbox-Suche hat nicht funktioniert: %1$s</string>
     <string name="rest_1048">Ort konnte nicht gelesen werden</string>
     <string name="rest_1197">Suche deine Arbeitsadresse</string>

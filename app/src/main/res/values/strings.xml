@@ -129,7 +129,7 @@
     <string name="rest_438">Search failed: %1$s</string>
     <string name="rest_439">Route failed: %1$s</string>
     <string name="rest_440">Map: %1$s</string>
-    <string name="rest_441">Speed camera alerts are off in %1$s, where they aren\'t allowed. You can change this in Settings &gt; Alerts.</string>
+    <string name="rest_441">Speed camera alerts are off in %1$s, where they aren\'t allowed. The switch \"Off where banned\" under Settings &gt; Alerts keeps them off.</string>
     <string name="rest_442">Mapbox search didn\'t work: %1$s</string>
     <string name="rest_1048">Couldn\'t read a place from that</string>
     <string name="rest_1197">Search for your work address</string>

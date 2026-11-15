@@ -4539,14 +4539,15 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
     /** Speed cameras are drawn on the map: switched on in Settings, also in countries that ban the warnings (they're never announced there unless [camerasOn]). */
     fun camerasOnMap(): Boolean = prefs.b(PreferenceKeys.CAMERA_MAP, true)
 
-    private var banNoted = ""
-    /** Says once, on arriving in a country that bans camera warnings, that they've been switched off. */
+    /** Says once per country (kept on the phone, so it isn't said again at every start), on arriving in a country that bans camera
+     *  warnings, that they've been switched off. */
     private fun noteCameraBan() {
         val cc = detectedCountry
-        val name = CAMERA_BANNED[cc]
-        if (name == null || !prefs.b(PreferenceKeys.CAMERA_WARNINGS, false) ||!prefs.b(PreferenceKeys.CAMBANOBEY, true)) { if (name == null) banNoted = ""; return }
-        if (banNoted == cc) return
-        banNoted = cc
+        val name = CAMERA_BANNED[cc] ?: return
+        if (!prefs.b(PreferenceKeys.CAMERA_WARNINGS, false) || !prefs.b(PreferenceKeys.CAMBANOBEY, true)) return
+        val said = prefs.s(PreferenceKeys.CAMBAN_NOTED, "").split(',').filter { it.isNotBlank() }
+        if (cc in said) return
+        prefs.put(PreferenceKeys.CAMBAN_NOTED, (said + cc).joinToString(","))
         toast(str(R.string.rest_441, name), 7000)
     }
 
