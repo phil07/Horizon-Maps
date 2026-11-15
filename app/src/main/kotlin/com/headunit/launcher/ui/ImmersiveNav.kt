@@ -565,7 +565,7 @@ private fun MapScreen(engine: NavEngine, onSettings: () -> Unit) {
             modifier = Modifier.align(side(Alignment.CenterEnd)),
             enter = slideInHorizontally(initialOffsetX = { if (mir) -it else it }) + fadeIn(),
             exit = slideOutHorizontally(targetOffsetX = { if (mir) -it else it }) + fadeOut(),
-        ) { OptionsSheet(engine, shareEta, wide = !narrow && maxWidth >= 860.dp && maxHeight < maxWidth, onSettings = { sheet = false; onSettings() }) { sheet = false } }
+        ) { OptionsSheet(engine, shareEta, voice = voice, wide = !narrow && maxWidth >= 860.dp && maxHeight < maxWidth, onSettings = { sheet = false; onSettings() }) { sheet = false } }
         if (engine.stopsEditor) StopsDialog(engine, onClose = { engine.stopsEditor = false })
         if (engine.chargerFilterOpen) ChargerFilterDialog(engine) { engine.chargerFilterOpen = false }
     }
@@ -577,7 +577,7 @@ private fun MapScreen(engine: NavEngine, onSettings: () -> Unit) {
  * needs scrolling; it still scrolls if a small screen needs it.
  */
 @Composable
-private fun OptionsSheet(engine: NavEngine, shareEta: () -> Unit, wide: Boolean = false, onSettings: () -> Unit = {}, close: () -> Unit) {
+private fun OptionsSheet(engine: NavEngine, shareEta: () -> Unit, voice: () -> Unit, wide: Boolean = false, onSettings: () -> Unit = {}, close: () -> Unit) {
     val c = LocalVw.current
     val p = engine.prefs
     val routing = engine.route != null && !engine.previewing
