@@ -6938,6 +6938,11 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         val chargerKm = prefs.i(PreferenceKeys.EV_CHARGER_KM, 30).coerceIn(0, 500).toDouble()
         val (startKm0, full0) = evRangeKm()
         val lenKm = r.len / 1000.0
+        // the plan starts where you are on the route (the range now is from here), not at its start: only the rest of the route
+        // counts, and only chargers ahead of you (their distances are from the route's start, so they are taken from here)
+        val here = if (r === route && !previewing) curProgress.coerceIn(0.0, r.len) else 0.0
+        val leftKm = (r.len - here) / 1000.0
+        fun aheadKm(n: Nearby) = (n.dist - here) / 1000.0
         // the chargers along the route are looked up while the heights load (both are network calls)
         val candsJob = scope.async { withContext(Dispatchers.IO) { chargersAlong(r) } }
         // the heights along the route first (hills change the range a lot)
@@ -6948,7 +6953,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
             if (lenKm > 1.0 && r.time > 60) (evRouteKwh(r, 0.0, r.len / r.time * 3.6) / (lenKm * evBaseKwhPerKm())).coerceIn(0.5, 2.5) else 1.0
         } catch (e: Exception) { 1.0 }
         val startKm = startKm0 / rf; val full = full0 / rf
-        if (startKm - lenKm >= destKm) { candsJob.cancel(); return emptyList<EvStop>() to null }
+        if (startKm - leftKm >= destKm) { candsJob.cancel(); return emptyList<EvStop>() to null }
         // no internet: no charger can be looked up, so no plan; say so plainly (not "no charger in reach")
         if (!online()) { candsJob.cancel(); return emptyList<EvStop>() to EV_OFFLINE_MSG }
         val cands = candsJob.await()
@@ -6958,10 +6963,10 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         fun plan(pick: (List<Nearby>) -> Nearby?): Pair<List<EvStop>, String?> {
             val stops = ArrayList<EvStop>()
             var s = 0.0; var range = startKm; var warning: String? = null
-            while (range - (lenKm - s) < destKm) {
+            while (range - (leftKm - s) < destKm) {
                 if (stops.size >= 6) { warning = Lang.t("Mehr als 6 Ladestopps: die Strecke ist für diese Planung zu lang.", "More than 6 charging stops: the trip is too long for this plan."); break }
                 val reach = s + range - chargerKm
-                val inReach = cands.filter { it.dist / 1000.0 > s + 0.5 && it.dist / 1000.0 <= reach }
+                val inReach = cands.filter { aheadKm(it) > s + 0.5 && aheadKm(it) <= reach }
                 val c = pick(inReach)
                 if (c == null) {
                     val minKw = prefs.i(PreferenceKeys.EV_MIN_KW, 50)
@@ -6969,10 +6974,10 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
                     else Lang.t("Kein Ladepunkt auf der Strecke ist mit ${chargerKm.toInt()} km Reserve erreichbar.", "No charger on the route can be reached with ${chargerKm.toInt()} km left.")
                     break
                 }
-                val ck = c.dist / 1000.0
+                val ck = aheadKm(c)
                 val arr = range - (ck - s)
                 // charge only as far as the destination needs (with its reserve), never past full
-                val target = min(full, max(arr, (lenKm - ck) + destKm))
+                val target = min(full, max(arr, (leftKm - ck) + destKm))
                 // the car's charging curve, capped by what this charger delivers
                 // a cold battery charges slower; one warmed by a long drive (an hour or more since the start or the last stop) less so
                 val pf = EvModel.chargeTempFactor(evTemp(), warm = ck - s >= 100.0)
