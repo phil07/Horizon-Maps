@@ -2060,6 +2060,8 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
     var alongOpen by mutableStateOf(false)
     /** The car screen is short (800 x 480 or a split-screen tile): slim cards, a one-line trip and a smaller speed sign. */
     var carShort by mutableStateOf(false)
+    /** The car screen shows the speed on its left (set by the car overlay): the limit sign then goes on the speed's right. */
+    var carSpeedLeft by mutableStateOf(false)
     var alongQuery by mutableStateOf("")
         private set
 

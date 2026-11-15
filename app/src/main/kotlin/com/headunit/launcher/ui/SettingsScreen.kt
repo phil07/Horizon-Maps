@@ -1067,7 +1067,7 @@ private fun ScreenSection(prefs: Prefs, engine: NavEngine) {
         SToggle(prefs, "Tachoring", "speedring", true, "Füllt sich bis zum Tempolimit, färbt sich gelb dann rot")
         SSlider("Tempolimit- und Tachogröße", prefs.i(PreferenceKeys.SPEED_SIZE, 100).toFloat(), 50f..200f, "%", sub = "Auf Smartphone und Autodisplay", steps = 29, reset = 100f) { prefs.put(PreferenceKeys.SPEED_SIZE, it) }
         SChoice("Tacho-Seite", listOf("right" to "Rechts", "left" to "Links", "auto" to "Automatisch"), prefs.s(PreferenceKeys.MAIN_SPEED_SIDE, "right"),
-            "Auf Smartphone und Head-Unit. Automatisch: links bei Linkslenker. Das Limit-Schild steht immer zur Bildschirmmitte hin") { prefs.put(PreferenceKeys.MAIN_SPEED_SIDE, it) }
+            "Auf Smartphone, Head-Unit und Android Auto (untere Ecke). Automatisch: wie früher. Das Limit-Schild steht immer zur Bildschirmmitte hin") { prefs.put(PreferenceKeys.MAIN_SPEED_SIDE, it) }
         SToggle(prefs, "Straße und Richtung beim Fahren ohne Route", "cruise", true)
         SToggle(prefs, "Pfeil ohne Route auf der Straße halten", "snaproad", true)
         SToggle(prefs, "Pfeil seitlich lassen", PreferenceKeys.KEEP_ARROW_SIDE, false, "Auf breitem Bildschirm bleibt der Pfeil seitlich, wenn die Karten einklappen, statt in die Mitte zu gleiten")
@@ -1113,7 +1113,7 @@ private fun AndroidAutoSection(prefs: Prefs) {
         SChoice("Tachostil auf dem Autodisplay", listOf("normal" to "Normal", "compact" to "Kompakt"), prefs.s(PreferenceKeys.CAR_SPEED_STYLE, "normal"),
             "Kompakt: eine kleine dunkle Pille mit Limit-Schild und Tempo nebeneinander, passt auch oben rechts auf einen kurzen Bildschirm") { prefs.put(PreferenceKeys.CAR_SPEED_STYLE, it) }
         SChoice("Position des Tachos auf dem Autodisplay", listOf("bottom" to "Untere Ecke", "turn" to "Unter der Abbiege-Karte", "top" to "Oben rechts"), prefs.s(PreferenceKeys.CAR_SPEED_POS, "bottom"),
-            "Untere Ecke wie bisher: rechts auf breiten Bildschirmen, links auf kurzen") { prefs.put(PreferenceKeys.CAR_SPEED_POS, it) }
+            "Untere Ecke: die Seite aus „Tacho-Seite“ (Beim Fahren)") { prefs.put(PreferenceKeys.CAR_SPEED_POS, it) }
         var carAdvanced by rememberSaveable { mutableStateOf(false) }
         SItem("Erweiterte Autodisplay-Größen", "Einzelne Elemente unabhängig anpassen") {
             SButton(if (carAdvanced) "Ausblenden" else "Anzeigen") { carAdvanced = !carAdvanced }

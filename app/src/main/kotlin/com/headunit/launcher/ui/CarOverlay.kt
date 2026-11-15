@@ -273,6 +273,16 @@ private fun CarScreen(engine: NavEngine, a: android.graphics.Rect?, actions: Car
         // where the speed sits (Settings > Android Auto): bottom left (the default), under the turn card, or top right.
         // "Under the turn card" needs the card showing; without it the speed stays in the bottom corner.
         val speedHere = when (engine.prefs.s(PreferenceKeys.CAR_SPEED_POS, "bottom")) { "turn" -> if (showTurn) "turn" else "bottom"; "top" -> "top"; else -> "bottom" }
+        // which bottom corner: the phone's "Tacho-Seite" setting counts here too. Right (the default) or left; automatic is as it
+        // used to be (right on a wide screen, left on a short one; right above the trip card on a tall one)
+        val speedSide = engine.prefs.s(PreferenceKeys.MAIN_SPEED_SIDE, "right")
+        val cornerLeft = if (portrait) speedSide == "left" else when (speedSide) { "left" -> true; "right" -> false; else -> shortCar }
+        // the limit sign faces the middle of the screen: right of the speed when the speed is on the left
+        val carSpeedLeft = speedHere == "turn" || (speedHere == "bottom" && cornerLeft)
+        if (engine.carSpeedLeft != carSpeedLeft) engine.carSpeedLeft = carSpeedLeft
+        // the speed on the left, with room kept on its right for the sign beside the ring (the sign is drawn outside the ring's own box)
+        val signRoom = if (engine.prefs.b(PreferenceKeys.SPEEDRING, true) && engine.prefs.s(PreferenceKeys.CAR_SPEED_STYLE, "normal") != "compact") 52.dp else 0.dp
+        val leftSpeed: @Composable () -> Unit = { CompositionLocalProvider(LocalDensity provides Density(dens.density * speedScale, dens.fontScale)) { Box(Modifier.padding(end = signRoom)) { ImmSpeed(engine) } } }
         // hazards ahead (an incident, a speed camera) go along the bottom of the turn card when it's showing, instead of a
         // separate pill: the left side is then just the turn card and the trip card
         val alert = engine.alert
@@ -307,9 +317,7 @@ private fun CarScreen(engine: NavEngine, a: android.graphics.Rect?, actions: Car
         }
 
         // the speed under the turn card, or in the top right, when Settings puts it there
-        if (speedHere == "turn") Box(Modifier.padding(start = left, top = top + with(dens) { turnH.toDp() } + 12.dp)) {
-            CompositionLocalProvider(LocalDensity provides Density(dens.density * speedScale, dens.fontScale)) { ImmSpeed(engine) }
-        }
+        if (speedHere == "turn") Box(Modifier.padding(start = left, top = top + with(dens) { turnH.toDp() } + 12.dp)) { leftSpeed() }
         if (speedHere == "top") Box(Modifier.align(Alignment.TopEnd).padding(end = rightTop, top = top)) {
             CompositionLocalProvider(LocalDensity provides Density(dens.density * speedScale, dens.fontScale)) { ImmSpeed(engine) }
         }
@@ -446,8 +454,9 @@ private fun CarScreen(engine: NavEngine, a: android.graphics.Rect?, actions: Car
                 ) {
                     // (the row keeps the speed's height, so the hazards line up with it)
                     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.Bottom) {
+                        if (speedHere == "bottom" && cornerLeft) Box(Modifier.padding(end = 20.dp, top = 14.dp)) { leftSpeed() }
                         Box(Modifier.weight(1f)) { hazards() }
-                        if (speedHere == "bottom") Box(Modifier.padding(start = 30.dp, top = 14.dp)) { CompositionLocalProvider(LocalDensity provides Density(dens.density * speedScale, dens.fontScale)) { ImmSpeed(engine) } }
+                        if (speedHere == "bottom" && !cornerLeft) Box(Modifier.padding(start = 30.dp, top = 14.dp)) { CompositionLocalProvider(LocalDensity provides Density(dens.density * speedScale, dens.fontScale)) { ImmSpeed(engine) } }
                     }
                     if (guiding && !panelOpen) CompositionLocalProvider(LocalDensity provides Density(dens.density * cardScale, dens.fontScale)) { Box(Modifier.onSizeChanged { tripPx = it.height }) { TripCard(engine, true, oneLine = shortCar) } }
                 }
@@ -466,11 +475,12 @@ private fun CarScreen(engine: NavEngine, a: android.graphics.Rect?, actions: Car
                     // a short screen: the speed stays here in the bottom-left corner, with the one-line trip strip beside it (not in the
                     // bottom right, where it slid with Android Auto's zoom buttons, covered the Mapbox logo and climbed the side)
                     if (shortCar) Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        if (speedHere == "bottom") CompositionLocalProvider(LocalDensity provides Density(dens.density * speedScale, dens.fontScale)) { ImmSpeed(engine) }
+                        if (speedHere == "bottom" && cornerLeft) leftSpeed()
                         if (guiding && !panelOpen && !tile) Box(Modifier.weight(1f)) {
                             CompositionLocalProvider(LocalDensity provides Density(dens.density * cardScale, dens.fontScale)) { TripCard(engine, false, oneLine = true) }
                         }
                     }
+                    if (!shortCar && speedHere == "bottom" && cornerLeft) leftSpeed()
                     if (!shortCar && guiding && !panelOpen) CompositionLocalProvider(LocalDensity provides Density(dens.density * cardScale, dens.fontScale)) { TripCard(engine, false, oneLine = shortCar) }
                 }
                 // your speed and the limit, bottom right as in the app (clear of Android Auto's zoom buttons); on a small screen where
@@ -484,7 +494,7 @@ private fun CarScreen(engine: NavEngine, a: android.graphics.Rect?, actions: Car
                 // into the corner when they hide (it used to keep a fixed 92dp gap as well, so it sat well in from either)
                 val speedEnd by androidx.compose.animation.core.animateDpAsState(insR + 6.dp, tween(280), label = "speedEnd")
                 var speedH by remember { mutableStateOf(0) }
-                if (!shortCar && speedHere == "bottom") BoxWithConstraints(Modifier.align(Alignment.BottomEnd).padding(end = speedEnd, bottom = speedBottom, start = 34.dp, top = 20.dp)
+                if (speedHere == "bottom" && !cornerLeft) BoxWithConstraints(Modifier.align(Alignment.BottomEnd).padding(end = speedEnd, bottom = speedBottom, start = 34.dp, top = 20.dp)
                     .onSizeChanged { speedW = it.width; speedH = it.height }) {
                     val availableFit = minOf(1f, (maxWidth.value / 220f).coerceAtLeast(0.25f), (maxHeight.value / 150f).coerceAtLeast(0.25f))
                     val fittedScale = requestedSpeedScale * availableFit
@@ -492,7 +502,7 @@ private fun CarScreen(engine: NavEngine, a: android.graphics.Rect?, actions: Car
                 }
                 // battery and range from the car (or the widget), always shown, right above the speed (the speed keeps its own
                 // place in the corner; the pill is placed by the speed's measured height, so it never pushes the speed away)
-                if (!shortCar) Box(Modifier.align(Alignment.BottomEnd).padding(end = speedEnd, bottom = speedBottom + with(dens) { speedH.toDp() } + 10.dp)) { EvPill(engine) }
+                if (!shortCar) Box(Modifier.align(Alignment.BottomEnd).padding(end = speedEnd, bottom = speedBottom + (if (speedHere == "bottom" && !cornerLeft) with(dens) { speedH.toDp() } + 10.dp else 0.dp))) { EvPill(engine) }
             }
         }
 

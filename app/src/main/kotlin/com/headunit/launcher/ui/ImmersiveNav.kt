@@ -919,8 +919,8 @@ internal fun EvNowChip(engine: NavEngine) {
     }
 }
 
-/** Whether the phone / head unit shows the speed on the left (Settings: right by default, left, or automatic = left when mirrored). Never on the car screen. */
-internal fun NavEngine.speedLeft(): Boolean = !isCar && when (prefs.s(PreferenceKeys.MAIN_SPEED_SIDE, "right")) { "left" -> true; "auto" -> mirrored; else -> false }
+/** Whether the speed is shown on the left: on the phone / head unit by the setting (right by default, left, or automatic = left when mirrored); on the car screen where the car overlay put it. */
+internal fun NavEngine.speedLeft(): Boolean = if (isCar) carSpeedLeft else when (prefs.s(PreferenceKeys.MAIN_SPEED_SIDE, "right")) { "left" -> true; "auto" -> mirrored; else -> false }
 
 /** Speed limit sign beside a large readout of your current speed. */
 @Composable
@@ -970,7 +970,7 @@ private fun SpeedBlock(engine: NavEngine) {
         // relationship to the speed readout for left-hand-drive layouts.
         // the sign goes on the side facing the middle of the screen, so it can't sit off the edge: right of the speed when the
         // speed is on the left, left of it when the speed is on the right (the car screen keeps its own order)
-        val signFirst = !engine.isCar && !engine.speedLeft()
+        val signFirst = !engine.speedLeft()
         if (show && signFirst && sign) SpeedLimitSign(engine, 70.dp)
         if (show) Column(
             Modifier.width(78.dp).panel(8.dp, RoundedCornerShape(24.dp), c.surface).padding(vertical = 8.dp),
