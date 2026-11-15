@@ -354,6 +354,8 @@ internal object SettingsEn {
         "Straßennamen ansagen" to "Say road names",
         "Aus gibt nur die Richtung an" to "Off only says the direction",
         "Landmarken in Anweisungen" to "Landmarks in directions",
+        "Deine Reihenfolge" to "Your order",
+        "Die Reihenfolge der Knöpfe unter der Suchleiste. Mit den Pfeilen verschieben." to "The order of the shortcuts under the search bar. Move them with the arrows.",
         "Dein Modell" to "Your model",
         "Noch keins gewählt · eine .glb-Datei, höchstens 8 MB. Bis dahin steht das eingebaute Auto da." to "None chosen yet · a .glb file, up to 8 MB. Until then the built-in car stands in.",
         "Ersetzen" to "Replace",

@@ -724,7 +724,7 @@ private fun PlacesSection(engine: NavEngine) {
     var adding by remember { mutableStateOf(false) }
     SGroup("Eigene Orte", footer = "Eigene benannte Orte unter der Suchleiste.") {
         if (mine.isEmpty()) SNote("Noch keine eigenen Orte vorhanden.")
-        mine.forEachIndexed { i, lp ->
+        mine.forEach { lp ->
             if (renaming == lp.label) {
                 var t by remember(lp.label) { mutableStateOf(lp.label) }
                 SItem("${lp.label} umbenennen") {
@@ -732,12 +732,20 @@ private fun PlacesSection(engine: NavEngine) {
                     SButton("Speichern", primary = true) { pl.renameCustom(lp.label, t); renaming = null }
                 }
             } else SItem(lp.label, lp.place.name + if (lp.place.sub.isNotBlank()) ", " + lp.place.sub else "") {
-                if (i > 0) SButton("↑") { pl.moveCustom(lp.label, -1) }
                 SButton("Umbenennen") { renaming = lp.label }
                 SButton("Entfernen", danger = true) { pl.removeCustom(lp.label) }
             }
         }
         SItem("Ort hinzufügen") { SButton("Hinzufügen", primary = true) { adding = true } }
+    }
+    // the order of these shortcuts under the search bar: each moves up or down with its arrows
+    if (mine.size > 1) SGroup("Deine Reihenfolge", footer = "Die Reihenfolge der Knöpfe unter der Suchleiste. Mit den Pfeilen verschieben.") {
+        mine.forEachIndexed { i, lp ->
+            SItem(lp.label) {
+                SButton("↑") { if (i > 0) pl.moveCustom(lp.label, -1) }
+                SButton("↓") { if (i < mine.size - 1) pl.moveCustom(lp.label, 1) }
+            }
+        }
     }
     if (adding) AddPlaceDialog(engine, null) { adding = false }
     val favRaw = engine.prefs.s(PreferenceKeys.PLACES_FAVOURITES, "")

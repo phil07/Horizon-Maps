@@ -10,6 +10,8 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -65,7 +67,7 @@ internal fun SGroup(title: String? = null, footer: String? = null, content: @Com
 internal val LocalSettingHighlight = androidx.compose.runtime.compositionLocalOf<String?> { null }
 
 /** One setting: a title (and an optional line under it) on the left, its control on the right. */
-@OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
+@OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class, ExperimentalLayoutApi::class)
 @Composable
 internal fun SItem(title: String, sub: String? = null, onClick: (() -> Unit)? = null, trailing: @Composable () -> Unit = {}) {
     val c = LocalVw.current
@@ -91,7 +93,8 @@ internal fun SItem(title: String, sub: String? = null, onClick: (() -> Unit)? = 
             Text(tr(title), color = c.text, fontSize = 16.sp, fontWeight = FontWeight.Medium)
             if (!sub.isNullOrBlank()) Text(tr(sub), color = c.sub, fontSize = 12.sp, modifier = Modifier.padding(top = 2.dp))
         }
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) { trailing() }
+        // the buttons wrap onto as many lines as they need (on a phone they used to be squashed into a column of letters)
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End), verticalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.padding(start = 4.dp)) { trailing() }
     }
 }
 

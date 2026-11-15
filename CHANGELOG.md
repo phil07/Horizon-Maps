@@ -1,8 +1,12 @@
 ## Unreleased
 
 ### Behoben
-- Blitzerwarnungen in Frankreich, Deutschland und der Schweiz: Der Hinweis, dass sie dort aus sind, kommt nur noch einmal pro Land statt bei jedem App-Start. Er nennt jetzt den Schalter „Aus, wo verboten“ unter Einstellungen › Warnungen.
-  EN: Camera alerts in France, Germany and Switzerland: the message saying they're switched off there now shows only the first time in each country instead of every time the app opens, and names the switch that keeps them on ("Off where they're banned" in Settings › Alerts).
+- Verknüpfungen in den Einstellungen auf dem Handy: Die Knöpfe brechen jetzt in so viele Zeilen um, wie sie brauchen, statt dass der letzte zu einer Spalte aus einzelnen Buchstaben gequetscht wird.
+  EN: Shortcuts in Settings on a phone: the buttons now wrap onto as many lines as they need, instead of the last one being squashed into a column of single letters
+
+### Neu
+- Knöpfe unter der Suchleiste sortieren: Einstellungen › Orte & Fahrten › Verknüpfungen unter der Suchleiste hat jetzt eine Liste „Deine Reihenfolge“ mit Pfeilen nach oben und unten, um jeden Knopf zu verschieben.
+  EN: Reorder your shortcuts: Settings › Places & trips › Shortcuts under the search bar now has a "Your order" list with up and down arrows to move each one
 
 ## 1.0.246 — 2026-10-28
 
