@@ -79,6 +79,8 @@ class Route(
     /** Traffic level per route segment (point i to i+1): 0 clear, 1 slow, 2 heavy. */
     val sev: IntArray = IntArray(0),
 ) {
+    /** Where the route's junctions have traffic lights (Mapbox's intersections), for "at the traffic lights" on the turn card. */
+    @Volatile var signals: List<LL> = emptyList()
     /** The lanes at each junction. Can be replaced after the route starts, when Mapbox's lane list arrives for a TomTom route. */
     @Volatile var lanes: List<LaneSec> = lanes
     /** Live delays along the route (from TomTom's traffic data), used to work out the time left. Replaced whenever fresh traffic arrives. */

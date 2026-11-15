@@ -381,8 +381,9 @@ private fun CarScreen(engine: NavEngine, a: android.graphics.Rect?, actions: Car
                 // your speed on the right above it
                 var tripPx by remember { mutableStateOf(0) }
                 // (while guiding, the sound button is on the trip card)
-                if (!guiding) CompositionLocalProvider(LocalDensity provides Density(dens.density * buttonScale, dens.fontScale)) {
-                    ImmRound(engine.soundIcon(), "sound", { engine.cycleSound() }, Modifier.align(Alignment.TopEnd).padding(end = rightTop, top = top + below))
+                // (the sound button is on the left: the driver sits on the left in a car with Android Auto, and it's not on the trip card)
+                CompositionLocalProvider(LocalDensity provides Density(dens.density * buttonScale, dens.fontScale)) {
+                    ImmRound(engine.soundIcon(), "sound", { engine.cycleSound() }, Modifier.align(Alignment.TopStart).padding(start = left, top = top + below))
                 }
                 Column(
                     Modifier.align(Alignment.BottomStart).padding(start = left, bottom = bottom)
@@ -594,15 +595,6 @@ private fun TripCard(engine: NavEngine, fill: Boolean, oneLine: Boolean = false)
                 androidx.compose.material3.Icon(androidx.compose.material.icons.Icons.Rounded.Close, null, tint = Color.White, modifier = Modifier.size(sz * 0.52f))
             }
         }
-        // sound: tap for all / alerts only / off, as the app's sound button; lit up in its colour unless it's fully on
-        val sound: @Composable (androidx.compose.ui.unit.Dp) -> Unit = { sz ->
-            val sm = engine.prefs.i(PreferenceKeys.SOUND_MODE, if (engine.prefs.b(PreferenceKeys.VOICE, true)) 0 else 2).coerceIn(0, 2)
-            val tint = when (sm) { 0 -> c.sub; 1 -> Warn; else -> Bad }
-            Box(Modifier.size(sz).clip(androidx.compose.foundation.shape.CircleShape).background(if (sm == 0) c.line else tint.copy(alpha = 0.22f))
-                .carTap("sound") { engine.cycleSound() }, contentAlignment = Alignment.Center) {
-                androidx.compose.material3.Icon(engine.soundIcon(), null, tint = if (sm == 0) c.text else tint, modifier = Modifier.size(sz * 0.52f))
-            }
-        }
         val stats: @Composable () -> Unit = {
             CarStat(Geo.fmtDur(e.secs), if (e.delayMin >= 1) "+${e.delayMin} Min." else "Verbleibend", dc)
             CarStat(e.arrive, "Ankunft", c.text)
@@ -627,14 +619,12 @@ private fun TripCard(engine: NavEngine, fill: Boolean, oneLine: Boolean = false)
         // the buttons chosen in Settings > Android Auto > Knöpfe auf der Fahrtkarte, and their size
         val showOv = engine.prefs.b(PreferenceKeys.TRIP_BTN_OVERVIEW, true)
         val showOther = engine.prefs.b(PreferenceKeys.TRIP_BTN_OTHERS, true)
-        val showSound = engine.prefs.b(PreferenceKeys.TRIP_BTN_SOUND, true)
         val showEnd = engine.prefs.b(PreferenceKeys.TRIP_BTN_END, true)
         val sizeK = when (engine.prefs.s(PreferenceKeys.TRIP_BTN_SIZE, "normal")) { "large" -> 1.2f; "xl" -> 1.4f; else -> 1f }
         if (fill) Row(Modifier.fillMaxWidth().padding(start = 16.dp, end = 10.dp, top = 4.dp, bottom = 10.dp), verticalAlignment = Alignment.CenterVertically) {
             Row(Modifier.weight(1f), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) { stats() }
             if (showOv) Box(Modifier.padding(start = 8.dp)) { overviewBtn(46.dp * sizeK) }
             if (showOther) Box(Modifier.padding(start = 8.dp)) { otherBtn(46.dp * sizeK) }
-            if (showSound) Box(Modifier.padding(start = 12.dp)) { sound(46.dp * sizeK) }
             if (showEnd) Box(Modifier.padding(start = 8.dp)) { end(46.dp * sizeK) }
         } else Row(Modifier.widthIn(min = 460.dp).onSizeChanged { if (it.width != rowW) rowW = it.width }.padding(start = 16.dp, end = 10.dp, top = 4.dp, bottom = 10.dp),
             horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
@@ -642,7 +632,6 @@ private fun TripCard(engine: NavEngine, fill: Boolean, oneLine: Boolean = false)
             Row(Modifier.padding(start = 16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                 if (showOv) overviewBtn(54.dp * sizeK)
                 if (showOther) otherBtn(54.dp * sizeK)
-                if (showSound) sound(54.dp * sizeK)
                 if (showEnd) end(54.dp * sizeK)
             }
         }

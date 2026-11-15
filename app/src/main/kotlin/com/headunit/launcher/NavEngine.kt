@@ -1200,10 +1200,10 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
      * "Day" or "Night" picked in Settings is kept as it is.
      */
     private fun lightPreset(dark: Boolean): String {
+        // the day or night that was asked for here (the phone's setting, or the car's own "Always day" / "Always night"), so the
+        // light follows it: the phone's "night" used to keep the car's map dark after "Always day" on the car
         val theme = prefs.s(PreferenceKeys.THEME, "auto")
-        if (theme == "day") return "day"
-        if (theme == "night") return "night"
-        if (theme == "times") return if (dark) "night" else "day"
+        if (theme == "times" || theme == "day" || theme == "night") return if (dark) "night" else "day"
         val pos = fix?.pos ?: prefs.s(PreferenceKeys.LASTLAT, "").toDoubleOrNull()?.let { la -> prefs.s(PreferenceKeys.LASTLON, "").toDoubleOrNull()?.let { lo -> LL(la, lo) } }
         val ph = pos?.let { Sun.phase(it.lat, it.lon, System.currentTimeMillis()) } ?: ""
         return when {
@@ -3490,6 +3490,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         if (camerasOn() && navigatingNow() && onRouteNow && rc.isNotEmpty()) {
             // on a route: the cameras along it, by distance along the road (works round bends, where "straight ahead" doesn't)
             for ((c, off) in rc) {
+                if (atAvgEnd(c)) continue
                 val ahead = off - curProg
                 if (ahead < -15.0 || ahead > warnAt || ahead >= bestD) continue
                 if (!camFacesUs(c, p.heading)) continue
@@ -3500,6 +3501,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         val onRouteCams = camerasOn() && navigatingNow() && onRouteNow && rc.isNotEmpty()
         if (best == null && !onRouteCams && p.heading >= 0 && p.speed > 2.0) {
             for (c in cameras) {
+                if (atAvgEnd(c)) continue
                 val d = Geo.dist(p.pos, c)
                 if (d < 1.0 || d > warnAt + 40.0) continue
                 val ang = angDiff(Geo.bearing(p.pos, c), p.heading)
@@ -4734,9 +4736,30 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
      * route (one combined request per stretch with the traffic lights), so this needs no requests of its own: it just matches
      * them to the route whenever more arrive or the route changes.
      */
+    /** A speed camera at the start or end of an average speed check: the check is announced in its place, not the camera. */
+    private fun atAvgEnd(c: LL): Boolean = rawAvg.any { d -> d.starts.any { Geo.dist(it, c) < 35.0 } || d.ends.any { Geo.dist(it, c) < 35.0 } }
+
+    private var sigRoute: Route? = null
+    private var sigOffs: List<Double> = emptyList()
+
+    /**
+     * For a turn at traffic lights: 1 when the lights at the turn are the first set ahead ("at the traffic lights"), 2 when one set
+     * comes before them ("at the second set of lights"), 0 otherwise (no lights at the turn, or more sets on the way: then the
+     * distance is said as before).
+     */
+    private fun lightsAtTurn(r: Route, turnOff: Double, progress: Double): Int {
+        if (!prefs.b(PreferenceKeys.LANDMARKS, true) || r.signals.isEmpty()) return 0
+        if (sigRoute !== r) {
+            sigRoute = r
+            sigOffs = r.signals.mapNotNull { RouteExtras.project(r, it, 30.0)?.first }.sorted()
+        }
+        if (sigOffs.none { abs(it - turnOff) <= 25.0 }) return 0
+        return when (sigOffs.count { it > progress - 5.0 && it <= turnOff + 25.0 }) { 1 -> 1; 2 -> 2; else -> 0 }
+    }
+
     private fun updateRouteCams(r: Route, @Suppress("UNUSED_PARAMETER") progress: Double) {
         // (the ones found along the route and the ones from the search around you: either can hold a camera on the route)
-        val cams = (knownCams + aroundCams).distinctBy { Math.round(it.lat * 1e5) * 1000003L + Math.round(it.lon * 1e5) }
+        val cams = (knownCams + aroundCams).distinctBy { Math.round(it.lat * 1e5) * 1000003L + Math.round(it.lon * 1e5) }.filterNot { atAvgEnd(it) }
         if (camsRoute === r && camsCount == cams.size) return
         camsRoute = r; camsCount = cams.size
         if (cams.isEmpty()) { routeCams = emptyList(); return }
@@ -5767,10 +5790,14 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
                 rbLoggedAt = cur.off
                 android.util.Log.w("Roundabout", "routes from ${provider.ifBlank { "?" }} · ${Geo.rbNote.ifBlank { "no measure" }} · shown ${rbGeo?.second?.let { Math.round(it).toString() } ?: "route's own"} · exit ${if (cur.roundExit > 0) cur.roundExit.toString() else "no number"} · ${cur.maneuver}")
             }
+            // a turn at traffic lights: the card says so (in the tag's place) and the voice does too
+            val turnMan = cur.maneuver in setOf("TURN_LEFT", "TURN_RIGHT", "SHARP_LEFT", "SHARP_RIGHT", "BEAR_LEFT", "BEAR_RIGHT")
+            val lights = if (turnMan && !arriving) lightsAtTurn(r, cur.off, progress) else 0
+            val lightTag = when (lights) { 1 -> Lang.t("An der Ampel", "At the lights"); 2 -> Lang.t("An der zweiten Ampel", "At the second lights"); else -> "" }
             val newTurn = TurnInfo(
                 d, street, rbMan, if (thenOn) nxt?.maneuver else null,
                 if (thenOn && nxt != null) Lang.t("Dann ", "Then ") + Geo.maneuverText(nxt.maneuver, nxt.roundExit) + (if (nxt.street.isNotBlank()) Lang.t(" auf ${nxt.street}", " onto ${nxt.street}") else "") else "",
-                laneSec, Geo.stepTag(cur), laneAdv, cur.roundExit, cur.sign,
+                laneSec, Geo.stepTag(cur).ifBlank { lightTag }, laneAdv, cur.roundExit, cur.sign,
                 exitNo = cur.exitNo, rbIn = rbGeo?.first ?: cur.rbIn, rbOut = rbGeo?.second ?: cur.rbOut, rbExits = emptyList(), thenGap = if (thenOn) gap else 0.0, thenExit = if (thenOn) (nxt?.roundExit ?: 0) else 0,
                 junction = jc?.let { Junctions.label(it.first, it.second) }.orEmpty(), junctionName = jc?.first.orEmpty(),
             )
@@ -5785,6 +5812,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
             if (onRoad.isNotBlank()) tripRoads.add(onRoad)
             // smarter voice: junction numbers, sign destinations and the next move when it follows quickly
             val phrase = if (arriving) word else smartPhrase(cur, nxt, word, tail, jc)
+            val lightSay = when (lights) { 1 -> Lang.t("an der Ampel", "at the traffic lights"); 2 -> Lang.t("an der zweiten Ampel", "at the second set of lights"); else -> "" }
             // on roads you drive a lot the early heads-ups are skipped and the main one comes a little later
             val familiar = prefs.b(PreferenceKeys.SMARTVOICE, true) && onRoad.isNotBlank() && (roadFam[onRoad] ?: 0) >= 6
             // the call-outs come a set time before the turn, not at set distances: at 130 km/h much further out than at 50.
@@ -5798,7 +5826,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
             if (!familiar && d <= eAt && d > fAt + 400.0 && p0Speed() > 18.0 && !arriving && said.add("${k}e"))
                 speak("In ${Geo.spoken(d, imperial)}, $phrase", turn = true)
             if (d <= fAt && d > nAt + 60.0 && said.add("${k}f"))
-                speak(if (arriving) "In ${Geo.spoken(d, imperial)} erreichen Sie Ihr Ziel" + (if (side.isNotEmpty()) ". Das Ziel liegt $side" else "") else "In ${Geo.spoken(d, imperial)}, $phrase$lane", turn = true)
+                speak(if (arriving) "In ${Geo.spoken(d, imperial)} erreichen Sie Ihr Ziel" + (if (side.isNotEmpty()) ". Das Ziel liegt $side" else "") else "In ${Geo.spoken(d, imperial)}, " + (if (lightSay.isNotEmpty()) "$lightSay, " else "") + "$phrase$lane", turn = true)
             if (d <= nAt && said.add("${k}n"))
                 // at the junction itself only the direction ("Links halten"): the names were said before, and a long call ran into the next
                 speak(if (arriving) (if (side.isNotEmpty()) "Das Ziel liegt $side" else "Sie haben Ihr Ziel erreicht") else word.replaceFirstChar { it.uppercase() }, turn = true)
@@ -7769,7 +7797,8 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
                 if (avgIn != null) { avgIn = null; toast(ctx.getString(R.string.toast_008), 2500) }
                 val next = pl.avg.filter { it.start > progress && it.start - progress < 1200.0 }.minByOrNull { it.start }
                 avgInfo = next?.let { n -> AvgInfo(0.0, n.def.limit?.let { l -> speedLimit?.let { min(it, l) } ?: l } ?: speedLimit, n.end - n.start, false, true, n.start - progress) }
-                if (next != null && next.start - progress < 500.0 && avgAlerted.add(next.def.id)) {
+                // as early as a camera is warned about (the same distance, which grows with speed)
+                if (next != null && next.start - progress < max(500.0, sp * 18.0) && avgAlerted.add(next.def.id)) {
                     chime(android.media.ToneGenerator.TONE_PROP_PROMPT)
                     raiseAlert("avg", Lang.t("Abschnittskontrolle voraus, ${Geo.fmtDist(next.end - next.start, imperial)} lang", "Average speed check ahead, ${Geo.fmtDist(next.end - next.start, imperial)} long"), 6000)
                     speak(Lang.t("Abschnittskontrolle voraus", "Average speed check ahead"), true)

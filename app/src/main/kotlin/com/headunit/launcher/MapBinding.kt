@@ -3517,14 +3517,17 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
         // the real 3D model: [color] is "<arrow|car>|<colour>"; when it can't be shown (Lite, Lightest, satellite) the picture of the
         // same shape and colour is used
         val wantModel = styleName == "model"
-        val oldModel = Triple(modelWanted, modelShape, modelColour + modelGlow)
+        val oldModel = modelKey()
         val oldNeon = neonArrowHex
         neonArrowHex = if (styleName == "flat" && color.startsWith("neon:")) color.removePrefix("neon:") else null
         if (wantModel) {
             val parts = color.split('|')
             modelGlow = parts.getOrNull(2) != "0"
-            modelShape = if (parts.getOrNull(0) == "car") "car" else "arrow"
-            modelColour = parts.getOrNull(1)?.takeIf { it.startsWith("#") } ?: (if (modelShape == "car") "#F4F5F7" else "#F2F2F6")
+            // your own model when there is one that can be read (else the built-in car stands in)
+            modelShape = when (parts.getOrNull(0)) { "own" -> if (OwnModel.factor(ctx) != null) "own" else "car"; "car" -> "car"; else -> "arrow" }
+            ownSize = parts.getOrNull(3)?.toIntOrNull()?.coerceIn(30, 300) ?: 100
+            ownTurn = parts.getOrNull(4)?.toIntOrNull() ?: 0
+            modelColour = parts.getOrNull(1)?.takeIf { it.startsWith("#") } ?: (if (modelCarLike()) "#F4F5F7" else "#F2F2F6")
         }
         modelWanted = wantModel && !modelBroken
         // your own picture, but none saved (or it was deleted): the 3D arrow
@@ -3533,7 +3536,7 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
         locatorColor = when { wantModel -> modelColour; noPic -> "#F2F2F6"; else -> color }
         if (style == null) return
         // the model's layers are put in (or taken out, or recoloured) with the rest of the app's layers
-        if (oldModel != Triple(modelWanted, modelShape, modelColour + modelGlow) || oldNeon != neonArrowHex) reinstall() else applyLocatorVisibility()
+        if (oldModel != modelKey() || oldNeon != neonArrowHex) reinstall() else applyLocatorVisibility()
         spriteName = null
         pushModel(true)
     }
@@ -3543,6 +3546,17 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
     /** The 3D model failed to load once: it isn't tried again this run. */
     private var modelBroken = false
     private var modelShape = "arrow"
+    /** Your own model: its size in per cent of the car's, and the turn (degrees) that points it the way you drive. */
+    private var ownSize = 100
+    private var ownTurn = 0
+    private fun modelKey() = Triple(modelWanted, modelShape, modelColour + modelGlow + "|$ownSize|$ownTurn|" + OwnModel.stamp(ctx))
+    /** The car's proportions: the built-in car, or your own model (which is sized to the car). */
+    private fun modelCarLike() = modelShape == "car" || modelShape == "own"
+    /** Your own model is sized to the car: its own bounds set the factor, then the size chosen. */
+    private fun ownFactor(): Double = if (modelShape == "own") (OwnModel.factor(ctx) ?: 1.0) * ownSize / 100.0 else 1.0
+    private fun bodyUri(): String = if (modelShape == "own") (OwnModel.url(ctx) ?: carUri("body")) else if (modelCarLike()) carUri("body") else "asset://models/arrow.glb"
+    private fun partsUri(): String = if (modelCarLike() && modelShape != "own") carUri("parts") else "asset://models/disc.glb"
+    private fun headingOut(): Double = meHeading + (if (modelShape == "own") ownTurn.toDouble() else 0.0)
     private var modelColour = "#F2F2F6"
     /** Settings > Your arrow > Glow: a soft blue glow on the ground round the model, and the model fully lit. */
     private var modelGlow = true
@@ -3552,7 +3566,7 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
     private var modelHead = -999.0
 
     /** Screen pixels per model unit (the model is built in the same units as the picture's shape). */
-    private fun modelPxPerUnit(): Double = arrowScale * (if (modelShape == "car") 300.0 / 4.4 * 0.6 * 0.28 else 300.0 * 0.42 * 0.31)
+    private fun modelPxPerUnit(): Double = arrowScale * (if (modelCarLike()) 300.0 / 4.4 * 0.6 * 0.28 else 300.0 * 0.42 * 0.31) * ownFactor()
 
     /**
      * The model's size: the same size on screen at every zoom, exactly like the picture locator. Mapbox's location-indicator models
@@ -3577,15 +3591,15 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
     private fun carUri(part: String): String = if (carModel == "saloon" || carModel !in CAR_MODELS) "asset://models/car_$part.glb" else "asset://models/car_${part}_$carModel.glb"
 
     private fun installModel(st: Style) {
-        val car = modelShape == "car"
+        val car = modelCarLike()
         val p = me
-        val uriA = if (car) carUri("body") else "asset://models/arrow.glb"
-        val uriB = if (car) carUri("parts") else "asset://models/disc.glb"
+        val uriA = bodyUri()
+        val uriB = partsUri()
         try {
             for ((id, uri) in listOf("dl-me-ma" to uriA, "dl-me-mb" to uriB)) {
                 val props = HashMap<String, Value>()
                 props["type"] = Value("model")
-                props["models"] = modelSourceValue(uri, p, meHeading)
+                props["models"] = modelSourceValue(uri, p, headingOut())
                 st.addStyleSource(id, Value(props))
             }
             val scale = modelScale()
@@ -3621,10 +3635,10 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
         if (prev != null && Math.abs(prev.lat - p.lat) < 1e-8 && Math.abs(prev.lon - p.lon) < 1e-8 && Math.abs(modelHead - meHeading) < 0.2) return
         val first = prev == null
         modelAt = p; modelHead = meHeading
-        val car = modelShape == "car"
+        val car = modelCarLike()
         try {
-            st.setStyleSourceProperty("dl-me-ma", "models", modelSourceValue(if (car) carUri("body") else "asset://models/arrow.glb", p, meHeading))
-            st.setStyleSourceProperty("dl-me-mb", "models", modelSourceValue(if (car) carUri("parts") else "asset://models/disc.glb", p, meHeading))
+            st.setStyleSourceProperty("dl-me-ma", "models", modelSourceValue(bodyUri(), p, headingOut()))
+            st.setStyleSourceProperty("dl-me-mb", "models", modelSourceValue(partsUri(), p, headingOut()))
             if (modelGlow && (first || prev == null || Math.abs(prev.lat - p.lat) > 1e-8 || Math.abs(prev.lon - p.lon) > 1e-8))
                 src("dl-me-glow")?.featureCollection(FeatureCollection.fromFeatures(listOf(Feature.fromGeometry(Point.fromLngLat(p.lon, p.lat)))))
             if (first) { layer("dl-me-model-a")?.visibility(vis(true)); layer("dl-me-model-b")?.visibility(vis(true)) }
@@ -4061,7 +4075,7 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
             // the Classic look has a flat blue ring on the map under the arrow (the Modern look draws its ring in the picture itself)
             val discHalf = if (theme == "immersive") 0f else 15f * 0.625f * arrowScale * dens * Math.cos(Math.toRadians(tilt)).toFloat()
             // the picture has empty space round the arrow / car: measure where its drawing really ends at the bottom
-            val below = if (modelOn) (modelPxPerUnit() * (if (modelShape == "car") 2.3 else 0.85) * Math.cos(Math.toRadians(tilt))).toFloat()
+            val below = if (modelOn) (modelPxPerUnit() * (if (modelCarLike()) 2.3 else 0.85) * Math.cos(Math.toRadians(tilt))).toFloat()
                         else if (locatorStyle != "flat" && bmp != null) drawnBelowCentre(bmp) * spriteSize()
                         else flatArrow?.let { drawnBelowCentre(it) * (if (theme == "immersive") 0.25f else 0.625f) * arrowScale * flatIconK().toFloat() * Math.cos(Math.toRadians(tilt)).toFloat() } ?: 0f
             roadView.translationY = pt.y + maxOf(discHalf, below) + 3f * dens
@@ -4133,7 +4147,7 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
             (layer("dl-me-arrow") as? SymbolLayer)?.iconSize((if (im) 0.25 else 0.625) * f)
             (layer("dl-me-halo") as? CircleLayer)?.circleRadius(15.0 * 0.625 * f)
             if (modelOn) { val sc = modelScale(); (layer("dl-me-model-a") as? ModelLayer)?.modelScale(sc); (layer("dl-me-model-b") as? ModelLayer)?.modelScale(sc)
-                (layer("dl-me-glow-l") as? CircleLayer)?.circleRadius(sc[0] * (if (modelShape == "car") 2.2 else 1.45)) }
+                (layer("dl-me-glow-l") as? CircleLayer)?.circleRadius(sc[0] * (if (modelCarLike()) 2.2 else 1.45)) }
         } catch (e: Exception) { }
         placeLocator()
     }

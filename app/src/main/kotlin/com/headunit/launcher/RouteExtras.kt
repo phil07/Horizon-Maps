@@ -110,7 +110,10 @@ object RouteExtras {
             "(node(around:12,$pl)[\"railway\"=\"level_crossing\"];node(around:12,$pl)[\"ford\"=\"yes\"];way(around:12,$pl)[\"ford\"=\"yes\"];)->.f;.f out center tags 200;" +
             (if (jcts != null) "node(around:40,$pl)[\"highway\"=\"motorway_junction\"]->.j;.j out body 200;" else "") +
             "rel($bbox)[\"enforcement\"=\"average_speed\"]->.r;.r out body;node(r.r);out skel qt;"
-        val els = Overpass.query(q, 12000, 40000, 3)
+        val els = try { Overpass.query(q, 12000, 40000, 3) } catch (e: Exception) {
+            // a busy server can refuse the whole search: the average speed checks are then looked up on their own, so they aren't missed
+            return emptyList<RoutePoi>() to avgChecksOnly(bbox)
+        }
         val pois = ArrayList<RoutePoi>()
         // (crossings come from their own set, so they never crowd out the bumps and schools)
         val nodes = HashMap<Long, LL>()
@@ -139,6 +142,25 @@ object RouteExtras {
                 }
             }
         }
+        return pois to avgDefs(rels, nodes)
+    }
+
+    /** The average speed checks in a box, on their own (the fallback when the search along the route fails). */
+    private fun avgChecksOnly(bbox: String): List<AvgDef> {
+        val els = Overpass.query("[out:json][timeout:30];rel($bbox)[\"enforcement\"=\"average_speed\"]->.r;.r out body;node(r.r);out skel qt;", 12000, 40000, 3)
+        val nodes = HashMap<Long, LL>()
+        val rels = ArrayList<JSONObject>()
+        for (i in 0 until els.length()) {
+            val e = els.getJSONObject(i)
+            when (e.optString("type")) {
+                "relation" -> rels += e
+                "node" -> if (e.has("lat")) nodes[e.optLong("id")] = LL(e.getDouble("lat"), e.getDouble("lon"))
+            }
+        }
+        return avgDefs(rels, nodes)
+    }
+
+    private fun avgDefs(rels: List<JSONObject>, nodes: Map<Long, LL>): List<AvgDef> {
         val avgs = ArrayList<AvgDef>()
         for (rel in rels) {
             val ms = rel.optJSONArray("members") ?: continue
@@ -156,7 +178,7 @@ object RouteExtras {
             val lim = t.optString("maxspeed").takeIf { it.isNotBlank() }?.let { Overpass.parseSpeed(it, RoadRefs.countryFor(starts.first())) }
             avgs += AvgDef(rel.optLong("id"), t.optString("name").ifBlank { Lang.t("Abschnittskontrolle", "Average speed check") }, starts, ends, lim)
         }
-        return pois to avgs
+        return avgs
     }
 
     /** Places an average speed check on the route: it runs from its first start point to its last end point. */

@@ -236,6 +236,32 @@ fun rememberLocatorImagePicker(onDone: (Boolean) -> Unit): () -> Boolean {
     }
 }
 
+/** Picks your own 3D model (a .glb file): [onDone] gets whether it was copied in, and the file's name. */
+@Composable
+fun rememberOwnModelPicker(onDone: (Boolean, String) -> Unit): () -> Boolean {
+    val ctx = LocalContext.current
+    val pick = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { res ->
+        val uri = res.data?.data ?: return@rememberLauncherForActivityResult
+        val app = ctx.applicationContext
+        Thread {
+            val name = try { app.contentResolver.query(uri, arrayOf(android.provider.OpenableColumns.DISPLAY_NAME), null, null, null)?.use { c -> if (c.moveToFirst()) c.getString(0) else null } } catch (e: Throwable) { null }
+            val ok = try { com.headunit.launcher.OwnModel.save(app, uri) } catch (e: Throwable) { false }
+            android.os.Handler(android.os.Looper.getMainLooper()).post { onDone(ok, name.orEmpty()) }
+        }.start()
+    }
+    return {
+        var started = false
+        for (i in listOf(
+            Intent(Intent.ACTION_OPEN_DOCUMENT).setType("*/*").addCategory(Intent.CATEGORY_OPENABLE),
+            Intent(Intent.ACTION_GET_CONTENT).setType("*/*").addCategory(Intent.CATEGORY_OPENABLE),
+        )) {
+            if (started) break
+            try { pick.launch(i); started = true } catch (e: Exception) { }
+        }
+        started
+    }
+}
+
 /** Reads the picked picture at a small size and saves it as the locator (largest side 256 px, transparency kept). */
 fun saveLocatorImage(ctx: android.content.Context, uri: android.net.Uri): Boolean {
     val cr = ctx.contentResolver

@@ -437,6 +437,7 @@ object MapboxRest {
         var rbPassed = -1
         // tunnels: each junction marked "tunnel" starts one, running to the next junction (or the end of its step)
         val tunnelSpots = ArrayList<Pair<LL, LL?>>()
+        val signalSpots = ArrayList<LL>()
         // motorway and trunk stretches (from the junctions' road classes), for the slip roads (see slipForks)
         val motorway = ArrayList<Pair<Double, Double>>()
         for (li in 0 until legs.length()) {
@@ -492,6 +493,8 @@ object MapboxRest {
                     val ints = s.optJSONArray("intersections")
                     if (ints != null) for (ii in 0 until ints.length()) {
                         val x = ints.getJSONObject(ii)
+                        // traffic lights at this junction (Mapbox's flag): the turn card can say "at the traffic lights"
+                        if (x.optBoolean("traffic_signal", false)) x.optJSONArray("location")?.takeIf { it.length() >= 2 }?.let { lo -> signalSpots += LL(lo.getDouble(1), lo.getDouble(0)) }
                         val cl = x.optJSONArray("classes") ?: continue
                         if ((0 until cl.length()).none { cl.optString(it) == "tunnel" }) continue
                         val loc = x.optJSONArray("location") ?: continue
@@ -627,7 +630,7 @@ object MapboxRest {
                 if (s1 > s0 + 5.0) tun += s0 to s1
             }
         } catch (e: Exception) { }
-        return Route(pts, cum, slipForks(steps, motorway), total, time, delay, laneSecs, sev).also { it.delays = delays; it.limits = limits; it.incidents = incidents; it.tunnels = tun; it.source = "mapbox"; it.tollCc = tollCountries(r) }
+        return Route(pts, cum, slipForks(steps, motorway), total, time, delay, laneSecs, sev).also { it.delays = delays; it.limits = limits; it.incidents = incidents; it.tunnels = tun; it.source = "mapbox"; it.tollCc = tollCountries(r); it.signals = signalSpots.distinct() }
     }
 
     // ------------------------------------------------------------------ search

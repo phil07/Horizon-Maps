@@ -636,6 +636,8 @@ private fun OptionsSheet(engine: NavEngine, shareEta: () -> Unit, wide: Boolean 
             if (routing) Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 SheetHeading(Lang.t("Diese Fahrt", "This trip"))
                 WideTiles(4, listOf(
+                    TileSpec(Icons.Rounded.Mic, Lang.t("Sprache", "Voice"), c.accent, { voice(); close() }),
+                    TileSpec(soundIcon(engine.soundMode), Lang.t("Ton", "Sound"), if (engine.soundMode == 2) Bad else c.accent, { engine.cycleSound() }),
                     TileSpec(Icons.Rounded.Add, if (engine.via.isEmpty()) Lang.t("Stopp hinzufügen", "Add stop") else Lang.t("Stopps", "Stops"), c.accent, { engine.stopsEditor = true; close() }),
                     TileSpec(Icons.Rounded.DoNotDisturbOn, Lang.t("Straße meiden", "Avoid road"), Warn, { engine.avoidRoadAhead(); close() }),
                     TileSpec(Icons.Rounded.Route, Lang.t("Übersicht", "Overview"), c.accent, { engine.overview(); close() }),
@@ -811,9 +813,7 @@ private fun TripArea(engine: NavEngine, shareEta: () -> Unit, narrow: Boolean = 
                 val buttons: @Composable () -> Unit = {
                     // electric: chargers along the route from here
                     if (evPct != null) ImmCircle({ engine.loadNearby("charging", false) }, 40.dp) { Icon(Icons.Rounded.EvStation, Lang.t("Ladesäulen voraus", "Chargers ahead"), tint = Good, modifier = Modifier.size(20.dp)) }
-                    ImmCircle({ voice() }, 40.dp) { Icon(Icons.Rounded.Mic, Lang.t("Sprache", "Voice"), tint = c.text, modifier = Modifier.size(20.dp)) }
-                    ImmCircle({ engine.cycleSound() }, 40.dp) { Icon(soundIcon(engine.soundMode), Lang.t("Ton", "Sound"), tint = if (engine.soundMode == 2) Bad else c.text, modifier = Modifier.size(20.dp)) }
-                    ImmCircle({ engine.stopsEditor = true }, 40.dp) { Icon(Icons.Rounded.Add, Lang.t("Stopps", "Stops"), tint = c.text, modifier = Modifier.size(21.dp)) }
+                    // (voice, sound and stops are in Map options › This trip, not on the trip card)
                     Box(Modifier.size(40.dp).shadow(6.dp, CircleShape).clip(CircleShape).background(Bad).pressClick { engine.endRoute() }, contentAlignment = Alignment.Center) {
                         Icon(Icons.Rounded.Close, Lang.t("Route beenden", "End route"), tint = Color.White, modifier = Modifier.size(21.dp))
                     }
@@ -836,9 +836,6 @@ private fun TripArea(engine: NavEngine, shareEta: () -> Unit, narrow: Boolean = 
                     }
                     Row(Modifier.fillMaxWidth().padding(top = 6.dp), horizontalArrangement = Arrangement.SpaceEvenly) {
                         if (evPct != null) ImmCircle({ engine.loadNearby("charging", false) }, 36.dp) { Icon(Icons.Rounded.EvStation, Lang.t("Ladesäulen voraus", "Chargers ahead"), tint = Good, modifier = Modifier.size(19.dp)) }
-                        ImmCircle({ voice() }, 36.dp) { Icon(Icons.Rounded.Mic, Lang.t("Sprache", "Voice"), tint = c.text, modifier = Modifier.size(19.dp)) }
-                        ImmCircle({ engine.cycleSound() }, 36.dp) { Icon(soundIcon(engine.soundMode), Lang.t("Ton", "Sound"), tint = if (engine.soundMode == 2) Bad else c.text, modifier = Modifier.size(19.dp)) }
-                        ImmCircle({ engine.stopsEditor = true }, 36.dp) { Icon(Icons.Rounded.Add, Lang.t("Stopps", "Stops"), tint = c.text, modifier = Modifier.size(20.dp)) }
                         Box(Modifier.size(36.dp).shadow(6.dp, CircleShape).clip(CircleShape).background(Bad).pressClick { engine.endRoute() }, contentAlignment = Alignment.Center) {
                             Icon(Icons.Rounded.Close, Lang.t("Route beenden", "End route"), tint = Color.White, modifier = Modifier.size(20.dp))
                         }

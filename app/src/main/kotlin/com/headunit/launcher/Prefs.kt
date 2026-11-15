@@ -314,6 +314,7 @@ internal object PreferenceKeys {
     const val TTS_VOICE = "ttsvoice"
     const val TANKERKOENIG_KEY = "tkkey"
     const val VOICE_ROADS = "voiceroads"
+    const val LANDMARKS = "landmarks"
     const val AVOID_TOLL_COUNTRIES = "avoid_toll_cc"
     const val ROAD_NAME_SIZE = "roadnamesize"
     const val CAR_ROAD_NAME_SIZE = "carroadnamesize"
@@ -324,6 +325,11 @@ internal object PreferenceKeys {
     const val TRIP_BTN_END = "tripbtn_end"
     const val TRIP_BTN_SIZE = "tripbtn_size"
     const val CAR_MODEL = "carmodel"
+    /** Your own 3D model (a .glb you pick): its size in per cent, the turn in degrees, and the time it was picked (see OwnModel). */
+    const val OWN_MODEL_SIZE = "ownmodelsize"
+    const val OWN_MODEL_TURN = "ownmodelturn"
+    const val OWN_MODEL_STAMP = "ownmodelstamp"
+    const val OWN_MODEL_NAME = "ownmodelname"
     const val TRAFFIC_GREEN = "trafficgreen"
     const val STOP_SIGNS = "stopsigns"
     // "Vorfahrt gewähren" signs on the way: off by default
@@ -533,8 +539,10 @@ fun Prefs.locatorSpec(): Pair<String, String> {
         "custom" -> loc to (s(PreferenceKeys.LOCATOR_IMAGE, "0") + "|" + (if (b(PreferenceKeys.LOCATOR_IMAGE_TURNS, true)) "1" else "0") + "|" + (if (b(PreferenceKeys.LOCATOR_IMAGE_CIRCLE, false)) "1" else "0"))
         "model" -> {
             val shape = s(PreferenceKeys.MODEL_SHAPE, "arrow")
-            loc to (shape + "|" + s(if (shape == "car") PreferenceKeys.CAR_COLOUR else PreferenceKeys.ARROW_COLOUR, if (shape == "car") "#F4F5F7" else "#F2F2F6") +
-                "|" + (if (b(PreferenceKeys.MODEL_GLOW, true)) "1" else "0"))
+            val carLike = shape == "car" || shape == "own"
+            loc to (shape + "|" + s(if (carLike) PreferenceKeys.CAR_COLOUR else PreferenceKeys.ARROW_COLOUR, if (carLike) "#F4F5F7" else "#F2F2F6") +
+                "|" + (if (b(PreferenceKeys.MODEL_GLOW, true)) "1" else "0") +
+                "|" + i(PreferenceKeys.OWN_MODEL_SIZE, 100) + "|" + i(PreferenceKeys.OWN_MODEL_TURN, 0) + "|" + s(PreferenceKeys.OWN_MODEL_STAMP, ""))
         }
         "car" -> loc to s(PreferenceKeys.CAR_COLOUR, "#F4F5F7")
         else -> loc to s(PreferenceKeys.ARROW_COLOUR, "#F2F2F6")

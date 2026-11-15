@@ -391,7 +391,28 @@ private fun ArrowSection(prefs: Prefs, engine: NavEngine) {
             if (it == "custom" && !hasPic) choosePic() else prefs.put(PreferenceKeys.LOCATOR, it)
         }
         if (loc == "model") {
-            SChoice("Modellform", listOf("arrow" to "Pfeil", "car" to "Auto"), prefs.s(PreferenceKeys.MODEL_SHAPE, "arrow")) { prefs.put(PreferenceKeys.MODEL_SHAPE, it) }
+            SChoice("Modellform", listOf("arrow" to "Pfeil", "car" to "Auto", "own" to "Dein Modell"), prefs.s(PreferenceKeys.MODEL_SHAPE, "arrow")) { prefs.put(PreferenceKeys.MODEL_SHAPE, it) }
+            if (prefs.s(PreferenceKeys.MODEL_SHAPE, "arrow") == "own") {
+                // your own model (.glb, up to 8 MB): sized to match the built-in car; the built-in car stands in while there's none
+                val hasOwn = com.headunit.launcher.OwnModel.factor(ctx) != null
+                val ownName = prefs.s(PreferenceKeys.OWN_MODEL_NAME, "")
+                val pickOwn = rememberOwnModelPicker { ok, name ->
+                    if (ok) {
+                        prefs.put(PreferenceKeys.OWN_MODEL_NAME, name.ifBlank { "3D" })
+                        prefs.put(PreferenceKeys.OWN_MODEL_STAMP, System.currentTimeMillis().toString())
+                    } else android.widget.Toast.makeText(ctx, tr("Modell nicht lesbar (eine .glb-Datei, höchstens 8 MB)"), android.widget.Toast.LENGTH_LONG).show()
+                }
+                SItem("Dein Modell", if (hasOwn) "Aktuell: $ownName" else "Noch keins gewählt · eine .glb-Datei, höchstens 8 MB. Bis dahin steht das eingebaute Auto da.") {
+                    SButton(if (hasOwn) "Ersetzen" else "Datei wählen", primary = true) {
+                        if (!pickOwn()) android.widget.Toast.makeText(ctx, tr("Keine App auf diesem Gerät kann eine Datei auswählen"), android.widget.Toast.LENGTH_LONG).show()
+                    }
+                }
+                if (hasOwn) {
+                    SSlider("Größe des Modells", prefs.i(PreferenceKeys.OWN_MODEL_SIZE, 100).toFloat(), 30f..300f, "%", reset = 100f) { prefs.put(PreferenceKeys.OWN_MODEL_SIZE, it.toInt()) }
+                    SChoice("Drehen", listOf("0" to "0°", "90" to "90°", "180" to "180°", "270" to "270°"), prefs.i(PreferenceKeys.OWN_MODEL_TURN, 0).toString(),
+                        "Dreht das Modell, bis es in Fahrtrichtung zeigt") { prefs.put(PreferenceKeys.OWN_MODEL_TURN, it.toInt()) }
+                }
+            }
             SToggle(prefs, "Leuchten", PreferenceKeys.MODEL_GLOW, true, "Weiches blaues Leuchten um das Modell")
             if (prefs.mapDetail() != "full") SNote("Nur mit Kartendetails „Vollständiges 3D“")
         }
@@ -655,6 +676,7 @@ private fun SoundSection(prefs: Prefs, engine: NavEngine) {
         SChoice("Sprachführung", listOf("0" to "Alle", "1" to "Nur Warnungen", "2" to "Aus"), engine.soundMode.toString(),
             "„Nur Warnungen“: ohne Abbiegehinweise") { prefs.put(PreferenceKeys.SOUND_MODE, it.toInt()) }
         SToggle(prefs, "Straßennamen ansagen", PreferenceKeys.VOICE_ROADS, true, "Aus gibt nur die Richtung an")
+        SToggle(prefs, "Landmarken in Anweisungen", PreferenceKeys.LANDMARKS, true, "Abbiegen an Ampeln: „An der Ampel rechts abbiegen“")
         SToggle(prefs, "Intelligente Anweisungen", "smartvoice", true, "Anweisungen mit Ausfahrtsnummern und Schildern")
         SChoice("Sprachkanal", listOf("nav" to "Navigation", "media" to "Medien"), prefs.s(PreferenceKeys.VOICE_CHANNEL, "nav"),
             "Medien wählen, falls keine Sprache zu hören ist") { prefs.put(PreferenceKeys.VOICE_CHANNEL, it) }
@@ -1085,7 +1107,6 @@ private fun AndroidAutoSection(prefs: Prefs) {
         SGroup("Knöpfe auf der Fahrtkarte") {
             SToggle(prefs, "Übersicht", PreferenceKeys.TRIP_BTN_OVERVIEW, true, "Die ganze Route auf einen Blick")
             SToggle(prefs, "Andere Routen", PreferenceKeys.TRIP_BTN_OTHERS, true, "Die anderen Routen an oder aus")
-            SToggle(prefs, "Ton", PreferenceKeys.TRIP_BTN_SOUND, true, "Alle Ansagen, nur Warnungen oder aus")
             SToggle(prefs, "Beenden", PreferenceKeys.TRIP_BTN_END, true, "Die Fahrt beenden")
             SChoice("Knopfgröße", listOf("normal" to "Normal", "large" to "Groß", "xl" to "Extra groß"), prefs.s(PreferenceKeys.TRIP_BTN_SIZE, "normal"),
                 "Weniger Knöpfe machen die Karte schmaler, so bleibt mehr von der Karte frei") { prefs.put(PreferenceKeys.TRIP_BTN_SIZE, it) }
