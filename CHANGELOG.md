@@ -1,8 +1,8 @@
 ## Unreleased
 
-### Behoben
-- Android Auto: Die doppelten Zoom- und Ebenen-Knöpfe rechts auf dem Autodisplay sind weg. Zoom, Einstellungen und Zentrieren gibt es links, wie in der App. Autos ohne Berührungsunterstützung behalten die Knöpfe rechts.
-  EN: Android Auto: the duplicate zoom and layer buttons on the right of the car screen are gone. Zoom, settings and re-centre are on the left, as in the app. Cars without touch support keep the buttons on the right.
+### Verbessert
+- Android Auto: Die Größe der Knöpfe und der Karten gilt jetzt auch für die Knöpfe der Fahrtkarte (Übersicht, Andere Routen, Beenden) und für die Routenkarten zur Auswahl.
+  EN: Android Auto: the Button size and Card size now also cover the trip card's buttons (overview, other routes, end) and the route choice cards.
 
 ## 1.0.246 — 2026-10-28
 

@@ -479,7 +479,8 @@ private fun CarScreen(engine: NavEngine, a: android.graphics.Rect?, actions: Car
         // before setting off: the destination, the route choices and the Start bar that starts by itself after 10 s
         if (previewing) Box(Modifier.align(Alignment.BottomCenter).padding(start = left, end = if (portrait) rightBottom else rightTop, bottom = bottom)) {
             // drawn half as large again as the app's (its text was too small to read in the car), and with the car card size setting
-            CompositionLocalProvider(LocalDensity provides Density(dens.density * cardScale * 1.5f, dens.fontScale)) { CarRoutePreview(engine) }
+            // (the route choice cards follow the Button size as well as the Card size)
+            CompositionLocalProvider(LocalDensity provides Density(dens.density * cardScale * 1.5f * buttonScale, dens.fontScale)) { CarRoutePreview(engine) }
         }
 
         // working out a route: a small spinner at the top, as in the app
@@ -626,7 +627,7 @@ private fun TripCard(engine: NavEngine, fill: Boolean, oneLine: Boolean = false)
             Text(Geo.fmtDur(e.secs), color = dc, fontSize = 22.sp, fontWeight = FontWeight.Bold, maxLines = 1)
             Text(e.arrive, color = c.text, fontSize = 18.sp, maxLines = 1)
             Text(Geo.fmtDist(e.dist, engine.imperial), color = c.sub, fontSize = 18.sp, maxLines = 1, modifier = Modifier.weight(1f))
-            Box(Modifier.size(46.dp).clip(androidx.compose.foundation.shape.CircleShape).background(Bad).carTap("end") { engine.endRoute() }, contentAlignment = Alignment.Center) {
+            Box(Modifier.size(46.dp * (engine.prefs.i(PreferenceKeys.CAR_BUTTON_SIZE, 100).coerceIn(70, 150) / 100f)).clip(androidx.compose.foundation.shape.CircleShape).background(Bad).carTap("end") { engine.endRoute() }, contentAlignment = Alignment.Center) {
                 androidx.compose.material3.Icon(androidx.compose.material.icons.Icons.Rounded.Close, null, tint = Color.White, modifier = Modifier.size(24.dp))
             }
         }
@@ -673,7 +674,9 @@ private fun TripCard(engine: NavEngine, fill: Boolean, oneLine: Boolean = false)
         val showOv = engine.prefs.b(PreferenceKeys.TRIP_BTN_OVERVIEW, true)
         val showOther = engine.prefs.b(PreferenceKeys.TRIP_BTN_OTHERS, true)
         val showEnd = engine.prefs.b(PreferenceKeys.TRIP_BTN_END, true)
-        val sizeK = when (engine.prefs.s(PreferenceKeys.TRIP_BTN_SIZE, "normal")) { "large" -> 1.2f; "xl" -> 1.4f; else -> 1f }
+        // the trip card's buttons: the size chosen for them, and the Button size on Android Auto (which also covers them)
+        val sizeK = when (engine.prefs.s(PreferenceKeys.TRIP_BTN_SIZE, "normal")) { "large" -> 1.2f; "xl" -> 1.4f; else -> 1f } *
+            (engine.prefs.i(PreferenceKeys.CAR_BUTTON_SIZE, 100).coerceIn(70, 150) / 100f)
         if (fill) Row(Modifier.fillMaxWidth().padding(start = 16.dp, end = 10.dp, top = 4.dp, bottom = 10.dp), verticalAlignment = Alignment.CenterVertically) {
             Row(Modifier.weight(1f), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) { stats() }
             if (showOv) Box(Modifier.padding(start = 8.dp)) { overviewBtn(46.dp * sizeK) }
