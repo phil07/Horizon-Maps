@@ -6995,9 +6995,11 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         if (ids.isNotEmpty() && stops.isNotEmpty() && stops.any { !it.preferred }) {
             // the furthest preferred charger in reach. One of unknown power only when no charger of known power is in reach
             // at all, so a preference never swaps a known fast charger for what may be a slow one; none: the quickest rule
+            // (a favourite of unknown power counts too: the extra minutes allowed in Settings still decide whether it is used,
+            // and a favourite of known power is preferred over one of unknown power)
             val pref = plan { inReach ->
-                val known = inReach.filter { it.kw != null }
-                (if (known.isEmpty()) inReach else known).filter { ChargeOperators.matches(it, ids) }.maxByOrNull { it.dist } ?: quickest(inReach)
+                val mine = inReach.filter { ChargeOperators.matches(it, ids) }
+                (mine.filter { it.kw != null }.ifEmpty { mine }).maxByOrNull { it.dist } ?: quickest(inReach)
             }
             // only when it needs no extra stop and costs at most the extra minutes allowed in Settings
             val allowed = prefs.i(PreferenceKeys.EV_PREF_MIN, 10).coerceIn(0, 120)

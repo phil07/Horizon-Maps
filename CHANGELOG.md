@@ -1,8 +1,8 @@
 ## Unreleased
 
 ### Behoben
-- Elektroauto: Wenn der Akku bei der Ankunft unter der Restreichweite am Ziel liegt, sucht die Navigation jetzt ab deiner aktuellen Position eine Ladesäule auf der Route. Bisher rechnete sie ab dem Routenanfang und fand dadurch keine passende Säule.
-  EN: Electric car: when the battery on arrival falls below the destination reserve, navigation now looks for a charger on the route from your current position. Before, it counted from the start of the route and so found no suitable charger.
+- Ladeplanung: Ein bevorzugter Ladeanbieter wird jetzt auch eingeplant, wenn seine Säule keine bekannte Leistung hat und daneben eine Säule mit bekannter Leistung eines anderen Anbieters steht. Die Minuten, die du in den Einstellungen erlaubt hast, bestimmen weiterhin, ob der Umweg gemacht wird.
+  EN: Charging plan: a preferred provider is now picked even when its charger has no known power and a charger of another provider with known power is next to it. The extra minutes allowed in Settings still decide whether the detour is made.
 
 ## 1.0.246 — 2026-10-28
 
