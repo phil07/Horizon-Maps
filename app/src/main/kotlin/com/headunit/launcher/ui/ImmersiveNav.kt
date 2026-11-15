@@ -514,6 +514,21 @@ private fun MapScreen(engine: NavEngine, onSettings: () -> Unit) {
             exit = androidx.compose.animation.slideOutVertically { it } + fadeOut(),
         ) { lastArr.value?.let { a -> Box(Modifier.onSizeChanged { arrPx = it.height }) { ArrivalCard(engine, a) } } }
 
+        // a stop on the way reached: the trip waits here until you go on
+        engine.stopPause?.let { name ->
+            Row(
+                Modifier.align(Alignment.TopCenter).statusBarsPadding().padding(start = 16.dp, end = 16.dp, top = 150.dp).widthIn(max = 540.dp).panel(10.dp, RoundedCornerShape(24.dp), c.surface).padding(horizontal = 18.dp, vertical = 14.dp),
+                verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp),
+            ) {
+                Box(Modifier.size(44.dp).clip(CircleShape).background(c.accent.copy(alpha = 0.18f)), contentAlignment = Alignment.Center) { Icon(Icons.Rounded.Route, null, tint = c.accent, modifier = Modifier.size(24.dp)) }
+                Column(Modifier.weight(1f, fill = false)) {
+                    Text(Lang.t("Zwischenziel erreicht", "Stop reached"), color = c.text, fontSize = 18.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Text(name, color = c.sub, fontSize = 14.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                }
+                ImmPill(Lang.t("Fahrt weitermachen", "Continue trip"), { engine.resumeAfterStop() }, filled = true)
+            }
+        }
+
         engine.faster?.let { fr ->
             Row(
                 // at the top, under the turn card, where it's seen at a glance

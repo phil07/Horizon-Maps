@@ -360,6 +360,9 @@ private fun CarScreen(engine: NavEngine, a: android.graphics.Rect?, actions: Car
         AnimatedVisibility(alert != null, modifier = alertMod, enter = fadeIn(), exit = fadeOut()) { alert?.let { AlertBanner(it) } }
 
         // a quicker way: a card at the top to take or leave (it goes again by itself)
+        if (guiding && engine.stopPause != null) Box(Modifier.align(Alignment.TopCenter).padding(top = top + below, start = left, end = rightTop)) {
+            CompositionLocalProvider(LocalDensity provides Density(dens.density * cardScale, dens.fontScale)) { StopCard(engine, Modifier.widthIn(max = 560.dp)) }
+        }
         if (guiding && engine.faster != null) Box(Modifier.align(Alignment.TopCenter).padding(top = top + below, start = left, end = rightTop)) {
             CompositionLocalProvider(LocalDensity provides Density(dens.density * cardScale, dens.fontScale)) { FasterCard(engine, Modifier.widthIn(max = 560.dp)) }
         }
@@ -501,6 +504,26 @@ private fun PickCard(engine: NavEngine) {
         }
         Box(Modifier.carTap("pick-go") { engine.goPick() }) { ImmPill(if (guiding) Lang.t("Als Stopp", "Add stop") else Lang.t("Hierhin fahren", "Go here"), {}, filled = true) }
         Box(Modifier.carTap("pick-no") { engine.clearPick() }) { ImmPill(Lang.t("Abbrechen", "Cancel"), {}) }
+    }
+}
+
+/** A stop on the way reached: the trip waits until you go on. */
+@Composable
+private fun StopCard(engine: NavEngine, modifier: Modifier) {
+    val name = engine.stopPause ?: return
+    val c = LocalVw.current
+    Row(
+        modifier.panel(10.dp, RoundedCornerShape(24.dp), c.surface).padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Box(Modifier.size(44.dp).clip(androidx.compose.foundation.shape.CircleShape).background(c.accent.copy(alpha = 0.18f)), contentAlignment = Alignment.Center) {
+            androidx.compose.material3.Icon(androidx.compose.material.icons.Icons.Rounded.Route, null, tint = c.accent, modifier = Modifier.size(24.dp))
+        }
+        Column(Modifier.weight(1f, fill = false)) {
+            Text(Lang.t("Zwischenziel erreicht", "Stop reached"), color = c.text, fontSize = 18.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(name, color = c.sub, fontSize = 14.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        }
+        Box(Modifier.carTap("stop-go") { engine.resumeAfterStop() }) { ImmPill("Fahrt weitermachen", {}, filled = true) }
     }
 }
 

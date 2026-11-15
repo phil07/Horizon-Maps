@@ -226,6 +226,13 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
     /** A quicker route than the one being followed, found while driving. */
     class FasterRoute(val route: Route, val savedMin: Int)
     var faster by mutableStateOf<FasterRoute?>(null)
+    /** A stop on the way was reached: the trip waits there (no voice) until "Fahrt weitermachen". The stop's name, or null. */
+    var stopPause by mutableStateOf<String?>(null)
+    fun resumeAfterStop() {
+        if (stopPause == null) return
+        stopPause = null
+        toast(Lang.t("Fahrt geht weiter", "Trip continues"), 2500)
+    }
     var liveAlts by mutableStateOf<List<LiveAlt>>(emptyList())
     var radar by mutableStateOf<List<RadarItem>>(emptyList())
     private var radarSig = 0
@@ -2656,6 +2663,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
     }
 
     fun endRoute() {
+        stopPause = null
         stopTripShare(quiet = true)
         try { evTripDone() } catch (e: Exception) { }
         // (only a trip under way: cancelling a route choice leaves the other screen's trip alone)
@@ -5676,7 +5684,7 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
         if (!light) {
             try { checkIncidents(r, progress) } catch (e: Exception) { }
             fix?.let { f -> try { checkYieldSigns(f.pos, f.heading) } catch (e: Exception) { } }
-            fix?.let { f -> if (via.isNotEmpty() && Geo.dist(f.pos, via[0].pos) < viaReachM()) { toast(str(R.string.rest_432, via[0].name), 3000); val reached = via[0].pos
+            fix?.let { f -> if (via.isNotEmpty() && Geo.dist(f.pos, via[0].pos) < viaReachM()) { stopPause = via[0].name; val reached = via[0].pos
                 // a charging stop reached: from here the battery counts from the charge planned there (until the car reports a newer level)
                 evPlanned.firstOrNull { Geo.dist(it.n.place.pos, reached) < 30.0 }?.let { st -> evChargeRefPct = st.toPct.toDouble(); evChargeRefAt = System.currentTimeMillis(); evSinceCharge = 0.0; evRefPct = -1; evSave() }
                 evPlanned = evPlanned.filter { Geo.dist(it.n.place.pos, reached) >= 30.0 }; via = via.drop(1); pushVia() } }
@@ -8012,6 +8020,8 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
     /** [turn]: a turn-by-turn call ("In 500 m, take the exit"), which has to be on time. */
     fun speak(text: String, alert: Boolean = false, turn: Boolean = false) {
         if (quiet()) return
+        // waiting at a stop: no voice until the trip goes on
+        if (stopPause != null) return
         val m = soundMode
         if (m == 2 || (m == 1 && !alert) || !ttsReady) return
         val u = Utt(text, if (turn) 2 else if (alert) 1 else 0, android.os.SystemClock.elapsedRealtime())

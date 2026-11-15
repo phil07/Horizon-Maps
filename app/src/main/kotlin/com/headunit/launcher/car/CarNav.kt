@@ -532,6 +532,9 @@ class MapScreen(carContext: CarContext, private val holder: CarHolder) : Screen(
     /** The faster route offer last shown as a pop-up (by identity; 0 when none), and the pop-up's id. */
     private var lastFasterKey = 0
     private val FASTER_ALERT_ID = 4711
+    /** The stop reached last shown as a pop-up (its name; null when none), and the pop-up's id. */
+    private var lastStopShown: String? = null
+    private val STOP_ALERT_ID = 4712
     private var navigating = false
     private var autoDrive = false
     /** Opens the car's quick settings (set by the session). */
@@ -611,7 +614,32 @@ class MapScreen(carContext: CarContext, private val holder: CarHolder) : Screen(
                 else if (had) carContext.getCarService(AppManager::class.java).dismissAlert(FASTER_ALERT_ID)
             } catch (x: Exception) { }
         }
+        // a stop on the way reached: the pop-up once, and the trip waits until "Fahrt weitermachen" (on the car and on the phone)
+        val sp0 = e.stopPause
+        if (sp0 != lastStopShown) {
+            val had = lastStopShown
+            lastStopShown = sp0
+            if (carContext.carAppApiLevel >= 5) try {
+                if (sp0 != null) showStopAlert(e, sp0)
+                else if (had != null) carContext.getCarService(AppManager::class.java).dismissAlert(STOP_ALERT_ID)
+            } catch (x: Exception) { }
+        }
         CarTicks.tick?.invoke()
+    }
+
+    private fun showStopAlert(e: NavEngine, name: String) {
+        val am = carContext.getCarService(AppManager::class.java)
+        val go = Action.Builder().setTitle(Lang.t("Fahrt weitermachen", "Continue trip")).setOnClickListener {
+            e.resumeAfterStop(); try { am.dismissAlert(STOP_ALERT_ID) } catch (x: Exception) { }
+        }.build()
+        val alert = androidx.car.app.model.Alert.Builder(STOP_ALERT_ID, androidx.car.app.model.CarText.create(Lang.t("Zwischenziel erreicht: $name", "Stop reached: $name")), 60_000L)
+            .addAction(go)
+            .setCallback(object : androidx.car.app.model.AlertCallback {
+                override fun onCancel(reason: Int) { }
+                override fun onDismiss() { }
+            })
+            .build()
+        am.showAlert(alert)
     }
 
     private fun showFasterAlert(e: NavEngine, fr: NavEngine.FasterRoute) {
