@@ -204,8 +204,12 @@ object Geo {
 
     /**
      * How far round a roundabout the route goes, from the route line alone: a circle is laid through the stretch of the line on
-     * the ring ([e] to [x] metres along it), and the way in and the way out are read 15 m outside that circle (at most 40 m
-     * along the line), as angles round its middle. Null when the stretch doesn't make a circle.
+     * the ring (about [e] to [x] metres along it), and the way in and the way out are read 20 m outside that circle (at most
+     * 50 m along the line), as angles round its middle. Null when the stretch doesn't make a circle.
+     *
+     * [e] and [x] need not be exact. The circle starts from the middle of the stretch and grows along the line for as long as
+     * the line stays on it: a way in that begins some metres before the ring used to be fitted in with it, which made the
+     * circle too big and the exit look further to the right (straight on read as half right).
      */
     fun ringArc(pts: List<LL>, cum: DoubleArray, e: Double, x: Double, leftTraffic: Boolean): Double? {
         val len = cum.last()
@@ -213,36 +217,94 @@ object Geo {
         val p0 = pointOnLine(pts, cum, e).first
         val kx = 111320.0 * cos(rad(p0.lat)); val ky = 110540.0
         fun xy(o: Double): DoubleArray { val p = pointOnLine(pts, cum, o.coerceIn(0.0, len)).first; return doubleArrayOf((p.lon - p0.lon) * kx, (p.lat - p0.lat) * ky) }
-        val ps = ArrayList<DoubleArray>()
-        var o = e
-        while (o <= x) { ps += xy(o); o += 2.0 }
-        val n = ps.size
-        if (n < 4) return null
-        val mx = ps.sumOf { it[0] } / n; val my = ps.sumOf { it[1] } / n
-        var suu = 0.0; var svv = 0.0; var suv = 0.0; var suuu = 0.0; var svvv = 0.0; var suvv = 0.0; var svuu = 0.0
-        for (q in ps) {
-            val u = q[0] - mx; val v = q[1] - my
-            suu += u * u; svv += v * v; suv += u * v; suuu += u * u * u; svvv += v * v * v; suvv += u * v * v; svuu += v * u * u
-        }
-        val det = suu * svv - suv * suv
-        if (abs(det) < 1e-6) return null
-        val b1 = (suuu + suvv) / 2.0; val b2 = (svvv + svuu) / 2.0
-        val uc = (b1 * svv - b2 * suv) / det; val vc = (b2 * suu - b1 * suv) / det
-        val r = sqrt(uc * uc + vc * vc + (suu + svv) / n)
-        if (r < 4.0 || r > 90.0) return null
-        val cx = mx + uc; val cy = my + vc
+        var cx = 0.0; var cy = 0.0; var r = 0.0
         fun dc(q: DoubleArray) = sqrt((q[0] - cx).pow(2) + (q[1] - cy).pow(2))
+        fun fit(a: Double, b: Double): Boolean {
+            val ps = ArrayList<DoubleArray>()
+            var o = a
+            while (o <= b) { ps += xy(o); o += 1.0 }
+            val n = ps.size
+            if (n < 4) return false
+            val mx = ps.sumOf { it[0] } / n; val my = ps.sumOf { it[1] } / n
+            var suu = 0.0; var svv = 0.0; var suv = 0.0; var suuu = 0.0; var svvv = 0.0; var suvv = 0.0; var svuu = 0.0
+            for (q in ps) {
+                val u = q[0] - mx; val v = q[1] - my
+                suu += u * u; svv += v * v; suv += u * v; suuu += u * u * u; svvv += v * v * v; suvv += u * v * v; svuu += v * u * u
+            }
+            val det = suu * svv - suv * suv
+            if (abs(det) < 1e-6) return false
+            val b1 = (suuu + suvv) / 2.0; val b2 = (svvv + svuu) / 2.0
+            val uc = (b1 * svv - b2 * suv) / det; val vc = (b2 * suu - b1 * suv) / det
+            r = sqrt(uc * uc + vc * vc + (suu + svv) / n)
+            cx = mx + uc; cy = my + vc
+            return r in 4.0..90.0
+        }
+        // the middle half of the stretch first (its ends may lie on the way in or out), then as far as the line keeps to the circle
+        var a = e + (x - e) * 0.25; var b = x - (x - e) * 0.25
+        for (pass in 0 until 4) {
+            if (!fit(a, b)) return null
+            val mid = (a + b) / 2.0
+            var na = mid
+            while (na > max(0.0, e - 60.0) && abs(dc(xy(na - 1.0)) - r) < 1.5) na -= 1.0
+            var nb = mid
+            while (nb < min(len, x + 60.0) && abs(dc(xy(nb + 1.0)) - r) < 1.5) nb += 1.0
+            val same = abs(na - a) < 1.0 && abs(nb - b) < 1.0
+            a = na; b = nb
+            if (b - a < 6.0) return null
+            if (same) break
+        }
+        if (!fit(a, b)) return null
         // (the stretch has to lie on the circle: a line that isn't a ring gives a circle it doesn't follow)
-        if (sqrt(ps.sumOf { (dc(it) - r).pow(2) } / n) > 3.0) return null
-        var oi = e
-        while (oi > max(0.0, e - 40.0) && dc(xy(oi)) < r + 15.0) oi -= 2.0
-        var oo = x
-        while (oo < min(len, x + 40.0) && dc(xy(oo)) < r + 15.0) oo += 2.0
-        val qi = xy(oi); val qo = xy(oo)
-        val a0 = deg(atan2(qi[1] - cy, qi[0] - cx)); val a1 = deg(atan2(qo[1] - cy, qo[0] - cx))
-        val raw = if (leftTraffic) ((a0 - a1) % 360.0 + 360.0) % 360.0 else ((a1 - a0) % 360.0 + 360.0) % 360.0
-        if (raw < 30.0 || raw > 330.0) return if (x - e > PI * r) 360.0 else null
+        var sq = 0.0; var cnt = 0
+        var o = a
+        while (o <= b) { sq += (dc(xy(o)) - r).pow(2); cnt++; o += 1.0 }
+        if (cnt < 4 || sqrt(sq / cnt) > 1.5) return null
+        fun ang(q: DoubleArray) = deg(atan2(q[1] - cy, q[0] - cx))
+        fun round(from: Double, to: Double) = if (leftTraffic) ((from - to) % 360.0 + 360.0) % 360.0 else ((to - from) % 360.0 + 360.0) % 360.0
+        // how far round the circle the line itself runs, in the ring's direction (a bend of the road the other way isn't a ring)
+        var on = 0.0
+        var pa = ang(xy(a)); o = a + 2.0
+        while (o <= b) { val na = ang(xy(o)); val d = round(pa, na); on += if (d > 180.0) d - 360.0 else d; pa = na; o += 2.0 }
+        if (on < 20.0) return null
+        var oi = a
+        while (oi > max(0.0, a - 50.0) && dc(xy(oi)) < r + 20.0) oi -= 2.0
+        var oo = b
+        while (oo < min(len, b + 50.0) && dc(xy(oo)) < r + 20.0) oo += 2.0
+        val raw = round(ang(xy(oi)), ang(xy(oo)))
+        if (on > 300.0 || ((raw < 30.0 || raw > 330.0) && on > 180.0)) return 360.0
+        // the arms lie a little further round than the line runs on the ring (it joins past its arm and leaves before the next),
+        // never less and not by much more: anything else is a bend that happened to fit a circle
+        if (raw < 30.0 || raw > 330.0 || raw < on - 15.0 || raw > on + 110.0) return null
         return raw
+    }
+
+    /**
+     * [ringArc] for a step of any route, whoever made it: the ring is found in the route's own line. [exitAt] is where the ring
+     * is left when the route says so (otherwise below [entry]): without it, it's where the line stops turning round the ring.
+     */
+    fun ringOnLine(pts: List<LL>, cum: DoubleArray, entry: Double, exitAt: Double, limitAt: Double, leftTraffic: Boolean): Double? {
+        if (pts.size < 2 || cum.size != pts.size) return null
+        val len = cum.last()
+        val e = entry.coerceIn(0.0, len)
+        val limit = minOf(len, e + 250.0, limitAt)
+        if (limit <= e + 6.0) return null
+        if (exitAt > e && exitAt <= limit) return ringArc(pts, cum, e, exitAt, leftTraffic)
+        val step = 4.0
+        val hs = ArrayList<Double>()
+        var o = e
+        while (o <= limit) { hs += pointOnLine(pts, cum, o).second; o += step }
+        val sign = if (leftTraffic) 1.0 else -1.0
+        fun dlt(a: Double, b: Double) = ((b - a + 540.0) % 360.0) - 180.0
+        var turned = 0.0
+        for (i in 0 until hs.size - 1) {
+            val d = sign * dlt(hs[i], hs[i + 1])
+            if (turned >= 15.0) {
+                val still = i + 5 <= hs.size - 1 && (i until i + 5).all { j -> sign * dlt(hs[j], hs[j + 1]) <= 1.0 }
+                if (d < -2.0 || still) return if (turned >= 30.0) ringArc(pts, cum, e, e + i * step, leftTraffic) else null
+            }
+            if (d > 0) turned += d
+        }
+        return null
     }
 
     fun rad(d: Double) = d * PI / 180.0

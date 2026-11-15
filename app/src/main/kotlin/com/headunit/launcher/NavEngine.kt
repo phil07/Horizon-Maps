@@ -5734,10 +5734,10 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
             // a roundabout's way in and out from the route line itself, as the map draws it: the route data's angles sent the arrow the
             // wrong way (a third exit to the left showed as half right). The roads off the ring are left out then (their angles
             // come from the same data).
-            // First the route's own data. A Mapbox route says where on the ring you join and leave it: a circle through the line
-            // between the two, and the way in and out read just outside it, as angles round its middle. A TomTom route gives the
-            // turn from the way in to the exit as one angle, shown as it is. Only when neither is there, the ring from
-            // OpenStreetMap (asked once per route, kept on the device), and last the turn of the route line on the ring.
+            // First the route's own line, whoever made the route: a circle through the stretch that runs on the ring, and the way
+            // in and out read just outside it, as angles round its middle (a Mapbox route can also say where the ring is left).
+            // Then the one angle a TomTom route gives for the turn, then the ring from OpenStreetMap (asked once per route, kept
+            // on the device), and last the turn of the route line where no ring can be made out in it (a mini roundabout).
             // All to the nearest eighth of a turn.
             val isRb = cur.maneuver.uppercase().startsWith("ROUNDABOUT")
             fun norm(t: Double) = ((t % 360.0) + 360.0) % 360.0
@@ -5745,14 +5745,15 @@ class NavEngine(private val ctx: Context, val prefs: Prefs, val map: MapBinding)
             val rbGeo: Pair<Double, Double>? = if (!isRb) null else try {
                 // (TomTom's steps carry the angle with a way in of 0 and no place where the ring is left)
                 val tomTom = cur.rbEnd < 0 && cur.rbIn == 0.0 && cur.rbOut >= 0
-                val arc = if (!tomTom && cur.rbEnd > cur.off) Geo.ringArc(r.pts, r.cum, cur.off, cur.rbEnd, leftTraffic) else null
-                if (tomTom) { Geo.rbNote = "TomTom angle ${Math.round(cur.rbOut)}"; 0.0 to norm(eighth(cur.rbOut)) }
-                else if (arc != null) { Geo.rbNote = "Mapbox ring places: round ${Math.round(arc)}"; 0.0 to norm(eighth(if (leftTraffic) arc - 180.0 else 180.0 - arc)) }
+                val limitAt = nxt?.off?.minus(2.0) ?: Double.MAX_VALUE
+                val arc = Geo.ringOnLine(r.pts, r.cum, cur.off, cur.rbEnd, limitAt, leftTraffic)
+                if (arc != null) { Geo.rbNote = "ring in the route line: round ${Math.round(arc)}" + (if (tomTom) " (TomTom angle ${Math.round(cur.rbOut)})" else ""); 0.0 to norm(eighth(if (leftTraffic) arc - 180.0 else 180.0 - arc)) }
+                else if (tomTom) { Geo.rbNote = "TomTom angle ${Math.round(cur.rbOut)}"; 0.0 to norm(eighth(cur.rbOut)) }
                 else {
                     if (ringsAskedFor !== r) { ringsAskedFor = r; searchScope.launch { try { Roundabouts.fetchFor(ctx, r) } catch (e: Exception) { } } }
                     val rbMap = try { Roundabouts.turnAt(ctx, r, cur.off, leftTraffic) } catch (e: Exception) { null }
                     if (rbMap != null) { Geo.rbNote = "OpenStreetMap"; 0.0 to norm(rbMap.turn) }
-                    else Geo.roundaboutHeadings(r.pts, r.cum, cur.off, cur.rbEnd, nxt?.off?.minus(2.0) ?: Double.MAX_VALUE, leftTraffic)?.let { (i, o) -> 0.0 to norm(eighth(o - i)) }
+                    else Geo.roundaboutHeadings(r.pts, r.cum, cur.off, cur.rbEnd, limitAt, leftTraffic)?.let { (i, o) -> 0.0 to norm(eighth(o - i)) }
                 }
             } catch (e: Exception) { null }
             // Without an exit number the voice and Android Auto give a direction. It comes from the angle the turn card shows, not
