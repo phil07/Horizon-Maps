@@ -155,6 +155,7 @@ internal val settingsIndex = listOf(
     SettingRef("Geschwindigkeit neben dem Limit", "", "Beim Fahren", 10),
     SettingRef("Tachoring", "Füllt sich bis zum Tempolimit", "Beim Fahren", 10),
     SettingRef("Tempolimit- und Tachogröße", "", "Beim Fahren", 10),
+    SettingRef("Tacho-Seite", "Rechts, Links oder Automatisch", "Beim Fahren", 10),
     SettingRef("Straße und Richtung beim Fahren ohne Route", "", "Beim Fahren", 10),
     SettingRef("Pfeil ohne Route auf der Straße halten", "", "Beim Fahren", 10),
     SettingRef("Karte in Tunnels dimmen", "", "Beim Fahren", 10),

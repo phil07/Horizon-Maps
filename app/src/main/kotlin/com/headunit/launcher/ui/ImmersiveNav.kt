@@ -437,9 +437,13 @@ private fun MapScreen(engine: NavEngine, onSettings: () -> Unit) {
 
         // ---- speed limit and speedometer: bottom right, or bottom left when mirrored for left-hand drive (the cards are on the
         // right then; keeping the speed on the right too put it under the turn card on shorter screens)
+        // (Settings > Beim Fahren > Tacho-Seite: right by default, left, or automatic as it used to be. On a wide screen the trip
+        // card can be on the same side: the speed then sits above it, as it does on a narrow screen.)
+        val speedLeft = engine.speedLeft()
+        val speedOverTrip = (narrow || speedLeft == (side(Alignment.BottomStart) == Alignment.BottomStart)) && tripPx > 0
         if (!previewing) Box(
-            Modifier.align(side(Alignment.BottomEnd))
-                .sides(end = 16.dp, bottom = if (narrow && tripPx > 0) tripH + 4.dp else 16.dp)
+            Modifier.align(if (speedLeft) Alignment.BottomStart else Alignment.BottomEnd)
+                .padding(start = if (speedLeft) 16.dp else 0.dp, end = if (speedLeft) 0.dp else 16.dp, bottom = if (speedOverTrip) tripH + 4.dp else 16.dp)
                 .onGloballyPositioned { val t = it.boundsInParent().top.toInt(); if (it.size.height > 0 && t != speedTopPx) speedTopPx = t }
         ) {
             val baseSpeedDensity = LocalDensity.current
@@ -447,7 +451,7 @@ private fun MapScreen(engine: NavEngine, onSettings: () -> Unit) {
             val speedSize = 1f
             CompositionLocalProvider(LocalDensity provides Density(baseSpeedDensity.density * speedSize, baseSpeedDensity.fontScale)) {
                 // the car's battery level sits right above the speed, on the same side
-                Column(horizontalAlignment = if (engine.mirrored) Alignment.Start else Alignment.End) {
+                Column(horizontalAlignment = if (speedLeft) Alignment.Start else Alignment.End) {
                     if (Neon.on && !narrow) NeonQuestBox(engine)
                     EvNowChip(engine)
                     ImmSpeed(engine)
@@ -915,6 +919,9 @@ internal fun EvNowChip(engine: NavEngine) {
     }
 }
 
+/** Whether the phone / head unit shows the speed on the left (Settings: right by default, left, or automatic = left when mirrored). Never on the car screen. */
+internal fun NavEngine.speedLeft(): Boolean = !isCar && when (prefs.s(PreferenceKeys.MAIN_SPEED_SIDE, "right")) { "left" -> true; "auto" -> mirrored; else -> false }
+
 /** Speed limit sign beside a large readout of your current speed. */
 @Composable
 internal fun ImmSpeed(engine: NavEngine) {
@@ -961,7 +968,10 @@ private fun SpeedBlock(engine: NavEngine) {
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
         // Keep the speed cluster in the same screen position, but mirror the sign's
         // relationship to the speed readout for left-hand-drive layouts.
-        if (show && engine.mirrored && !engine.isCar && sign) SpeedLimitSign(engine, 70.dp)
+        // the sign goes on the side facing the middle of the screen, so it can't sit off the edge: right of the speed when the
+        // speed is on the left, left of it when the speed is on the right (the car screen keeps its own order)
+        val signFirst = !engine.isCar && !engine.speedLeft()
+        if (show && signFirst && sign) SpeedLimitSign(engine, 70.dp)
         if (show) Column(
             Modifier.width(78.dp).panel(8.dp, RoundedCornerShape(24.dp), c.surface).padding(vertical = 8.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
@@ -969,7 +979,7 @@ private fun SpeedBlock(engine: NavEngine) {
             Text("${Math.round(engine.shownSpeed * k)}", color = speedTint(engine) ?: c.text, fontSize = 30.sp, fontWeight = FontWeight.Bold, maxLines = 1)
             Text(if (engine.imperial) "mph" else "km/h", color = c.sub, fontSize = 12.sp)
         }
-        if (sign && !(show && engine.mirrored && !engine.isCar)) SpeedLimitSign(engine, 70.dp)
+        if (sign && !(show && signFirst)) SpeedLimitSign(engine, 70.dp)
     }
 }
 
@@ -1028,7 +1038,7 @@ private fun SpeedRing(engine: NavEngine, show: Boolean, k: Double) {
         // The limit sign goes on the speed's inner side, so it never runs off the screen: the left normally, the right when the
         // app is mirrored for left-hand drive (the speed is then on the left edge). Android Auto never mirrors: its speed is
         // always on the right.
-        val signRight = engine.mirrored && !engine.isCar
+        val signRight = engine.speedLeft()
         if (lim != null || engine.noLimit) Box(
             Modifier.align(if (!show) Alignment.Center else if (signRight) Alignment.TopEnd else Alignment.TopStart)
                 // beside the ring's upper corner, just clear of it (raised over the top it covered the battery chip above and the ring)

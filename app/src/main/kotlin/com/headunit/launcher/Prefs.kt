@@ -60,6 +60,8 @@ internal object PreferenceKeys {
     const val MAIN_CARD_SIZE = "maincardsize"
     const val MAIN_TEXT_SIZE = "maintextsize"
     const val MAIN_SPEED_SIZE = "mainspeedsize"
+    /** which side the phone / head unit shows the speed on: "right" (the default), "left", or "auto" (left when mirrored for left-hand drive) */
+    const val MAIN_SPEED_SIDE = "mainspeedside"
     const val MAIN_BUTTON_SIZE = "mainbuttonsize"
     const val MAIN_ARROW_SIZE = "mainarrowsize"
     const val CAR_CARD_SIZE = "carcardsize"

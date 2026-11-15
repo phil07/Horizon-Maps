@@ -3432,6 +3432,14 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
     /** Stops a fly-through without running its ending. */
     fun stopFly() { flyToken++; flyDone = null }
 
+    /** Ends a route fly-through as a tap on the map does: its animation stops and its "done" runs (back to the overview). */
+    fun cancelFly() {
+        flyDone?.let { d -> flyDone = null; flyToken++; try { mapView.camera.cancelAllAnimators() } catch (e: Throwable) { }; d() }
+    }
+
+    /** The width (dp) of a route panel down the left of the screen (a phone held sideways), or 0 when the panel is along the bottom: [fit] leaves that part free. */
+    @Volatile var fitSideDp = 0.0
+
     // ---- flowing light along the route ----
     private var flowOn = false
     private var flowWanted = true
@@ -4889,7 +4897,8 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
         val vi = viewInset
         val il = (vi?.left ?: 0) / d; val ir = (vi?.right ?: 0) / d; val it0 = (vi?.top ?: 0) / d; val ib = (vi?.bottom ?: 0) / d
         val vw = max(50.0, w - il - ir); val vh = max(50.0, h - it0 - ib)
-        val pl = il + vw * 0.07; val pr = ir + vw * 0.07; val pt = it0 + vh * 0.10; val pb = ib + vh * (if (panel) 0.60 else 0.10)
+        val side = if (panel) fitSideDp.coerceIn(0.0, vw * 0.6) else 0.0
+        val pl = il + side + (vw - side) * 0.07; val pr = ir + (vw - side) * 0.07; val pt = it0 + vh * 0.10; val pb = ib + vh * (if (panel && side <= 0.0) 0.60 else 0.10)
         val aw = w - pl - pr; val ah = h - pt - pb
         val fx = max(x1 - x0, 1e-7); val fy = max(y1 - y0, 1e-7)
         // (zoom in this formula is for a map drawn at the screen's own density; a lower render scale shows more map, so it's corrected)

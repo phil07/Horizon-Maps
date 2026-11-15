@@ -212,8 +212,19 @@ fun MapHost(map: MapBinding, modifier: Modifier = Modifier, cornerDp: Int = 0) {
                     }
                     clipToOutline = true
                 }
+                // the map view moves between the map screen and the small preview in the settings. Now and then its drawing surface
+                // kept the small size after the move, so only the top part of the map showed and the rest stayed black. After a move
+                // the view is resized by one pixel and back, which makes the map take the size of its new place.
+                val moved = map.mapView.parent != null
                 (map.mapView.parent as? ViewGroup)?.removeView(map.mapView)
                 addView(map.mapView, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
+                if (moved) post {
+                    val v = map.mapView
+                    if (v.parent === this && height > 2) {
+                        v.layoutParams = FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, height - 1)
+                        post { if (v.parent === this) v.layoutParams = FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT) }
+                    }
+                }
                 // the 3D locator sits just above the map (it's moved to the car's spot on screen as the camera moves)
                 (map.roadView.parent as? ViewGroup)?.removeView(map.roadView)
                 addView(map.roadView, FrameLayout.LayoutParams(1, 1))

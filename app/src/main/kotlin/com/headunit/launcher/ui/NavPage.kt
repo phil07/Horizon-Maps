@@ -200,7 +200,30 @@ internal fun BoxScope.RoutePreview(engine: NavEngine) {
     if (arriveBy) ArriveByDialog(engine) { arriveBy = false }
     val fmt = java.text.SimpleDateFormat("HH:mm", java.util.Locale.getDefault())
     val baseMs = if (engine.departAtMs > 0) engine.departAtMs else System.currentTimeMillis()
-    Column(Modifier.align(Alignment.BottomCenter).padding(horizontal = 10.dp, vertical = 4.dp).fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    // a phone held sideways (wide but low): the panel is a column down the left, laid out as on a phone held upright, with the
+    // routes on the map beside it. Along the bottom it covered nearly the whole map.
+    val cfg = androidx.compose.ui.platform.LocalConfiguration.current
+    val sideways = cfg.screenWidthDp >= 720 && cfg.screenHeightDp < 480
+    val sideW = minOf(380, (cfg.screenWidthDp * 0.48f).toInt())
+    // the map's overview leaves that column free instead of the bottom of the screen
+    androidx.compose.runtime.DisposableEffect(sideways, sideW) {
+        val want = if (sideways) sideW + 20.0 else 0.0
+        if (engine.map.fitSideDp != want) { engine.map.fitSideDp = want; engine.refitPreview() }
+        onDispose { engine.map.fitSideDp = 0.0 }
+    }
+    // Fly over route: the panel steps aside while the flight plays, with a small Stop button to end it
+    if (engine.flyingOver) Row(
+        Modifier.align(Alignment.BottomCenter).padding(bottom = 16.dp).floating(24.dp).clickable { engine.stopFlyOver() }.padding(horizontal = 18.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Icon(Icons.Rounded.Close, null, tint = c.text, modifier = Modifier.size(20.dp))
+        Text(Lang.t("Stopp", "Stop"), color = c.text, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
+    }
+    else Column(
+        if (sideways) Modifier.align(Alignment.BottomStart).padding(horizontal = 10.dp, vertical = 4.dp).width(sideW.dp).verticalScroll(rememberScrollState())
+        else Modifier.align(Alignment.BottomCenter).padding(horizontal = 10.dp, vertical = 4.dp).fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
     val selRoute = rs.getOrNull(engine.active)
     // fuel estimate from the economy and pump price set in Settings > Driving (blank = not shown)
     val ev = engine.prefs.s(PreferenceKeys.FUEL_TYPE, "E10") == "EV"
@@ -295,7 +318,7 @@ internal fun BoxScope.RoutePreview(engine: NavEngine) {
     // outside the options: a fuel stop suggestion, or (electric) a warning / charging stops not yet added
     FuelSuggestionRow(engine)
     // landscape: everything in one row. Portrait (narrow): destination on top, the route choices across, Start underneath.
-    val narrowP = androidx.compose.ui.platform.LocalConfiguration.current.screenWidthDp < 720
+    val narrowP = androidx.compose.ui.platform.LocalConfiguration.current.screenWidthDp < 720 || sideways
     val destPart: @Composable (Modifier) -> Unit = { m ->
         Column(m) {
             val d = engine.dest
