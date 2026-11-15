@@ -1108,8 +1108,8 @@ private fun AndroidAutoSection(prefs: Prefs) {
         SSlider("Tacho- und Tempolimitgröße", prefs.i(PreferenceKeys.CAR_SPEED_SIZE, 140).toFloat(), 40f..220f, "%", reset = 140f) { prefs.put(PreferenceKeys.CAR_SPEED_SIZE, it) }
         SChoice("Tachostil auf dem Autodisplay", listOf("normal" to "Normal", "compact" to "Kompakt"), prefs.s(PreferenceKeys.CAR_SPEED_STYLE, "normal"),
             "Kompakt: eine kleine dunkle Pille mit Limit-Schild und Tempo nebeneinander, passt auch oben rechts auf einen kurzen Bildschirm") { prefs.put(PreferenceKeys.CAR_SPEED_STYLE, it) }
-        SChoice("Position des Tachos auf dem Autodisplay", listOf("bottom" to "Unten links", "turn" to "Unter der Abbiege-Karte", "top" to "Oben rechts"), prefs.s(PreferenceKeys.CAR_SPEED_POS, "bottom"),
-            "Gilt für jede Bildschirmgröße und auch, wenn die Fahrtkarte rechts steht") { prefs.put(PreferenceKeys.CAR_SPEED_POS, it) }
+        SChoice("Position des Tachos auf dem Autodisplay", listOf("bottom" to "Untere Ecke", "turn" to "Unter der Abbiege-Karte", "top" to "Oben rechts"), prefs.s(PreferenceKeys.CAR_SPEED_POS, "bottom"),
+            "Untere Ecke wie bisher: rechts auf breiten Bildschirmen, links auf kurzen") { prefs.put(PreferenceKeys.CAR_SPEED_POS, it) }
         var carAdvanced by rememberSaveable { mutableStateOf(false) }
         SItem("Erweiterte Autodisplay-Größen", "Einzelne Elemente unabhängig anpassen") {
             SButton(if (carAdvanced) "Ausblenden" else "Anzeigen") { carAdvanced = !carAdvanced }

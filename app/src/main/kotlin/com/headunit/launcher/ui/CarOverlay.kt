@@ -451,6 +451,7 @@ private fun CarScreen(engine: NavEngine, a: android.graphics.Rect?, actions: Car
             } else {
                 var leftColW by remember { mutableStateOf(0) }
                 var leftColH by remember { mutableStateOf(0) }
+                var speedW by remember { mutableStateOf(0) }
                 Column(
                     Modifier.align(Alignment.BottomStart).padding(start = left, bottom = bottom).onSizeChanged { leftColW = it.width; leftColH = it.height }
                         .onGloballyPositioned { report(1, it.boundsInRoot()) },
@@ -467,12 +468,28 @@ private fun CarScreen(engine: NavEngine, a: android.graphics.Rect?, actions: Car
                             CompositionLocalProvider(LocalDensity provides Density(dens.density * cardScale, dens.fontScale)) { TripCard(engine, false, oneLine = true) }
                         }
                     }
-                    if (!shortCar && speedHere == "bottom") CompositionLocalProvider(LocalDensity provides Density(dens.density * speedScale, dens.fontScale)) { ImmSpeed(engine) }
                     if (!shortCar && guiding && !panelOpen) CompositionLocalProvider(LocalDensity provides Density(dens.density * cardScale, dens.fontScale)) { TripCard(engine, false, oneLine = shortCar) }
                 }
-                // battery and range from the car (or the widget), bottom right, clear of Android Auto's zoom buttons
+                // your speed and the limit, bottom right as in the app (clear of Android Auto's zoom buttons); on a small screen where
+                // it would run into the cards on the left, it sits above them instead
+                val crowded = with(dens) { (left + 16.dp + 34.dp + rightBottom).toPx() } + leftColW + speedW > wPx
+                // Down in the bottom corner, level with the trip card and just left of Android Auto's zoom and re-centre buttons
+                // (halfway up the side it looked lost in the middle of the screen)
+                val speedBottom = if (crowded && leftColH > 0) bottom + with(dens) { leftColH.toDp() } + 10.dp else bottom
+                // right up against the edge of the clear map: Android Auto reports the part of the screen its own buttons leave free,
+                // which shrinks while its zoom and re-centre buttons are showing, so the sign sits just beside them then and slides
+                // into the corner when they hide (it used to keep a fixed 92dp gap as well, so it sat well in from either)
                 val speedEnd by androidx.compose.animation.core.animateDpAsState(insR + 6.dp, tween(280), label = "speedEnd")
-                if (!shortCar) Box(Modifier.align(Alignment.BottomEnd).padding(end = speedEnd, bottom = bottom)) { EvPill(engine) }
+                var speedH by remember { mutableStateOf(0) }
+                if (!shortCar && speedHere == "bottom") BoxWithConstraints(Modifier.align(Alignment.BottomEnd).padding(end = speedEnd, bottom = speedBottom, start = 34.dp, top = 20.dp)
+                    .onSizeChanged { speedW = it.width; speedH = it.height }) {
+                    val availableFit = minOf(1f, (maxWidth.value / 220f).coerceAtLeast(0.25f), (maxHeight.value / 150f).coerceAtLeast(0.25f))
+                    val fittedScale = requestedSpeedScale * availableFit
+                    CompositionLocalProvider(LocalDensity provides Density(dens.density * fittedScale, dens.fontScale)) { ImmSpeed(engine) }
+                }
+                // battery and range from the car (or the widget), always shown, right above the speed (the speed keeps its own
+                // place in the corner; the pill is placed by the speed's measured height, so it never pushes the speed away)
+                if (!shortCar) Box(Modifier.align(Alignment.BottomEnd).padding(end = speedEnd, bottom = speedBottom + with(dens) { speedH.toDp() } + 10.dp)) { EvPill(engine) }
             }
         }
 

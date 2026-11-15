@@ -1,8 +1,8 @@
 ## Unreleased
 
-### Verbessert
-- Android Auto: Die Größe der Knöpfe und der Karten gilt jetzt auch für die Knöpfe der Fahrtkarte (Übersicht, Andere Routen, Beenden) und für die Routenkarten zur Auswahl.
-  EN: Android Auto: the Button size and Card size now also cover the trip card's buttons (overview, other routes, end) and the route choice cards.
+### Behoben
+- Android Auto: Tempolimit und Geschwindigkeit sind wieder unten rechts, wie vorher. Auf kurzen Bildschirmen bleiben sie unten links. Die Auswahl „Untere Ecke“ ist der Standard. Unter der Abbiege-Karte und Oben rechts gibt es weiterhin als Alternativen.
+  EN: Android Auto: the speed limit and speed are back at the bottom right, as before. On short screens they stay bottom left. "Bottom corner" is the default. "Under the turn card" and "Top right" remain as alternatives.
 
 ## 1.0.246 — 2026-10-28
 
