@@ -18,6 +18,10 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.displayCutout
+import androidx.compose.foundation.layout.systemBars
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -232,7 +236,8 @@ fun App(prefs: Prefs, engine: NavEngine, map: MapBinding) {
             // the phone's engine leaves speed limit, camera and traffic lookups to the car while the phone isn't showing its map
             val mapShown = !carOn || phoneMap || settings
             androidx.compose.runtime.SideEffect { engine.showingMap = mapShown }
-            Box(Modifier.fillMaxSize().background(c.bg)) {
+            // Android 16 draws edge to edge: keep the content clear of the camera cutout, and of the status and navigation bars (hidden in full screen, so they add nothing there)
+            Box(Modifier.fillMaxSize().background(c.bg).windowInsetsPadding(WindowInsets.displayCutout).windowInsetsPadding(WindowInsets.systemBars)) {
                 // first run: a short setup before the map (existing installs that are already set up skip it)
                 LaunchedEffect(Unit) { if (prefs.s(PreferenceKeys.PLACE_HOME, "").isNotBlank() || prefs.s(PreferenceKeys.HABITS, "").isNotBlank()) prefs.put(PreferenceKeys.SETUP_DONE, true) }
                 val setupDone = !prefs.b(PreferenceKeys.FORCESETUP, false) && (prefs.b(PreferenceKeys.SETUP_DONE, false) || prefs.s(PreferenceKeys.PLACE_HOME, "").isNotBlank() || prefs.s(PreferenceKeys.HABITS, "").isNotBlank())

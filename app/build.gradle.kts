@@ -20,7 +20,8 @@ android {
         // Keep the established application ID so releases install as updates to existing Horizon Nav installations.
         applicationId = "com.headunit.nav"
         minSdk = 26
-        targetSdk = 34
+        // Android 16 (as Google Play requires; the Play flavour below sets the same)
+        targetSdk = 36
         // each GitHub build gets a higher version number, so Android always treats a new APK as an update
         // BUILD_NUMBER (set by the Build APK workflow) wins over the run number, so builds can continue above earlier releases
         val run = (System.getenv("BUILD_NUMBER") ?: System.getenv("GITHUB_RUN_NUMBER"))?.toIntOrNull() ?: 0

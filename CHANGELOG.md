@@ -1,8 +1,8 @@
 ## Unreleased
 
-### Neu
-- Zwischenziel erreicht: Wird ein Zwischenziel erreicht, kommt einmal ein Pop-up „Zwischenziel erreicht“ auf dem Handy und auf Android Auto. Die Fahrt pausiert dort: keine Sprachansagen, bis du „Fahrt weitermachen“ drückst. Danach geht es direkt zum Ziel. Die Pause gilt nur für die laufende Fahrt.
-  EN: Stop reached: when a stop on the way is reached, a pop-up "Stop reached" comes up once on the phone and on Android Auto. The trip pauses there: no voice until you press "Continue trip". After that it goes straight on to the destination. The pause only lasts for the trip under way.
+### Improved
+- Ready for Android 16: Horizon Nav is now built for Android 16 (as Google Play requires). Auf neueren Handys bleibt der Inhalt von der Kamera-Aussparung frei, und die Bars bleiben wie bisher ausgeblendet.
+  EN: Ready for Android 16: Horizon Nav is now built for Android 16 (as Google Play requires). On newer phones it keeps clear of the camera notch and, with the bars hidden as before, the content stays clear of them too.
 
 ## 1.0.246 — 2026-10-28
 
