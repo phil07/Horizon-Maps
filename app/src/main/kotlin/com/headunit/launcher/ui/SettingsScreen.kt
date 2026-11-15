@@ -205,6 +205,11 @@ private fun SettingsBody(prefs: Prefs, engine: NavEngine, onClose: () -> Unit) {
         if (!narrowS || !showList) Column(Modifier.weight(1f).fillMaxHeight()) {
         // the neon look: the sections as a bar of tabs at the top
         if (Neon.on) NeonTabs(sections.map { tr(it.title) }, cat, { cat = it; highlight = null })
+        // on a phone, the map pages (Map style, On the map, Your arrow) keep the live map at the top while you scroll the settings,
+        // so each change shows as you make it. The map moves here from the map screen (which is off while the settings are open).
+        if (narrowS && !showList && cat <= 2) Box(
+            Modifier.fillMaxWidth().height((androidx.compose.ui.platform.LocalConfiguration.current.screenHeightDp / 3).dp).padding(horizontal = 4.dp, vertical = 4.dp),
+        ) { MapHost(engine.map, Modifier.fillMaxSize(), cornerDp = 18) }
         androidx.compose.animation.AnimatedContent(
             targetState = cat,
             modifier = Modifier.weight(1f).fillMaxWidth(),

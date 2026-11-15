@@ -1,12 +1,8 @@
 ## Unreleased
 
-### Behoben
-- Verknüpfungen in den Einstellungen auf dem Handy: Die Knöpfe brechen jetzt in so viele Zeilen um, wie sie brauchen, statt dass der letzte zu einer Spalte aus einzelnen Buchstaben gequetscht wird.
-  EN: Shortcuts in Settings on a phone: the buttons now wrap onto as many lines as they need, instead of the last one being squashed into a column of single letters
-
-### Neu
-- Knöpfe unter der Suchleiste sortieren: Einstellungen › Orte & Fahrten › Verknüpfungen unter der Suchleiste hat jetzt eine Liste „Deine Reihenfolge“ mit Pfeilen nach oben und unten, um jeden Knopf zu verschieben.
-  EN: Reorder your shortcuts: Settings › Places & trips › Shortcuts under the search bar now has a "Your order" list with up and down arrows to move each one
+### Verbessert
+- Kartenvorschau in den Einstellungen auf dem Handy: Auf den Kartenseiten (Kartenstil, Auf der Karte, Pfeil) bleibt die Live-Karte oben stehen, während du in den Einstellungen scrollst. So siehst du jede Änderung, sobald du sie machst.
+  EN: Map preview in Settings on a phone: on the map pages (Map style, Light & 3D, On the map, Your arrow) the live preview now stays at the top while you scroll the settings, as it does in landscape, so you can see each change as you make it
 
 ## 1.0.246 — 2026-10-28
 
