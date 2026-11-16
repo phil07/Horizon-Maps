@@ -1,8 +1,12 @@
 ## Unreleased
 
 ### Verbessert
-- Die Suche fragt Mapbox nur dazu, wenn TomTom nach etwa einer Sekunde noch nicht antwortet oder wenig findet. Schnelle Treffer von TomTom brauchen keine zweite Abfrage mehr, und langsame Antworten warten nicht mehr darauf, dass Mapbox danach gefragt wird.
-  EN: Search asks Mapbox only when TomTom has not answered after about a second or finds little. Quick TomTom results need no second request, and a slow answer no longer waits for Mapbox to be asked afterwards.
+- Suche und Knöpfe rücken an die Kamera heran: Die App liest aus, wo das Kameraloch des Handys sitzt, und zeigt Suche und Knöpfe knapp darunter (im Querformat daneben), statt einen ganzen Streifen in Höhe der Statusleiste frei zu lassen.
+  EN: Search and buttons move up to the camera: the app reads where the phone's camera hole is and shows the search and buttons just under it (beside it when held sideways), instead of leaving a whole status-bar-high strip free.
+
+### Behoben
+- Routenauswahl im Querformat: Das Fenster lief unten aus dem Bild, sodass Start, Überflug und Demo nicht zu sehen waren. Es wird jetzt so weit verkleinert, dass alles auf einmal passt.
+  EN: Route choice on a phone held sideways: the panel ran off the bottom, so Start, Fly over and Demo could not be seen. It now shrinks just enough for all of it to fit.
 
 ## 1.0.246 — 2026-10-28
 

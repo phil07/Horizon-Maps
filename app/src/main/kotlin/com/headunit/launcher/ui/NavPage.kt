@@ -220,7 +220,8 @@ internal fun BoxScope.RoutePreview(engine: NavEngine) {
         Text(Lang.t("Stopp", "Stop"), color = c.text, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
     }
     else Column(
-        if (sideways) Modifier.align(Alignment.BottomStart).padding(horizontal = 10.dp, vertical = 4.dp).width(sideW.dp).verticalScroll(rememberScrollState())
+        // (shrunk to fit the height, so Start and the rest show whole; 16 dp from the side the camera hole may be on)
+        if (sideways) Modifier.align(Alignment.BottomStart).padding(start = 16.dp, end = 10.dp, top = 4.dp, bottom = 4.dp).width(sideW.dp).shrinkToFitHeight().verticalScroll(rememberScrollState())
         else Modifier.align(Alignment.BottomCenter).padding(horizontal = 10.dp, vertical = 4.dp).fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {

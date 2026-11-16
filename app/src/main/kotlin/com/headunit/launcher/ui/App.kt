@@ -19,7 +19,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.displayCutout
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.layout.padding
@@ -259,7 +258,8 @@ fun App(prefs: Prefs, engine: NavEngine, map: MapBinding) {
                     LaunchedEffect(Unit) { back.animateTo(0f, androidx.compose.animation.core.tween(320)) }
                     if (back.value > 0.01f) Box(Modifier.fillMaxSize().graphicsLayer { alpha = back.value }.background(c.bg))
                 }
-                Box(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.displayCutout).windowInsetsPadding(WindowInsets.systemBars)) {
+                // the cards and buttons keep clear only of the camera hole itself (8 dp under it), not of a whole status-bar-high strip
+                Box(Modifier.fillMaxSize().padding(cutoutPadding()).windowInsetsPadding(WindowInsets.systemBars)) {
                 if (!setupDone) {
                     // (setup asks for the key itself)
                     LaunchedEffect(Unit) { prefs.put(PreferenceKeys.MAPBOX_PROMPT, false) }
@@ -278,7 +278,7 @@ fun App(prefs: Prefs, engine: NavEngine, map: MapBinding) {
                 } else {
                     NavOverlays(engine, onSettings = { settings = true })
                     if (prefs.b(PreferenceKeys.PERFORMANCE_METER, false) && engine.perfLine.isNotEmpty()) Text(engine.perfLine, color = Color.White, fontSize = 12.sp,
-                        modifier = Modifier.align(Alignment.TopCenter).padding(top = 4.dp).background(Color.Black.copy(alpha = 0.6f), RoundedCornerShape(8.dp)).padding(horizontal = 10.dp, vertical = 4.dp))
+                        modifier = Modifier.align(Alignment.TopCenter).padding(top = 12.dp).background(Color.Black.copy(alpha = 0.6f), RoundedCornerShape(8.dp)).padding(horizontal = 10.dp, vertical = 4.dp))
                     if (engine.deadReckoning) DeadReckoningChip(Modifier.align(Alignment.BottomCenter).padding(bottom = 84.dp))
                     else if (engine.cruising && engine.following && prefs.b(PreferenceKeys.CRUISE, true)) CruisePill(engine, Modifier.align(Alignment.BottomCenter).padding(bottom = 18.dp))
                     // that pill has the road name, so the one under your arrow steps aside while it's up (they overlapped)
