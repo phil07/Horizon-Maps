@@ -85,15 +85,28 @@ internal fun SItem(title: String, sub: String? = null, onClick: (() -> Unit)? = 
         }
         hlMod = Modifier.bringIntoViewRequester(req).clip(RoundedCornerShape(14.dp)).drawBehind { drawRect(c.accent.copy(alpha = 0.18f * glow.value)) }
     }
+    val rowMod = Modifier.fillMaxWidth().heightIn(min = 56.dp).then(hlMod).then(if (onClick != null) Modifier.clip(RoundedCornerShape(14.dp)).clickable(onClick = onClick) else Modifier).padding(vertical = 8.dp)
+    val narrowS = androidx.compose.ui.platform.LocalConfiguration.current.screenWidthDp < 720
+    if (narrowS) {
+        // on a phone the buttons go under the words: beside them, a long name was squeezed into a column of single letters
+        Column(rowMod) {
+            Column(Modifier.fillMaxWidth()) {
+                Text(tr(title), color = c.text, fontSize = 16.sp, fontWeight = FontWeight.Medium)
+                if (!sub.isNullOrBlank()) Text(tr(sub), color = c.sub, fontSize = 12.sp, modifier = Modifier.padding(top = 2.dp))
+            }
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.padding(top = 6.dp)) { trailing() }
+        }
+        return
+    }
     Row(
-        Modifier.fillMaxWidth().heightIn(min = 56.dp).then(hlMod).then(if (onClick != null) Modifier.clip(RoundedCornerShape(14.dp)).clickable(onClick = onClick) else Modifier).padding(vertical = 8.dp),
+        rowMod,
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Column(Modifier.weight(1f).padding(end = 14.dp)) {
             Text(tr(title), color = c.text, fontSize = 16.sp, fontWeight = FontWeight.Medium)
             if (!sub.isNullOrBlank()) Text(tr(sub), color = c.sub, fontSize = 12.sp, modifier = Modifier.padding(top = 2.dp))
         }
-        // the buttons wrap onto as many lines as they need (on a phone they used to be squashed into a column of letters)
+        // the buttons wrap onto as many lines as they need
         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End), verticalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.padding(start = 4.dp)) { trailing() }
     }
 }

@@ -1,12 +1,8 @@
 ## Unreleased
 
-### Neu
-- Zuhause und Arbeit lassen sich einzeln unter der Suche ausblenden: Einstellungen › Orte & Fahrten › Zuhause und Arbeit unter der Suche. Gilt für die App und für Android Auto.
-  EN: Home and Work can each be hidden under the search bar: Settings › Places & trips › Home and Work under the search bar. Applies to the app and Android Auto.
-
 ### Behoben
-- Position des Tachos auf dem Autodisplay: Die Auswahl lief am Rand ab, sodass „Oben rechts“ nur durch Wischen zu sehen war. Die Auswahl bricht jetzt in eine zweite Zeile um.
-  EN: Speed position on the car screen: the choices ran off the side, so "Top right" could only be reached by swiping. They now wrap onto a second line.
+- Favoriten in den Einstellungen: Auf dem Handy stehen die Knöpfe jetzt unter Namen und Adresse statt daneben, sodass der Name nicht mehr in eine schmale Spalte gequetscht wird.
+  EN: Favourites in settings: on a phone the buttons now sit under the name and address instead of beside them, so the name is no longer squeezed into a narrow column.
 
 ## 1.0.246 — 2026-10-28
 
