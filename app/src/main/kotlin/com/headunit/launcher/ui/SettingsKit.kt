@@ -110,6 +110,7 @@ internal fun SToggle(prefs: Prefs, title: String, key: String, def: Boolean, sub
 internal fun Segmented(options: List<Pair<String, String>>, value: String, onPick: (String) -> Unit) = SegmentedWith(options, value, false, onPick)
 
 /** [Segmented]; with [wrap] the choices go onto more lines when they don't fit, instead of running off the side and scrolling. */
+@Composable
 internal fun SegmentedWith(options: List<Pair<String, String>>, value: String, wrap: Boolean, onPick: (String) -> Unit) {
     val c = LocalVw.current
     val chip: @Composable (String, String) -> Unit = { k, label ->
@@ -135,6 +136,7 @@ internal fun SegmentedWith(options: List<Pair<String, String>>, value: String, w
 internal fun SChoice(title: String, options: List<Pair<String, String>>, value: String, sub: String? = null, onPick: (String) -> Unit) = SChoiceWith(title, options, value, sub, false, onPick)
 
 /** [SChoice]; with [wrap] its choices wrap onto more lines when they don't fit (see [SegmentedWith]). */
+@Composable
 internal fun SChoiceWith(title: String, options: List<Pair<String, String>>, value: String, sub: String?, wrap: Boolean, onPick: (String) -> Unit) {
     val narrow = androidx.compose.ui.platform.LocalConfiguration.current.screenWidthDp < 720
     val long = wrap || options.size > 3 || options.sumOf { it.second.length } > (if (narrow) 12 else 26)
