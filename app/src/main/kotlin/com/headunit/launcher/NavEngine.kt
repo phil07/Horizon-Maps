@@ -4302,9 +4302,10 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
             // (the road next to the route, not believed yet: no strike towards a reroute)
         } else if (gpsReliableForReroute && (s.dist > (if (netGrace) maxOf(offLim, 80.0) else offLim) || (jump && !netGrace))) {
             if (newFix) {
-                // off the route for about 2 seconds in a row: a new route is asked for (the arrow has followed you already)
+                // off the route for about a second in a row: a new route is asked for as soon as you start to leave it, not once it's
+                // certain (the arrow has followed you already)
                 if (offSince == 0L) offSince = nowT
-                if (nowT - offSince >= 2000L) { offSince = 0L; offCount = 0; reroute(); return }
+                if (nowT - offSince >= 1000L) { offSince = 0L; offCount = 0; reroute(); return }
             }
         } else if (gpsReliableForReroute && newFix && !netGrace) {
             // Still close to the route, but a vehicle moving away from its direction can indicate a wrong turn.
