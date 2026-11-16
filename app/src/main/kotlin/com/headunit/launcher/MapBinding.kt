@@ -2487,6 +2487,11 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
         if (satChanged && wantedStyle != null) { val r = onRestyle; if (r != null) r() else setStyleUrl(baseStyle()) }
         else if (!sat && slotsOn) {
             setBase("show3dObjects", Value.valueOf(b3dStd() && MapStylePolicy.supportsFullDetailFeatures(mapDetail)))
+            // the building fronts and landmark buildings belong to the 3D buildings switch too: they stand only while it is on
+            setBase("show3dFacades", Value.valueOf(facadesOn && b3dStd() && MapStylePolicy.supportsFullDetailFeatures(mapDetail)))
+            setBase("show3dLandmarks", Value.valueOf(landmarksOn && !neonMap && MapStylePolicy.supportsFullDetailFeatures(mapDetail)))
+            // the trees follow their own switch, however often the view is set (Android Auto sets it on every change)
+            setBase("show3dTrees", Value.valueOf(treesOn))
             // the neon look's own blocks are drawn again (solid or flat)
             if (neonMap && b3dChanged && style != null) reinstall()
         }
