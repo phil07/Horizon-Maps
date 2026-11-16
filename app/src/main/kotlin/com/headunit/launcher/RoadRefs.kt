@@ -13,8 +13,11 @@ object RoadRefs {
     /** The country to format a route's numbers for, from where it starts. */
     fun countryFor(start: LL?): String {
         if (start != null && Overpass.countryAt(start) == "GB") return "GB"
-        return country.ifBlank { if (start != null) Overpass.countryAt(start) else java.util.Locale.getDefault().country }.uppercase()
+        return country.ifBlank { java.util.Locale.getDefault().country }.uppercase()
     }
+
+    /** The country whose units an unmarked speed at [p] is in: Britain by position, else the country the GPS found (blank until known: km/h). Never the device's language. */
+    fun unitsCountry(p: LL): String = if (Overpass.countryAt(p) == "GB") "GB" else country.uppercase()
 
     private val euro = Regex("^E\\s?\\d{1,3}$", RegexOption.IGNORE_CASE)
     private val refLike = Regex("^[A-Za-z]{1,3}\\s?\\d{1,4}[a-zA-Z]?(\\(M\\))?$")

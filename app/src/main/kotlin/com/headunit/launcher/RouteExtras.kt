@@ -11,7 +11,8 @@ import kotlin.math.min
 class RoutePoi(val kind: String, val name: String, val pos: LL)
 
 /** An average speed check from OpenStreetMap: where it starts and ends, and its limit (m/s, or null when not mapped). */
-class AvgDef(val id: Long, val name: String, val starts: List<LL>, val ends: List<LL>, val limit: Double?)
+/** An average speed check: where it starts and ends (one or more points each), its limit in m/s when mapped, and its cameras. */
+class AvgDef(val id: Long, val name: String, val starts: List<LL>, val ends: List<LL>, val limit: Double?, val devices: List<LL> = emptyList())
 
 /** The same things placed on a particular route, by distance from the route start (metres). */
 class PoiOnRoute(val poi: RoutePoi, val off: Double, val side: Double)
@@ -93,14 +94,12 @@ object RouteExtras {
     }
 
     /**
-     * Speed bumps and schools right next to the route, and average speed checks around it (blocking). Motorway junctions on the
-     * route (their names and numbers, for the turn card and the voice) come in the same request and are added to [jcts].
+     * Speed bumps and schools right next to the route (blocking; throws when no server answers). Motorway junctions on the route
+     * (their names and numbers, for the turn card and the voice) come in the same request and are added to [jcts].
+     * (Average speed checks are looked up on their own, see AvgZones: this request is the slowest and the most likely to fail.)
      */
-    fun hazards(line: List<LL>, jcts: MutableList<Jct>? = null): Pair<List<RoutePoi>, List<AvgDef>> {
-        if (line.size < 2) return emptyList<RoutePoi>() to emptyList()
-        var minLat = 90.0; var maxLat = -90.0; var minLon = 180.0; var maxLon = -180.0
-        for (p in line) { minLat = min(minLat, p.lat); maxLat = max(maxLat, p.lat); minLon = min(minLon, p.lon); maxLon = max(maxLon, p.lon) }
-        val bbox = String.format(java.util.Locale.US, "%.5f,%.5f,%.5f,%.5f", minLat - 0.01, minLon - 0.015, maxLat + 0.01, maxLon + 0.015)
+    fun hazards(line: List<LL>, jcts: MutableList<Jct>? = null): List<RoutePoi> {
+        if (line.size < 2) return emptyList()
         val pl = poly(line)
         val q = "[out:json][timeout:30];" +
             "(node(around:14,$pl)[\"traffic_calming\"~\"^(bump|hump|table|cushion)$\"];" +
@@ -108,23 +107,16 @@ object RouteExtras {
             "node(around:10,$pl)[\"highway\"=\"crossing\"][\"crossing\"~\"^(zebra|marked|traffic_signals|uncontrolled|pelican|toucan|puffin|pegasus)$\"]->.c;.c out body 400;" +
             "node(around:12,$pl)[\"highway\"=\"stop\"]->.s;.s out body 300;" +
             "(node(around:12,$pl)[\"railway\"=\"level_crossing\"];node(around:12,$pl)[\"ford\"=\"yes\"];way(around:12,$pl)[\"ford\"=\"yes\"];)->.f;.f out center tags 200;" +
-            (if (jcts != null) "node(around:40,$pl)[\"highway\"=\"motorway_junction\"]->.j;.j out body 200;" else "") +
-            "rel($bbox)[\"enforcement\"=\"average_speed\"]->.r;.r out body;node(r.r);out skel qt;"
-        val els = try { Overpass.query(q, 12000, 40000, 3) } catch (e: Exception) {
-            // a busy server can refuse the whole search: the average speed checks are then looked up on their own, so they aren't missed
-            return emptyList<RoutePoi>() to avgChecksOnly(bbox)
-        }
+            (if (jcts != null) "node(around:40,$pl)[\"highway\"=\"motorway_junction\"]->.j;.j out body 200;" else "")
+        val els = Overpass.query(q, 12000, 40000, 3)
         val pois = ArrayList<RoutePoi>()
         // (crossings come from their own set, so they never crowd out the bumps and schools)
-        val nodes = HashMap<Long, LL>()
-        val rels = ArrayList<JSONObject>()
         for (i in 0 until els.length()) {
             val e = els.getJSONObject(i)
             when (e.optString("type")) {
-                "relation" -> rels += e
+                "relation" -> {}
                 else -> {
                     val pos = if (e.has("lat")) LL(e.getDouble("lat"), e.getDouble("lon")) else e.optJSONObject("center")?.let { LL(it.getDouble("lat"), it.getDouble("lon")) }
-                    if (pos != null && e.optString("type") == "node") nodes[e.optLong("id")] = pos
                     val t = e.optJSONObject("tags") ?: continue
                     if (pos == null) continue
                     if (t.optString("highway") == "motorway_junction") {
@@ -142,43 +134,7 @@ object RouteExtras {
                 }
             }
         }
-        return pois to avgDefs(rels, nodes)
-    }
-
-    /** The average speed checks in a box, on their own (the fallback when the search along the route fails). */
-    private fun avgChecksOnly(bbox: String): List<AvgDef> {
-        val els = Overpass.query("[out:json][timeout:30];rel($bbox)[\"enforcement\"=\"average_speed\"]->.r;.r out body;node(r.r);out skel qt;", 12000, 40000, 3)
-        val nodes = HashMap<Long, LL>()
-        val rels = ArrayList<JSONObject>()
-        for (i in 0 until els.length()) {
-            val e = els.getJSONObject(i)
-            when (e.optString("type")) {
-                "relation" -> rels += e
-                "node" -> if (e.has("lat")) nodes[e.optLong("id")] = LL(e.getDouble("lat"), e.getDouble("lon"))
-            }
-        }
-        return avgDefs(rels, nodes)
-    }
-
-    private fun avgDefs(rels: List<JSONObject>, nodes: Map<Long, LL>): List<AvgDef> {
-        val avgs = ArrayList<AvgDef>()
-        for (rel in rels) {
-            val ms = rel.optJSONArray("members") ?: continue
-            val from = ArrayList<LL>(); val to = ArrayList<LL>(); val dev = ArrayList<LL>()
-            for (k in 0 until ms.length()) {
-                val m = ms.getJSONObject(k)
-                if (m.optString("type") != "node") continue
-                val p = nodes[m.optLong("ref")] ?: continue
-                when (m.optString("role")) { "from" -> from += p; "to" -> to += p; else -> dev += p }
-            }
-            val t = rel.optJSONObject("tags") ?: JSONObject()
-            val starts = from.ifEmpty { dev }; val ends = to.ifEmpty { dev }
-            if (starts.isEmpty() || ends.isEmpty()) continue
-            // the check's limit is in the units of the country it stands in (mph in Britain, km/h elsewhere)
-            val lim = t.optString("maxspeed").takeIf { it.isNotBlank() }?.let { Overpass.parseSpeed(it, RoadRefs.countryFor(starts.first())) }
-            avgs += AvgDef(rel.optLong("id"), t.optString("name").ifBlank { Lang.t("Abschnittskontrolle", "Average speed check") }, starts, ends, lim)
-        }
-        return avgs
+        return pois
     }
 
     /** Places an average speed check on the route: it runs from its first start point to its last end point. */

@@ -240,6 +240,9 @@ internal fun NavEngine.routeExtrasTick(r: Route, progress: Double) {
     // speed bumps, schools and average speed checks: a window of the next 20 km, fetched again before you reach its end
     // (and motorway junction names, outside the UK and Ireland: they come in the same request)
     val wantJct = jctCountry()
+    // (average speed checks have a small request of their own: this one is the slowest and the most likely to fail)
+    try { avgLookupTick(r, progress, now) } catch (e: Exception) { }
+    // (the average speed setting still switches this search on, as it always did: crossings, stop signs and level crossings come with it)
     val wantHz = prefs.b(PreferenceKeys.BUMPS, false) || prefs.b(PreferenceKeys.SCHOOLS, false) || prefs.b(PreferenceKeys.AVGZONES, true) || wantJct
     // (a new route after a reroute is looked up again, but not more than once every 45 seconds)
     if (wantHz && !hzBusy && (progress + 6000.0 > hzWinEnd || (hzWinRoute !== r && now - hzLastAt > 45_000L)) && now > hzRetryAt && online()) {
@@ -249,10 +252,9 @@ internal fun NavEngine.routeExtrasTick(r: Route, progress: Double) {
         scope.launch {
             try {
                 val jl = ArrayList<Jct>()
-                val (p, a) = withContext(Dispatchers.IO) { RouteExtras.hazards(line, if (wantJct) jl else null) }
+                val p = withContext(Dispatchers.IO) { RouteExtras.hazards(line, if (wantJct) jl else null) }
                 rawHz = (rawHz + p).distinctBy { "${it.kind}${Math.round(it.pos.lat * 1e5)},${Math.round(it.pos.lon * 1e5)}" }.takeLast(1500)
                 if (jl.isNotEmpty()) { rawJcts = (rawJcts + jl).distinctBy { "${Math.round(it.pos.lat * 1e5)},${Math.round(it.pos.lon * 1e5)}" }.takeLast(600); jctsVersion++ }
-                rawAvg = (rawAvg + a).distinctBy { it.id }.takeLast(60)
                 hzWinRoute = r; hzWinEnd = to
             } catch (e: Exception) { hzRetryAt = System.currentTimeMillis() + 60_000L }
             finally { hzBusy = false }

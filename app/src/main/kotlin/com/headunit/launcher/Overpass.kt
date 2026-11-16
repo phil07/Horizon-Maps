@@ -106,7 +106,9 @@ object Overpass {
     fun countryAt(p: LL): String {
         val inGb = p.lat in 49.8..60.9 && p.lon in -8.7..1.8 &&
             !(p.lon < -5.4 && (p.lat < 54.0 || p.lon < -8.2 || (p.lon < -7.25 && p.lat > 54.65)))
-        return if (inGb) "GB" else java.util.Locale.getDefault().country
+        // (blank when it isn't Britain: the device's language setting used to stand in, so a head unit set to English (UK) read an
+        // unmarked "60" as mph anywhere until the country was known)
+        return if (inGb) "GB" else ""
     }
 
     /** UK limits are only ever 20, 30, 40, 50, 60 or 70 mph (plus 5, 10, 15 in car parks and yards). */
@@ -492,6 +494,9 @@ object Overpass {
      */
     val camDir = java.util.concurrent.ConcurrentHashMap<Long, Double>()
 
+    /** The cameras found so far that belong to an average speed check (tagged enforcement=average_speed), keyed by [camKey]. */
+    val avgCams = java.util.concurrent.ConcurrentHashMap<Long, LL>()
+
     fun camKey(p: LL): Long = Math.round(p.lat * 1e5) * 1000003L + Math.round(p.lon * 1e5)
 
     private val cardinal = mapOf("N" to 0.0, "NNE" to 22.5, "NE" to 45.0, "ENE" to 67.5, "E" to 90.0, "ESE" to 112.5, "SE" to 135.0, "SSE" to 157.5,
@@ -508,6 +513,8 @@ object Overpass {
     private fun noteDir(p: LL, tags: JSONObject?) {
         val d = parseDir(tags?.optString("direction")?.ifBlank { null } ?: tags?.optString("camera:direction"))
         if (d != null) camDir[camKey(p)] = d
+        // a camera of an average speed check is no spot camera: remembered, so it isn't warned about as one
+        if (tags?.optString("enforcement") == "average_speed") avgCams[camKey(p)] = p
     }
 
     /** Big background searches (along the route) go one at a time, so they don't crowd out the quick ones or get the app refused. */
@@ -543,7 +550,7 @@ object Overpass {
         val els = run("[out:json][timeout:15];node($minLat,$minLon,$maxLat,$maxLon)[\"highway\"=\"speed_camera\"];out;")
         (0 until els.length()).mapNotNull {
             val e = els.getJSONObject(it)
-            if (e.has("lat") && e.has("lon")) LL(e.getDouble("lat"), e.getDouble("lon")) else null
+            if (e.has("lat") && e.has("lon")) LL(e.getDouble("lat"), e.getDouble("lon")).also { c -> noteDir(c, e.optJSONObject("tags")) } else null
         }
     } catch (e: Exception) { emptyList() }
 

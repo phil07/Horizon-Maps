@@ -335,6 +335,20 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
     internal var servicesRetryAt = 0L
     internal var rawHz: List<RoutePoi> = emptyList()
     internal var rawAvg: List<AvgDef> = emptyList()
+    // average speed checks have a lookup of their own (see NavEngineAvg): the window fetched on this route, and the retry after a failure
+    internal var avgBusy = false
+    internal var avgRetryAt = 0L
+    internal var avgLastAt = 0L
+    internal var avgWinEnd = -1.0
+    internal var avgWinRoute: Route? = null
+    internal var avgStoredFor: Route? = null
+    internal var avgTaggedSeen = 0
+    // ...and without a destination: the checks around you, where they were last asked for, and the one you are in
+    internal val freeAvg = FreeAvg()
+    internal var freeAvgDefs: List<AvgDef> = emptyList()
+    internal var freeAvgAt: LL? = null
+    internal var freeAvgBusy = false
+    internal var freeAvgRetryAt = 0L
     internal var hzWinEnd = -1.0
     internal var hzWinRoute: Route? = null
     internal var hzBusy = false
@@ -2696,7 +2710,7 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
         clearLiveAlts(); liveSaid.clear(); radar = emptyList(); radarSig = 0; bendsFor = null; bends = emptyList(); sharpFor = null; sharp = emptyList()
         flushRoads()
         sessionAvoid.clear(); routeZones = emptyList(); avgInfo = null; avgIn = null; servicesAhead = emptyList(); barEvents = emptyList()
-        rawServices = emptyList(); servicesFor = null; rawHz = emptyList(); rawAvg = emptyList(); rawJcts = emptyList(); jctsOn = null; jctsSig = 0; hzWinRoute = null; hzWinEnd = -1.0
+        rawServices = emptyList(); servicesFor = null; rawHz = emptyList(); rawAvg = emptyList(); avgWinEnd = -1.0; avgWinRoute = null; avgStoredFor = null; rawJcts = emptyList(); jctsOn = null; jctsSig = 0; hzWinRoute = null; hzWinEnd = -1.0
         placed = null; placedSig = 0; avgAlerted.clear(); hzAlerted.clear(); zoneAlerted.clear(); stopsEditor = false
         map.setRoute(emptyList(), emptyList()); map.setDest(null); map.setVia(emptyList()); map.setTurnPulse(false); laneKey = null; map.setLanes(emptyList()); map.setLaneSign(null, emptyList()); laneSignFor = -1.0; bubbleLanes = null; map.setLaneBubble(null, emptyList()); map.setRouteShift(emptyList()); laneLatAt = null; laneShiftEnd = 0.0
         map.highlightDestination(null)
@@ -4183,6 +4197,8 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
             // on foot: the walk's directions, and no speed limit or cameras
             if (walking) try { updateWalk(p) } catch (e: Exception) { android.util.Log.w("NavEngine", "walk failed", e) }
             if (!walking) try { lookCamerasAround(p) } catch (e: Exception) { }
+            // average speed checks while driving without a destination (on a route they are part of the route's extras)
+            if (!walking && route == null && simMode == 0) try { avgFreeTick(p) } catch (e: Exception) { }
             try { if (!walking) updateRoadInfo(p); trackParking(p) } catch (e: Exception) { android.util.Log.w("NavEngine", "road info failed", e) }
             try { checkArea(p.pos) } catch (e: Exception) { }
             try { checkWeatherWarnings(p) } catch (e: Exception) { }
@@ -4779,7 +4795,8 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
      * them to the route whenever more arrive or the route changes.
      */
     /** A speed camera at the start or end of an average speed check: the check is announced in its place, not the camera. */
-    private fun atAvgEnd(c: LL): Boolean = rawAvg.any { d -> d.starts.any { Geo.dist(it, c) < 35.0 } || d.ends.any { Geo.dist(it, c) < 35.0 } }
+    /** A camera that belongs to an average speed check (at its start, its end or one of its mapped cameras, or tagged as one): no spot camera. */
+    private fun atAvgEnd(c: LL): Boolean = Overpass.avgCams.containsKey(Overpass.camKey(c)) || rawAvg.any { it.near(c, 35.0) } || freeAvgDefs.any { it.near(c, 35.0) }
 
     private var sigRoute: Route? = null
     private var sigOffs: List<Double> = emptyList()

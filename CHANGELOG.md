@@ -1,8 +1,20 @@
 ## Unreleased
 
+### Neu
+- Abschnittskontrollen auch ohne Ziel: Fährst du ohne Route durch eine Abschnittskontrolle, sagt die App sie an und zeigt deine Durchschnittsgeschwindigkeit, gemessen an der gefahrenen Strecke ab dem Anfang.
+  EN: Average speed checks without a destination: driving through one without a route, the app announces it and shows your average speed, measured by the distance driven from its start.
+
 ### Verbessert
-- Tacho-Seite gilt auch auf Android Auto: Die Einstellung „Tacho-Seite“ (Einstellungen › Beim Fahren) bestimmt jetzt auch auf dem Autodisplay, ob Tacho und Tempolimit in der unteren Ecke rechts oder links stehen. „Automatisch“ verhält sich wie früher. Das Limit-Schild steht auch dort immer zur Bildschirmmitte hin.
-  EN: Speed side also applies on Android Auto: the "Speed side" setting (Settings › While driving) now also decides on the car screen whether the speed and limit sit in the bottom right or bottom left corner. "Automatic" behaves as before. The limit sign always faces the middle of the screen there too.
+- Abschnittskontrollen werden gemerkt: Gefundene Abschnittskontrollen bleiben auf dem Gerät gespeichert. Auf einer Strecke, die du schon gefahren bist, ist die Kontrolle sofort da, auch ohne Netz.
+  EN: Average speed checks are remembered: checks found are kept on the device. On a road driven before, the check is there straight away, also without signal.
+
+### Behoben
+- Abschnittskontrolle startete nicht: Die Kameras am Anfang und Ende wurden als Blitzer angezeigt, die Kontrolle selbst aber nie. Die Kontrollen werden jetzt in einer eigenen, kleinen Abfrage gesucht, mit mehr Geduld für langsame Server und einem neuen Versuch nach 20 statt 60 Sekunden.
+  EN: Average speed check never started: the cameras at its ends showed as speed cameras, but the check itself never began. The checks are now looked up in a small request of their own, with more patience for slow servers and a retry after 20 seconds instead of 60.
+- Kameras einer Abschnittskontrolle werden nicht mehr als einzelne Blitzer angesagt.
+  EN: The cameras of an average speed check are no longer announced as spot speed cameras.
+- Tempolimits ohne Einheit: Solange das Land noch nicht bekannt war, entschied die Spracheinstellung des Geräts über km/h oder mph. Jetzt zählt nur noch die Position.
+  EN: Speed limits without a unit: until the country was known, the device's language setting decided between km/h and mph. Now only the position counts.
 
 ## 1.0.246 — 2026-10-28
 
