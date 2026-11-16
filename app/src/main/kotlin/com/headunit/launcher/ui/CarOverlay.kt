@@ -689,7 +689,7 @@ private fun TripCard(engine: NavEngine, fill: Boolean, oneLine: Boolean = false)
             if (fill) engine.evNowKm()?.let { k -> CarStat("$k km", "Reichweite", c.text) }
             engine.evArrivalPct()?.let { p -> CarStat("$p%", "Akku Ankunft", if (p < 10) Bad else if (p < 20) Warn else Good) }
         }
-        // the two text buttons: the whole route at a glance, and the other routes (grey lines) on or off, as in the app
+        // the whole route at a glance (a text button), and the voice guidance (round: all, alerts only, off; one tap steps on)
         val pill: @Composable (String, Dp, () -> Unit) -> Unit = { label, h, action ->
             Box(Modifier.height(h).clip(androidx.compose.foundation.shape.CircleShape).background(c.line).carTap("trip-$label") { action() }
                 .padding(horizontal = 16.dp), contentAlignment = Alignment.Center) {
@@ -697,8 +697,15 @@ private fun TripCard(engine: NavEngine, fill: Boolean, oneLine: Boolean = false)
             }
         }
         val overviewBtn: @Composable (Dp) -> Unit = { h -> pill(Lang.t("Übersicht", "Overview"), h) { engine.overview() } }
+        // (it took the place of "Andere aus", which turned the grey other routes on and off)
         val otherBtn: @Composable (Dp) -> Unit = { h ->
-            pill(if (engine.prefs.b(PreferenceKeys.LIVE_ALTERNATIVES, true)) Lang.t("Andere aus", "Hide others") else Lang.t("Andere an", "Show others"), h) { engine.toggleOtherRoutes() }
+            val sm = engine.soundMode
+            val tint = when (sm) { 0 -> c.accent; 1 -> Warn; else -> Bad }
+            Box(Modifier.size(h).clip(androidx.compose.foundation.shape.CircleShape).background(tint.copy(alpha = 0.18f)).carTap("trip-sound") { engine.cycleSound() },
+                contentAlignment = Alignment.Center) {
+                androidx.compose.material3.Icon(engine.soundIcon(), when (sm) { 0 -> Lang.t("Ansagen an", "Voice on"); 1 -> Lang.t("Nur Warnungen", "Alerts only"); else -> Lang.t("Ansagen aus", "Voice off") },
+                    tint = tint, modifier = Modifier.size(h * 0.55f))
+            }
         }
         // the buttons chosen in Settings > Android Auto > Knöpfe auf der Fahrtkarte, and their size
         val showOv = engine.prefs.b(PreferenceKeys.TRIP_BTN_OVERVIEW, true)

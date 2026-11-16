@@ -1,8 +1,8 @@
 ## Unreleased
 
-### Neu
-- Android Auto: Während der Navigation gibt es unten in der Leiste neben 2D/3D jetzt eine Ton-Taste. Sie schaltet zwischen Alle Ansagen, Nur Warnungen und Aus um, wie die Taste am Kartenrand, die bleibt.
-  EN: Android Auto: during navigation the bar at the bottom now has a sound button beside 2D/3D. It switches between all voice guidance, alerts only and off, like the button at the map's edge, which stays too.
+### Verbessert
+- Android Auto: Auf der Fahrtkarte (Verbleibend, Ankunft, Entfernung) sitzt statt „Andere aus“ jetzt die Ton-Taste. Ein Tippen schaltet zwischen allen Ansagen, nur Warnungen und aus um; das Symbol zeigt die Stufe. Unter Einstellungen › Knöpfe auf der Fahrtkarte heißt der Schalter jetzt „Ansagen“.
+  EN: Android Auto: the trip card (time left, arrival, distance) now has the sound button where "Hide others" was. One tap steps between all voice guidance, alerts only and off; the icon shows which. Under Settings › Buttons on the trip card the switch is now called "Voice".
 
 ## 1.0.246 — 2026-10-28
 

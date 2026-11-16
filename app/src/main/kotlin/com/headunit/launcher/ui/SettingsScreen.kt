@@ -1128,7 +1128,7 @@ private fun AndroidAutoSection(prefs: Prefs) {
         }
         SGroup("Knöpfe auf der Fahrtkarte") {
             SToggle(prefs, "Übersicht", PreferenceKeys.TRIP_BTN_OVERVIEW, true, "Die ganze Route auf einen Blick")
-            SToggle(prefs, "Andere Routen", PreferenceKeys.TRIP_BTN_OTHERS, true, "Die anderen Routen an oder aus")
+            SToggle(prefs, "Ansagen", PreferenceKeys.TRIP_BTN_OTHERS, true, "Alle Ansagen, nur Warnungen oder aus")
             SToggle(prefs, "Beenden", PreferenceKeys.TRIP_BTN_END, true, "Die Fahrt beenden")
             SChoice("Knopfgröße", listOf("normal" to "Normal", "large" to "Groß", "xl" to "Extra groß"), prefs.s(PreferenceKeys.TRIP_BTN_SIZE, "normal"),
                 "Weniger Knöpfe machen die Karte schmaler, so bleibt mehr von der Karte frei") { prefs.put(PreferenceKeys.TRIP_BTN_SIZE, it) }
