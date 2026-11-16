@@ -542,6 +542,30 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
     }
 
     /** Routes from one service ("mapbox" or "tomtom"). */
+    /** Asks TomTom and Mapbox at the same time; the first one that comes back with a route is used, the other is dropped. */
+    private fun raceRoutes(from: LL, to: LL, departAtMs: Long, via: List<LL>, headingDeg: Double): List<Route> {
+        val pool = java.util.concurrent.Executors.newFixedThreadPool(2) { r -> Thread(r, "reroute-race").apply { isDaemon = true } }
+        val done = java.util.concurrent.ExecutorCompletionService<Pair<String, List<Route>>>(pool)
+        val tasks = listOf("tomtom", "mapbox").map { p ->
+            done.submit(java.util.concurrent.Callable {
+                p to (try { routesFrom(p, from, to, false, departAtMs, via, headingDeg, true) } catch (e: Exception) { emptyList<Route>() })
+            })
+        }
+        var won: Pair<String, List<Route>>? = null
+        try {
+            for (i in 0 until 2) {
+                val got = done.poll(20, java.util.concurrent.TimeUnit.SECONDS)?.get() ?: break
+                if (got.second.isNotEmpty()) { won = got; break }
+            }
+        } catch (e: Exception) { } finally {
+            tasks.forEach { it.cancel(true) }
+            pool.shutdownNow()
+        }
+        val w = won ?: return emptyList()
+        lastRouteProvider = w.first
+        return w.second
+    }
+
     internal fun routesFrom(p: String, from: LL, to: LL, alternatives: Boolean, departAtMs: Long, via: List<LL>, headingDeg: Double, quick: Boolean): List<Route> =
         if (p == "mapbox") try { MapboxRest.curbArrival = prefs.b(PreferenceKeys.CURB_ARRIVAL, true); MapboxRest.routes(mbToken, from, to, alternatives, departAtMs, via, headingDeg, quick, leftTraffic) } catch (e: Exception) { noteMbRefused(e); throw e }
         else TomTomRest.routes(apiKey, from, to, alternatives, departAtMs, via, headingDeg, quick)
@@ -571,6 +595,13 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
     private fun netRoutesRaw(from: LL, to: LL, alternatives: Boolean, departAtMs: Long, via: List<LL>, headingDeg: Double, quick: Boolean,
                              askBoth: Boolean): List<Route> {
         val now = System.currentTimeMillis()
+        // rerouting while driving: both services are asked at once and the first one with a route is used (the quicker answer counts)
+        if (askBoth && quick && hasKey && hasMapbox && refusedKey != apiKey && prefs.s(PreferenceKeys.DATAPROV, "auto") == "auto" &&
+            !prefs.b(PreferenceKeys.ROUTE_ECO, false) && now >= ttDownUntil && now >= mbDownUntil) {
+            val raced = raceRoutes(from, to, departAtMs, via, headingDeg)
+            if (raced.isNotEmpty()) return raced
+            // neither answered with a route: the usual way, with its messages about the signal and the keys
+        }
         val both = askBoth && !quick && hasKey && hasMapbox && refusedKey != apiKey &&
             prefs.s(PreferenceKeys.DATAPROV, "auto") == "auto" &&
             !prefs.b(PreferenceKeys.ROUTE_ECO, false) && now >= ttDownUntil && now >= mbDownUntil
@@ -2671,7 +2702,7 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
                         val rs = withContext(Dispatchers.IO) {
                             val haveOffline = OfflineRouter.installed(ctx)
                             if (haveOffline && (!hasOnline || !online())) OfflineRouter.routes(ctx, f.pos, d.pos, via.map { it.pos }, hd)
-                            else try { netRoutes(f.pos, d.pos, false, 0L, via.map { it.pos }, hd, true) }
+                            else try { netRoutes(f.pos, d.pos, false, 0L, via.map { it.pos }, hd, true, askBoth = true) }
                             catch (e: Exception) {
                                 if (haveOffline && NavigationFallbackPolicy.shouldUseOffline(e)) OfflineRouter.routes(ctx, f.pos, d.pos, via.map { it.pos }, hd) else throw e
                             }

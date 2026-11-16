@@ -1,8 +1,8 @@
 ## Unreleased
 
-### Behoben
-- 3D-Gebäude: Wer 3D-Gebäude ausschaltet, sieht jetzt auch Gebäudefassaden und 3D-Sehenswürdigkeiten nicht mehr. Auf Android Auto folgen Gebäude und Bäume den Schaltern in den Einstellungen. (Dank an VITMAD1964)
-  EN: 3D buildings: turning 3D buildings off now also takes away building fronts and 3D landmarks. On Android Auto, buildings and trees follow their switches in Settings. (Thanks to VITMAD1964)
+### Verbessert
+- Schnelleres Umrouten nach einer verpassten Abbiegung: Die neue Route wird angefragt, sobald du von der alten Route abzweigst, nicht erst, wenn es sicher ist. Hast du einen TomTom-Schlüssel und ein Mapbox-Token, werden beide gleichzeitig gefragt, und die erste Antwort mit Route gilt. Früher dauerte es 6 bis 8 Sekunden. (Dank an karthikeyansr-lgtm)
+  EN: Faster rerouting after a missed turn: the new route is asked for as soon as you start to leave the old one, not once it is certain. With both a TomTom key and a Mapbox token, both are asked at once and the first answer with a route is used. It used to take 6 to 8 seconds. (Thanks to karthikeyansr-lgtm)
 
 ## 1.0.246 — 2026-10-28
 
