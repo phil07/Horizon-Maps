@@ -1,8 +1,8 @@
 ## Unreleased
 
 ### Neu
-- Zuhause und Arbeit lassen sich einzeln unter der Suche ausblenden: Einstellungen › Orte und Fahrten › Zuhause und Arbeit unter der Suche. Gilt für die App und für Android Auto.
-  EN: Home and Work can each be hidden under the search bar: Settings › Places and trips › Home and Work under the search bar. Applies to the app and Android Auto.
+- Zuhause und Arbeit lassen sich einzeln unter der Suche ausblenden: Einstellungen › Orte & Fahrten › Zuhause und Arbeit unter der Suche. Gilt für die App und für Android Auto.
+  EN: Home and Work can each be hidden under the search bar: Settings › Places & trips › Home and Work under the search bar. Applies to the app and Android Auto.
 
 ## 1.0.246 — 2026-10-28
 
