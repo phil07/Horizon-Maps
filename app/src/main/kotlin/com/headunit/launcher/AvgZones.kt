@@ -167,7 +167,7 @@ class FreeAvg {
                 return Tick(entered = d)
             }
             if (ds < max(500.0, speed * 18.0) && ds < aheadM && ang(heading, Geo.bearing(pos, s)) < 40.0 && ang(heading, Geo.bearing(s, e)) < 100.0 &&
-                now - (warned[d.id] ?: 0L) > 10 * 60_000L) { ahead = d; aheadM = ds }
+                (warned[d.id]?.let { now - it > 10 * 60_000L } ?: true)) { ahead = d; aheadM = ds }
         }
         if (ahead != null) { warned[ahead.id] = now; return Tick(ahead = ahead, aheadM = aheadM) }
         return Tick()
