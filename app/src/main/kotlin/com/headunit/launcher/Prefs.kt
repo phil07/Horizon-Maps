@@ -152,6 +152,8 @@ internal object PreferenceKeys {
     const val KEEP_ARROW_SIDE = "keeparrowside"
     const val CHIME_VOL = "chimevol"
     const val CARTHEME = "cartheme"
+    /** Android Auto: day and night follow sunrise and sunset (for cars that go dark whenever the headlights are on) */
+    const val CARSUN = "carsun"
     const val CINEMATIC = "cinematic"
     const val CLEARVIEW = "clearview"
     const val COUNTRY = "country"

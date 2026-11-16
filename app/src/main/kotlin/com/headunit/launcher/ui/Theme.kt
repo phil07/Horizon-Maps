@@ -37,7 +37,7 @@ val Bad = Color(0xFFFF4D4D)
 
 @Composable
 fun resolveDark(mode: String, lat: Double?, lon: Double?, nowMs: Long, sysSeen: Boolean = false, system: Boolean = isSystemInDarkTheme(),
-                nightFrom: String = "19:00", dayFrom: String = "07:00", lamps: Boolean? = null): Boolean {
+                nightFrom: String = "19:00", dayFrom: String = "07:00", lamps: Boolean? = null, phone: Boolean = false): Boolean {
     val sun = if (lat != null && lon != null) !Sun.isDay(lat, lon, nowMs) else null
     return when (mode) {
         "day" -> false
@@ -50,9 +50,13 @@ fun resolveDark(mode: String, lat: Double?, lon: Double?, nowMs: Long, sysSeen: 
         "lights" -> if (lamps != null) lamps else if (system) true else if (sysSeen) false else if (lat != null && lon != null) !Sun.isDay(lat, lon, nowMs) else false
         // auto: the head unit's own night mode once it has been seen switching to it; sunrise and sunset until then (many units never
         // switch their system mode, and auto then never went dark)
-        else -> if (system) true else if (sysSeen) false else sun ?: false
+        // a phone follows sunrise and sunset: its dark theme is not night (it kept the map dark all day before)
+        else -> if (phone) (sun ?: system) else if (system) true else if (sysSeen) false else sun ?: false
     }
 }
+
+/** A phone (it has a telephony feature; head units don't), so the Day and night rules for phones apply. */
+fun isPhoneDevice(ctx: android.content.Context): Boolean = try { ctx.packageManager.hasSystemFeature(android.content.pm.PackageManager.FEATURE_TELEPHONY) } catch (e: Exception) { false }
 
 /** Whether [nowMs] falls between [nightFrom] and [dayFrom] ("HH:MM", local time; the night runs over midnight when it starts later). */
 fun isNightByClock(nowMs: Long, nightFrom: String, dayFrom: String): Boolean {
@@ -97,7 +101,8 @@ fun phoneDark(ctx: android.content.Context, prefs: com.headunit.launcher.Prefs, 
         "times" -> isNightByClock(nowMs, prefs.s(com.headunit.launcher.PreferenceKeys.NIGHT_FROM, "19:00"), prefs.s(com.headunit.launcher.PreferenceKeys.DAY_FROM, "07:00"))
         "sun" -> sun ?: system
         "lights" -> VendorLight.current(ctx, prefs) ?: if (system) true else if (seen) false else sun ?: false
-        else -> if (system) true else if (seen) false else sun ?: false
+        // a phone follows sunrise and sunset, not its dark theme (see resolveDark)
+        else -> if (isPhoneDevice(ctx)) (sun ?: system) else if (system) true else if (seen) false else sun ?: false
     }
 }
 

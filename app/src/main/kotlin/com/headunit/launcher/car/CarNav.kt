@@ -170,7 +170,13 @@ class CarNavSession : Session() {
         "night" -> true
         // the same as the app on the phone (its own Day and night setting)
         "phone" -> com.headunit.launcher.ui.phoneDark(carContext.applicationContext, Prefs(carContext.applicationContext))
-        else -> carContext.isDarkMode
+        else -> {
+            // "Sonnenzeiten auf Android Auto": sunrise and sunset decide, even for a car that goes dark whenever its headlights are on
+            val p = Prefs(carContext.applicationContext)
+            val la = p.s(PreferenceKeys.LASTLAT, "").toDoubleOrNull(); val lo = p.s(PreferenceKeys.LASTLON, "").toDoubleOrNull()
+            if (p.b(PreferenceKeys.CARSUN, false) && la != null && lo != null) !com.headunit.launcher.Sun.isDay(la, lo, System.currentTimeMillis())
+            else carContext.isDarkMode
+        }
     }
 
     private var themeWas: Boolean? = null

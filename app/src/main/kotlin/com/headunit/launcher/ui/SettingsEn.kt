@@ -496,6 +496,8 @@ internal object SettingsEn {
         "Füllt sich bis zum Tempolimit, färbt sich gelb dann rot" to "Fills up to the speed limit, turns yellow then red",
         "Tempolimit- und Tachogröße" to "Speed limit and speedometer size",
         "Tacho-Seite" to "Speed side",
+        "Sonnenzeiten auf Android Auto" to "Sun times on Android Auto",
+        "Tag und Nacht auf dem Autodisplay folgen Sonnenauf- und -untergang, auch wenn das Auto bei Licht dunkel wird" to "Day and night on the car screen follow sunrise and sunset, even when the car goes dark with its headlights",
         "Rechts" to "Right",
         "Links" to "Left",
         "Auf Smartphone, Head-Unit und Android Auto (untere Ecke). Automatisch: wie früher. Das Limit-Schild steht immer zur Bildschirmmitte hin" to "On the phone, head unit and Android Auto (bottom corner). Automatic: as it used to be. The limit sign always sits towards the middle of the screen",

@@ -1,20 +1,18 @@
 ## Unreleased
 
 ### Neu
-- Abschnittskontrollen auch ohne Ziel: Fährst du ohne Route durch eine Abschnittskontrolle, sagt die App sie an und zeigt deine Durchschnittsgeschwindigkeit, gemessen an der gefahrenen Strecke ab dem Anfang.
-  EN: Average speed checks without a destination: driving through one without a route, the app announces it and shows your average speed, measured by the distance driven from its start.
+- Höchsttempo für Ankunftszeiten: Die Zeitangaben einer Route rechnen nie schneller als die Geschwindigkeit, die du unter Einstellungen › Routen › Fahrzeug einstellst (etwa für Transporter, Lkw oder Anhänger). Die Route selbst bleibt gleich.
+  EN: Top speed for arrival times: a route's times never assume faster than the speed set in Settings › Routes › Vehicle (for vans, lorries or towing). The route itself stays the same.
+- Sonnenzeiten auf Android Auto: Unter Einstellungen gibt es „Sonnenzeiten auf Android Auto“. Dann folgen Tag und Nacht auf dem Autodisplay Sonnenauf- und -untergang, auch für Autos, die bei eingeschaltetem Licht immer dunkel werden.
+  EN: Sun times on Android Auto: under Settings there is "Sun times on Android Auto". With it on, day and night on the car screen follow sunrise and sunset, also for cars that go dark whenever the headlights are on.
 
 ### Verbessert
-- Abschnittskontrollen werden gemerkt: Gefundene Abschnittskontrollen bleiben auf dem Gerät gespeichert. Auf einer Strecke, die du schon gefahren bist, ist die Kontrolle sofort da, auch ohne Netz.
-  EN: Average speed checks are remembered: checks found are kept on the device. On a road driven before, the check is there straight away, also without signal.
+- Abschnittskontrollen werden eigens abgefragt, mit mehr Geduld für langsame Server und einem neuen Versuch nach 20 Sekunden. Gefundene Kontrollen bleiben auf dem Gerät gespeichert, auch für Strecken ohne Netz.
+  EN: Average speed checks are looked up on their own, with more patience for busy servers and a retry after 20 seconds. Checks found stay on the device, also for roads without signal.
 
 ### Behoben
-- Abschnittskontrolle startete nicht: Die Kameras am Anfang und Ende wurden als Blitzer angezeigt, die Kontrolle selbst aber nie. Die Kontrollen werden jetzt in einer eigenen, kleinen Abfrage gesucht, mit mehr Geduld für langsame Server und einem neuen Versuch nach 20 statt 60 Sekunden.
-  EN: Average speed check never started: the cameras at its ends showed as speed cameras, but the check itself never began. The checks are now looked up in a small request of their own, with more patience for slow servers and a retry after 20 seconds instead of 60.
-- Kameras einer Abschnittskontrolle werden nicht mehr als einzelne Blitzer angesagt.
-  EN: The cameras of an average speed check are no longer announced as spot speed cameras.
-- Tempolimits ohne Einheit: Solange das Land noch nicht bekannt war, entschied die Spracheinstellung des Geräts über km/h oder mph. Jetzt zählt nur noch die Position.
-  EN: Speed limits without a unit: until the country was known, the device's language setting decided between km/h and mph. Now only the position counts.
+- Karte im Dunkeln am Tag: Mit „Tag und Nacht: Auto“ blieb eine Handy-Karte mit dunklem Design auch tagsüber nachts gefärbt. Auf Handys folgt die Karte jetzt Sonnenauf- und -untergang.
+  EN: Map dark all day on a phone: with "Day and night: Auto", a phone set to dark theme kept the map in night colours in daylight. On phones, Auto now follows sunrise and sunset.
 
 ## 1.0.246 — 2026-10-28
 
