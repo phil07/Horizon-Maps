@@ -1,18 +1,9 @@
 ## Unreleased
 
-### Neu
-- Höchsttempo für Ankunftszeiten: Die Zeitangaben einer Route rechnen nie schneller als die Geschwindigkeit, die du unter Einstellungen › Routen › Fahrzeug einstellst (etwa für Transporter, Lkw oder Anhänger). Die Route selbst bleibt gleich.
-  EN: Top speed for arrival times: a route's times never assume faster than the speed set in Settings › Routes › Vehicle (for vans, lorries or towing). The route itself stays the same.
-- Sonnenzeiten auf Android Auto: Unter Einstellungen gibt es „Sonnenzeiten auf Android Auto“. Dann folgen Tag und Nacht auf dem Autodisplay Sonnenauf- und -untergang, auch für Autos, die bei eingeschaltetem Licht immer dunkel werden.
-  EN: Sun times on Android Auto: under Settings there is "Sun times on Android Auto". With it on, day and night on the car screen follow sunrise and sunset, also for cars that go dark whenever the headlights are on.
-
-### Verbessert
-- Abschnittskontrollen werden eigens abgefragt, mit mehr Geduld für langsame Server und einem neuen Versuch nach 20 Sekunden. Gefundene Kontrollen bleiben auf dem Gerät gespeichert, auch für Strecken ohne Netz.
-  EN: Average speed checks are looked up on their own, with more patience for busy servers and a retry after 20 seconds. Checks found stay on the device, also for roads without signal.
-
 ### Behoben
-- Tag und Nacht auf dem Handy: Auto folgt jetzt einfach der Hell- oder Dunkel-Einstellung des Handys. Soll die Karte bei Sonnenauf- und -untergang wechseln, wähle Sonnenzeiten.
-  EN: Day and night on a phone: Auto now simply follows the phone's own light or dark setting. For the map to change at sunrise and sunset instead, pick Sun times.
+- Vollbild um die Kamera: Auf Handys mit Kamera-Aussparung (etwa Samsung S24 Ultra) blieb im Vollbild ein schwarzer Streifen oben. Die Karte läuft jetzt bis direkt um die Kamera, während Karten und Knöpfe frei davon bleiben.
+  EN: Full screen round the camera: on phones with a camera notch (such as the Samsung S24 Ultra), full screen left a black band across the top. The map now runs right up round the camera, while the cards and buttons stay clear of it
+
 ## 1.0.246 — 2026-10-28
 
 ### Improved in-app updates

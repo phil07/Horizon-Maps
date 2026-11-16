@@ -237,10 +237,29 @@ fun App(prefs: Prefs, engine: NavEngine, map: MapBinding) {
             val mapShown = !carOn || phoneMap || settings
             androidx.compose.runtime.SideEffect { engine.showingMap = mapShown }
             // Android 16 draws edge to edge: keep the content clear of the camera cutout, and of the status and navigation bars (hidden in full screen, so they add nothing there)
-            Box(Modifier.fillMaxSize().background(c.bg).windowInsetsPadding(WindowInsets.displayCutout).windowInsetsPadding(WindowInsets.systemBars)) {
-                // first run: a short setup before the map (existing installs that are already set up skip it)
-                LaunchedEffect(Unit) { if (prefs.s(PreferenceKeys.PLACE_HOME, "").isNotBlank() || prefs.s(PreferenceKeys.HABITS, "").isNotBlank()) prefs.put(PreferenceKeys.SETUP_DONE, true) }
-                val setupDone = !prefs.b(PreferenceKeys.FORCESETUP, false) && (prefs.b(PreferenceKeys.SETUP_DONE, false) || prefs.s(PreferenceKeys.PLACE_HOME, "").isNotBlank() || prefs.s(PreferenceKeys.HABITS, "").isNotBlank())
+            // first run: a short setup before the map (existing installs that are already set up skip it)
+            LaunchedEffect(Unit) { if (prefs.s(PreferenceKeys.PLACE_HOME, "").isNotBlank() || prefs.s(PreferenceKeys.HABITS, "").isNotBlank()) prefs.put(PreferenceKeys.SETUP_DONE, true) }
+            val setupDone = !prefs.b(PreferenceKeys.FORCESETUP, false) && (prefs.b(PreferenceKeys.SETUP_DONE, false) || prefs.s(PreferenceKeys.PLACE_HOME, "").isNotBlank() || prefs.s(PreferenceKeys.HABITS, "").isNotBlank())
+            // the map runs right up round the camera cutout (full screen, no black band across the top). The weather, night sky and tunnel
+            // dimming lie over the whole screen the same way. Only the cards, buttons and messages keep clear of the cutout and the bars.
+            val mapLayer = setupDone && !settings && !(carOn && !phoneMap)
+            Box(Modifier.fillMaxSize().background(c.bg)) {
+                if (mapLayer) {
+                    MapHost(map, Modifier.fillMaxSize())
+                    // at night in 3D, stars and the real moon phase in the sky above the horizon
+                    if (c.dark && engine.tilt3d && !sat && prefs.b(PreferenceKeys.NIGHTSKY, true)) NightSky(Modifier.fillMaxWidth().fillMaxHeight(0.2f))
+                    // in a tunnel (no GPS) the map is dimmed a little, as the car's own screen would be
+                    if (engine.deadReckoning && !c.dark && prefs.b(PreferenceKeys.TUNNELDIM, true)) Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.35f)))
+                    val wxCode = engine.weather?.code
+                    // rain, snow or fog over the map to match the real weather where you are
+                    // (the map draws rain and snow itself now; the screen overlay is kept for fog, and for when the map can't)
+                    if (prefs.b(PreferenceKeys.RAIN_EFFECTS, false) && wxCode != null && (wxCode == 45 || wxCode == 48 || !map.drawsWeather)) WeatherFx(wxCode, Modifier.fillMaxSize())
+                    // coming back from the settings, the map fades up from the background instead of flashing in
+                    val back = remember { androidx.compose.animation.core.Animatable(1f) }
+                    LaunchedEffect(Unit) { back.animateTo(0f, androidx.compose.animation.core.tween(320)) }
+                    if (back.value > 0.01f) Box(Modifier.fillMaxSize().graphicsLayer { alpha = back.value }.background(c.bg))
+                }
+                Box(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.displayCutout).windowInsetsPadding(WindowInsets.systemBars)) {
                 if (!setupDone) {
                     // (setup asks for the key itself)
                     LaunchedEffect(Unit) { prefs.put(PreferenceKeys.MAPBOX_PROMPT, false) }
@@ -257,15 +276,6 @@ fun App(prefs: Prefs, engine: NavEngine, map: MapBinding) {
                         SettingsScreen(prefs, engine, onClose = { settings = false })
                     }
                 } else {
-                    MapHost(map, Modifier.fillMaxSize())
-                    // at night in 3D, stars and the real moon phase in the sky above the horizon
-                    if (c.dark && engine.tilt3d && !sat && prefs.b(PreferenceKeys.NIGHTSKY, true)) NightSky(Modifier.fillMaxWidth().fillMaxHeight(0.2f))
-                    // in a tunnel (no GPS) the map is dimmed a little, as the car's own screen would be
-                    if (engine.deadReckoning && !c.dark && prefs.b(PreferenceKeys.TUNNELDIM, true)) Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.35f)))
-                    val wxCode = engine.weather?.code
-                    // rain, snow or fog over the map to match the real weather where you are
-                    // (the map draws rain and snow itself now; the screen overlay is kept for fog, and for when the map can't)
-                    if (prefs.b(PreferenceKeys.RAIN_EFFECTS, false) && wxCode != null && (wxCode == 45 || wxCode == 48 || !map.drawsWeather)) WeatherFx(wxCode, Modifier.fillMaxSize())
                     NavOverlays(engine, onSettings = { settings = true })
                     if (prefs.b(PreferenceKeys.PERFORMANCE_METER, false) && engine.perfLine.isNotEmpty()) Text(engine.perfLine, color = Color.White, fontSize = 12.sp,
                         modifier = Modifier.align(Alignment.TopCenter).padding(top = 4.dp).background(Color.Black.copy(alpha = 0.6f), RoundedCornerShape(8.dp)).padding(horizontal = 10.dp, vertical = 4.dp))
@@ -274,10 +284,6 @@ fun App(prefs: Prefs, engine: NavEngine, map: MapBinding) {
                     // that pill has the road name, so the one under your arrow steps aside while it's up (they overlapped)
                     val cruisePillUp = !engine.deadReckoning && engine.cruising && engine.following && prefs.b(PreferenceKeys.CRUISE, true)
                     LaunchedEffect(cruisePillUp) { map.setRoadNameHidden(cruisePillUp) }
-                    // coming back from the settings, the map fades up from the background instead of flashing in
-                    val back = remember { androidx.compose.animation.core.Animatable(1f) }
-                    LaunchedEffect(Unit) { back.animateTo(0f, androidx.compose.animation.core.tween(320)) }
-                    if (back.value > 0.01f) Box(Modifier.fillMaxSize().graphicsLayer { alpha = back.value }.background(c.bg))
                 }
                 // once, after updating from the old map: what the Mapbox key adds, and where to paste it
                 // ...and any time the map can't show for want of a working key (missing, half pasted, or turned down by Mapbox): the blank
@@ -330,6 +336,7 @@ fun App(prefs: Prefs, engine: NavEngine, map: MapBinding) {
                     val step = 3.dp.toPx(); val th = 1.dp.toPx(); val col = Color.Black.copy(alpha = 0.12f)
                     var y = 0f
                     while (y < size.height) { drawRect(col, androidx.compose.ui.geometry.Offset(0f, y), androidx.compose.ui.geometry.Size(size.width, th)); y += step }
+                }
                 }
             }
         }
