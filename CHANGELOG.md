@@ -1,8 +1,8 @@
 ## Unreleased
 
-### Behoben
-- Vollbild um die Kamera: Auf Handys mit Kamera-Aussparung (etwa Samsung S24 Ultra) blieb im Vollbild ein schwarzer Streifen oben. Die Karte läuft jetzt bis direkt um die Kamera, während Karten und Knöpfe frei davon bleiben.
-  EN: Full screen round the camera: on phones with a camera notch (such as the Samsung S24 Ultra), full screen left a black band across the top. The map now runs right up round the camera, while the cards and buttons stay clear of it
+### Verbessert
+- Querformat auf dem Handy ist ruhiger: Die fünf runden Suchknöpfe in der Kartenmitte fallen weg, Zuhause und Arbeit sowie die Knöpfe am Kartenrand sind kleiner. Das Hochformat bleibt wie bisher.
+  EN: A phone held sideways is calmer: the five round find buttons in the middle of the map are left out, Home and Work and the buttons at the map's edge are smaller. Portrait stays as it was.
 
 ## 1.0.246 — 2026-10-28
 

@@ -263,7 +263,7 @@ private fun MapScreen(engine: NavEngine, onSettings: () -> Unit) {
         // left-hand drive: everything swaps sides (cards on the right, round buttons on the left)
         val mir = engine.mirrored
         // Settings > sizes > map buttons: scales the button column on the right
-        val mainButtonScale = engine.prefs.i(PreferenceKeys.MAIN_BUTTON_SIZE, 100).coerceIn(70, 150) / 100f
+        val mainButtonScale = engine.prefs.i(PreferenceKeys.MAIN_BUTTON_SIZE, 100).coerceIn(70, 150) / 100f * (if (sidewaysPhone(engine)) 0.8f else 1f)
         fun side(a: Alignment): Alignment = if (!mir) a else when (a) {
             Alignment.TopStart -> Alignment.TopEnd; Alignment.TopEnd -> Alignment.TopStart
             Alignment.CenterStart -> Alignment.CenterEnd; Alignment.CenterEnd -> Alignment.CenterStart
@@ -304,7 +304,11 @@ private fun MapScreen(engine: NavEngine, onSettings: () -> Unit) {
                         // your places (Home, Work...) always stay under the search bar; while you drive with no route, the suggestion and
                         // resume cards stay too and the rest folds away
                         val cruising = engine.cruising
-                        ImmChips(engine) { try { focus.requestFocus() } catch (_: Exception) {} }
+                        // a phone held sideways is short: the home and work tiles come down a little there
+                        val chipsDensity = LocalDensity.current
+                        CompositionLocalProvider(LocalDensity provides Density(chipsDensity.density * (if (sidewaysPhone(engine)) 0.85f else 1f), chipsDensity.fontScale)) {
+                            ImmChips(engine) { try { focus.requestFocus() } catch (_: Exception) {} }
+                        }
                         NoticeCard(engine)
                         AnimatedVisibility(!cruising, enter = fadeIn(tween(220)) + androidx.compose.animation.expandVertically(tween(260)), exit = fadeOut(tween(140)) + androidx.compose.animation.shrinkVertically(tween(200))) {
                             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -1397,6 +1401,13 @@ internal fun ImmChip(icon: ImageVector, tint: Color, label: String, onClick: () 
     }
 }
 
+/** A phone held sideways: little height, so the map keeps to the essentials there (smaller buttons, no row of find buttons). */
+@Composable
+internal fun sidewaysPhone(engine: NavEngine): Boolean {
+    val cfg = androidx.compose.ui.platform.LocalConfiguration.current
+    return !engine.isCar && cfg.screenWidthDp >= 720 && cfg.screenHeightDp < 480
+}
+
 /** Under the search bar: Home and Work as two tiles with the drive time, then five round buttons to find things nearby. */
 @Composable
 private fun ImmChips(engine: NavEngine, focusSearch: () -> Unit) {
@@ -1415,7 +1426,8 @@ private fun ImmChips(engine: NavEngine, focusSearch: () -> Unit) {
         }
         // things to find nearby: always all five on show, no scrolling sideways to find them
         // (with a motorhome or caravan profile: pitches, water & waste and LPG instead of charging, food and coffee)
-        if (engine.camperProfile) Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+        // (a phone held sideways leaves these out: the map keeps its room for the route)
+        if (!sidewaysPhone(engine)) if (engine.camperProfile) Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             FindButton(Icons.Rounded.LocalGasStation, Color(0xFFEA4335), Lang.t("Tankstellen in der Nähe", "Fuel nearby")) { engine.loadNearby("fuel", false) }
             FindButton(Icons.Rounded.RvHookup, Color(0xFF2E7D32), Lang.t("Stellplätze in der Nähe", "Pitches nearby")) { engine.loadNearby("camp", false) }
             FindButton(Icons.Rounded.WaterDrop, Color(0xFF0288D1), Lang.t("Ver- und Entsorgung in der Nähe", "Water and waste nearby")) { engine.loadNearby("dump", false) }
