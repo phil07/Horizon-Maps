@@ -1,8 +1,8 @@
 ## Unreleased
 
-### Verbessert
-- Schnelleres Umrouten nach einer verpassten Abbiegung: Die neue Route wird angefragt, sobald du von der alten Route abzweigst, nicht erst, wenn es sicher ist. Hast du einen TomTom-Schlüssel und ein Mapbox-Token, werden beide gleichzeitig gefragt, und die erste Antwort mit Route gilt. Früher dauerte es 6 bis 8 Sekunden. (Dank an karthikeyansr-lgtm)
-  EN: Faster rerouting after a missed turn: the new route is asked for as soon as you start to leave the old one, not once it is certain. With both a TomTom key and a Mapbox token, both are asked at once and the first answer with a route is used. It used to take 6 to 8 seconds. (Thanks to karthikeyansr-lgtm)
+### Neu
+- Zuhause und Arbeit lassen sich einzeln unter der Suche ausblenden: Einstellungen › Orte und Fahrten › Zuhause und Arbeit unter der Suche. Gilt für die App und für Android Auto.
+  EN: Home and Work can each be hidden under the search bar: Settings › Places and trips › Home and Work under the search bar. Applies to the app and Android Auto.
 
 ## 1.0.246 — 2026-10-28
 

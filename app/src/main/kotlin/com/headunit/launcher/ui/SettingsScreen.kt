@@ -745,6 +745,11 @@ private fun PlacesSection(engine: NavEngine) {
         }
         SItem("Ort hinzufügen") { SButton("Hinzufügen", primary = true) { adding = true } }
     }
+    // Home and Work under the search bar: each can be left off (the app and Android Auto alike)
+    SGroup("Zuhause und Arbeit unter der Suche", footer = "Die beiden Kacheln unter der Suchleiste einzeln ein- oder ausblenden. Gilt für die App und Android Auto.") {
+        SToggle(engine.prefs, "Zuhause", PreferenceKeys.HOME_TILE, true, "Die Kachel Zuhause mit der Fahrtzeit")
+        SToggle(engine.prefs, "Arbeit", PreferenceKeys.WORK_TILE, true, "Die Kachel Arbeit mit der Fahrtzeit")
+    }
     // the order of these shortcuts under the search bar: each moves up or down with its arrows
     if (mine.size > 1) SGroup("Deine Reihenfolge", footer = "Die Reihenfolge der Knöpfe unter der Suchleiste. Mit den Pfeilen verschieben.") {
         mine.forEachIndexed { i, lp ->
