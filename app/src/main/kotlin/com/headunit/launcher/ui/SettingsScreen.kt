@@ -1119,7 +1119,7 @@ private fun AndroidAutoSection(prefs: Prefs) {
         SChoice("Tachostil auf dem Autodisplay", listOf("normal" to "Normal", "compact" to "Kompakt"), prefs.s(PreferenceKeys.CAR_SPEED_STYLE, "normal"),
             "Kompakt: eine kleine dunkle Pille mit Limit-Schild und Tempo nebeneinander, passt auch oben rechts auf einen kurzen Bildschirm") { prefs.put(PreferenceKeys.CAR_SPEED_STYLE, it) }
         SChoice("Position des Tachos auf dem Autodisplay", listOf("bottom" to "Untere Ecke", "turn" to "Unter der Abbiege-Karte", "top" to "Oben rechts"), prefs.s(PreferenceKeys.CAR_SPEED_POS, "bottom"),
-            "Untere Ecke: die Seite aus „Tacho-Seite“ (Beim Fahren)") { prefs.put(PreferenceKeys.CAR_SPEED_POS, it) }
+            "Untere Ecke: die Seite aus „Tacho-Seite“ (Beim Fahren)", wrap = true) { prefs.put(PreferenceKeys.CAR_SPEED_POS, it) }
         var carAdvanced by rememberSaveable { mutableStateOf(false) }
         SItem("Erweiterte Autodisplay-Größen", "Einzelne Elemente unabhängig anpassen") {
             SButton(if (carAdvanced) "Ausblenden" else "Anzeigen") { carAdvanced = !carAdvanced }

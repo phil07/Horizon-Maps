@@ -107,32 +107,36 @@ internal fun SToggle(prefs: Prefs, title: String, key: String, def: Boolean, sub
 
 /** A row of choices in a rounded track, with the chosen one filled. */
 @Composable
-internal fun Segmented(options: List<Pair<String, String>>, value: String, onPick: (String) -> Unit) {
+internal fun Segmented(options: List<Pair<String, String>>, value: String, onPick: (String) -> Unit, wrap: Boolean = false) {
     val c = LocalVw.current
-    Row(Modifier.clip(RoundedCornerShape(50)).background(c.tile).horizontalScroll(androidx.compose.foundation.rememberScrollState()).padding(3.dp)) {
-        for ((k, label) in options) {
-            val sel = k == value
-            val bg by androidx.compose.animation.animateColorAsState(if (sel) c.accent else c.accent.copy(alpha = 0f), androidx.compose.animation.core.tween(180), label = "seg")
-            val fg by androidx.compose.animation.animateColorAsState(if (sel) (if (c.accent.luminance() > 0.6f) Color(0xFF10131C) else Color.White) else c.text, androidx.compose.animation.core.tween(180), label = "segT")
-            Box(
-                Modifier.clip(RoundedCornerShape(50)).background(bg).clickable { onPick(k) }.padding(horizontal = 14.dp, vertical = 8.dp),
-                contentAlignment = Alignment.Center,
-            ) {
-                Text(tr(label), color = fg, fontSize = 14.sp, fontWeight = if (sel) FontWeight.SemiBold else FontWeight.Medium, maxLines = 1)
-            }
+    // (wrap: the choices go onto more lines when they don't fit, instead of running off the side and scrolling)
+    val chip: @Composable (String, String) -> Unit = { k, label ->
+        val sel = k == value
+        val bg by androidx.compose.animation.animateColorAsState(if (sel) c.accent else c.accent.copy(alpha = 0f), androidx.compose.animation.core.tween(180), label = "seg")
+        val fg by androidx.compose.animation.animateColorAsState(if (sel) (if (c.accent.luminance() > 0.6f) Color(0xFF10131C) else Color.White) else c.text, androidx.compose.animation.core.tween(180), label = "segT")
+        Box(
+            Modifier.clip(RoundedCornerShape(50)).background(bg).clickable { onPick(k) }.padding(horizontal = 14.dp, vertical = 8.dp),
+            contentAlignment = Alignment.Center,
+        ) {
+            Text(tr(label), color = fg, fontSize = 14.sp, fontWeight = if (sel) FontWeight.SemiBold else FontWeight.Medium, maxLines = 1)
         }
+    }
+    if (wrap) FlowRow(Modifier.clip(RoundedCornerShape(24.dp)).background(c.tile).padding(3.dp), horizontalArrangement = Arrangement.spacedBy(3.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+        for ((k, label) in options) chip(k, label)
+    } else Row(Modifier.clip(RoundedCornerShape(50)).background(c.tile).horizontalScroll(androidx.compose.foundation.rememberScrollState()).padding(3.dp)) {
+        for ((k, label) in options) chip(k, label)
     }
 }
 
 /** A choice between a few options. Short lists sit on the right; longer ones go under the title. */
 @Composable
-internal fun SChoice(title: String, options: List<Pair<String, String>>, value: String, sub: String? = null, onPick: (String) -> Unit) {
+internal fun SChoice(title: String, options: List<Pair<String, String>>, value: String, sub: String? = null, wrap: Boolean = false, onPick: (String) -> Unit) {
     val narrow = androidx.compose.ui.platform.LocalConfiguration.current.screenWidthDp < 720
-    val long = options.size > 3 || options.sumOf { it.second.length } > (if (narrow) 12 else 26)
+    val long = wrap || options.size > 3 || options.sumOf { it.second.length } > (if (narrow) 12 else 26)
     if (!long) SItem(title, sub) { Segmented(options, value, onPick) }
     else Column(Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
         SItem(title, sub)
-        Segmented(options, value, onPick)
+        Segmented(options, value, onPick, wrap = wrap)
     }
 }
 
