@@ -1262,6 +1262,9 @@ private fun AboutSection(prefs: Prefs, engine: NavEngine) {
                 if (!logsOn) { logsOn = true; com.headunit.launcher.DebugLog.unlocked = true; engine.toast("Log-Optionen eingeblendet", 2500) }
             }
         })
+        SItem(Lang.t("Was ist neu", "What's new"), Lang.t("Die Neuerungen dieser Version noch einmal ansehen", "See this version's changes again")) {
+            SButton(Lang.t("Anzeigen", "Show")) { WhatsNewRequest.count++ }
+        }
         if (logsOn) SItem("Logs", "In die Zwischenablage. Kann Standortdaten enthalten.") {
             SButton("Kopieren") {
                 engine.toast("Logs werden gesammelt …", 2000)

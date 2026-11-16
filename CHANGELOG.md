@@ -1,8 +1,12 @@
 ## Unreleased
 
+### Neu
+- Was ist neu, jederzeit: Unter Einstellungen › Über & Sicherung gibt es jetzt einen Knopf, der die Neuerungen der installierten Version wieder einblendet. (Dank an leedank93)
+  EN: What's new, any time: under Settings › About & backup there is now a button that brings back the changes of the installed version. (Thanks to leedank93)
+
 ### Behoben
-- Favoriten in den Einstellungen: Auf dem Handy stehen die Knöpfe jetzt unter Namen und Adresse statt daneben, sodass der Name nicht mehr in eine schmale Spalte gequetscht wird.
-  EN: Favourites in settings: on a phone the buttons now sit under the name and address instead of beside them, so the name is no longer squeezed into a narrow column.
+- Pfeil auf der falschen Fahrbahn: Ohne laufende Route konnte der Pfeil auf die Gegenfahrbahn springen, wenn das GPS zur Mitte der Straße wanderte. Er bleibt jetzt auf der Seite, auf der du fährst, auch bevor die Tempolimit-Straßen geladen sind. (Dank an leedank93)
+  EN: Arrow on the wrong side of a divided road: with no route running, the arrow could jump to the other carriageway when the GPS drifted towards the middle. It now keeps to the side you are driving on, even before the speed-limit roads have loaded. (Thanks to leedank93)
 
 ## 1.0.246 — 2026-10-28
 

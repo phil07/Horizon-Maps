@@ -387,6 +387,7 @@ internal object SettingsEn {
         "Umbenennen" to "Rename",
         "Entfernen" to "Remove",
         "Ort hinzufügen" to "Add a place",
+        "Die Neuerungen dieser Version noch einmal ansehen" to "See this version's changes again",
         "Zuhause und Arbeit unter der Suche" to "Home and Work under the search bar",
         "Die beiden Kacheln unter der Suchleiste einzeln ein- oder ausblenden. Gilt für die App und Android Auto." to "Show or hide the two tiles under the search bar one by one. Applies to the app and Android Auto.",
         "Die Kachel Zuhause mit der Fahrtzeit" to "The Home tile with the drive time",

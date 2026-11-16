@@ -4735,14 +4735,17 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
      * It never waits on the map: it uses the roads the map last reported (the engine tries the speed-limit roads first anyway).
      */
     fun snapToRoad(p: LL, heading: Double): LL? {
-        val segs = roadSegs
+        // (the same roads as roadSegs, with whether each is one-way: a one-way road run against you is the other carriageway)
+        val segs = roadInfo
         if (segs.isEmpty() || android.os.SystemClock.uptimeMillis() - roadSegsAt > 20_000L) return null
         return try {
             val k = Math.cos(Math.toRadians(p.lat)) * 111320.0
             val k2 = 110574.0
             var best: LL? = null
             var bd = 24.0
-            for (pts in segs) {
+            for (rp in segs) {
+                val pts = rp.pts
+                val oneWay = rp.oneway == true
                 for (i in 0 until pts.size - 1) {
                     val ax = (pts[i].longitude() - p.lon) * k; val ay = (pts[i].latitude() - p.lat) * k2
                     val bx = (pts[i + 1].longitude() - p.lon) * k; val by = (pts[i + 1].latitude() - p.lat) * k2
@@ -4758,6 +4761,8 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
                     var diff = Math.abs(segB - heading) % 360.0
                     if (diff > 180.0) diff = 360.0 - diff
                     if (diff > 35.0 && diff < 145.0) continue
+                    // a one-way road is drawn the way its traffic goes: against it is the other carriageway, not yours
+                    if (oneWay && diff >= 145.0) continue
                     bd = d
                     best = LL(p.lat + (ay + dy * t) / k2, p.lon + (ax + dx * t) / k)
                 }

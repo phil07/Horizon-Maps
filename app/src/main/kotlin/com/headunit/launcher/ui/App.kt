@@ -75,6 +75,9 @@ internal fun recommendedMainUiScale(widthDp: Int, heightDp: Int): Int {
     }
 }
 
+/** Settings › About & backup › What's new: each tap counts up, and the app brings the card back when it sees a change. */
+object WhatsNewRequest { var count by mutableStateOf(0) }
+
 /** The whole app: the map full screen with its overlays, and the settings screen on top when it is open. */
 @Composable
 fun App(prefs: Prefs, engine: NavEngine, map: MapBinding) {
@@ -83,6 +86,13 @@ fun App(prefs: Prefs, engine: NavEngine, map: MapBinding) {
     var whatsNewNotes by remember { mutableStateOf("") }
     val installedVersion = com.headunit.launcher.BuildConfig.VERSION_NAME
     val appCtx = androidx.compose.ui.platform.LocalContext.current.applicationContext
+    // the What's new button in Settings: the card comes back with the notes of the installed version
+    LaunchedEffect(WhatsNewRequest.count) {
+        if (WhatsNewRequest.count > 0) {
+            whatsNewNotes = try { kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { com.headunit.launcher.Updater.installedReleaseNotes(installedVersion, "", appCtx) } } catch (_: Exception) { "" }
+            whatsNewVisible = true
+        }
+    }
     LaunchedEffect(installedVersion) {
         if (com.headunit.launcher.BuildConfig.UPDATE_REPO.isNotBlank() && prefs.s(PreferenceKeys.WHATS_NEW_SEEN_VERSION, "") != installedVersion) {
             whatsNewVisible = true
