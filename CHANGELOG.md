@@ -1,8 +1,8 @@
 ## Unreleased
 
-### Verbessert
-- Gespeicherte Orte unterwegs: Deine eigenen Orte und Favoriten stehen jetzt in einer Reihe unter der Suche, die sich seitlich scrollen lässt. So ist ein Ziel auch während der Fahrt mit einem Tippen erreichbar, auch wenn die Liste Gespeichert & zuletzt eingeklappt ist. (Dank an Seali7Aut)
-  EN: Saved places while driving: your own places and favourites now sit in a row under the search bar, which scrolls sideways, so a destination is one tap away while you drive, even with the Saved & recent list folded away. (Thanks to Seali7Aut)
+### Neu
+- Android Auto: Während der Navigation gibt es unten in der Leiste neben 2D/3D jetzt eine Ton-Taste. Sie schaltet zwischen Alle Ansagen, Nur Warnungen und Aus um, wie die Taste am Kartenrand, die bleibt.
+  EN: Android Auto: during navigation the bar at the bottom now has a sound button beside 2D/3D. It switches between all voice guidance, alerts only and off, like the button at the map's edge, which stays too.
 
 ## 1.0.246 — 2026-10-28
 

@@ -761,8 +761,11 @@ class MapScreen(carContext: CarContext, private val holder: CarHolder) : Screen(
             // bar can't be empty, though: its library refuses a strip without a button (IllegalStateException), which closed the app as
             // soon as a trip started. Melden stays there, as before. Cars that don't pass taps on can't use the buttons on the map, so
             // there Beenden and the sound are in the bar as well
-            if (taps) strip.addAction(view)
-            else {
+            if (taps) {
+                // the voice guidance (all, alerts only, off) beside 2D / 3D: the same button as on the map's edge, which stays too
+                strip.addAction(view)
+                strip.addAction(sound)
+            } else {
                 strip.addAction(Action.Builder().setTitle("Beenden").setOnClickListener { e?.endRoute(); invalidate() }.build())
                 strip.addAction(reportAction())
                 strip.addAction(sound)
