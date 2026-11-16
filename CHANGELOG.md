@@ -1,8 +1,8 @@
 ## Unreleased
 
 ### Verbessert
-- Querformat auf dem Handy ist ruhiger: Die fünf runden Suchknöpfe in der Kartenmitte fallen weg, Zuhause und Arbeit sowie die Knöpfe am Kartenrand sind kleiner. Das Hochformat bleibt wie bisher.
-  EN: A phone held sideways is calmer: the five round find buttons in the middle of the map are left out, Home and Work and the buttons at the map's edge are smaller. Portrait stays as it was.
+- Die Suche zeigt Vorschläge schneller: Orte aus dem Netz erscheinen, sobald sie da sind. Geschäfte und Ketten in der Nähe kommen dazu, wenn sie gefunden sind, statt alles auf sie warten zu lassen.
+  EN: Search shows suggestions sooner: places from the online search appear as soon as they arrive. Shops and chains nearby join them when found, instead of everything waiting for them.
 
 ## 1.0.246 — 2026-10-28
 
