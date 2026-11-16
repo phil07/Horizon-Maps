@@ -50,8 +50,8 @@ fun resolveDark(mode: String, lat: Double?, lon: Double?, nowMs: Long, sysSeen: 
         "lights" -> if (lamps != null) lamps else if (system) true else if (sysSeen) false else if (lat != null && lon != null) !Sun.isDay(lat, lon, nowMs) else false
         // auto: the head unit's own night mode once it has been seen switching to it; sunrise and sunset until then (many units never
         // switch their system mode, and auto then never went dark)
-        // a phone follows sunrise and sunset: its dark theme is not night (it kept the map dark all day before)
-        else -> if (phone) (sun ?: system) else if (system) true else if (sysSeen) false else sun ?: false
+        // a phone simply follows its own light or dark setting; Sun times is the choice for sunrise and sunset
+        else -> if (phone) system else if (system) true else if (sysSeen) false else sun ?: false
     }
 }
 
@@ -101,8 +101,8 @@ fun phoneDark(ctx: android.content.Context, prefs: com.headunit.launcher.Prefs, 
         "times" -> isNightByClock(nowMs, prefs.s(com.headunit.launcher.PreferenceKeys.NIGHT_FROM, "19:00"), prefs.s(com.headunit.launcher.PreferenceKeys.DAY_FROM, "07:00"))
         "sun" -> sun ?: system
         "lights" -> VendorLight.current(ctx, prefs) ?: if (system) true else if (seen) false else sun ?: false
-        // a phone follows sunrise and sunset, not its dark theme (see resolveDark)
-        else -> if (isPhoneDevice(ctx)) (sun ?: system) else if (system) true else if (seen) false else sun ?: false
+        // a phone simply follows its own light or dark setting; Sun times is the choice for sunrise and sunset
+        else -> if (isPhoneDevice(ctx)) system else if (system) true else if (seen) false else sun ?: false
     }
 }
 

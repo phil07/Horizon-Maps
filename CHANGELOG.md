@@ -11,9 +11,8 @@
   EN: Average speed checks are looked up on their own, with more patience for busy servers and a retry after 20 seconds. Checks found stay on the device, also for roads without signal.
 
 ### Behoben
-- Karte im Dunkeln am Tag: Mit „Tag und Nacht: Auto“ blieb eine Handy-Karte mit dunklem Design auch tagsüber nachts gefärbt. Auf Handys folgt die Karte jetzt Sonnenauf- und -untergang.
-  EN: Map dark all day on a phone: with "Day and night: Auto", a phone set to dark theme kept the map in night colours in daylight. On phones, Auto now follows sunrise and sunset.
-
+- Tag und Nacht auf dem Handy: Auto folgt jetzt einfach der Hell- oder Dunkel-Einstellung des Handys. Soll die Karte bei Sonnenauf- und -untergang wechseln, wähle Sonnenzeiten.
+  EN: Day and night on a phone: Auto now simply follows the phone's own light or dark setting. For the map to change at sunrise and sunset instead, pick Sun times.
 ## 1.0.246 — 2026-10-28
 
 ### Improved in-app updates
