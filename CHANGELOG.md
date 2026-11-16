@@ -1,12 +1,8 @@
 ## Unreleased
 
 ### Verbessert
-- Suche und Knöpfe rücken an die Kamera heran: Die App liest aus, wo das Kameraloch des Handys sitzt, und zeigt Suche und Knöpfe knapp darunter (im Querformat daneben), statt einen ganzen Streifen in Höhe der Statusleiste frei zu lassen.
-  EN: Search and buttons move up to the camera: the app reads where the phone's camera hole is and shows the search and buttons just under it (beside it when held sideways), instead of leaving a whole status-bar-high strip free.
-
-### Behoben
-- Routenauswahl im Querformat: Das Fenster lief unten aus dem Bild, sodass Start, Überflug und Demo nicht zu sehen waren. Es wird jetzt so weit verkleinert, dass alles auf einmal passt.
-  EN: Route choice on a phone held sideways: the panel ran off the bottom, so Start, Fly over and Demo could not be seen. It now shrinks just enough for all of it to fit.
+- Gespeicherte Orte unterwegs: Deine eigenen Orte und Favoriten stehen jetzt in einer Reihe unter der Suche, die sich seitlich scrollen lässt. So ist ein Ziel auch während der Fahrt mit einem Tippen erreichbar, auch wenn die Liste Gespeichert & zuletzt eingeklappt ist. (Dank an Seali7Aut)
+  EN: Saved places while driving: your own places and favourites now sit in a row under the search bar, which scrolls sideways, so a destination is one tap away while you drive, even with the Saved & recent list folded away. (Thanks to Seali7Aut)
 
 ## 1.0.246 — 2026-10-28
 

@@ -1415,6 +1415,16 @@ private fun ImmChips(engine: NavEngine, focusSearch: () -> Unit) {
     val work = engine.places.slot("work")
     // the drive times: the engine throttles this itself (online only, every 10 minutes or after moving 3 km), so a minute's tick is cheap
     LaunchedEffect(Unit) { while (true) { engine.refreshSlotTimes(); delay(60_000) } }
+    // your own labelled places and favourites: one tap away in a row that scrolls sideways, also while driving
+    // (the same places are in the Saved & recent list; a favourite beside one of your own places counts once)
+    val rawCustom = engine.prefs.s(PreferenceKeys.PLACES_CUSTOM, "")
+    val rawFav = engine.prefs.s(PreferenceKeys.PLACES_FAVOURITES, "")
+    // (own = true for one of your labelled places, false for a favourite)
+    val mine: List<Triple<com.headunit.launcher.Place, String, Boolean>> = remember(rawCustom, rawFav) {
+        val custom = engine.places.customs()
+        val favs = engine.places.favourites().filter { f -> custom.none { Geo.dist(it.place.pos, f.pos) < 60 } }
+        custom.map { Triple(it.place, it.label, true) } + favs.map { Triple(it, it.name, false) }
+    }
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             PlaceTile(engine, Modifier.weight(1f), Icons.Rounded.Home, Color(0xFF4C8DFF), Lang.t("Zuhause", "Home"), home, engine.slotMins["home"]) {
@@ -1422,6 +1432,11 @@ private fun ImmChips(engine: NavEngine, focusSearch: () -> Unit) {
             }
             PlaceTile(engine, Modifier.weight(1f), Icons.Rounded.Work, Color(0xFFF29900), Lang.t("Arbeit", "Work"), work, engine.slotMins["work"]) {
                 if (work != null) engine.startRoute(work) else { engine.pendingSave = "work"; engine.toast(engine.str(R.string.rest_1197), 3500); focusSearch() }
+            }
+        }
+        if (mine.isNotEmpty()) Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            for ((p, label, own) in mine) {
+                ImmChip(if (own) Icons.Rounded.Place else Icons.Rounded.Star, if (own) Color(0xFF4C8DFF) else Color(0xFFF29900), label) { engine.startRoute(p) }
             }
         }
         // things to find nearby: always all five on show, no scrolling sideways to find them
