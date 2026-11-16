@@ -677,12 +677,20 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
         val with = prefs.s(PreferenceKeys.SEARCHWITH, "auto")
         val tomtomOk = hasKey && refusedKey != apiKey && System.currentTimeMillis() >= ttDownUntil
         if (tomtomOk && (with == "tomtom" || (with == "auto") || !hasMapbox)) {
-            val tt = try { TomTomRest.geocode(apiKey, country, q, near) } catch (e: Exception) { if (e is kotlinx.coroutines.CancellationException) throw e; null }
+            // TomTom goes first; Mapbox only starts when TomTom is still busy after a second, or when TomTom comes back thin (so
+            // a quick TomTom answer costs no Mapbox request, and a slow one no longer waits for Mapbox to be asked afterwards)
+            val ttF = java.util.concurrent.CompletableFuture.supplyAsync { try { TomTomRest.geocode(apiKey, country, q, near) } catch (e: Exception) { null } }
+            var mbF: java.util.concurrent.CompletableFuture<List<Place>>? = null
+            fun startMapbox() {
+                if (mbF == null && hasMapbox) mbF = java.util.concurrent.CompletableFuture.supplyAsync { try { MapboxRest.geocode(mbToken, country, q, near) } catch (e: Exception) { emptyList<Place>() } }
+            }
+            val tt: List<Place>? = try { ttF.get(1000, java.util.concurrent.TimeUnit.MILLISECONDS) } catch (e: java.util.concurrent.TimeoutException) { startMapbox(); try { ttF.get() } catch (e: Exception) { null } } catch (e: Exception) { null }
             // both TomTom searches turned the key away: said once per key, instead of quietly showing thin results
             TomTomRest.searchRefusal?.let { why -> if (searchRefusalShownFor != apiKey) { searchRefusalShownFor = apiKey; scope.launch { toast(why, 9000) } } }
             if (tt != null && (tt.size >= 4 || !hasMapbox)) return tt
             if (!hasMapbox) return tt ?: OsmSearch.geocode(country, q, near)
-            val mb = try { MapboxRest.geocode(mbToken, country, q, near) } catch (e: Exception) { if (e is kotlinx.coroutines.CancellationException) throw e; emptyList() }
+            startMapbox()
+            val mb = try { mbF?.get() ?: emptyList() } catch (e: Exception) { emptyList() }
             val out = ArrayList(tt ?: emptyList())
             for (p in mb) if (out.none { (it.name.equals(p.name, true) && Geo.dist(it.pos, p.pos) < 80) || Geo.dist(it.pos, p.pos) < 15 }) out += p
             return out

@@ -1,8 +1,8 @@
 ## Unreleased
 
 ### Verbessert
-- Die Suche zeigt Vorschläge schneller: Orte aus dem Netz erscheinen, sobald sie da sind. Geschäfte und Ketten in der Nähe kommen dazu, wenn sie gefunden sind, statt alles auf sie warten zu lassen.
-  EN: Search shows suggestions sooner: places from the online search appear as soon as they arrive. Shops and chains nearby join them when found, instead of everything waiting for them.
+- Die Suche fragt Mapbox nur dazu, wenn TomTom nach etwa einer Sekunde noch nicht antwortet oder wenig findet. Schnelle Treffer von TomTom brauchen keine zweite Abfrage mehr, und langsame Antworten warten nicht mehr darauf, dass Mapbox danach gefragt wird.
+  EN: Search asks Mapbox only when TomTom has not answered after about a second or finds little. Quick TomTom results need no second request, and a slow answer no longer waits for Mapbox to be asked afterwards.
 
 ## 1.0.246 — 2026-10-28
 
