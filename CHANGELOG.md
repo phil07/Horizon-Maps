@@ -3,8 +3,6 @@
 ### Verbessert
 - Schnelleres Umrouten nach einer verpassten Abbiegung: Die neue Route wird angefragt, sobald du von der alten Route abzweigst, nicht erst, wenn es sicher ist. Früher dauerte es 6 bis 8 Sekunden.
   EN: Faster rerouting after a missed turn: the new route is asked for as soon as you start to leave the old one, not once it is certain. It used to take 6 to 8 seconds.
-- Android Auto: Auf der Fahrtkarte (Verbleibend, Ankunft, Entfernung) sitzt statt „Andere aus“ jetzt die Ton-Taste. Ein Tippen schaltet zwischen allen Ansagen, nur Warnungen und aus um; das Symbol zeigt die Stufe. Unter Einstellungen › Knöpfe auf der Fahrtkarte heißt der Schalter jetzt „Ansagen“.
-  EN: Android Auto: the trip card (time left, arrival, distance) now has the sound button where "Hide others" was. One tap steps between all voice guidance, alerts only and off; the icon shows which. Under Settings › Buttons on the trip card the switch is now called "Voice".
 
 ## 1.0.246 — 2026-10-28
 
