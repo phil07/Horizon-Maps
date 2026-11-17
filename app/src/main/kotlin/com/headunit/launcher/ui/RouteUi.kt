@@ -342,7 +342,8 @@ fun CruisePill(engine: NavEngine, modifier: Modifier = Modifier) {
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Icon(Icons.Rounded.Navigation, null, tint = c.accent, modifier = Modifier.size(18.dp))
-        Text((if (road.isNotBlank()) "$road · " else "") + Lang.t("Richtung $dir", "Heading $dir"), color = c.text, fontSize = 16.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(start = 8.dp))
+        Text(if (road.isNotBlank() && !engine.prefs.b(com.headunit.launcher.PreferenceKeys.HEADING_WORD, true)) road
+            else (if (road.isNotBlank()) "$road · " else "") + Lang.t("Richtung $dir", "Heading $dir"), color = c.text, fontSize = 16.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(start = 8.dp))
     }
 }
 

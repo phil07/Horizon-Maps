@@ -1,22 +1,22 @@
 ## Unreleased
 
 ### Neu
-- GPX-Tracks: Eine .gpx-Datei (von Komoot, Strava, Garmin oder einer eigenen Aufnahme) lässt sich unter Einstellungen › Orte & Fahrten › GPX-Tracks importieren. „Zeigen“ legt sie auf die Karte, „Fahren“ führt dich bis zu ihrem Ende mit den üblichen Sprachansagen, ab der Stelle, an der du dich einfädelst. Eine Neuberechnung hält dich auf der Spur. (Dank an bijindas)
-  EN: GPX tracks: import a .gpx file (from Komoot, Strava, Garmin or your own recording) under Settings › Places & trips › GPX tracks. Show puts it on the map, Drive takes you to its end with the usual spoken directions, carrying on from where you join it. A reroute keeps you on the track. (Thanks to bijindas)
-- Suche als Knopf: Ohne Route klappt die Suchleiste mit ihren Knöpfen in einen runden Suchknopf in der Ecke zusammen. Die Karte hat den ganzen Bildschirm, dein Pfeil steht in der Mitte. Einstellungen › Orte & Fahrten › Suchleiste. (Dank an vishnauth-bit)
-  EN: Search as a button: with no route, the search bar and its buttons fold into one round search button in the corner. The map has the whole screen and your arrow sits in the middle. Settings › Places & trips › Search bar. (Thanks to vishnauth-bit)
-- Automatischer Zoom aus: Die Karte bleibt auf einem gleichen Zoom, statt sich nach Tempo und Kreuzungen zu richten. + und − wirken weiterhin. Einstellungen › Karte › Standard-Zoom. (Dank an vishnauth-bit)
-  EN: Auto zoom can be turned off: the map keeps one steady zoom instead of following your speed and the junctions, and + and − still change it. Settings › Map style, under Default zoom. (Thanks to vishnauth-bit)
-- Medien-Steuerung: Zurück, Pause und Weiter unten auf dem Fahrbildschirm, solange auf dem Autodisplay Musik oder Radio läuft, aus jeder App. Mit Benachrichtigungszugriff (Einstellungen › Bildschirm & Größen › Beim Fahren › Song und Cover) werden auch Titel, Interpret und Cover angezeigt. Ausschaltbar am selben Ort. (Dank an mrEnmi)
-  EN: Media controls: back, play / pause and next at the bottom of the driving screen while music or radio plays on the head unit, from any app. With notification access (Settings › Screen & sizes › While driving › Song and artwork) the song, artist and artwork show too. It can be turned off in the same place. (Thanks to mrEnmi)
+- GPX-Ordner und Suche: Tracks lassen sich unter Einstellungen › Orte & Fahrten › GPX-Tracks in Ordnern zusammenfassen, die sich auf- und zuklappen (Ordner-Knopf an jedem Track). In der Suchleiste findest du einen Track über seinen Namen. (Dank an bijindas)
+  EN: GPX folders and search: file your tracks in folders that fold open (the folder button on each track, under Settings › Places & trips › GPX tracks), and type a track's name in the search bar to find it. (Thanks to bijindas)
+- Himmelsrichtung getrennt: „Richtung E“ hinter dem Straßennamen ohne Route hat jetzt einen eigenen Schalter, damit nur die Straße bleibt (Einstellungen › Bildschirm & Größen › Beim Fahren). (Dank an liamstears)
+  EN: Road name and heading switch separately: "Heading E" after the road name when driving without a route now has its own switch, so you can keep just the road (Settings › Screen & sizes › While driving). (Thanks to liamstears)
 
 ### Verbessert
-- Schnellere Neuberechnung: Ein falscher Abbieger wird schon beim ersten GPS-Wert bemerkt, wenn du klar auf einer anderen Straße bist. Die neue Route wird zweimal gleichzeitig angefragt (eine frühe Anfrage und eine frische von deiner Position), die schnellere Antwort gilt. Eine frühe Anfrage von weiter zurück wird nicht mehr genutzt, sie würde hinter dir starten. (Dank an karthikeyansr-lgtm)
-  EN: Quicker rerouting: a wrong turn is now noticed on the first GPS reading when you're clearly on another road, and the new route is asked for twice at once (the early request and a fresh one from where you are), using whichever answers first. An early request made from too far back is no longer used, as it gave a route starting behind you. (Thanks to karthikeyansr-lgtm)
+- Orte in einer Reihe: Eigene Orte, Favoriten und gespeicherte Routen (GPX-Tracks) stehen alle in der scrollbaren Reihe unter der Suche, die immer mit „Ort hinzufügen“ endet. Die Liste darunter zeigt nur die letzten Orte.
+  EN: Saved places all in one row: your own places, favourites and saved routes are now all in the scrolling row under the search bar, which always ends with an "Add a place" tile. The list below it is just recent places.
+- Vorbereitung für Google Play: Der Build kann jetzt auch eine Google-Play-Version namens „Horizon Maps“ erstellen. Sie wird neben dieser installiert und von Play aktualisiert, ohne eigenen Updater. In dieser Version ändert sich nichts.
+  EN: Getting ready for Google Play: the build can now also make a Google Play edition of the app, called Horizon Maps, installed beside this one and updated by Play, without the self-updater. Nothing changes in this version.
 
 ### Behoben
-- Fernlicht hinter dem Auto: Nachts begann der Lichtkegel weit hinter dem Pfeil und leuchtete nach hinten über ihn. Er kommt jetzt von der Stelle des Autos aus, leuchtet die Straße vor dir aus und liegt bei jeder Neigung flach auf der Straße. (Dank an liamstears)
-  EN: Headlight beam behind the car: at night the beam started well behind the arrow and shone back over it. It now comes from the car's own spot, lights the road ahead and lies flat on the road at any tilt. (Thanks to liamstears)
+- Google Play Protect blockiert die Installation nicht mehr: Titel und Cover der Medien-Leiste brauchten Benachrichtigungszugriff, den Play Protect bei Apps aus einer Datei sperrt. Die GitHub-Version behält Zurück, Pause und Weiter ohne Titel. (Dank an desko1973)
+  EN: Google Play Protect no longer blocks installing: the media bar's song and artwork needed notification access, which Play Protect blocks in apps installed from a file. The GitHub edition's media bar keeps back, play / pause and next without the song. (Thanks to desko1973)
+- Fernlicht von unter dem Auto: Der Lichtkegel ist jetzt ein einziger Kegel in etwa halber Helligkeit (er sah aus wie zwei übereinander) und startet unter dem Auto, damit er von den Scheinwerfern zu kommen scheint und nicht von der Windschutzscheibe. (Dank an liamstears)
+  EN: One headlight beam, from under the car: the beam is now a single cone at about half the brightness (it looked like two beams on top of each other), starting under the car so it seems to come from the headlights rather than the windscreen. (Thanks to liamstears)
 
 ## 1.0.246 — 2026-10-28
 

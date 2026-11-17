@@ -92,6 +92,8 @@ android {
             buildConfigField("String", "REPORTS_URL", "\"$escapedReportsUrl\"")
             // the GitHub build updates itself from the releases
             buildConfigField("boolean", "SELF_UPDATE", "true")
+            // song and artwork of the media bar need notification access (Google Play blocks that in apps installed from a file)
+            buildConfigField("boolean", "MEDIA_ACCESS", "true")
             signingConfig = signingConfigs.findByName("stable") ?: signingConfigs.getByName("debug")
         }
         // Google Play (internal testing): Android Auto only lists navigation apps installed from Play since June 2026.
@@ -108,6 +110,9 @@ android {
             buildConfigField("String", "UPDATE_APK", "\"\"")
             buildConfigField("String", "REPORTS_URL", "\"$escapedReportsUrl\"")
             buildConfigField("boolean", "SELF_UPDATE", "false")
+            buildConfigField("boolean", "MEDIA_ACCESS", "false")
+            // the name it has beside the GitHub build in the launcher
+            resValue("string", "app_name", "Horizon Maps")
             // unsigned when the upload key isn't there (the workflow then skips the Play build)
             signingConfig = signingConfigs.findByName("playUpload")
         }

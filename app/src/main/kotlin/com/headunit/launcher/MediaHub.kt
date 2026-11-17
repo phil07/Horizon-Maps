@@ -30,7 +30,7 @@ object MediaHub {
         private set
 
     /** Whether Horizon Nav has notification access (Settings › Screen & sizes › While driving › Song and artwork). */
-    fun hasAccess(ctx: Context): Boolean = try {
+    fun hasAccess(ctx: Context): Boolean = com.headunit.launcher.BuildConfig.MEDIA_ACCESS && try {
         android.provider.Settings.Secure.getString(ctx.contentResolver, "enabled_notification_listeners")?.contains(ctx.packageName) == true
     } catch (e: Exception) { false }
 

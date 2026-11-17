@@ -11,6 +11,8 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" tools:node="remove" />
     <application>
         <service android:name=".OfflineDownloadService" tools:node="remove" />
+        <!-- Google Play Protect blocks notification access in apps installed from a file: the Play build has no media listener -->
+        <service android:name=".MediaNotifListener" tools:node="remove" />
     </application>
 
     <!-- The apps of car makers that show a battery level in a home-screen widget (EvCars / EvWidget). Play hides every other

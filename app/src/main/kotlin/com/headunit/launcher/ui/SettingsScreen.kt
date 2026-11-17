@@ -862,6 +862,10 @@ private fun GpxTracksGroup(engine: NavEngine) {
     var tracks by remember { mutableStateOf(com.headunit.launcher.Gpx.list(ctx)) }
     var shown by remember { mutableStateOf<String?>(null) }
     var note by remember { mutableStateOf<String?>(null) }
+    // the folders that are unfolded, and the track whose folder is being typed
+    var openFolders by remember { mutableStateOf(setOf<String>()) }
+    var movingId by remember { mutableStateOf<String?>(null) }
+    var folderName by remember { mutableStateOf("") }
     val pick = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         if (uri != null) {
             val parsed = try { ctx.contentResolver.openInputStream(uri)?.bufferedReader()?.use { com.headunit.launcher.Gpx.parse(it.readText()) } } catch (e: Exception) { null }
@@ -872,25 +876,40 @@ private fun GpxTracksGroup(engine: NavEngine) {
             }
         }
     }
-    SGroup("GPX-Tracks", footer = "Eine .gpx-Datei aus Komoot, Strava, Garmin oder einer eigenen Aufnahme. „Zeigen“ legt sie auf die Karte, „Fahren“ führt bis zu ihrem Ende mit den üblichen Ansagen.") {
-        SItem("GPX-Datei importieren", note) { SButton("Datei wählen", primary = true) { pick.launch(arrayOf("*/*")) } }
-        if (tracks.isEmpty()) SNote("Noch keine Tracks importiert.")
-        tracks.forEach { t ->
-            SItem(t.name, "${t.points} Punkte") {
-                SButton(if (shown == t.id) "Ausblenden" else "Zeigen") {
-                    if (shown == t.id) { shown = null; engine.map.setTrack(emptyList()) }
-                    else { shown = t.id; engine.map.setTrack(com.headunit.launcher.Gpx.load(ctx, t.id)) }
-                }
-                SButton("Fahren", primary = true) {
-                    engine.driveTrack(t.name, com.headunit.launcher.Gpx.load(ctx, t.id))
-                    engine.externalTick++
-                }
-                SButton("Entfernen", danger = true) {
-                    if (shown == t.id) { shown = null; engine.map.setTrack(emptyList()) }
-                    com.headunit.launcher.Gpx.delete(ctx, t.id); tracks = com.headunit.launcher.Gpx.list(ctx)
-                }
+    fun refresh() { tracks = com.headunit.launcher.Gpx.list(ctx) }
+    val trackRow: @Composable (com.headunit.launcher.GpxTrack) -> Unit = { t ->
+        if (movingId == t.id) SItem("Ordner für ${t.name}", "Leer lassen für keinen Ordner") {
+            SField(folderName, { folderName = it.take(24) }, placeholder = "z. B. Urlaub", width = 200.dp)
+            SButton("Speichern", primary = true) { com.headunit.launcher.Gpx.setGroup(ctx, t.id, folderName); movingId = null; refresh() }
+            SButton("Abbrechen") { movingId = null }
+        } else SItem(t.name, "${t.points} Punkte") {
+            SButton("Ordner") { movingId = t.id; folderName = t.group }
+            SButton(if (shown == t.id) "Ausblenden" else "Zeigen") {
+                if (shown == t.id) { shown = null; engine.map.setTrack(emptyList()) }
+                else { shown = t.id; engine.map.setTrack(com.headunit.launcher.Gpx.load(ctx, t.id)) }
+            }
+            SButton("Fahren", primary = true) {
+                engine.driveTrack(t.name, com.headunit.launcher.Gpx.load(ctx, t.id))
+                engine.externalTick++
+            }
+            SButton("Entfernen", danger = true) {
+                if (shown == t.id) { shown = null; engine.map.setTrack(emptyList()) }
+                com.headunit.launcher.Gpx.delete(ctx, t.id); refresh()
             }
         }
+    }
+    SGroup("GPX-Tracks", footer = "Eine .gpx-Datei aus Komoot, Strava, Garmin oder einer eigenen Aufnahme. „Zeigen“ legt sie auf die Karte, „Fahren“ führt bis zu ihrem Ende mit den üblichen Ansagen. Ordner fassen Tracks zusammen. In der Suche findest du einen Track über seinen Namen.") {
+        SItem("GPX-Datei importieren", note) { SButton("Datei wählen", primary = true) { pick.launch(arrayOf("*/*")) } }
+        if (tracks.isEmpty()) SNote("Noch keine Tracks importiert.")
+        val folders = tracks.map { it.group }.filter { it.isNotBlank() }.distinct().sorted()
+        for (g in folders) {
+            val open = g in openFolders
+            SItem("Ordner: $g", "${tracks.count { it.group == g }} Tracks") {
+                SButton(if (open) "Zuklappen" else "Aufklappen") { openFolders = if (open) openFolders - g else openFolders + g }
+            }
+            if (open) tracks.filter { it.group == g }.forEach { trackRow(it) }
+        }
+        tracks.filter { it.group.isBlank() }.forEach { trackRow(it) }
     }
 }
 
@@ -1115,13 +1134,14 @@ private fun ScreenSection(prefs: Prefs, engine: NavEngine) {
         val ctx = LocalContext.current
         val access = com.headunit.launcher.MediaHub.hasAccess(ctx)
         SToggle(prefs, "Mediensteuerung", PreferenceKeys.MEDIA_CONTROLS, true, "Die Leiste erscheint nur, wenn etwas läuft")
-        SItem("Titel und Cover", if (access) "Zugriff erteilt" else "Noch kein Zugriff: Titel und Cover fehlen") {
+        if (com.headunit.launcher.BuildConfig.MEDIA_ACCESS) SItem("Titel und Cover", if (access) "Zugriff erteilt" else "Noch kein Zugriff: Titel und Cover fehlen") {
             SButton(if (access) "Ändern" else "Zugriff erlauben", primary = !access) {
                 ctx.startActivity(android.content.Intent(android.provider.Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK))
             }
         }
     }
     SGroup("Beim Fahren") {
+        SToggle(prefs, "Himmelsrichtung hinter dem Straßennamen", PreferenceKeys.HEADING_WORD, true, "„Richtung E“ hinter der Straße, wenn du ohne Route fährst. Aus: nur der Straßenname")
         SToggle(prefs, "Geschwindigkeit neben dem Limit", "mapspeed", true)
         SToggle(prefs, "Tachoring", "speedring", true, "Füllt sich bis zum Tempolimit, färbt sich gelb dann rot")
         SSlider("Tempolimit- und Tachogröße", prefs.i(PreferenceKeys.SPEED_SIZE, 100).toFloat(), 50f..200f, "%", sub = "Auf Smartphone und Autodisplay", steps = 29, reset = 100f) { prefs.put(PreferenceKeys.SPEED_SIZE, it) }

@@ -1443,6 +1443,11 @@ private fun ImmChips(engine: NavEngine, focusSearch: () -> Unit) {
         val favs = engine.places.favourites().filter { f -> custom.none { Geo.dist(it.place.pos, f.pos) < 60 } }
         custom.map { Triple(it.place, it.label, true) } + favs.map { Triple(it, it.name, false) }
     }
+    // the GPX tracks (saved routes) and the "Add a place" tile close the same row: all of it scrolls sideways
+    val ctxT = LocalContext.current
+    val tracks = com.headunit.launcher.Gpx.list(ctxT)
+    var addingPlace by remember { mutableStateOf(false) }
+    if (addingPlace) AddPlaceDialog(engine, null) { addingPlace = false }
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
         val showHome = engine.prefs.b(PreferenceKeys.HOME_TILE, true); val showWork = engine.prefs.b(PreferenceKeys.WORK_TILE, true)
         if (showHome || showWork) Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -1453,10 +1458,12 @@ private fun ImmChips(engine: NavEngine, focusSearch: () -> Unit) {
                 if (work != null) engine.startRoute(work) else { engine.pendingSave = "work"; engine.toast(engine.str(R.string.rest_1197), 3500); focusSearch() }
             }
         }
-        if (mine.isNotEmpty()) Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             for ((p, label, own) in mine) {
                 ImmChip(if (own) Icons.Rounded.Place else Icons.Rounded.Star, if (own) Color(0xFF4C8DFF) else Color(0xFFF29900), label) { engine.startRoute(p) }
             }
+            for (t in tracks) ImmChip(Icons.Rounded.Route, Color(0xFF2E7D32), t.name) { engine.driveTrack(t.name, com.headunit.launcher.Gpx.load(ctxT, t.id)) }
+            ImmChip(Icons.Rounded.Add, LocalVw.current.accent, Lang.t("Ort hinzufügen", "Add a place")) { addingPlace = true }
         }
         // things to find nearby: always all five on show, no scrolling sideways to find them
         // (with a motorhome or caravan profile: pitches, water & waste and LPG instead of charging, food and coffee)
@@ -1596,12 +1603,12 @@ private fun ImmQuick(engine: NavEngine, showSaved: Boolean = true) {
     val rawCustom = engine.prefs.s(PreferenceKeys.PLACES_CUSTOM, "")
     val rawFav = engine.prefs.s(PreferenceKeys.PLACES_FAVOURITES, "")
     val rawRecent = engine.prefs.s(PreferenceKeys.PLACES_RECENT, "")
-    // (kind 0 = one of your own labelled places, 1 = a favourite, 2 = recent; the label is the name shown)
+    // only the recent places are listed here: your own places, favourites and tracks are in the row above the list
     val saved: List<Triple<com.headunit.launcher.Place, Int, String>> = remember(rawCustom, rawFav, rawRecent) {
         val mine = engine.places.customs()
         val favs = engine.places.favourites().filter { f -> mine.none { Geo.dist(it.place.pos, f.pos) < 60 } }
         val recents = engine.places.recents().filter { r -> favs.none { Geo.dist(it.pos, r.pos) < 60 } && mine.none { Geo.dist(it.place.pos, r.pos) < 60 } }
-        mine.map { Triple(it.place, 0, it.label) } + favs.map { Triple(it, 1, it.name) } + recents.take(4).map { Triple(it, 2, it.name) }
+        recents.take(4).map { Triple(it, 2, it.name) }
     }
     var showAll by rememberSaveable { mutableStateOf(false) }
     var adding by remember { mutableStateOf(false) }
@@ -1631,7 +1638,7 @@ private fun ImmQuick(engine: NavEngine, showSaved: Boolean = true) {
             Row(Modifier.fillMaxWidth().padding(start = 6.dp, end = 6.dp), verticalAlignment = Alignment.CenterVertically) {
                 Row(Modifier.weight(1f).clip(RoundedCornerShape(12.dp)).clickable { engine.quickFolded = !folded }.padding(start = 8.dp, top = 8.dp, bottom = 8.dp),
                     verticalAlignment = Alignment.CenterVertically) {
-                    Text(stringResource(R.string.ui_040), color = c.sub, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))
+                    Text(Lang.t("Zuletzt", "Recent"), color = c.sub, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))
                     Icon(if (folded) Icons.Rounded.KeyboardArrowDown else Icons.Rounded.KeyboardArrowUp,
                         if (folded) Lang.t("Aufklappen", "Unfold") else Lang.t("Zuklappen", "Fold"), tint = c.sub, modifier = Modifier.padding(start = 4.dp).size(20.dp))
                 }

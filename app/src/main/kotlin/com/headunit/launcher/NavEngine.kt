@@ -2045,7 +2045,11 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
         val job = coroutineContext[kotlinx.coroutines.Job]
         val alive = { job?.isActive != false }
         try {
-            val own = places.searchLocal(q, near)
+            // your GPX tracks by name: a match routes to where the track starts
+            val toks = q.lowercase().split(' ', ',').filter { it.isNotBlank() }
+            val tracks = if (toks.isEmpty()) emptyList() else Gpx.list(ctx).filter { t -> toks.all { t.name.lowercase().contains(it) } }
+                .mapNotNull { t -> t.start?.let { Place(t.name, if (t.group.isBlank()) "GPX-Track" else "GPX · ${t.group}", it) } }
+            val own = tracks + places.searchLocal(q, near)
             val addr = OfflineRouter.searchAddresses(ctx, q, near, alive).filter { t -> own.none { Geo.dist(it.pos, t.pos) < 30 } }
             val pack = (if (q.trim().length >= 3) {
                 // the area in use first; the other downloaded areas too when it has little (a place over the border, say)

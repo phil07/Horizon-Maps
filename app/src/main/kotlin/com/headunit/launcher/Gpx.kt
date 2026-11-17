@@ -6,7 +6,8 @@ import org.json.JSONObject
 import java.io.File
 
 /** A GPX track you imported (Komoot, Strava, Garmin or your own recording): its name and its points, kept in the app's own folder. */
-data class GpxTrack(val id: String, val name: String, val points: Int)
+/** A GPX track: its name, its number of points, its folder (blank for none) and its first point (where a route to it starts). */
+data class GpxTrack(val id: String, val name: String, val points: Int, val group: String = "", val start: LL? = null)
 
 /** Reads GPX files and keeps the imported tracks on the phone (the points as text, the list of them in the preferences). */
 object Gpx {
@@ -67,7 +68,10 @@ object Gpx {
 
     fun list(ctx: Context): List<GpxTrack> = try {
         val a = JSONArray(prefs(ctx).getString(LIST_KEY, "[]") ?: "[]")
-        (0 until a.length()).map { i -> a.getJSONObject(i).let { GpxTrack(it.getString("id"), it.getString("name"), it.optInt("n")) } }
+        (0 until a.length()).map { i ->
+            val o = a.getJSONObject(i)
+            GpxTrack(o.getString("id"), o.getString("name"), o.optInt("n"), o.optString("g"), parseStart(o.optString("s")))
+        }
     } catch (e: Exception) { emptyList() }
 
     fun load(ctx: Context, id: String): List<LL> = try {
@@ -77,23 +81,39 @@ object Gpx {
         }
     } catch (e: Exception) { emptyList() }
 
-    /** Saves the track and returns its id. */
-    fun save(ctx: Context, name: String, pts: List<LL>): String {
+    /** Saves the track (in [group], or none) and returns its id. */
+    fun save(ctx: Context, name: String, pts: List<LL>, group: String = ""): String {
         val id = "t" + System.currentTimeMillis()
         val kept = thin(pts)
         File(dir(ctx), "$id.txt").writeText(kept.joinToString("\n") { String.format(java.util.Locale.US, "%.6f,%.6f", it.lat, it.lon) })
-        val a = JSONArray()
-        list(ctx).forEach { a.put(JSONObject().put("id", it.id).put("name", it.name).put("n", it.points)) }
-        a.put(JSONObject().put("id", id).put("name", name).put("n", kept.size))
-        prefs(ctx).edit().putString(LIST_KEY, a.toString()).apply()
+        write(ctx, list(ctx) + GpxTrack(id, name, kept.size, group.trim().take(24), kept.firstOrNull()))
         return id
     }
 
+    /** Puts the track in the folder [group] (blank takes it out of its folder). */
+    fun setGroup(ctx: Context, id: String, group: String) =
+        write(ctx, list(ctx).map { if (it.id == id) it.copy(group = group.trim().take(24)) else it })
+
     fun delete(ctx: Context, id: String) {
         File(dir(ctx), "$id.txt").delete()
+        write(ctx, list(ctx).filter { it.id != id })
+    }
+
+    private fun write(ctx: Context, tracks: List<GpxTrack>) {
         val a = JSONArray()
-        list(ctx).filter { it.id != id }.forEach { a.put(JSONObject().put("id", it.id).put("name", it.name).put("n", it.points)) }
+        tracks.forEach { t ->
+            a.put(JSONObject().put("id", t.id).put("name", t.name).put("n", t.points).put("g", t.group)
+                .put("s", t.start?.let { String.format(java.util.Locale.US, "%.6f,%.6f", it.lat, it.lon) } ?: ""))
+        }
         prefs(ctx).edit().putString(LIST_KEY, a.toString()).apply()
+    }
+
+    private fun parseStart(s: String): LL? {
+        val p = s.split(',')
+        if (p.size != 2) return null
+        val la = p[0].toDoubleOrNull() ?: return null
+        val lo = p[1].toDoubleOrNull() ?: return null
+        return LL(la, lo)
     }
 
     /** The index of the track point nearest to [p]. */

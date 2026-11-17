@@ -261,6 +261,8 @@ internal object PreferenceKeys {
     const val SEARCH_FOLD = "search_fold"
     /** The media bar (back, play / pause, next) on the driving screen while music plays. */
     const val MEDIA_CONTROLS = "media_controls"
+    /** The direction ("Heading E") after the road name when driving with no route. */
+    const val HEADING_WORD = "heading_word"
     /** The + / - zoom last used when not on a route, kept for next time: on the phone / head unit, and on Android Auto. */
     const val FREE_ZOOM = "freezoom"
     const val FREE_ZOOM_CAR = "freezoomcar"

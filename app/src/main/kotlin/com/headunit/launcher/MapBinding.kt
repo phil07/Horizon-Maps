@@ -1283,7 +1283,7 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
         }
         // the cone starts at the arrow's own spot and goes out ahead of it along your heading (it used to start 12 m ahead, and at a tilt it
         // could come out behind the car's picture)
-        val ahead = 0.0
+        val ahead = -3.0
         val hr = Math.toRadians(meHeading)
         val q = LL(p.lat + ahead * Math.cos(hr) / 111_320.0, p.lon + ahead * Math.sin(hr) / (111_320.0 * Math.cos(Math.toRadians(p.lat)).coerceAtLeast(0.01)))
         val f = Feature.fromGeometry(Point.fromLngLat(q.lon, q.lat))
@@ -1301,7 +1301,7 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
         val half = (h * Math.tan(Math.toRadians(17.0))).toFloat()
         val path = Path().apply { moveTo(w / 2f, h - 2f); lineTo(w / 2f - half, 4f); lineTo(w / 2f + half, 4f); close() }
         val p = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            shader = android.graphics.LinearGradient(0f, h.toFloat(), 0f, 0f, intArrayOf(0x88FFF1C2.toInt(), 0x44FFF1C2.toInt(), 0x00FFF1C2), floatArrayOf(0f, 0.55f, 1f), android.graphics.Shader.TileMode.CLAMP)
+            shader = android.graphics.LinearGradient(0f, h.toFloat(), 0f, 0f, intArrayOf(0x44FFF1C2.toInt(), 0x22FFF1C2.toInt(), 0x00FFF1C2), floatArrayOf(0f, 0.55f, 1f), android.graphics.Shader.TileMode.CLAMP)
             maskFilter = android.graphics.BlurMaskFilter(6f, android.graphics.BlurMaskFilter.Blur.NORMAL)
         }
         c.drawPath(path, p)
