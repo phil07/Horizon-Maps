@@ -5419,7 +5419,12 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
             val lightTag = when (lights) { 1 -> Lang.t("An der Ampel", "At the lights"); 2 -> Lang.t("An der zweiten Ampel", "At the second lights"); else -> "" }
             val newTurn = TurnInfo(
                 d, street, rbMan, if (thenOn) nxt?.maneuver else null,
-                if (thenOn && nxt != null) Lang.t("Dann ", "Then ") + Geo.maneuverText(nxt.maneuver, nxt.roundExit) + (if (nxt.street.isNotBlank()) Lang.t(" auf ${nxt.street}", " onto ${nxt.street}") else "") else "",
+                if (thenOn && nxt != null) {
+                    // a roundabout's exit number is in the arrow now, so the line only needs the road
+                    val rbNumbered = nxt.maneuver.uppercase().startsWith("ROUNDABOUT") && nxt.roundExit > 0 && nxt.street.isNotBlank()
+                    if (rbNumbered) Lang.t("Dann auf ${nxt.street}", "Then onto ${nxt.street}")
+                    else Lang.t("Dann ", "Then ") + Geo.maneuverText(nxt.maneuver, nxt.roundExit) + (if (nxt.street.isNotBlank()) Lang.t(" auf ${nxt.street}", " onto ${nxt.street}") else "")
+                } else "",
                 laneSec, Geo.stepTag(cur).ifBlank { lightTag }, laneAdv, cur.roundExit, cur.sign,
                 exitNo = cur.exitNo, rbIn = rbGeo?.first ?: cur.rbIn, rbOut = rbGeo?.second ?: cur.rbOut, rbExits = emptyList(), thenGap = if (thenOn) gap else 0.0, thenExit = if (thenOn) (nxt?.roundExit ?: 0) else 0,
                 junction = jc?.let { Junctions.label(it.first, it.second) }.orEmpty(), junctionName = jc?.first.orEmpty(),

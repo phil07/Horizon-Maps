@@ -52,6 +52,7 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.draw.shadow
@@ -304,7 +305,8 @@ fun ManeuverArrow(
             // points ([exitAngle] from the route's road bearings when known, otherwise the manoeuvre's left/right/ahead).
             // The highlighted arc follows the traffic: clockwise where people keep left (UK), anticlockwise elsewhere.
             // (The exit's number isn't used for the direction: a "2nd exit" can point anywhere, depending on the roundabout.)
-            val cx = 24f; val cy = 25f; val rr = 8f
+            // with an exit number the ring is bigger, so the number fits inside it
+            val cx = 24f; val cy = 25f; val rr = if (roundaboutExit > 0) 11f else 8f
             val ringRect = Rect(Offset((cx - rr) * s, (cy - rr) * s), Size(rr * 2f * s, rr * 2f * s))
             val ringStroke = Stroke(width = 3.5f * s, cap = StrokeCap.Round)
             drawCircle(color.copy(alpha = 0.3f), rr * s, p(cx, cy), style = ringStroke)
@@ -321,10 +323,21 @@ fun ManeuverArrow(
             var sweep = if (roundaboutClockwise) wrap(exitDeg - 90f) else -wrap(90f - exitDeg)
             if (kotlin.math.abs(sweep) < 25f) sweep = if (roundaboutClockwise) 335f else -335f // all the way round
             drawArc(color, 90f, sweep, false, ringRect.topLeft, ringRect.size, style = ringStroke)
+            // the exit's number, large, in the middle of the ring
+            if (roundaboutExit > 0) {
+                val argb = android.graphics.Color.argb((color.alpha * 255).toInt(), (color.red * 255).toInt(), (color.green * 255).toInt(), (color.blue * 255).toInt())
+                val paint = android.graphics.Paint().apply {
+                    this.color = argb; textSize = 14f * s; textAlign = android.graphics.Paint.Align.CENTER; isFakeBoldText = true; isAntiAlias = true
+                }
+                val centre = p(cx, cy)
+                drawContext.canvas.nativeCanvas.drawText(roundaboutExit.toString(), centre.x, centre.y - (paint.descent() + paint.ascent()) / 2f, paint)
+            }
             val endDeg = Math.toRadians((90f + sweep).toDouble())
             val dx = kotlin.math.cos(endDeg).toFloat()
             val dy = kotlin.math.sin(endDeg).toFloat()
-            val ex = cx + dx * (rr + 10f); val ey = cy + dy * (rr + 10f)
+            // the exit reaches as far out as before, so the arrow head stays inside the icon
+            val reach = rr + (if (roundaboutExit > 0) 7f else 10f)
+            val ex = cx + dx * reach; val ey = cy + dy * reach
             drawLine(color, p(cx + dx * rr, cy + dy * rr), p(ex, ey), sw, StrokeCap.Round)
             val tip = p(ex + dx * 5f, ey + dy * 5f)
             val px = -dy; val py = dx

@@ -1,14 +1,12 @@
 ## Unreleased
 
 ### Neu
-- Such-Taste auf der Fahrtkarte (Android Auto): Ein Tipp öffnet die Suche. Ein Ort, den du während der Fahrt wählst, wird gefragt: „Als Stopp“ oder „Hierhin“. Ausschaltbar unter Einstellungen › Android Auto › Knöpfe auf der Fahrtkarte. (Dank an yurividal)
-  EN: Search button on the trip card (Android Auto): a tap opens the search. A place you pick while driving is asked about: "Add as a stop" or "Go here". Can be turned off under Settings › Android Auto › Buttons on the trip card. (Thanks to yurividal)
-- Verknüpfungen auf dem Autodisplay: Die Reihe unter der Suche wie auf dem Handy, mit deinen Orten, Favoriten und Tracks sowie den Knöpfen „Meine Orte“ und „Meine Tracks“. (Dank an bijindas)
-  EN: Shortcuts on Android Auto: the row under the search bar as on the phone, with your places, favourites and tracks and the "My places" and "My tracks" buttons. (Thanks to bijindas)
+- Stopp hinzufügen von der Fahrtkarte: Neben „Route beenden“ gibt es einen Plus-Knopf. Er öffnet deine Stopps, wo du unterwegs einen Stopp hinzufügst. (Dank an karthikeyansr-lgtm)
+  EN: Add a stop from the trip card: a plus button next to "End route" opens your stops, where you can add one on the way. (Thanks to karthikeyansr-lgtm)
 
 ### Verbessert
-- Such-Knöpfe einzeln ausschalten: Tanken, Laden, Essen, Kaffee, Parken, Stellplätze, Entsorgung und Autogas lassen sich einzeln unter Einstellungen › Orte & Fahrten › Verknüpfungen ein- und ausschalten. Ausgeschaltete kommen nicht von allein zurück.
-  EN: Find buttons can be turned off one by one: fuel, charging, food, coffee, parking, pitches, water & waste and LPG, under Settings › Places & trips › Shortcuts. Turned-off ones don't come back on their own.
+- Abbiegekarte: Der Fortschrittsbalken sitzt ein Stück innen, sodass seine runden Ecken die letzten Sekunden nicht mehr verdecken. Im Kreisverkehr steht die Ausfahrtnummer groß im größeren Ring, auf der Abbiegekarte und in der „Dann“-Zeile. Die „Dann“-Zeile nennt dann nur noch die Straße.
+  EN: Turn card: the progress bar sits a little way in, so its rounded corners no longer hide the last seconds. At a roundabout, the exit number is written large inside a bigger ring, on the turn card and in the "then" line. The "then" line now only names the road. (Thanks to karthikeyansr-lgtm)
 
 ## 1.0.246 — 2026-10-28
 
