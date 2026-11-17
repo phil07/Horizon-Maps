@@ -263,6 +263,9 @@ internal object PreferenceKeys {
     const val MEDIA_CONTROLS = "media_controls"
     /** The direction ("Heading E") after the road name when driving with no route. */
     const val HEADING_WORD = "heading_word"
+    /** The row under the search bar: a button for your saved places, and one for your GPX tracks (nearest first). */
+    const val SC_PLACES = "sc_places"
+    const val SC_TRACKS = "sc_tracks"
     /** The + / - zoom last used when not on a route, kept for next time: on the phone / head unit, and on Android Auto. */
     const val FREE_ZOOM = "freezoom"
     const val FREE_ZOOM_CAR = "freezoomcar"

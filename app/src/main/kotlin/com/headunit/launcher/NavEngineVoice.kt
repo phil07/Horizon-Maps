@@ -181,6 +181,9 @@ fun NavEngine.handleVoice(raw: String): String? {
         return ""
     }
     if (has("what time", "wie spät", "uhrzeit", "wieviel uhr", "wie viel uhr")) { say(Lang.t("Es ist ${f.format(Date())}", "It's ${f.format(Date())}")); return "" }
+    // "add a stop at …", "füg einen Zwischenstopp bei … hinzu": a stop on the way, the destination stays where it is
+    Regex("^(?:add|put|insert) (?:a |an )?(?:stop|stopover)(?: at| in| to| for)? (.+)$").find(t)?.let { return "stop:" + it.groupValues[1] }
+    Regex("^(?:füg|füge|setz|setze|nimm)\\s+(?:einen |eine |ein )?(?:zwischenstopp|stopp|halt)\\s*(?:bei|in|nach|zu|an|am)?\\s+(.+?)(?:\\s+hinzu|\\s+ein)?$").find(t)?.let { return "stop:" + it.groupValues[1] }
     // "take me to …", "navigate to …", "fahr nach …", "navigiere zu …"
     Regex("^(?:go to|take me to|navigate to|drive to|directions to|head to|find|search for|show me)\\s+(.+)$").find(t)?.let { return "search:" + it.groupValues[1] }
     deDest?.let { return "search:$it" }

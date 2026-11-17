@@ -411,6 +411,7 @@ fun StopsDialog(engine: NavEngine, onClose: () -> Unit) {
                     }
                 }
             }
+            val arrivals = remember(engine.via) { engine.stopArrivalTimes() }
             LazyColumn(Modifier.weight(1f, fill = false).heightIn(max = 260.dp)) {
                 itemsIndexed(stops) { i, p ->
                     Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -418,6 +419,9 @@ fun StopsDialog(engine: NavEngine, onClose: () -> Unit) {
                             Text("${i + 1}", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Bold)
                         }
                         Text(p.name, color = c.text, fontSize = 16.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f).padding(start = 12.dp))
+                        // when you get to this stop (only for the stops the route has now, not ones added or moved here)
+                        val at = if (i < engine.via.size && engine.via[i].pos == p.pos) arrivals.getOrNull(i).orEmpty() else ""
+                        if (at.isNotBlank()) Text(at, color = c.sub, fontSize = 14.sp, maxLines = 1, modifier = Modifier.padding(start = 6.dp, end = 4.dp))
                         Icon(Icons.Rounded.KeyboardArrowUp, Lang.t("Früher", "Earlier"), tint = if (i > 0) c.text else c.sub.copy(alpha = 0.3f),
                             modifier = Modifier.size(36.dp).clickable(enabled = i > 0) { stops = stops.toMutableList().also { l -> val t = l[i]; l[i] = l[i - 1]; l[i - 1] = t } })
                         Icon(Icons.Rounded.KeyboardArrowDown, Lang.t("Später", "Later"), tint = if (i < stops.size - 1) c.text else c.sub.copy(alpha = 0.3f),

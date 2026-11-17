@@ -718,6 +718,10 @@ private fun PlaceItem(label: String, p: Place?, onChange: () -> Unit, onClear: (
 @Composable
 private fun PlacesSection(engine: NavEngine) {
     val pl = engine.places
+    SGroup("Verknüpfungen", footer = "Knöpfe in der Reihe unter der Suche. Der Knopf zeigt eine Liste, den nächsten Ort oder Track zuerst.") {
+        SToggle(engine.prefs, "Meine Orte", PreferenceKeys.SC_PLACES, false, "Liste deiner Orte und Favoriten")
+        SToggle(engine.prefs, "Meine Tracks", PreferenceKeys.SC_TRACKS, false, "Liste deiner GPX-Tracks")
+    }
     GpxTracksGroup(engine)
     var settingSlot by remember { mutableStateOf<String?>(null) }
     val slotsRaw = engine.prefs.s(PreferenceKeys.PLACE_HOME, "") + engine.prefs.s("place_work", "")

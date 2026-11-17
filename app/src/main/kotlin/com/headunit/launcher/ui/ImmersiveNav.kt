@@ -238,6 +238,8 @@ private fun MapScreen(engine: NavEngine, onSettings: () -> Unit) {
             "share" -> shareEta()
             "" -> {}
             else -> if (r.startsWith("search:")) { val w = r.removePrefix("search:"); q = w; engine.search(w) }
+                // a stop asked for by voice: the search picks it as a stop (the destination stays)
+                else if (r.startsWith("stop:")) { val w = r.removePrefix("stop:"); q = w; engine.stopMode = true; engine.search(w) }
         }
     }
     val typingLocked by remember { derivedStateOf { (engine.fix?.speed ?: 0.0) > 3.0 && engine.prefs.b(PreferenceKeys.DRIVELOCK, false) } }
@@ -1448,6 +1450,32 @@ private fun ImmChips(engine: NavEngine, focusSearch: () -> Unit) {
     val tracks = com.headunit.launcher.Gpx.list(ctxT)
     var addingPlace by remember { mutableStateOf(false) }
     if (addingPlace) AddPlaceDialog(engine, null) { addingPlace = false }
+    // the shortcuts "My places" and "My tracks" (Settings › Places & trips › Shortcuts): their list opens here, nearest first
+    var listKind by remember { mutableStateOf<String?>(null) }
+    val cList = LocalVw.current
+    val here = engine.fix?.pos
+    listKind?.let { kind ->
+        val rows: List<Triple<String, Double, () -> Unit>> = if (kind == "places") {
+            (engine.places.customs().map { Pair(it.label, it.place) } + engine.places.favourites().map { Pair(it.name, it) }).map { (name, p) ->
+                Triple(name, here?.let { Geo.dist(it, p.pos) } ?: 0.0, { engine.startRoute(p); listKind = null })
+            }.sortedBy { it.second }
+        } else com.headunit.launcher.Gpx.list(ctxT).mapNotNull { t ->
+            t.start?.let { s -> Triple(t.name, here?.let { Geo.dist(it, s) } ?: 0.0, { engine.driveTrack(t.name, com.headunit.launcher.Gpx.load(ctxT, t.id)); listKind = null }) }
+        }.sortedBy { it.second }
+        androidx.compose.material3.AlertDialog(onDismissRequest = { listKind = null }, confirmButton = { },
+            title = { Text(if (kind == "places") Lang.t("Meine Orte", "My places") else Lang.t("Meine Tracks", "My tracks"), color = cList.text) },
+            text = {
+                if (rows.isEmpty()) Text(if (kind == "places") Lang.t("Noch keine Orte gespeichert.", "No places saved yet.") else Lang.t("Noch keine Tracks importiert.", "No tracks imported yet."), color = cList.sub)
+                else LazyColumn(Modifier.heightIn(max = 380.dp)) {
+                    items(rows) { (name, d, go) ->
+                        Row(Modifier.fillMaxWidth().clickable { go() }.padding(vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Text(name, color = cList.text, fontSize = 16.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
+                            if (here != null) Text(Geo.fmtDist(d, engine.imperial), color = cList.sub, fontSize = 13.sp, modifier = Modifier.padding(start = 10.dp))
+                        }
+                    }
+                }
+            })
+    }
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
         val showHome = engine.prefs.b(PreferenceKeys.HOME_TILE, true); val showWork = engine.prefs.b(PreferenceKeys.WORK_TILE, true)
         if (showHome || showWork) Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -1463,6 +1491,8 @@ private fun ImmChips(engine: NavEngine, focusSearch: () -> Unit) {
                 ImmChip(if (own) Icons.Rounded.Place else Icons.Rounded.Star, if (own) Color(0xFF4C8DFF) else Color(0xFFF29900), label) { engine.startRoute(p) }
             }
             for (t in tracks) ImmChip(Icons.Rounded.Route, Color(0xFF2E7D32), t.name) { engine.driveTrack(t.name, com.headunit.launcher.Gpx.load(ctxT, t.id)) }
+            if (engine.prefs.b(PreferenceKeys.SC_PLACES, false)) ImmChip(Icons.Rounded.Place, Color(0xFF4C8DFF), Lang.t("Meine Orte", "My places")) { listKind = "places" }
+            if (engine.prefs.b(PreferenceKeys.SC_TRACKS, false)) ImmChip(Icons.Rounded.Route, Color(0xFF2E7D32), Lang.t("Meine Tracks", "My tracks")) { listKind = "tracks" }
             ImmChip(Icons.Rounded.Add, LocalVw.current.accent, Lang.t("Ort hinzufügen", "Add a place")) { addingPlace = true }
         }
         // things to find nearby: always all five on show, no scrolling sideways to find them

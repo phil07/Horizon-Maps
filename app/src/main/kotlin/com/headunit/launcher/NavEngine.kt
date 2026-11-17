@@ -5286,7 +5286,7 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
         if (!light) {
             try { checkIncidents(r, progress) } catch (e: Exception) { }
             fix?.let { f -> try { checkYieldSigns(f.pos, f.heading) } catch (e: Exception) { } }
-            fix?.let { f -> if (via.isNotEmpty() && Geo.dist(f.pos, via[0].pos) < viaReachM()) { stopPause = via[0].name; val reached = via[0].pos
+            fix?.let { f -> if (via.isNotEmpty() && viaReached(r, progress, f.pos)) { stopPause = via[0].name; val reached = via[0].pos
                 // a charging stop reached: from here the battery counts from the charge planned there (until the car reports a newer level)
                 evPlanned.firstOrNull { Geo.dist(it.n.place.pos, reached) < 30.0 }?.let { st -> evChargeRefPct = st.toPct.toDouble(); evChargeRefAt = System.currentTimeMillis(); evSinceCharge = 0.0; evRefPct = -1; evSave() }
                 evPlanned = evPlanned.filter { Geo.dist(it.n.place.pos, reached) >= 30.0 }; via = via.drop(1); pushVia() } }
@@ -6648,6 +6648,32 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
             evReplanNotice = 1
             toast(Lang.t("Neuer Weg: Ladestopps werden neu geplant …", "New way: planning the charging stops again …"), 4000)
             startRoute(d, departMin, true, startNow = true)
+        }
+    }
+
+    /**
+     * The next stop is reached when you are at it, or when it is set back from the road (a pin in the middle of a car park) and you
+     * have driven past the point where the route leaves the road for it. It used to need you within 80 m, so such a stop was never
+     * counted and the route went back to it.
+     */
+    private fun viaReached(r: Route, progress: Double, f: LL): Boolean {
+        val p = via.firstOrNull() ?: return false
+        val d = Geo.dist(f, p.pos)
+        if (d < viaReachM()) return true
+        if (d >= 250.0) return false
+        val at = RouteExtras.project(r, p.pos, 250.0)?.first ?: return false
+        return progress >= at - 15.0
+    }
+
+    /** The clock time you get to each stop on the way, from where the route puts it along the drive ("" when it can't tell). */
+    fun stopArrivalTimes(): List<String> {
+        val r = route ?: return emptyList()
+        val fmt = java.text.SimpleDateFormat("HH:mm", java.util.Locale.getDefault())
+        val now = System.currentTimeMillis()
+        return via.map { p ->
+            val at = RouteExtras.project(r, p.pos, 400.0)?.first ?: return@map ""
+            val secsAhead = max(0.0, at - curProgress) / max(1.0, r.len) * r.time
+            fmt.format(java.util.Date(now + (secsAhead * 1000).toLong()))
         }
     }
 
