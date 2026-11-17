@@ -718,6 +718,7 @@ private fun PlaceItem(label: String, p: Place?, onChange: () -> Unit, onClear: (
 @Composable
 private fun PlacesSection(engine: NavEngine) {
     val pl = engine.places
+    GpxTracksGroup(engine)
     var settingSlot by remember { mutableStateOf<String?>(null) }
     val slotsRaw = engine.prefs.s(PreferenceKeys.PLACE_HOME, "") + engine.prefs.s("place_work", "")
     SGroup("Gespeicherte Orte", footer = "Auch über die Buttons unter der Suchleiste festlegbar.") {
@@ -746,6 +747,9 @@ private fun PlacesSection(engine: NavEngine) {
         SItem("Ort hinzufügen") { SButton("Hinzufügen", primary = true) { adding = true } }
     }
     // Home and Work under the search bar: each can be left off (the app and Android Auto alike)
+    SGroup("Suchleiste", footer = "Ohne Route klappt die Suchleiste mit ihren Knöpfen in einen runden Suchknopf in der Ecke zusammen. Die Karte hat dann den ganzen Bildschirm, und Ihr Pfeil steht in der Mitte.") {
+        SToggle(engine.prefs, "Suche als Knopf", PreferenceKeys.SEARCH_FOLD, false, "Ohne Route nur ein runder Knopf in der Ecke")
+    }
     SGroup("Zuhause und Arbeit unter der Suche", footer = "Die beiden Kacheln unter der Suchleiste einzeln ein- oder ausblenden. Gilt für die App und Android Auto.") {
         SToggle(engine.prefs, "Zuhause", PreferenceKeys.HOME_TILE, true, "Die Kachel Zuhause mit der Fahrtzeit")
         SToggle(engine.prefs, "Arbeit", PreferenceKeys.WORK_TILE, true, "Die Kachel Arbeit mit der Fahrtzeit")
@@ -851,11 +855,51 @@ private fun TripsGroup(engine: NavEngine) {
 }
 
 
+/** GPX tracks from Komoot, Strava or Garmin: import one, show it on the map, or drive it to its end. */
+@Composable
+private fun GpxTracksGroup(engine: NavEngine) {
+    val ctx = LocalContext.current
+    var tracks by remember { mutableStateOf(com.headunit.launcher.Gpx.list(ctx)) }
+    var shown by remember { mutableStateOf<String?>(null) }
+    var note by remember { mutableStateOf<String?>(null) }
+    val pick = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        if (uri != null) {
+            val parsed = try { ctx.contentResolver.openInputStream(uri)?.bufferedReader()?.use { com.headunit.launcher.Gpx.parse(it.readText()) } } catch (e: Exception) { null }
+            if (parsed == null) note = "Keine Strecke in dieser Datei gefunden."
+            else {
+                com.headunit.launcher.Gpx.save(ctx, parsed.first, parsed.second)
+                tracks = com.headunit.launcher.Gpx.list(ctx); note = null
+            }
+        }
+    }
+    SGroup("GPX-Tracks", footer = "Eine .gpx-Datei aus Komoot, Strava, Garmin oder einer eigenen Aufnahme. „Zeigen“ legt sie auf die Karte, „Fahren“ führt bis zu ihrem Ende mit den üblichen Ansagen.") {
+        SItem("GPX-Datei importieren", note) { SButton("Datei wählen", primary = true) { pick.launch(arrayOf("*/*")) } }
+        if (tracks.isEmpty()) SNote("Noch keine Tracks importiert.")
+        tracks.forEach { t ->
+            SItem(t.name, "${t.points} Punkte") {
+                SButton(if (shown == t.id) "Ausblenden" else "Zeigen") {
+                    if (shown == t.id) { shown = null; engine.map.setTrack(emptyList()) }
+                    else { shown = t.id; engine.map.setTrack(com.headunit.launcher.Gpx.load(ctx, t.id)) }
+                }
+                SButton("Fahren", primary = true) {
+                    engine.driveTrack(t.name, com.headunit.launcher.Gpx.load(ctx, t.id))
+                    engine.externalTick++
+                }
+                SButton("Entfernen", danger = true) {
+                    if (shown == t.id) { shown = null; engine.map.setTrack(emptyList()) }
+                    com.headunit.launcher.Gpx.delete(ctx, t.id); tracks = com.headunit.launcher.Gpx.list(ctx)
+                }
+            }
+        }
+    }
+}
+
 /** Share your ETA and places sent from other apps (part of Places & trips). */
 /** Your own normal zoom when not on a route: a slider from further out to closer, and Reset. */
 @Composable
 private fun DefaultZoomRow(prefs: Prefs) {
     val c = LocalVw.current
+    SToggle(prefs, "Automatischer Zoom", PreferenceKeys.AUTO_ZOOM, true, "Aus: die Karte bleibt auf einem gleichen Zoom, egal wie schnell man fährt. + und − wirken trotzdem.")
     val saved = (prefs.s(PreferenceKeys.DEFAULT_ZOOM, "0").toFloatOrNull() ?: 0f).coerceIn(-2f, 2f)
     var v by remember(saved) { mutableStateOf(saved) }
     fun save(x: Float) = prefs.put(PreferenceKeys.DEFAULT_ZOOM, String.format(java.util.Locale.US, "%.2f", x))
@@ -1066,6 +1110,16 @@ private fun ScreenSection(prefs: Prefs, engine: NavEngine) {
             SSlider("Straßennamen-Größe", prefs.i(PreferenceKeys.ROAD_NAME_SIZE, 100).toFloat(), 70f..200f, "%", sub = "Name der aktuellen Straße unter dem Pfeil", steps = 12, reset = 100f) { prefs.put(PreferenceKeys.ROAD_NAME_SIZE, it) }
         }
 
+    }
+    SGroup("Song und Cover", footer = "Zurück, Pause und Weiter unten auf dem Fahrbildschirm, solange auf dem Autodisplay Musik oder Radio läuft, aus jeder App. Mit Benachrichtigungszugriff stehen auch Titel, Interpret und Cover dabei.") {
+        val ctx = LocalContext.current
+        val access = com.headunit.launcher.MediaHub.hasAccess(ctx)
+        SToggle(prefs, "Mediensteuerung", PreferenceKeys.MEDIA_CONTROLS, true, "Die Leiste erscheint nur, wenn etwas läuft")
+        SItem("Titel und Cover", if (access) "Zugriff erteilt" else "Noch kein Zugriff: Titel und Cover fehlen") {
+            SButton(if (access) "Ändern" else "Zugriff erlauben", primary = !access) {
+                ctx.startActivity(android.content.Intent(android.provider.Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK))
+            }
+        }
     }
     SGroup("Beim Fahren") {
         SToggle(prefs, "Geschwindigkeit neben dem Limit", "mapspeed", true)

@@ -18,8 +18,10 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.selects.select
 import kotlinx.coroutines.withContext
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -776,6 +778,8 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
     internal var offCount = 0
     /** When the car first left the route in the current stretch of being off it (0 when it's on the route). */
     private var offSince = 0L
+    /** An early route request, started at the first reading off the route: from where that reading was (used only if you are still near it). */
+    private var earlyReroute: Pair<LL, kotlinx.coroutines.Deferred<List<Route>>>? = null
     /** Off-route strikes before the route is recalculated: 1 (was 3, then 2) so a wrong turn is caught at the first clear sign. */
     private val REROUTE_STRIKES = 1
     /** Since when (elapsed ms, 0 none) you've been going the wrong way along the route, and how far along it you were then. */
@@ -2402,6 +2406,20 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
             else prefs.s(PreferenceKeys.AVOID_TOLL_COUNTRIES, "").split(',').map { it.trim().uppercase() }.filter { it.length == 2 }.toSet()
     }
 
+    /**
+     * Drives an imported GPX track: from its point nearest to you to its end, through a few of its points spread along it, so the
+     * route follows the track. A reroute keeps those points (they are the stops it goes through).
+     */
+    fun driveTrack(name: String, track: List<LL>) {
+        if (track.size < 2) return
+        val first = fix?.pos?.let { Gpx.nearest(track, it) } ?: 0
+        val rest = track.drop(first)
+        if (rest.size < 2) return
+        val step = maxOf(1, rest.size / 18)
+        via = rest.indices.filter { it > 0 && it % step == 0 && it < rest.size - 1 }.map { Place(name, "", rest[it]) }
+        startRoute(Place(name, "", rest.last()), keepVia = true)
+    }
+
     fun startRoute(to: Place, departInMin: Int = 0, keepVia: Boolean = false, startNow: Boolean = false) {
         // a drive ends the walk to the car
         if (walking) endWalk()
@@ -2684,6 +2702,17 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
 
     internal var rerouting = false
 
+    /** Asks for a route from [from] now, in the background: the first reading off the route starts it, before the wrong turn is sure. */
+    private fun startEarlyReroute(from: LL) {
+        val d = dest ?: return
+        if (rerouting || previewing) return
+        val hd = fix?.let { if (it.speed > 2.0) it.heading else -1.0 } ?: -1.0
+        val vias = via.map { it.pos }
+        earlyReroute = from to scope.async(Dispatchers.IO) {
+            try { netRoutes(from, d.pos, false, 0L, vias, hd, true, askBoth = true) } catch (e: Exception) { emptyList() }
+        }
+    }
+
     internal fun reroute() {
         val d = dest ?: return
         if (rerouting || fix == null) return
@@ -2692,6 +2721,9 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
         rerouting = true
         syncRoutePrefs(fix?.pos, d.pos); faster = null
         toast(ctx.getString(R.string.toast_038), 2500)
+        // the early request is used only when it started near where you are now; from further back it would start behind you
+        val early = earlyReroute?.takeIf { e -> fix?.let { Geo.dist(e.first, it.pos) <= 40.0 } == true }
+        earlyReroute = null
         scope.launch {
             var err: String? = null
             try {
@@ -2699,7 +2731,7 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
                     val f = fix ?: break
                     try {
                         val hd = if (f.speed > 2.0) f.heading else -1.0
-                        val rs = withContext(Dispatchers.IO) {
+                        suspend fun fetchNow(): List<Route> = withContext(Dispatchers.IO) {
                             val haveOffline = OfflineRouter.installed(ctx)
                             if (haveOffline && (!hasOnline || !online())) OfflineRouter.routes(ctx, f.pos, d.pos, via.map { it.pos }, hd)
                             else try { netRoutes(f.pos, d.pos, false, 0L, via.map { it.pos }, hd, true, askBoth = true) }
@@ -2707,6 +2739,13 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
                                 if (haveOffline && NavigationFallbackPolicy.shouldUseOffline(e)) OfflineRouter.routes(ctx, f.pos, d.pos, via.map { it.pos }, hd) else throw e
                             }
                         }
+                        // two requests at once (the early one and a fresh one from here): whichever answers first with a route is used
+                        val rs = if (early != null && attempt == 1) {
+                            val a = early.second
+                            val b = scope.async(Dispatchers.IO) { fetchNow() }
+                            val first = select<List<Route>> { a.onAwait { it }; b.onAwait { it } }
+                            first.ifEmpty { awaitAll(a, b).flatten() }
+                        } else fetchNow()
                         // the route was ended (or a new destination chosen) while this was worked out: the old route must not come back
                         if (dest !== d || previewing) { err = null; break }
                         if (rs.isNotEmpty()) { val was = route; routes = rs; active = keepChosen(rs, was); said.clear(); offCount = 0; lastIdx = 0; trustProg = -1.0; clearLiveAlts(); drawRoutes(); cardsForStartAlts(); updateRouteZones(); evAfterReroute()
@@ -4335,8 +4374,10 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
             if (newFix) {
                 // off the route for about a second in a row: a new route is asked for as soon as you start to leave it, not once it's
                 // certain (the arrow has followed you already)
-                if (offSince == 0L) offSince = nowT
-                if (nowT - offSince >= 1000L) { offSince = 0L; offCount = 0; reroute(); return }
+                if (offSince == 0L) { offSince = nowT; startEarlyReroute(p.pos) }
+                // clearly on another road (well beyond the route's limit) counts on this first reading; a smaller step off waits a second
+                val clearlyOff = s.dist > maxOf(offLim * 2.0, 60.0) || jump
+                if (clearlyOff || nowT - offSince >= 1000L) { offSince = 0L; offCount = 0; reroute(); return }
             }
         } else if (gpsReliableForReroute && newFix && !netGrace) {
             // Still close to the route, but a vehicle moving away from its direction can indicate a wrong turn.
@@ -4403,6 +4444,8 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
         val now = android.os.SystemClock.uptimeMillis()
         speedLog.addLast(now to sp)
         while (speedLog.isNotEmpty() && now - speedLog.first().first > 8000L) speedLog.removeFirst()
+        // Auto zoom off: one steady zoom, whatever the speed or the junction (the + and − offsets are added on top by the caller)
+        if (!prefs.b(PreferenceKeys.AUTO_ZOOM, true)) return 17.0
         var z = if (navigating) navZoom(sp) else speedZoom(sp)
         if (navigating) {
             // coming up to traffic lights: in close if you're slowing down (you may be stopping), only a little if you're carrying on

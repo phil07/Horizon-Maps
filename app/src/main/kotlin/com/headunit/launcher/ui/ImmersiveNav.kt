@@ -57,6 +57,12 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.foundation.Image
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.rounded.SkipPrevious
+import androidx.compose.material.icons.rounded.SkipNext
+import androidx.compose.material.icons.rounded.Pause
 import androidx.compose.material.icons.rounded.PropaneTank
 import androidx.compose.material.icons.rounded.RvHookup
 import androidx.compose.material.icons.rounded.Park
@@ -243,6 +249,13 @@ private fun MapScreen(engine: NavEngine, onSettings: () -> Unit) {
     LaunchedEffect(engine.externalQuery) { engine.externalQuery?.let { q = it; engine.externalQuery = null } }
     BackHandler(enabled = sheet) { sheet = false }
     val routing = engine.route != null && !engine.previewing
+    // Search as a button (Settings › Places & trips › Search bar): with no route, the bar and its buttons fold into one round button
+    var searchOpen by remember { mutableStateOf(false) }
+    val foldOn = engine.prefs.b(PreferenceKeys.SEARCH_FOLD, false)
+    val foldSearch = foldOn && !routing && !engine.previewing && !engine.walking && !searchOpen
+    BackHandler(enabled = foldOn && searchOpen && !routing) { searchOpen = false }
+    LaunchedEffect(searchOpen) { if (searchOpen) try { focus.requestFocus() } catch (e: Exception) { } }
+    LaunchedEffect(routing) { if (routing) searchOpen = false }
     val previewing = engine.previewing
     val simple by remember { derivedStateOf { engine.driving && engine.prefs.b(PreferenceKeys.DRIVESIMPLE, true) } }
 
@@ -279,12 +292,17 @@ private fun MapScreen(engine: NavEngine, onSettings: () -> Unit) {
         fun report(i: Int, r: androidx.compose.ui.geometry.Rect) { engine.setPanel(i, r.left / boxW, r.top / boxH, r.right / boxW, r.bottom / boxH) }
         // a place tapped on the map: its card floats over everything else (also over the route options while choosing a route)
         if (engine.mapPick != null) Box(Modifier.align(Alignment.Center).offset(y = (-70).dp).padding(horizontal = 16.dp).zIndex(30f)) { PhonePickCard(engine) }
+        // the media bar: back, play / pause and next while music plays (see MediaHub)
+        if (engine.prefs.b(PreferenceKeys.MEDIA_CONTROLS, true)) Box(Modifier.align(Alignment.BottomCenter).padding(bottom = 12.dp).zIndex(1f)) { MediaBar(engine) }
+        if (foldSearch) Box(Modifier.align(side(Alignment.TopStart)).padding(16.dp).zIndex(1f)) {
+            ImmCircle(onClick = { searchOpen = true }, size = 56.dp) { Icon(Icons.Rounded.Search, Lang.t("Suche", "Search"), tint = LocalVw.current.text, modifier = Modifier.size(26.dp)) }
+        }
         Column(Modifier.align(side(Alignment.TopStart)).padding(16.dp).then(if (narrow) Modifier.fillMaxWidth().sides(end = 52.dp * mainButtonScale + 10.dp) else Modifier.width(380.dp))
             .onGloballyPositioned { report(0, it.boundsInParent()) }
             // the turn list opens over the trip card below it
             .zIndex(if (engine.itineraryOpen) 2f else 0f), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             // every block slides and fades in and out instead of popping, so the screen changes feel like one piece
-            AnimatedVisibility(!routing && !previewing, enter = fadeIn(tween(220)) + androidx.compose.animation.expandVertically(tween(260)), exit = fadeOut(tween(160)) + androidx.compose.animation.shrinkVertically(tween(220))) {
+            AnimatedVisibility(!routing && !previewing && !foldSearch, enter = fadeIn(tween(220)) + androidx.compose.animation.expandVertically(tween(260)), exit = fadeOut(tween(160)) + androidx.compose.animation.shrinkVertically(tween(220))) {
               Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 // on foot to the parked car: the next instruction and what is left, over the search bar
                 if (engine.walking) WalkCard(engine)
@@ -1781,3 +1799,31 @@ private fun AlongPanel(engine: NavEngine) {
     }
 }
 
+
+/** Back, play / pause and next for whatever plays (only while something does); the song and artwork when Horizon Nav may see them. */
+@Composable
+private fun MediaBar(engine: NavEngine) {
+    val ctx = LocalContext.current
+    val c = LocalVw.current
+    LaunchedEffect(Unit) { while (true) { com.headunit.launcher.MediaHub.refresh(ctx); delay(1000) } }
+    val now = com.headunit.launcher.MediaHub.now
+    if (!now.playing) return
+    Row(Modifier.panel(10.dp, RoundedCornerShape(28.dp), c.surface).padding(horizontal = 8.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+        now.art?.let { Image(it.asImageBitmap(), null, contentScale = ContentScale.Crop, modifier = Modifier.size(44.dp).clip(RoundedCornerShape(10.dp))) }
+        if (now.title.isNotBlank()) Column(Modifier.widthIn(max = 200.dp).padding(horizontal = 10.dp)) {
+            Text(now.title, color = c.text, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            if (now.artist.isNotBlank()) Text(now.artist, color = c.sub, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        }
+        MediaKey(Icons.Rounded.SkipPrevious, Lang.t("Zurück", "Back")) { com.headunit.launcher.MediaHub.control(ctx, "prev") }
+        MediaKey(Icons.Rounded.Pause, Lang.t("Pause", "Pause")) { com.headunit.launcher.MediaHub.control(ctx, "toggle") }
+        MediaKey(Icons.Rounded.SkipNext, Lang.t("Weiter", "Next")) { com.headunit.launcher.MediaHub.control(ctx, "next") }
+    }
+}
+
+@Composable
+private fun MediaKey(icon: ImageVector, desc: String, onClick: () -> Unit) {
+    val c = LocalVw.current
+    Box(Modifier.size(48.dp).clip(CircleShape).clickable(onClick = onClick), contentAlignment = Alignment.Center) {
+        Icon(icon, desc, tint = c.text, modifier = Modifier.size(28.dp))
+    }
+}

@@ -1281,8 +1281,9 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
             if (Geo.dist(prev, p) < 0.4 && dh < 0.7 && Math.abs(k - beamK) < 2.0) return
             if (now - beamPushedAt < 100L) return
         }
-        // the cone starts at the front of the arrow, not under it: 12 m ahead of you along your heading
-        val ahead = 12.0
+        // the cone starts at the arrow's own spot and goes out ahead of it along your heading (it used to start 12 m ahead, and at a tilt it
+        // could come out behind the car's picture)
+        val ahead = 0.0
         val hr = Math.toRadians(meHeading)
         val q = LL(p.lat + ahead * Math.cos(hr) / 111_320.0, p.lon + ahead * Math.sin(hr) / (111_320.0 * Math.cos(Math.toRadians(p.lat)).coerceAtLeast(0.01)))
         val f = Feature.fromGeometry(Point.fromLngLat(q.lon, q.lat))
@@ -1305,6 +1306,16 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
         }
         c.drawPath(path, p)
         return b
+    }
+
+    // ---- an imported GPX track, drawn as a line on the map (Settings › Places & trips › GPX tracks) ----
+    private var gpxLine: List<LL> = emptyList()
+
+    fun setTrack(pts: List<LL>) {
+        main0.post {
+            gpxLine = pts
+            try { src("dl-gpx")?.featureCollection(FeatureCollection.fromFeatures(if (pts.size >= 2) listOf(line(pts)) else emptyList())) } catch (e: Throwable) { }
+        }
     }
 
     // ---- sharp bends on the route: striped yellow with black chevrons ----
@@ -2277,6 +2288,9 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
             // (its 256 px are the beam's length: screen metres times the map's pixels per metre at this zoom, over 256)
             .iconSize(Expression.product(zoomed(2.0, 10 to 2.555e-5, 20 to 2.6165e-2), Expression.get("k"))))
         beamShown = false; beamAt = null
+        // an imported GPX track: a line in pink under the route, so the route stays on top of it
+        addS(st, GeoJsonSource.Builder("dl-gpx").featureCollection(FeatureCollection.fromFeatures(if (gpxLine.size >= 2) listOf(line(gpxLine)) else emptyList())).build())
+        addL(st, ln("dl-gpx-l", "dl-gpx").lineColor("#E91E63").lineWidth(routeW(if (im) 1.2f else 1.0f)).lineOpacity(0.85))
         // sharp bends: the line striped yellow and black, with black chevrons along it
         addS(st, GeoJsonSource.Builder("dl-sharp").featureCollection(FeatureCollection.fromFeatures(sharpLines.filter { it.size >= 2 }.map { line(it) })).build())
         addL(st, ln("dl-sharp-yellow", "dl-sharp").lineCap(LineCap.BUTT).lineColor("#FFCC00").lineWidth(routeW(if (im) 1.0f else 0.85f)))

@@ -255,6 +255,12 @@ internal object PreferenceKeys {
     const val NORTHUP_CAR = "northup_car"
     /** Your own normal zoom when not on a route, in zoom levels from the standard one (-2 to +2; 0 = standard). */
     const val DEFAULT_ZOOM = "defzoom"
+    /** Off: the map keeps one steady zoom (+ and − still change it) instead of following your speed and the junctions. */
+    const val AUTO_ZOOM = "autozoom"
+    /** With no route, the search bar and its buttons fold into one round search button in the corner. */
+    const val SEARCH_FOLD = "search_fold"
+    /** The media bar (back, play / pause, next) on the driving screen while music plays. */
+    const val MEDIA_CONTROLS = "media_controls"
     /** The + / - zoom last used when not on a route, kept for next time: on the phone / head unit, and on Android Auto. */
     const val FREE_ZOOM = "freezoom"
     const val FREE_ZOOM_CAR = "freezoomcar"
