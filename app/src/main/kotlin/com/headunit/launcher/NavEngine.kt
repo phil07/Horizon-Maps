@@ -4340,7 +4340,10 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
             if (onR && r != null && s != null) {
                 if (glideRoute !== r || gPos == null) { glideRoute = r; gProg = s.progress; gPos = s.point; gHead = p.heading }
                 // standing still: the arrow stays where it stopped instead of creeping along with the GPS wander
-                if (!isStill || glideRoute !== r) mProg = s.progress
+                // slow (stopping at a junction): a fix that puts you a long way on along the route, onto the road you are turning into,
+                // is not believed; the arrow stays where it was until the GPS agrees (it used to run on with you and then move back)
+                val leapOn = sp < 3.0 && s.progress > mProg + 20.0
+                if ((!isStill || glideRoute !== r) && !leapOn) mProg = s.progress
                 glideOnRoute = true
             } else {
                 // leaving the route: the arrow goes to where the GPS says at once, not left on the route line (it used to stay
@@ -4390,7 +4393,7 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
             // gets big enough to count as leaving the route, so it's noticed by the direction and by going backwards along it
             if (!isStill && p.speed > 3.0 && abs(angDiff(seg, p.heading)) > 130.0) {
                 if (backSince == 0L) { backSince = nowT; backProg = s.progress }
-                if (nowT - backSince > 5000L && backProg - s.progress > 25.0) { backSince = 0L; offCount = 0; reroute(); return }
+                if (nowT - backSince > 2000L && backProg - s.progress > 25.0) { backSince = 0L; offCount = 0; reroute(); return }
             } else backSince = 0L
             if (NavigationPolicy.shouldCountHeadingAwayStrike(s.dist, p.speed, angDiff(seg, p.heading), p.acc)) {
                 if (++offCount >= REROUTE_STRIKES) reroute()

@@ -252,6 +252,14 @@ fun App(prefs: Prefs, engine: NavEngine, map: MapBinding) {
             // the map runs right up round the camera cutout (full screen, no black band across the top). The weather, night sky and tunnel
             // dimming lie over the whole screen the same way. Only the cards, buttons and messages keep clear of the cutout and the bars.
             val mapLayer = setupDone && !settings && !(carOn && !phoneMap)
+            // no map after 25 s: Mapbox is asked what is in the way, and the answer is shown
+            LaunchedEffect(Unit) {
+                delay(25_000)
+                if (!map.styleReady) {
+                    val msg = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { com.headunit.launcher.MapDiag.diagnose(engine.mbToken) }
+                    engine.toast(msg, 15_000)
+                }
+            }
             Box(Modifier.fillMaxSize().background(c.bg)) {
                 if (mapLayer) {
                     MapHost(map, Modifier.fillMaxSize())

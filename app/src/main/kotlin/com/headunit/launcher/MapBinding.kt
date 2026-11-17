@@ -103,6 +103,8 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
     private val mbMap: MapboxMap get() = mapView.mapboxMap
     private val prefs = Prefs(ctx)
     private var style: Style? = null
+    /** True once the map style has loaded (the map shows). */
+    val styleReady: Boolean get() = style != null
     private var wantedStyle: String? = null
     private var loadedStyle: String? = null
     private val main0 = android.os.Handler(android.os.Looper.getMainLooper())
