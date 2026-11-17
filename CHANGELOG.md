@@ -1,12 +1,12 @@
 ## Unreleased
 
-### Behoben
-- Pfeil läuft in die Kreuzung: Beim Anhalten an einer Kreuzung wird der Pfeil nicht mehr auf die Straße gesetzt, in die du abbiegst. Er bleibt, bis das GPS sagt, wo du wirklich bist. (Dank an jvricardo1)
-  EN: Arrow running into the junction: stopping at a junction no longer leaves your arrow out in the middle of the road you are turning into. It stays until the GPS says where you really are. (Thanks to jvricardo1)
-- Falsche Fahrtrichtung auf der Route: Wenn du umdrehst oder die Route andersherum fährst, wird nach etwa 2 Sekunden eine neue Route gesucht (vorher 5). (Dank an jvricardo1)
-  EN: Driving the route the wrong way: turning round, or setting off the other way along the route, now finds a new route after about 2 seconds (it was 5). (Thanks to jvricardo1)
-- Karte lädt nicht: Lädt die Karte nach 25 Sekunden ohne Fehlermeldung nicht, fragt die App Mapbox selbst und nennt die Ursache: einen blockierten Server (privates DNS oder Werbeblocker), die Uhrzeit des Autodisplays, das Token oder die Verbindung.
-  EN: Map not appearing: if the map still hasn't loaded after 25 seconds with no error, the app asks Mapbox itself and names the cause: a blocked server (private DNS or an ad blocker), the head unit's clock, the token or the connection.
+### Verbessert
+- Scheinwerfer unter dem 3D-Auto: Mit dem 3D-Auto oder dem flachen Pfeil liegt der Lichtkegel jetzt auf der Straße unter dem Auto, statt über dem Dach gezeichnet zu werden. (Dank an liamstears)
+  EN: Headlight under the 3D car: with the 3D car or the flat arrow, the beam now lies on the road under it instead of being drawn over its roof. (Thanks to liamstears)
+- Straßenname unten bleibt: Fährst du ohne Route, wechselt der Straßenname unten nicht mehr bei jedem Abbremsen mit der Blase unter dem Pfeil. Er bleibt eine Minute, nachdem du anhältst. (Dank an liamstears)
+  EN: Road name at the bottom stays put: driving without a route, the road name at the bottom no longer swaps with the bubble under your arrow every time you slow down. It stays for a minute after you stop. (Thanks to liamstears)
+- Verkehrshinweis beim Halt: Der Hinweis lautet jetzt „Verkehr wird angezeigt, während du stehst“ (englisch: „Showing traffic while you’re stopped“). (Dank an liamstears)
+  EN: Clearer traffic note when stopped: the note now reads "Showing traffic while you’re stopped". (Thanks to liamstears)
 
 ## 1.0.246 — 2026-10-28
 

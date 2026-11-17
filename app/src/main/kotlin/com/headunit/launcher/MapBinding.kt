@@ -2165,6 +2165,7 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
     // ---- the app's own layers ----
     /** Middle of Standard: above roads, below 3D buildings and labels. Top: above shop labels, below place names. */
     private val MID = "middle"
+    private val BOT = "bottom"
     private val TOP = "top"
 
     // layers changed often (every frame or on a timer) are kept, so they don't have to be looked up each time
@@ -2283,7 +2284,7 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
         // the headlight beam: one picture of a cone on one point (see pushBeam)
         addImg(st, "dl-beam-img", beamBitmap())
         addS(st, GeoJsonSource.Builder("dl-beam").featureCollection(empty()).build())
-        addL(st, SymbolLayer("dl-beam-l", "dl-beam").inSlot(MID)
+        addL(st, SymbolLayer("dl-beam-l", "dl-beam").inSlot(BOT)
             .iconImage("dl-beam-img").iconAnchor(IconAnchor.BOTTOM).iconRotate(Expression.get("h"))
             .iconRotationAlignment(IconRotationAlignment.MAP).iconPitchAlignment(IconPitchAlignment.MAP)
             .iconAllowOverlap(true).iconIgnorePlacement(true).iconEmissiveStrength(1.0)

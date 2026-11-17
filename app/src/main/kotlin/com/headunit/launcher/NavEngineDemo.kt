@@ -103,7 +103,9 @@ internal fun NavEngine.noteRoad(name: String, heading: Double) {
 internal fun NavEngine.refreshRoad() {
     // the map-data name is dropped once it's 45 seconds old (lookups that kept failing used to leave the last road up)
     val mapRoad = if (System.currentTimeMillis() - limitRoadAt < 45_000L) limitRoad else ""
-    val n = Geo.shortRoad(if (route != null && !previewing && onRoad.isNotBlank()) onRoad else mapRoad)
+    // stopped: the name stays for a minute, so it doesn't swap every time you slow down
+    val held = stillRoadSince > 0L && System.currentTimeMillis() - stillRoadSince < 60_000L && roadShown.isNotBlank()
+    val n = if (held) roadShown else Geo.shortRoad(if (route != null && !previewing && onRoad.isNotBlank()) onRoad else mapRoad)
     if (n != roadShown) { roadShown = n; map.setRoadName(n) }
     if (roadNow != n) roadNow = n
 }

@@ -59,7 +59,7 @@
     <string name="ui_057">Das ist ein geheimes Token: Hier bitte das öffentliche (pk.) verwenden.</string>
     <string name="ui_058">Dieses Autodisplay kann die Mapbox-Karte nicht zeichnen</string>
     <string name="ui_059">TomTom-Schlüssel</string>
-    <string name="ui_060">Verkehr in deiner Nähe · wieder aktiv bei Bewegung</string>
+    <string name="ui_060">Verkehr wird angezeigt, während du stehst</string>
     <string name="ui_061">Erneut versuchen</string>
     <string name="ui_062">Wetter auf der Route</string>
     <string name="ui_063">Was ist passiert oder was wünschst du dir? Hilfreich sind Angaben, wo du warst und worauf du getippt hast.</string>

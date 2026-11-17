@@ -59,7 +59,7 @@
     <string name="ui_057">That\'s a secret token: use the public one (pk.) here.</string>
     <string name="ui_058">This head unit can\'t draw the Mapbox map</string>
     <string name="ui_059">TomTom key</string>
-    <string name="ui_060">Traffic round you · back when you move</string>
+    <string name="ui_060">Showing traffic while you’re stopped</string>
     <string name="ui_061">Try again</string>
     <string name="ui_062">Weather on route</string>
     <string name="ui_063">What happened, or what would you like? Where you were and what you tapped helps.</string>

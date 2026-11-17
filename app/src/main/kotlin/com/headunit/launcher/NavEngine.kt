@@ -301,6 +301,8 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
     var nearbySort by mutableStateOf("near")
     /** Name of the road you are on (route or map data), for the free-driving card. */
     var roadNow by mutableStateOf("")
+    /** When the car came to a stop (0 while moving): the road name at the bottom holds for a minute after that. */
+    internal var stillRoadSince = 0L
     /** Roads you asked to avoid on this trip (as boxes). */
     private val sessionAvoid = ArrayList<Pair<LL, LL>>()
 
@@ -4271,6 +4273,7 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
         if (newFix) isStill = try { stillCheck(p) } catch (e: Exception) { false }
         // the speed used for the camera and the arrow: none while standing still
         val sp = if (isStill) 0.0 else p.speed
+        if (sp < 0.8) { if (stillRoadSince == 0L) stillRoadSince = System.currentTimeMillis() } else stillRoadSince = 0L
         // start/stop moving with a little hysteresis (the full map rests its shop labels while you drive)
         if (!movingNow && sp > 4.0) { movingNow = true; map.setMoving(true) }
         else if (movingNow && sp < 1.5) { movingNow = false; map.setMoving(false) }
