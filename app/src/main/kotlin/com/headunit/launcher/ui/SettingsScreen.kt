@@ -1133,7 +1133,7 @@ private fun ScreenSection(prefs: Prefs, engine: NavEngine) {
     SGroup("Song und Cover", footer = "Zurück, Pause und Weiter unten auf dem Fahrbildschirm, solange auf dem Autodisplay Musik oder Radio läuft, aus jeder App. Mit Benachrichtigungszugriff stehen auch Titel, Interpret und Cover dabei.") {
         val ctx = LocalContext.current
         val access = com.headunit.launcher.MediaHub.hasAccess(ctx)
-        SToggle(prefs, "Mediensteuerung", PreferenceKeys.MEDIA_CONTROLS, true, "Die Leiste erscheint nur, wenn etwas läuft")
+        SToggle(prefs, "Mediensteuerung", PreferenceKeys.MEDIA_CONTROLS, false, "Die Leiste erscheint nur, wenn etwas läuft")
         if (com.headunit.launcher.BuildConfig.MEDIA_ACCESS) SItem("Titel und Cover", if (access) "Zugriff erteilt" else "Noch kein Zugriff: Titel und Cover fehlen") {
             SButton(if (access) "Ändern" else "Zugriff erlauben", primary = !access) {
                 ctx.startActivity(android.content.Intent(android.provider.Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK))

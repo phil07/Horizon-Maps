@@ -293,7 +293,7 @@ private fun MapScreen(engine: NavEngine, onSettings: () -> Unit) {
         // a place tapped on the map: its card floats over everything else (also over the route options while choosing a route)
         if (engine.mapPick != null) Box(Modifier.align(Alignment.Center).offset(y = (-70).dp).padding(horizontal = 16.dp).zIndex(30f)) { PhonePickCard(engine) }
         // the media bar: back, play / pause and next while music plays (see MediaHub)
-        if (engine.prefs.b(PreferenceKeys.MEDIA_CONTROLS, true)) Box(Modifier.align(Alignment.BottomCenter).padding(bottom = 12.dp).zIndex(1f)) { MediaBar(engine) }
+        if (engine.prefs.b(PreferenceKeys.MEDIA_CONTROLS, false)) Box(Modifier.align(Alignment.BottomCenter).padding(bottom = 12.dp).zIndex(1f)) { MediaBar(engine) }
         if (foldSearch) Box(Modifier.align(side(Alignment.TopStart)).padding(16.dp).zIndex(1f)) {
             ImmCircle(onClick = { searchOpen = true }, size = 56.dp) { Icon(Icons.Rounded.Search, Lang.t("Suche", "Search"), tint = LocalVw.current.text, modifier = Modifier.size(26.dp)) }
         }
