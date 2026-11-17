@@ -50,6 +50,8 @@ import androidx.compose.material.icons.rounded.LocalParking
 import androidx.compose.material.icons.rounded.ChevronLeft
 import androidx.compose.material.icons.rounded.ChevronRight
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.gestures.animateScrollBy
 import kotlinx.coroutines.launch
 import androidx.compose.material.icons.rounded.VolumeUp
@@ -1026,8 +1028,8 @@ private fun CarStopsScreen(engine: NavEngine) {
         }
         if (list.isEmpty()) Text(Lang.t("Keine Stopps auf der Strecke. Mit der Sprache: „Füg einen Zwischenstopp bei … hinzu“.", "No stops on the way. By voice: “add a stop at …”."),
             color = c.sub, fontSize = 20.sp, modifier = Modifier.padding(top = 18.dp))
-        androidx.compose.foundation.lazy.LazyColumn(Modifier.weight(1f).padding(top = 14.dp)) {
-            androidx.compose.foundation.lazy.itemsIndexed(list) { i, p ->
+        LazyColumn(Modifier.weight(1f).padding(top = 14.dp)) {
+            itemsIndexed(list) { i, p ->
                 Row(Modifier.fillMaxWidth().padding(vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
                     Box(Modifier.size(40.dp).clip(androidx.compose.foundation.shape.CircleShape).background(c.accent), contentAlignment = Alignment.Center) {
                         Text("${i + 1}", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold)
@@ -1099,8 +1101,8 @@ private fun CarListScreen(engine: NavEngine, kind: String) {
             CarKey(Lang.t("Schließen", "Close"), "carlist-close", wide = true) { engine.carListKind = null }
         }
         if (rows.isEmpty()) Text(if (kind == "places") Lang.t("Noch keine Orte gespeichert.", "No places saved yet.") else Lang.t("Noch keine Tracks importiert.", "No tracks imported yet."), color = c.sub, fontSize = 20.sp, modifier = Modifier.padding(top = 18.dp))
-        androidx.compose.foundation.lazy.LazyColumn(Modifier.weight(1f).padding(top = 14.dp)) {
-            androidx.compose.foundation.lazy.itemsIndexed(rows) { i, r ->
+        LazyColumn(Modifier.weight(1f).padding(top = 14.dp)) {
+            itemsIndexed(rows) { i, r ->
                 Row(Modifier.fillMaxWidth().height(60.dp).carTap("carlist-$kind-$i") { r.third() }.padding(horizontal = 6.dp), verticalAlignment = Alignment.CenterVertically) {
                     Text(r.first, color = c.text, fontSize = 22.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
                     if (here != null) Text(Geo.fmtDist(r.second, engine.imperial), color = c.sub, fontSize = 18.sp)

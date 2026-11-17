@@ -1867,4 +1867,4 @@ private fun MediaKey(icon: ImageVector, desc: String, onClick: () -> Unit) {
 }
 
 /** Whether a find button (fuel, parking, camp…) is on: each one can be taken off in Settings › Places & trips › Verknüpfungen. */
-internal fun findOn(prefs: Prefs, kind: String): Boolean = prefs.b("find_$kind", true)
+internal fun findOn(prefs: com.headunit.launcher.Prefs, kind: String): Boolean = prefs.b("find_$kind", true)
