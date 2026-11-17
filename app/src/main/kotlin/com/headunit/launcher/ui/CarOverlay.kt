@@ -135,7 +135,7 @@ fun CarOverlay(engine: NavEngine, area: State<android.graphics.Rect?>, dark: Sta
     val user = engine.prefs.i(PreferenceKeys.CARSCALE, 100).coerceIn(40, 300) / 100f
     val textScale = engine.prefs.i(PreferenceKeys.CAR_TEXT_SIZE, 100).coerceIn(75, 150) / 100f
     CompositionLocalProvider(LocalDensity provides Density(base.density * scale.value * user, base.fontScale * textScale)) {
-        VwTheme(dark.value) { CarScreen(engine, area.value, actions, onCover) }
+        VwTheme(dark.value) { Box(Modifier.fillMaxSize()) { CarScreen(engine, area.value, actions, onCover); if (engine.stopsScreen) CarStopsScreen(engine) } }
     }
 }
 
@@ -717,13 +717,13 @@ private fun TripCard(engine: NavEngine, fill: Boolean, oneLine: Boolean = false)
         val sizeK = when (engine.prefs.s(PreferenceKeys.TRIP_BTN_SIZE, "normal")) { "large" -> 1.2f; "xl" -> 1.4f; else -> 1f } *
             (engine.prefs.i(PreferenceKeys.CAR_BUTTON_SIZE, 100).coerceIn(70, 150) / 100f)
         if (fill) Row(Modifier.fillMaxWidth().padding(start = 16.dp, end = 10.dp, top = 4.dp, bottom = 10.dp), verticalAlignment = Alignment.CenterVertically) {
-            Row(Modifier.weight(1f), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) { stats() }
+            Row(Modifier.weight(1f).carTap("trip-stats") { engine.stopsScreen = true }, horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) { stats() }
             if (showOv) Box(Modifier.padding(start = 8.dp)) { overviewBtn(46.dp * sizeK) }
             if (showOther) Box(Modifier.padding(start = 8.dp)) { otherBtn(46.dp * sizeK) }
             if (showEnd) Box(Modifier.padding(start = 8.dp)) { end(46.dp * sizeK) }
         } else Row(Modifier.widthIn(min = 460.dp).onSizeChanged { if (it.width != rowW) rowW = it.width }.padding(start = 16.dp, end = 10.dp, top = 4.dp, bottom = 10.dp),
             horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-            Row(horizontalArrangement = Arrangement.spacedBy(26.dp), verticalAlignment = Alignment.CenterVertically) { stats() }
+            Row(Modifier.carTap("trip-stats") { engine.stopsScreen = true }, horizontalArrangement = Arrangement.spacedBy(26.dp), verticalAlignment = Alignment.CenterVertically) { stats() }
             Row(Modifier.padding(start = 16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                 if (showOv) overviewBtn(54.dp * sizeK)
                 if (showOther) otherBtn(54.dp * sizeK)
@@ -980,5 +980,62 @@ private fun CarChargerFilter(engine: NavEngine) {
                 if (on) androidx.compose.material3.Icon(androidx.compose.material.icons.Icons.Rounded.Check, null, tint = c.accent, modifier = Modifier.size(30.dp))
             }
         }
+    }
+}
+
+/** The stops on the way on Android Auto: move them earlier or later, take one off, add one, then Update route. */
+@Composable
+private fun CarStopsScreen(engine: NavEngine) {
+    val c = LocalVw.current
+    // the stops as the route has them now; the changes are made here, and Update route works the route out again with them
+    var list by remember { mutableStateOf(engine.via.toList()) }
+    val times = remember(engine.via) { engine.stopArrivalTimes() }
+    Column(Modifier.fillMaxSize().background(c.surface).padding(start = 28.dp, end = 28.dp, top = 22.dp, bottom = 18.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(Lang.t("Stopps auf der Strecke", "Stops on the way"), color = c.text, fontSize = 28.sp, fontWeight = FontWeight.Bold, maxLines = 1, modifier = Modifier.weight(1f))
+            CarKey(Lang.t("Schließen", "Close"), "stops-close", wide = true) { engine.stopsScreen = false }
+        }
+        if (list.isEmpty()) Text(Lang.t("Keine Stopps auf der Strecke. Mit der Sprache: „Füg einen Zwischenstopp bei … hinzu“.", "No stops on the way. By voice: “add a stop at …”."),
+            color = c.sub, fontSize = 20.sp, modifier = Modifier.padding(top = 18.dp))
+        androidx.compose.foundation.lazy.LazyColumn(Modifier.weight(1f).padding(top = 14.dp)) {
+            androidx.compose.foundation.lazy.itemsIndexed(list) { i, p ->
+                Row(Modifier.fillMaxWidth().padding(vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Box(Modifier.size(40.dp).clip(androidx.compose.foundation.shape.CircleShape).background(c.accent), contentAlignment = Alignment.Center) {
+                        Text("${i + 1}", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+                    }
+                    Column(Modifier.weight(1f).padding(start = 14.dp)) {
+                        Text(p.name, color = c.text, fontSize = 22.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        // the time only for a stop the route has now (one moved or added here has no time until Update route)
+                        val at = if (i < engine.via.size && engine.via[i].pos == p.pos) times.getOrNull(i).orEmpty() else ""
+                        if (at.isNotBlank()) Text(at, color = c.sub, fontSize = 18.sp)
+                    }
+                    CarKey("↑", "stop-up-$i") { if (i > 0) list = list.toMutableList().also { l -> val t = l[i]; l[i] = l[i - 1]; l[i - 1] = t } }
+                    CarKey("↓", "stop-down-$i") { if (i < list.size - 1) list = list.toMutableList().also { l -> val t = l[i]; l[i] = l[i + 1]; l[i + 1] = t } }
+                    CarKey("✕", "stop-del-$i", danger = true) { list = list.filterIndexed { n, _ -> n != i } }
+                }
+            }
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.padding(top = 12.dp)) {
+            CarKey(Lang.t("+ Stopp", "+ Stop"), "stops-add", wide = true) {
+                // a stop is added by voice or from the phone's search while you drive
+                engine.stopsScreen = false; engine.stopMode = true
+                engine.toast(Lang.t("Sag „Füg einen Zwischenstopp bei … hinzu“", "Say “add a stop at …”"), 4000)
+            }
+            CarKey(Lang.t("Route aktualisieren", "Update route"), "stops-update", wide = true) {
+                if (list != engine.via.toList()) engine.setStops(list)
+                engine.stopsScreen = false
+            }
+        }
+    }
+}
+
+/** A round key on the car screen (tapped through the car's own touch layer, like the trip card's buttons). */
+@Composable
+private fun CarKey(label: String, id: String, danger: Boolean = false, wide: Boolean = false, onTap: () -> Unit) {
+    val c = LocalVw.current
+    Box(Modifier.height(56.dp).then(if (wide) Modifier.widthIn(min = 56.dp) else Modifier.width(56.dp))
+        .clip(androidx.compose.foundation.shape.CircleShape).background(if (danger) Bad else c.line).carTap(id) { onTap() }
+        .padding(horizontal = if (wide) 20.dp else 0.dp), contentAlignment = Alignment.Center) {
+        Text(label, color = if (danger) Color.White else c.text, fontSize = 22.sp, fontWeight = FontWeight.Bold, maxLines = 1)
     }
 }

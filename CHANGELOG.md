@@ -1,12 +1,12 @@
 ## Unreleased
 
+### Neu
+- Stopps auf dem Autodisplay: Auf der Fahrtkarte die Zahlen antippen, dann siehst du die Stopps auf der Strecke mit ihrer Uhrzeit. Stopps lassen sich früher oder später setzen, entfernen und hinzufügen (hinzufügen per Sprache), danach „Route aktualisieren“. (Dank an yurividal)
+  EN: Stops on Android Auto: tap the trip card's figures while navigating for the stops on the way, each with when you get there. Move them earlier or later, take one off or add one (by voice), then Update route. (Thanks to yurividal)
+
 ### Verbessert
-- Scheinwerfer unter dem 3D-Auto: Mit dem 3D-Auto oder dem flachen Pfeil liegt der Lichtkegel jetzt auf der Straße unter dem Auto, statt über dem Dach gezeichnet zu werden. (Dank an liamstears)
-  EN: Headlight under the 3D car: with the 3D car or the flat arrow, the beam now lies on the road under it instead of being drawn over its roof. (Thanks to liamstears)
-- Straßenname unten bleibt: Fährst du ohne Route, wechselt der Straßenname unten nicht mehr bei jedem Abbremsen mit der Blase unter dem Pfeil. Er bleibt eine Minute, nachdem du anhältst. (Dank an liamstears)
-  EN: Road name at the bottom stays put: driving without a route, the road name at the bottom no longer swaps with the bubble under your arrow every time you slow down. It stays for a minute after you stop. (Thanks to liamstears)
-- Verkehrshinweis beim Halt: Der Hinweis lautet jetzt „Verkehr wird angezeigt, während du stehst“ (englisch: „Showing traffic while you’re stopped“). (Dank an liamstears)
-  EN: Clearer traffic note when stopped: the note now reads "Showing traffic while you’re stopped". (Thanks to liamstears)
+- Abbiegekarte: kleiner, mit Ecken wie bei Verkehrsschildern. Der Fortschrittsbalken unten reicht jetzt bis ganz ans Ende. (Dank an karthikeyansr-lgtm)
+  EN: Turn card: smaller, with road-sign corners, so the progress bar along the bottom reaches the very end. (Thanks to karthikeyansr-lgtm)
 
 ## 1.0.246 — 2026-10-28
 

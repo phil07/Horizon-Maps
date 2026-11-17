@@ -1084,7 +1084,8 @@ internal fun ImmTurnCard(
     /** Extra row along the bottom of the card (Android Auto puts the hazards ahead there). */
     footer: (@Composable () -> Unit)? = null,
 ) {
-    val shape = RoundedCornerShape(28.dp)
+    // road-sign corners: the progress bar along the bottom reaches the very end of the card
+    val shape = RoundedCornerShape(6.dp)
     val frac = ((450.0 - t.dist) / 450.0).coerceIn(0.0, 1.0).toFloat()
     // living card: it grows a touch and starts to glow as the turn comes up, and pulses in the last 80 m
     val alive = engine.prefs.b(PreferenceKeys.LIVECARD, true)
@@ -1110,7 +1111,7 @@ internal fun ImmTurnCard(
                     val sw = (1.5f + 1.5f * pv) * density
                     drawRoundRect(Color.White.copy(alpha = 0.45f * glow * pv), topLeft = Offset(sw / 2, sw / 2),
                         size = androidx.compose.ui.geometry.Size(size.width - sw, size.height - sw),
-                        cornerRadius = androidx.compose.ui.geometry.CornerRadius(28.dp.toPx()), style = androidx.compose.ui.graphics.drawscope.Stroke(sw))
+                        cornerRadius = androidx.compose.ui.geometry.CornerRadius(6.dp.toPx()), style = androidx.compose.ui.graphics.drawscope.Stroke(sw))
                 }
             }
             .animateContentSize()
@@ -1125,11 +1126,11 @@ internal fun ImmTurnCard(
         } else {
         val thenIcon = t.thenManeuver != null && engine.prefs.s(PreferenceKeys.THEN_STYLE, "row") == "icon"
         // Android Auto: the full card as big as the slim one (text as large as the car's own "Beenden" button beside it)
-        val distSp = if (car) 44.sp else if (compact) 28.sp else 38.sp
-        val streetSp = if (car) 24.sp else if (compact) 16.sp else 19.sp
+        val distSp = if (car) 44.sp else if (compact) 28.sp else 32.sp
+        val streetSp = if (car) 24.sp else if (compact) 16.sp else 17.sp
         val chipSp = if (car) 17.sp else 13.sp
-        Row(Modifier.padding(start = if (car) 20.dp else if (compact) 12.dp else 18.dp, end = if (compact && !car) 12.dp else 16.dp, top = if (car) 14.dp else if (compact) 9.dp else 16.dp, bottom = if (car) 12.dp else if (compact) 8.dp else 12.dp), verticalAlignment = Alignment.CenterVertically) {
-            ManeuverArrow(t.maneuver, Geo.maneuverAngle(t.maneuver), Modifier.size(if (car) 64.dp else if (compact) 42.dp else 60.dp), roundaboutExit = t.exit, roundaboutClockwise = engine.leftTraffic, exitAngle = roundaboutTurn(t.rbIn, t.rbOut), otherExits = t.rbExits.map { roundaboutTurn(t.rbIn, it) })
+        Row(Modifier.padding(start = if (car) 20.dp else if (compact) 12.dp else 18.dp, end = if (compact && !car) 12.dp else 16.dp, top = if (car) 14.dp else if (compact) 9.dp else 12.dp, bottom = if (car) 12.dp else if (compact) 8.dp else 10.dp), verticalAlignment = Alignment.CenterVertically) {
+            ManeuverArrow(t.maneuver, Geo.maneuverAngle(t.maneuver), Modifier.size(if (car) 64.dp else if (compact) 42.dp else 50.dp), roundaboutExit = t.exit, roundaboutClockwise = engine.leftTraffic, exitAngle = roundaboutTurn(t.rbIn, t.rbOut), otherExits = t.rbExits.map { roundaboutTurn(t.rbIn, it) })
             Column(Modifier.padding(start = if (car) 16.dp else if (compact) 9.dp else 16.dp).weight(1f)) {
                 RollText(Geo.fmtDist(t.dist, engine.imperial), Color.White, distSp, fontWeight = FontWeight.Bold)
                 // (the tag of a motorway exit is "Ausfahrt 17", from Geo.stepTag; older builds wrote "Exit 17")
