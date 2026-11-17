@@ -80,6 +80,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
@@ -135,7 +136,8 @@ fun CarOverlay(engine: NavEngine, area: State<android.graphics.Rect?>, dark: Sta
     val user = engine.prefs.i(PreferenceKeys.CARSCALE, 100).coerceIn(40, 300) / 100f
     val textScale = engine.prefs.i(PreferenceKeys.CAR_TEXT_SIZE, 100).coerceIn(75, 150) / 100f
     CompositionLocalProvider(LocalDensity provides Density(base.density * scale.value * user, base.fontScale * textScale)) {
-        VwTheme(dark.value) { Box(Modifier.fillMaxSize()) { CarScreen(engine, area.value, actions, onCover); if (engine.stopsScreen) CarStopsScreen(engine) } }
+        engine.carSearchAction = { actions.search() }
+        VwTheme(dark.value) { Box(Modifier.fillMaxSize()) { CarScreen(engine, area.value, actions, onCover); if (engine.stopsScreen) CarStopsScreen(engine); engine.carListKind?.let { CarListScreen(engine, it) } } }
     }
 }
 
@@ -699,6 +701,13 @@ private fun TripCard(engine: NavEngine, fill: Boolean, oneLine: Boolean = false)
             }
         }
         val overviewBtn: @Composable (Dp) -> Unit = { h -> pill(Lang.t("Übersicht", "Overview"), h) { engine.overview() } }
+        // the search: a round key that opens the search on Android Auto (a place picked while driving is asked about)
+        val searchBtn: @Composable (Dp) -> Unit = { h ->
+            Box(Modifier.size(h).clip(androidx.compose.foundation.shape.CircleShape).background(c.line).carTap("trip-search") { engine.carSearchAction?.invoke() },
+                contentAlignment = Alignment.Center) {
+                androidx.compose.material3.Icon(androidx.compose.material.icons.Icons.Rounded.Search, Lang.t("Suche", "Search"), tint = c.text, modifier = Modifier.size(h * 0.55f))
+            }
+        }
         // (it took the place of "Andere aus", which turned the grey other routes on and off)
         val otherBtn: @Composable (Dp) -> Unit = { h ->
             val sm = engine.soundMode
@@ -713,11 +722,13 @@ private fun TripCard(engine: NavEngine, fill: Boolean, oneLine: Boolean = false)
         val showOv = engine.prefs.b(PreferenceKeys.TRIP_BTN_OVERVIEW, true)
         val showOther = engine.prefs.b(PreferenceKeys.TRIP_BTN_OTHERS, true)
         val showEnd = engine.prefs.b(PreferenceKeys.TRIP_BTN_END, true)
+        val showSearch = engine.prefs.b(PreferenceKeys.TRIP_BTN_SEARCH, true)
         // the trip card's buttons: the size chosen for them, and the Button size on Android Auto (which also covers them)
         val sizeK = when (engine.prefs.s(PreferenceKeys.TRIP_BTN_SIZE, "normal")) { "large" -> 1.2f; "xl" -> 1.4f; else -> 1f } *
             (engine.prefs.i(PreferenceKeys.CAR_BUTTON_SIZE, 100).coerceIn(70, 150) / 100f)
         if (fill) Row(Modifier.fillMaxWidth().padding(start = 16.dp, end = 10.dp, top = 4.dp, bottom = 10.dp), verticalAlignment = Alignment.CenterVertically) {
             Row(Modifier.weight(1f).carTap("trip-stats") { engine.stopsScreen = true }, horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) { stats() }
+            if (showSearch) Box(Modifier.padding(start = 8.dp)) { searchBtn(46.dp * sizeK) }
             if (showOv) Box(Modifier.padding(start = 8.dp)) { overviewBtn(46.dp * sizeK) }
             if (showOther) Box(Modifier.padding(start = 8.dp)) { otherBtn(46.dp * sizeK) }
             if (showEnd) Box(Modifier.padding(start = 8.dp)) { end(46.dp * sizeK) }
@@ -725,6 +736,7 @@ private fun TripCard(engine: NavEngine, fill: Boolean, oneLine: Boolean = false)
             horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
             Row(Modifier.carTap("trip-stats") { engine.stopsScreen = true }, horizontalArrangement = Arrangement.spacedBy(26.dp), verticalAlignment = Alignment.CenterVertically) { stats() }
             Row(Modifier.padding(start = 16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                if (showSearch) searchBtn(54.dp * sizeK)
                 if (showOv) overviewBtn(54.dp * sizeK)
                 if (showOther) otherBtn(54.dp * sizeK)
                 if (showEnd) end(54.dp * sizeK)
@@ -892,7 +904,7 @@ private fun CarChips(engine: NavEngine, actions: CarActions, rows: Int) {
         }
         // the find buttons in the order they show; a short screen keeps the first two and folds the rest behind ⋯
         data class Find(val kind: String, val icon: androidx.compose.ui.graphics.vector.ImageVector, val tint: Color)
-        val finds = buildList {
+        val findsAll = buildList {
             if (!(engine.prefs.s(PreferenceKeys.FUEL_TYPE, "E10") == "EV")) add(Find("fuel", androidx.compose.material.icons.Icons.Rounded.LocalGasStation, Color(0xFFEA4335)))
             if (engine.camperProfile) {
                 // a motorhome or caravan: pitches, water & waste and LPG instead of charging, food and coffee
@@ -906,6 +918,7 @@ private fun CarChips(engine: NavEngine, actions: CarActions, rows: Int) {
             }
             add(Find("parking", androidx.compose.material.icons.Icons.Rounded.LocalParking, Color(0xFF4C8DFF)))
         }
+        val finds = findsAll.filter { findOn(engine.prefs, it.kind) }
         var moreOpen by remember { mutableStateOf(false) }
         if (slim && finds.size > 3) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
@@ -922,6 +935,22 @@ private fun CarChips(engine: NavEngine, actions: CarActions, rows: Int) {
             }
         } else Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             finds.forEach { find(it.kind, it.icon, it.tint) }
+        }
+        // the same row as on the phone: your places, favourites and tracks, and the two shortcuts (Settings › Places & trips › Verknüpfungen)
+        run {
+            val ctxC = LocalContext.current
+            val customsC = engine.places.customs()
+            val favsC = engine.places.favourites().filter { f -> customsC.none { Geo.dist(it.place.pos, f.pos) < 60 } }
+            val tracksC = com.headunit.launcher.Gpx.list(ctxC)
+            if (customsC.isNotEmpty() || favsC.isNotEmpty() || tracksC.isNotEmpty() || engine.prefs.b(PreferenceKeys.SC_PLACES, false) || engine.prefs.b(PreferenceKeys.SC_TRACKS, false)) {
+                Row(Modifier.fillMaxWidth().horizontalScroll(androidx.compose.foundation.rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    for (cu in customsC) CarChip(androidx.compose.material.icons.Icons.Rounded.Place, Color(0xFF4C8DFF), cu.label, "car-own-${cu.label}") { engine.startRoute(cu.place) }
+                    for (f in favsC) CarChip(androidx.compose.material.icons.Icons.Rounded.Star, Color(0xFFF29900), f.name, "car-fav-${f.name}") { engine.startRoute(f) }
+                    for (t in tracksC) CarChip(androidx.compose.material.icons.Icons.Rounded.Route, Color(0xFF2E7D32), t.name, "car-trk-${t.id}") { engine.driveTrack(t.name, com.headunit.launcher.Gpx.load(ctxC, t.id)) }
+                    if (engine.prefs.b(PreferenceKeys.SC_PLACES, false)) CarChip(androidx.compose.material.icons.Icons.Rounded.Place, Color(0xFF4C8DFF), Lang.t("Meine Orte", "My places"), "car-sc-places") { engine.carListKind = "places" }
+                    if (engine.prefs.b(PreferenceKeys.SC_TRACKS, false)) CarChip(androidx.compose.material.icons.Icons.Rounded.Route, Color(0xFF2E7D32), Lang.t("Meine Tracks", "My tracks"), "car-sc-tracks") { engine.carListKind = "tracks" }
+                }
+            }
         }
         // your own places first, then favourites, then recent ones (as in the app)
         val rawC = engine.prefs.s(PreferenceKeys.PLACES_CUSTOM, ""); val rawF = engine.prefs.s(PreferenceKeys.PLACES_FAVOURITES, ""); val rawR = engine.prefs.s(PreferenceKeys.PLACES_RECENT, "")
@@ -1037,5 +1066,46 @@ private fun CarKey(label: String, id: String, danger: Boolean = false, wide: Boo
         .clip(androidx.compose.foundation.shape.CircleShape).background(if (danger) Bad else c.line).carTap(id) { onTap() }
         .padding(horizontal = if (wide) 20.dp else 0.dp), contentAlignment = Alignment.Center) {
         Text(label, color = if (danger) Color.White else c.text, fontSize = 22.sp, fontWeight = FontWeight.Bold, maxLines = 1)
+    }
+}
+
+/** A chip in the row under the search bar on Android Auto (a place, a favourite, a track or a shortcut). */
+@Composable
+private fun CarChip(icon: androidx.compose.ui.graphics.vector.ImageVector, tint: Color, label: String, id: String, onTap: () -> Unit) {
+    val c = LocalVw.current
+    Row(Modifier.height(56.dp).clip(androidx.compose.foundation.shape.RoundedCornerShape(28.dp)).background(c.surface).carTap(id) { onTap() }.padding(horizontal = 18.dp),
+        verticalAlignment = Alignment.CenterVertically) {
+        androidx.compose.material3.Icon(icon, null, tint = tint, modifier = Modifier.size(26.dp))
+        Text(label, color = c.text, fontSize = 20.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, modifier = Modifier.padding(start = 8.dp))
+    }
+}
+
+/** "My places" or "My tracks" on Android Auto: the list, nearest first; tapping one starts it. */
+@Composable
+private fun CarListScreen(engine: NavEngine, kind: String) {
+    val c = LocalVw.current
+    val ctx = LocalContext.current
+    val here = engine.fix?.pos
+    val rows: List<Triple<String, Double, () -> Unit>> = if (kind == "places") {
+        (engine.places.customs().map { Pair(it.label, it.place) } + engine.places.favourites().map { Pair(it.name, it) }).map { (name, p) ->
+            Triple(name, here?.let { Geo.dist(it, p.pos) } ?: 0.0, { engine.startRoute(p); engine.carListKind = null })
+        }.sortedBy { it.second }
+    } else com.headunit.launcher.Gpx.list(ctx).mapNotNull { t ->
+        t.start?.let { s -> Triple(t.name, here?.let { Geo.dist(it, s) } ?: 0.0, { engine.driveTrack(t.name, com.headunit.launcher.Gpx.load(ctx, t.id)); engine.carListKind = null }) }
+    }.sortedBy { it.second }
+    Column(Modifier.fillMaxSize().background(c.surface).padding(start = 28.dp, end = 28.dp, top = 22.dp, bottom = 18.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(if (kind == "places") Lang.t("Meine Orte", "My places") else Lang.t("Meine Tracks", "My tracks"), color = c.text, fontSize = 28.sp, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
+            CarKey(Lang.t("Schließen", "Close"), "carlist-close", wide = true) { engine.carListKind = null }
+        }
+        if (rows.isEmpty()) Text(if (kind == "places") Lang.t("Noch keine Orte gespeichert.", "No places saved yet.") else Lang.t("Noch keine Tracks importiert.", "No tracks imported yet."), color = c.sub, fontSize = 20.sp, modifier = Modifier.padding(top = 18.dp))
+        androidx.compose.foundation.lazy.LazyColumn(Modifier.weight(1f).padding(top = 14.dp)) {
+            androidx.compose.foundation.lazy.itemsIndexed(rows) { i, r ->
+                Row(Modifier.fillMaxWidth().height(60.dp).carTap("carlist-$kind-$i") { r.third() }.padding(horizontal = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Text(r.first, color = c.text, fontSize = 22.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
+                    if (here != null) Text(Geo.fmtDist(r.second, engine.imperial), color = c.sub, fontSize = 18.sp)
+                }
+            }
+        }
     }
 }

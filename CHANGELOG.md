@@ -1,12 +1,14 @@
 ## Unreleased
 
 ### Neu
-- Stopps auf dem Autodisplay: Auf der Fahrtkarte die Zahlen antippen, dann siehst du die Stopps auf der Strecke mit ihrer Uhrzeit. Stopps lassen sich früher oder später setzen, entfernen und hinzufügen (hinzufügen per Sprache), danach „Route aktualisieren“. (Dank an yurividal)
-  EN: Stops on Android Auto: tap the trip card's figures while navigating for the stops on the way, each with when you get there. Move them earlier or later, take one off or add one (by voice), then Update route. (Thanks to yurividal)
+- Such-Taste auf der Fahrtkarte (Android Auto): Ein Tipp öffnet die Suche. Ein Ort, den du während der Fahrt wählst, wird gefragt: „Als Stopp“ oder „Hierhin“. Ausschaltbar unter Einstellungen › Android Auto › Knöpfe auf der Fahrtkarte. (Dank an yurividal)
+  EN: Search button on the trip card (Android Auto): a tap opens the search. A place you pick while driving is asked about: "Add as a stop" or "Go here". Can be turned off under Settings › Android Auto › Buttons on the trip card. (Thanks to yurividal)
+- Verknüpfungen auf dem Autodisplay: Die Reihe unter der Suche wie auf dem Handy, mit deinen Orten, Favoriten und Tracks sowie den Knöpfen „Meine Orte“ und „Meine Tracks“. (Dank an bijindas)
+  EN: Shortcuts on Android Auto: the row under the search bar as on the phone, with your places, favourites and tracks and the "My places" and "My tracks" buttons. (Thanks to bijindas)
 
 ### Verbessert
-- Abbiegekarte: kleiner, mit Ecken wie bei Verkehrsschildern. Der Fortschrittsbalken unten reicht jetzt bis ganz ans Ende. (Dank an karthikeyansr-lgtm)
-  EN: Turn card: smaller, with road-sign corners, so the progress bar along the bottom reaches the very end. (Thanks to karthikeyansr-lgtm)
+- Such-Knöpfe einzeln ausschalten: Tanken, Laden, Essen, Kaffee, Parken, Stellplätze, Entsorgung und Autogas lassen sich einzeln unter Einstellungen › Orte & Fahrten › Verknüpfungen ein- und ausschalten. Ausgeschaltete kommen nicht von allein zurück.
+  EN: Find buttons can be turned off one by one: fuel, charging, food, coffee, parking, pitches, water & waste and LPG, under Settings › Places & trips › Shortcuts. Turned-off ones don't come back on their own.
 
 ## 1.0.246 — 2026-10-28
 

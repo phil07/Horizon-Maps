@@ -722,6 +722,12 @@ private fun PlacesSection(engine: NavEngine) {
         SToggle(engine.prefs, "Meine Orte", PreferenceKeys.SC_PLACES, false, "Liste deiner Orte und Favoriten")
         SToggle(engine.prefs, "Meine Tracks", PreferenceKeys.SC_TRACKS, false, "Liste deiner GPX-Tracks")
     }
+    SGroup("Such-Knöpfe unter der Suche", footer = "Jeder Knopf einzeln ein- oder ausschalten. Ausgeschaltete kommen nicht von allein zurück.") {
+        for ((kind, label) in listOf("fuel" to "Tanken", "charging" to "Laden", "food" to "Essen", "coffee" to "Kaffee", "parking" to "Parken",
+            "camp" to "Stellplätze", "dump" to "Entsorgung", "lpg" to "Autogas")) {
+            SToggle(engine.prefs, label, "find_$kind", true, "Knopf „$label in der Nähe“")
+        }
+    }
     GpxTracksGroup(engine)
     var settingSlot by remember { mutableStateOf<String?>(null) }
     val slotsRaw = engine.prefs.s(PreferenceKeys.PLACE_HOME, "") + engine.prefs.s("place_work", "")
@@ -1210,6 +1216,7 @@ private fun AndroidAutoSection(prefs: Prefs) {
             SSlider("Straßennamen-Größe", prefs.i(PreferenceKeys.CAR_ROAD_NAME_SIZE, 100).toFloat(), 70f..200f, "%", steps = 12, reset = 100f) { prefs.put(PreferenceKeys.CAR_ROAD_NAME_SIZE, it) }
         }
         SGroup("Knöpfe auf der Fahrtkarte") {
+            SToggle(prefs, "Suche", PreferenceKeys.TRIP_BTN_SEARCH, true, "Such-Taste auf der Fahrtkarte: ein gewählter Ort wird als Stopp oder als Ziel gefragt")
             SToggle(prefs, "Übersicht", PreferenceKeys.TRIP_BTN_OVERVIEW, true, "Die ganze Route auf einen Blick")
             SToggle(prefs, "Ansagen", PreferenceKeys.TRIP_BTN_OTHERS, true, "Alle Ansagen, nur Warnungen oder aus")
             SToggle(prefs, "Beenden", PreferenceKeys.TRIP_BTN_END, true, "Die Fahrt beenden")

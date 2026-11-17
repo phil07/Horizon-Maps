@@ -341,6 +341,8 @@ internal object PreferenceKeys {
     const val CAR_ROAD_NAME_SIZE = "carroadnamesize"
     /** Buttons on the Android Auto trip card (on/off each) and their size: "normal", "large" or "xl". */
     const val TRIP_BTN_OVERVIEW = "tripbtn_overview"
+    /** The search button on the trip card (Android Auto). */
+    const val TRIP_BTN_SEARCH = "tripbtn_search"
     const val TRIP_BTN_OTHERS = "tripbtn_others"
     /** Home and Work under the search bar, each on its own (the app and Android Auto alike) */
     const val HOME_TILE = "home_tile"; const val WORK_TILE = "work_tile"

@@ -1500,17 +1500,17 @@ private fun ImmChips(engine: NavEngine, focusSearch: () -> Unit) {
         // (with a motorhome or caravan profile: pitches, water & waste and LPG instead of charging, food and coffee)
         // (a phone held sideways leaves these out: the map keeps its room for the route)
         if (!sidewaysPhone(engine)) if (engine.camperProfile) Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            FindButton(Icons.Rounded.LocalGasStation, Color(0xFFEA4335), Lang.t("Tankstellen in der Nähe", "Fuel nearby")) { engine.loadNearby("fuel", false) }
-            FindButton(Icons.Rounded.RvHookup, Color(0xFF2E7D32), Lang.t("Stellplätze in der Nähe", "Pitches nearby")) { engine.loadNearby("camp", false) }
-            FindButton(Icons.Rounded.WaterDrop, Color(0xFF0288D1), Lang.t("Ver- und Entsorgung in der Nähe", "Water and waste nearby")) { engine.loadNearby("dump", false) }
-            FindButton(Icons.Rounded.PropaneTank, Color(0xFFEF6C00), Lang.t("Autogas in der Nähe", "LPG nearby")) { engine.loadNearby("lpg", false) }
-            FindButton(Icons.Rounded.LocalParking, Color(0xFF4C8DFF), Lang.t("Parkplätze in der Nähe", "Parking nearby")) { engine.loadNearby("parking", false) }
+            if (findOn(engine.prefs, "fuel")) FindButton(Icons.Rounded.LocalGasStation, Color(0xFFEA4335), Lang.t("Tankstellen in der Nähe", "Fuel nearby")) { engine.loadNearby("fuel", false) }
+            if (findOn(engine.prefs, "camp")) FindButton(Icons.Rounded.RvHookup, Color(0xFF2E7D32), Lang.t("Stellplätze in der Nähe", "Pitches nearby")) { engine.loadNearby("camp", false) }
+            if (findOn(engine.prefs, "dump")) FindButton(Icons.Rounded.WaterDrop, Color(0xFF0288D1), Lang.t("Ver- und Entsorgung in der Nähe", "Water and waste nearby")) { engine.loadNearby("dump", false) }
+            if (findOn(engine.prefs, "lpg")) FindButton(Icons.Rounded.PropaneTank, Color(0xFFEF6C00), Lang.t("Autogas in der Nähe", "LPG nearby")) { engine.loadNearby("lpg", false) }
+            if (findOn(engine.prefs, "parking")) FindButton(Icons.Rounded.LocalParking, Color(0xFF4C8DFF), Lang.t("Parkplätze in der Nähe", "Parking nearby")) { engine.loadNearby("parking", false) }
         } else Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            if (engine.prefs.s(PreferenceKeys.FUEL_TYPE, "E10") == "EV") FindButton(Icons.Rounded.EvStation, Color(0xFF34A853), Lang.t("Ladesäulen in der Nähe", "Charging nearby")) { engine.loadNearby("charging", false) }
-            else FindButton(Icons.Rounded.LocalGasStation, Color(0xFFEA4335), Lang.t("Tankstellen in der Nähe", "Fuel nearby")) { engine.loadNearby("fuel", false) }
-            FindButton(Icons.Rounded.Restaurant, Color(0xFFF29900), Lang.t("Essen in der Nähe", "Food nearby")) { engine.loadNearby("food", false) }
-            FindButton(Icons.Rounded.LocalCafe, Color(0xFFA56BFF), Lang.t("Kaffee in der Nähe", "Coffee nearby")) { engine.loadNearby("coffee", false) }
-            FindButton(Icons.Rounded.LocalParking, Color(0xFF4C8DFF), Lang.t("Parkplätze in der Nähe", "Parking nearby")) { engine.loadNearby("parking", false) }
+            if (engine.prefs.s(PreferenceKeys.FUEL_TYPE, "E10") == "EV") { if (findOn(engine.prefs, "charging")) FindButton(Icons.Rounded.EvStation, Color(0xFF34A853), Lang.t("Ladesäulen in der Nähe", "Charging nearby")) { engine.loadNearby("charging", false) } }
+            else if (findOn(engine.prefs, "fuel")) FindButton(Icons.Rounded.LocalGasStation, Color(0xFFEA4335), Lang.t("Tankstellen in der Nähe", "Fuel nearby")) { engine.loadNearby("fuel", false) }
+            if (findOn(engine.prefs, "food")) FindButton(Icons.Rounded.Restaurant, Color(0xFFF29900), Lang.t("Essen in der Nähe", "Food nearby")) { engine.loadNearby("food", false) }
+            if (findOn(engine.prefs, "coffee")) FindButton(Icons.Rounded.LocalCafe, Color(0xFFA56BFF), Lang.t("Kaffee in der Nähe", "Coffee nearby")) { engine.loadNearby("coffee", false) }
+            if (findOn(engine.prefs, "parking")) FindButton(Icons.Rounded.LocalParking, Color(0xFF4C8DFF), Lang.t("Parkplätze in der Nähe", "Parking nearby")) { engine.loadNearby("parking", false) }
         }
     }
 }
@@ -1865,3 +1865,6 @@ private fun MediaKey(icon: ImageVector, desc: String, onClick: () -> Unit) {
         Icon(icon, desc, tint = c.text, modifier = Modifier.size(28.dp))
     }
 }
+
+/** Whether a find button (fuel, parking, camp…) is on: each one can be taken off in Settings › Places & trips › Verknüpfungen. */
+internal fun findOn(prefs: Prefs, kind: String): Boolean = prefs.b("find_$kind", true)

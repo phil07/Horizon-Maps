@@ -40,6 +40,7 @@ import androidx.car.app.model.GridItem
 import androidx.car.app.model.GridTemplate
 import androidx.car.app.model.ItemList
 import androidx.car.app.model.ListTemplate
+import androidx.car.app.model.MessageTemplate
 import androidx.car.app.model.Row
 import androidx.car.app.model.SearchTemplate
 import androidx.car.app.model.Template
@@ -1229,7 +1230,12 @@ class SearchScreen(carContext: CarContext, private val holder: CarHolder, initia
                     decided = true
                     val exact = r.filter { it.name.trim().equals(query.trim(), true) }
                     val pick = if (r.size == 1) r[0] else if (exact.size == 1 && r[0] === exact[0]) r[0] else null
-                    if (pick != null) { holder.engine?.startRoute(pick); screenManager.popToRoot(); return }
+                    if (pick != null) {
+                        // driving: the place is asked about (as a stop, or as the new destination), not taken over at once
+                        if (holder.engine?.route != null) screenManager.push(AskStopScreen(carContext, holder, pick))
+                        else holder.engine?.startRoute(pick)
+                        screenManager.popToRoot(); return
+                    }
                 }
                 invalidate()
             }
@@ -1275,7 +1281,10 @@ class SearchScreen(carContext: CarContext, private val holder: CarHolder, initia
                 val line = listOf(distFrom(e, p), p.sub).filter { it.isNotBlank() }.joinToString(" · ")
                 if (line.isNotBlank()) r.addText(line)
                 p.hours?.let { r.addText(it) }
-                r.setOnClickListener { e?.startRoute(p); screenManager.popToRoot() }
+                r.setOnClickListener {
+                    if (e?.route != null) screenManager.push(AskStopScreen(carContext, holder, p)) else e?.startRoute(p)
+                    screenManager.popToRoot()
+                }
                 list.addItem(r.build())
             }
         }
@@ -1525,3 +1534,15 @@ class AlongScreen(carContext: CarContext, private val holder: CarHolder, private
     }
 }
 
+
+/** A place picked while driving: it is added as a stop, or it becomes the destination (the route stays as it is until you choose). */
+class AskStopScreen(carContext: CarContext, private val holder: CarHolder, private val p: Place) : Screen(carContext) {
+    override fun onGetTemplate(): Template {
+        val e = holder.engine
+        return MessageTemplate.Builder(p.name + "\n" + Lang.t("Was soll mit diesem Ort passieren?", "What should happen with this place?"))
+            .setHeaderAction(Action.BACK)
+            .addAction(Action.Builder().setTitle(Lang.t("Als Stopp", "Add as a stop")).setOnClickListener { e?.addStop(p); screenManager.popToRoot() }.build())
+            .addAction(Action.Builder().setTitle(Lang.t("Hierhin", "Go here")).setOnClickListener { e?.startRoute(p); screenManager.popToRoot() }.build())
+            .build()
+    }
+}

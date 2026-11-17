@@ -303,6 +303,10 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
     var roadNow by mutableStateOf("")
     /** The stops list on Android Auto (opened by tapping the figures on the trip card). */
     var stopsScreen by mutableStateOf(false)
+    /** Opens the search on Android Auto (set by the car overlay). */
+    var carSearchAction: (() -> Unit)? = null
+    /** "places" or "tracks": the list of your places or tracks, nearest first, opened by a shortcut on Android Auto. */
+    var carListKind by mutableStateOf<String?>(null)
     /** When the car came to a stop (0 while moving): the road name at the bottom holds for a minute after that. */
     internal var stillRoadSince = 0L
     /** Roads you asked to avoid on this trip (as boxes). */
