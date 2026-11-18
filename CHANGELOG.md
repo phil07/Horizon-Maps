@@ -1,16 +1,8 @@
 ## Unreleased
 
 ### Neu
-- Abbiegepfeile: fetter, mit einer weichen Kurve und einer eingekerbten Spitze. Die Straße, die du verlässt, ist dahinter blass zu sehen. Im Kreisverkehr sind die anderen Ausfahrten blass zu sehen, die Ausfahrt-Nummer steht in der Mitte auf einer weichen Scheibe. Die großen Spurpfeile bleiben gleich.
-  EN: Turn arrows: bolder, with a smooth curve and a notched head, and the road you're leaving shown faintly behind them. Roundabouts show the other exits faintly too, with the exit number in the middle on a soft disc. The big lane arrows are unchanged.
-
-### Verbessert
-- Die Ecken der Abbiegekarte sind wieder etwas runder.
-  EN: The turn card's corners are slightly rounder again.
-
-### Behoben
-- Zahlen nicht mittig: Die Ausfahrt-Nummer im Kreisverkehr und die Zahl auf dem runden Tempolimit-Schild saßen etwas zu hoch. Beide stehen jetzt genau in der Mitte. Dank an karthikeyansr-lgtm.
-  EN: Numbers off-centre: the exit number in the roundabout icon and the number on the round speed limit sign sat slightly high; both are now exactly in the middle. Thanks to karthikeyansr-lgtm.
+- Tägliche Sicherung: Unter Einstellungen > Sicherung wählst du einen Ordner. Die App schreibt dort einmal am Tag eine Sicherung (Einstellungen, gespeicherte Orte und GPX-Strecken). Die letzte Datei wird jeweils ersetzt. Die App muss dafür geöffnet sein.
+  EN: Daily backup: in Settings > Backup choose a folder. The app writes a backup there once a day (settings, saved places and GPX tracks). Each new file replaces the last one. The app has to be open for it to run.
 
 ## 1.0.246 — 2026-10-28
 
