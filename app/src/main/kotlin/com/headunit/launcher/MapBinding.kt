@@ -3024,10 +3024,10 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
     }
 
     /** The route picked once while choosing (yellow on the map), or null. */
-    private var pick: List<LL>? = null
-    fun setPreviewPick(p: List<LL>?) { pick = p?.takeIf { it.size >= 2 }; pushPick() }
+    private var previewLine: List<LL>? = null
+    fun setPreviewPick(p: List<LL>?) { previewLine = p?.takeIf { it.size >= 2 }; pushPick() }
     private fun pushPick() {
-        src("dl-pick")?.featureCollection(FeatureCollection.fromFeatures(listOfNotNull(pick?.let { line(it) })))
+        src("dl-pick")?.featureCollection(FeatureCollection.fromFeatures(listOfNotNull(previewLine?.let { line(it) })))
     }
 
     /** Called with the index of an alternative line on the map while a route is being chosen (see tapAt). */
