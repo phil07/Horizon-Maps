@@ -1,10 +1,12 @@
 ## Unreleased
 
+### Verbessert
+- Scheinwerferkegel: Etwa halb so breit, damit er die Straße vor dir ausleuchtet und nicht die Gebäude daneben. (Dank an liamstears)
+  EN: Headlight beam: about half as wide, so it lights the road ahead rather than the buildings either side. (Thanks to liamstears)
+
 ### Behoben
-- Hochkant: Die Abbiegekarte läuft beim Abbiegen nicht mehr rechts aus dem Bildschirm, sondern wächst gleichmäßig aus der Mitte. Die Kartenknöpfe sitzen etwas tiefer, zwischen Abbiegekarte und Fahrtkarte, mit oder ohne Einstellungen-Knopf darüber.
-  EN: Phone held upright: the turn card no longer goes off the right of the screen as a turn comes up; it grows evenly from the middle. The map buttons sit a little lower, between the turn card and the trip card, with or without the Settings button above them.
-- Neuerungen: Ein Update ohne neue Hinweise zeigt keine Karte mehr, die „Keine Versionshinweise gefunden“ sagt. Die Karte erscheint nur, wenn es etwas Neues zu sagen gibt.
-  EN: What's new: an update with no new notes no longer shows a card saying "No release notes were found". The card only appears when there is something new to tell you.
+- Scheinwerfer mit eigenem 3D-Modell: Kein dunkler Fleck mehr um das Auto. Der Kegel beginnt an der Front deines Modells, statt an einem autoförmigen Ausschnitt, der nicht zur Form deines Modells passte. (Dank an liamstears)
+  EN: Headlight beam with your own 3D model: no more odd dark patch round the car. The beam now starts at the front of your model instead of a car-shaped box that didn't match your model's shape. (Thanks to liamstears)
 
 ## 1.0.246 — 2026-10-28
 
