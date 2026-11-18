@@ -324,7 +324,7 @@ class CarSurface(private val carContext: CarContext, private val onReady: (MapBi
             field = v
             if (v != null) {
                 v.setCarViewport(width, height, currentDpi)
-                overlay?.setContent { CarMapSettings(); com.headunit.launcher.ui.CarOverlay(v, area, dark, uiScale, actions) }
+                overlay?.setContent { CarMapSettings(dark.value); com.headunit.launcher.ui.CarOverlay(v, area, dark, uiScale, actions) }
             }
         }
     /**
@@ -332,13 +332,15 @@ class CarSurface(private val carContext: CarContext, private val onReady: (MapBi
      * satellite on the phone while connected used to reach the car only after reconnecting).
      */
     @androidx.compose.runtime.Composable
-    private fun CarMapSettings() {
+    private fun CarMapSettings(dark: Boolean) {
         val ctx = overlay?.context ?: return
         val prefs = androidx.compose.runtime.remember { Prefs(ctx.applicationContext) }
         val sat = prefs.b(PreferenceKeys.SATELLITE, false)
         val b3d = prefs.b(PreferenceKeys.BUILDINGS_3D, true)
         val sig = com.headunit.launcher.SatelliteSources.signature(prefs)
         androidx.compose.runtime.LaunchedEffect(sat, b3d) { map?.setView(sat, b3d) }
+        // satellite on or off changes the map's style: the car then takes the same style choice the phone makes
+        androidx.compose.runtime.LaunchedEffect(sat) { engine?.applyStyle(dark) }
         androidx.compose.runtime.LaunchedEffect(sig) { map?.setSatSource(sig) }
     }
 

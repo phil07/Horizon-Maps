@@ -26,7 +26,7 @@ object EuFuel {
 
     /** Whether the country's service has prices for this fuel at all ("E10", "E5", "B7" or "E85"). */
     fun hasFuel(country: String, fuel: String): Boolean = when (country.uppercase()) {
-        "FR" -> fuel in setOf("E10", "E5", "B7", "E85")
+        "FR" -> fuel in setOf("E10", "E5", "B7", "E85", "LPG")
         "AT", "DE" -> fuel in setOf("E10", "E5", "B7")
         else -> false
     }
@@ -68,7 +68,7 @@ object EuFuel {
     }
 
     private fun france(c: LL, km: Int, fuel: String): List<Station> {
-        val field = when (fuel) { "B7" -> "gazole_prix"; "E5" -> "sp95_prix"; "E85" -> "e85_prix"; else -> "e10_prix" }
+        val field = when (fuel) { "B7" -> "gazole_prix"; "E5" -> "sp95_prix"; "E85" -> "e85_prix"; "LPG" -> "gplc_prix"; else -> "e10_prix" }
         val where = "within_distance(geom, GEOM'POINT(${c.lon} ${c.lat})', ${km}km) AND $field IS NOT NULL"
         val url = "https://data.economie.gouv.fr/api/explore/v2.1/catalog/datasets/prix-des-carburants-en-france-flux-instantane-v2/records" +
             "?limit=60&where=" + URLEncoder.encode(where, "UTF-8")

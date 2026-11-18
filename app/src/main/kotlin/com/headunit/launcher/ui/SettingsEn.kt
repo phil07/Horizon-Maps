@@ -456,6 +456,7 @@ internal object SettingsEn {
         "Zeigen" to "Show",
         "Ausblenden" to "Hide",
         "Fahren" to "Drive",
+        "Autogas (LPG)" to "LPG (Autogas)",
         "Navigieren" to "Navigate",
         "Uhr auf der Karte" to "Clock on the map",
         "Eine kleine Uhr unter dem Tacho, wenn die Statusleiste des Geräts verdeckt ist" to "A small clock under the speedometer, when the device's status bar is covered",

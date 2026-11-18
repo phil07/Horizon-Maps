@@ -138,6 +138,8 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
     /** Mapbox's own map couldn't get a piece of map (with no signal: an area it hasn't stored). */
     var onTileMissing: (() -> Unit)? = null
     private var satellite = false
+    /** The last error the map gave (for the feedback report); blank until one comes. */
+    @Volatile var lastMapError: String = ""
     // index into satChain(): moves on when the current photo source refuses its tiles (429 / 401 / 403); -1 = not chosen yet
     private var satStep = -1
     private fun satChoice() = prefs.s(PreferenceKeys.SAT_SOURCE, SatelliteSources.AUTO)
@@ -198,6 +200,7 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
         // counted all the time: the automatic frame rate compares frames drawn with camera moves asked for
         subs += mbMap.subscribeRenderFrameStarted { PerfStats.renders++ }
         subs += mbMap.subscribeMapLoadingError { e ->
+            lastMapError = "${e.type} ${e.sourceId ?: ""}: ${e.message ?: ""}".trim().take(200)
             // the satellite photo source refuses its tiles (429, or a key it doesn't accept): move on to the next source
             if (satellite && e.type == MapLoadingErrorType.TILE && e.sourceId == "dl-sat") {
                 satFails += SatelliteSources.refusals(e.message)

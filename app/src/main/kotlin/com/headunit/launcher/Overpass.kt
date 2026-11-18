@@ -559,6 +559,8 @@ object Overpass {
         "fuel" -> "[\"amenity\"=\"fuel\"]"
         // stations mapped as selling bioethanol (E85)
         "fuel_e85" -> "[\"amenity\"=\"fuel\"][\"fuel:e85\"=\"yes\"]"
+        // stations mapped as selling LPG (Autogas)
+        "fuel_lpg" -> "[\"amenity\"=\"fuel\"][\"fuel:lpg\"=\"yes\"]"
         "charging" -> "[\"amenity\"=\"charging_station\"]"
         "food" -> "[\"amenity\"~\"^(restaurant|fast_food)$\"]"
         "coffee" -> "[\"amenity\"=\"cafe\"]"
@@ -572,7 +574,7 @@ object Overpass {
     }
 
     fun kindLabel(kind: String): String = when (kind) {
-        "fuel" -> Lang.t("Tankstelle", "Fuel station"); "fuel_e85" -> Lang.t("E85-Tankstelle", "E85 station"); "charging" -> Lang.t("Ladesäule", "Charging point")
+        "fuel" -> Lang.t("Tankstelle", "Fuel station"); "fuel_e85" -> Lang.t("E85-Tankstelle", "E85 station"); "fuel_lpg" -> Lang.t("Autogas-Tankstelle", "LPG station"); "charging" -> Lang.t("Ladesäule", "Charging point")
         "food" -> Lang.t("Essen", "Food"); "coffee" -> Lang.t("Kaffee", "Coffee")
         "toilets" -> Lang.t("Toiletten", "Toilets"); "services" -> Lang.t("Raststätte", "Services")
         "camp" -> Lang.t("Stellplatz", "Motorhome pitch"); "dump" -> Lang.t("Ver-/Entsorgung", "Water / waste"); "lpg" -> Lang.t("Autogas", "LPG")
@@ -672,7 +674,7 @@ object Overpass {
             var kw: Int? = null
             var op: String? = null
             when (kind) {
-                "fuel", "fuel_e85" -> {
+                "fuel", "fuel_e85", "fuel_lpg" -> {
                     tags.optString("brand").takeIf { it.isNotBlank() && it != name }?.let { extra += it }
                     tags.optString("opening_hours").takeIf { it.isNotBlank() }?.let { extra += it }
                 }

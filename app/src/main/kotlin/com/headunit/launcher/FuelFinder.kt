@@ -225,5 +225,5 @@ object FuelFinder {
         } catch (e: Exception) { "" }
     }
 
-    fun fuelName(fuel: String) = when (fuel) { "E5" -> Lang.t("Super", "Super unleaded"); "B7" -> "Diesel"; "E85" -> "Bioethanol (E85)"; "EV" -> Lang.t("Elektro", "Electric"); else -> Lang.t("Super E10", "Unleaded") }
+    fun fuelName(fuel: String) = when (fuel) { "E5" -> Lang.t("Super", "Super unleaded"); "B7" -> "Diesel"; "E85" -> "Bioethanol (E85)"; "LPG" -> Lang.t("Autogas (LPG)", "LPG"); "EV" -> Lang.t("Elektro", "Electric"); else -> Lang.t("Super E10", "Unleaded") }
 }

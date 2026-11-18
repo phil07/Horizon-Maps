@@ -1717,6 +1717,7 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
             appendLine("Unit: ${android.os.Build.MANUFACTURER} ${android.os.Build.MODEL}, Android ${android.os.Build.VERSION.RELEASE} (API ${android.os.Build.VERSION.SDK_INT}), screen ${dm.widthPixels}x${dm.heightPixels}")
             appendLine("Country: ${detectedCountry.ifBlank { "unknown" }} · map: ${prefs.mapSource()} · TomTom key: ${if (hasKey) "yes" else "no"} · Mapbox token: ${if (hasMapbox) "yes" else "no"} · routes from: ${provider.ifBlank { "offline" }} · online: ${if (online()) "yes" else "no"}")
             appendLine("Offline area: ${installedPackId() ?: "none"}")
+            appendLine("Satellite: ${if (map.isSatellite) "on" else "off"} · last map error: ${map.lastMapError.ifBlank { "none" }}")
             appendLine("Installed by: ${Updater.installerPackage(ctx) ?: "unknown (from a file)"}")
             appendLine("Frame rate: ${prefs.s(PreferenceKeys.MAP_FPS, "auto")} · map detail: ${prefs.mapDetail()} · driving side: ${if (mirrored) "left-hand" else "right-hand"}")
             if (perfLine.isNotBlank()) appendLine("Performance: $perfLine")
@@ -3847,13 +3848,15 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
                     }
                     // bioethanol: only stations mapped as selling E85 (TomTom's search can't tell which do)
                     val e85 = kind == "fuel" && fuelType == "E85"
-                    if (e85) {
+                    val lpgKind = kind == "fuel" && fuelType == "LPG"
+                    if (e85 || lpgKind) {
+                        val ok = if (e85) "fuel_e85" else "fuel_lpg"
                         return@async if (alongRoute && rt != null) {
-                            Overpass.nearbyAlong("fuel_e85", RouteExtras.line(rt, progress, progress + 60_000.0, 1500.0, 45), 1500).mapNotNull { n ->
+                            Overpass.nearbyAlong(ok, RouteExtras.line(rt, progress, progress + 60_000.0, 1500.0, 45), 1500).mapNotNull { n ->
                                 val pr = RouteExtras.project(rt, n.place.pos, 2000.0, progress) ?: return@mapNotNull null
                                 if (pr.first < progress - 100) null else n.copy(dist = pr.first - progress, detourMin = detour(pr.second), ahead = true)
                             }
-                        } else Overpass.nearby("fuel_e85", centre, 15_000).map { it.copy(dist = Geo.dist(origin, it.place.pos)) }
+                        } else Overpass.nearby(ok, centre, 15_000).map { it.copy(dist = Geo.dist(origin, it.place.pos)) }
                     }
                     // TomTom's place search first (quick, and it knows the detour time along a route); OpenStreetMap if that fails
                     if (hasOnline && online()) {

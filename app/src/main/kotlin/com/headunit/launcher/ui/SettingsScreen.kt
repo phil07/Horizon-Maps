@@ -1015,7 +1015,7 @@ private fun FuelSection(prefs: Prefs, engine: NavEngine) {
     val ctx = LocalContext.current
     val sc = rememberCoroutineScope()
     SGroup("Kraftstoffpreise") {
-        SChoice("Kraftstoff", listOf("E10" to "Super E10", "E5" to "Super E5", "B7" to "Diesel", "E85" to "Bioethanol (E85)", "EV" to "Elektro"), prefs.s(PreferenceKeys.FUEL_TYPE, "E10")) { prefs.put(PreferenceKeys.FUEL_TYPE, it) }
+        SChoice("Kraftstoff", listOf("E10" to "Super E10", "E5" to "Super E5", "B7" to "Diesel", "E85" to "Bioethanol (E85)", "EV" to "Elektro", "LPG" to "Autogas (LPG)"), prefs.s(PreferenceKeys.FUEL_TYPE, "E10")) { prefs.put(PreferenceKeys.FUEL_TYPE, it) }
         // only an electric car gets stops planned on the route: for a combustion car the switch would do nothing, so it is not shown
         if (prefs.s(PreferenceKeys.FUEL_TYPE, "E10") == "EV") SToggle(prefs, "Ladestopps auf langen Fahrten planen", "smartfuel", true, "Wenn der Akku nicht bis zum Ziel reicht")
         // the UK government's Fuel Finder (pump prices): only in Great Britain and only for a combustion car
