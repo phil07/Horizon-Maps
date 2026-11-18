@@ -350,6 +350,9 @@ internal object PreferenceKeys {
     const val STARRED_ROW = "starred_row"
     /** A small clock under the speedometer, for head units whose status bar is covered. */
     const val CLOCK_ON_MAP = "clock_on_map"
+    /** The folder the daily backup is written to (a folder picker URI), and when it was last written (ms). Never backed up. */
+    const val AUTO_BACKUP_FOLDER = "auto_backup_folder"
+    const val AUTO_BACKUP_LAST = "auto_backup_last"
     /** The speed limit sign big, where the speedometer was, and your speed small beside it. */
     const val SPEED_SIGN_BIG = "speed_sign_big"
     const val TRIP_BTN_SOUND = "tripbtn_sound"
@@ -482,7 +485,7 @@ class Prefs(ctx: Context) {
     fun f(k: String, d: Float) = state(k).value?.toFloatOrNull() ?: d
 
     /** Keys that never go into a backup or come out of one: API keys, the reports device id, the cloud account's keys, tokens and vehicle number (VIN). */
-    private val NEVER_BACKED_UP = setOf(PreferenceKeys.API_KEY, PreferenceKeys.REPORTS_DEVICE, PreferenceKeys.CLOUD_SECRET, PreferenceKeys.CLOUD_VCC,
+    private val NEVER_BACKED_UP = setOf(PreferenceKeys.API_KEY, PreferenceKeys.REPORTS_DEVICE, PreferenceKeys.AUTO_BACKUP_FOLDER, PreferenceKeys.AUTO_BACKUP_LAST, PreferenceKeys.CLOUD_SECRET, PreferenceKeys.CLOUD_VCC,
         PreferenceKeys.CLOUD_ACCESS, PreferenceKeys.CLOUD_REFRESH, PreferenceKeys.CLOUD_VERIFIER, PreferenceKeys.CLOUD_STATE, PreferenceKeys.CLOUD_VEHICLE,
         PreferenceKeys.CLOUD_SC_USER, PreferenceKeys.CLOUD_SC_CONN)
 

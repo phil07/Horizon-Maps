@@ -194,6 +194,7 @@ internal val settingsIndex = listOf(
     SettingRef("Standort", "", "Berechtigungen", 15),
     SettingRef("Standortdienste", "", "Berechtigungen", 15),
     SettingRef("Einstellungen und gespeicherte Orte", "", "Sicherung", 15),
+    SettingRef("Tägliche Sicherung", "Einmal am Tag in einen Ordner", "Sicherung", 15),
     SettingRef("Bericht löschen", "", "Fehlerbericht", 15),
     SettingRef("Um Zuhause herum", "Mapbox-Karte im Umkreis von Zuhause", "Mapbox ohne Signal", 9),
     SettingRef("Karte für diese Route speichern", "Mapbox-Karte entlang der Route", "Mapbox ohne Signal", 9),

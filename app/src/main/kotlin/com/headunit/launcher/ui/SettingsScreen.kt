@@ -1407,6 +1407,10 @@ private fun AboutSection(prefs: Prefs, engine: NavEngine) {
             android.widget.Toast.makeText(ctx, if (ok) tr("Sicherung gespeichert") else tr("Sicherung konnte nicht gespeichert werden"), android.widget.Toast.LENGTH_SHORT).show()
         }
     }
+    // the folder for the daily backup (see AutoBackup): one file, written over the one before
+    val folderPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
+        if (uri != null) { AutoBackup.choose(ctx, uri, prefs); android.widget.Toast.makeText(ctx, tr("Ordner für die tägliche Sicherung gewählt"), android.widget.Toast.LENGTH_SHORT).show() }
+    }
     // the picker for a restore: the newer one, or the older one on a unit where it is missing (a missing picker used to close the app)
     val onImported: (android.net.Uri?) -> Unit = { uri ->
         if (uri != null) {
@@ -1480,6 +1484,19 @@ private fun AboutSection(prefs: Prefs, engine: NavEngine) {
                     }
                 }
             }
+        }
+        // once a day into a folder you choose; the last file is replaced (see AutoBackup)
+        val autoFolder = AutoBackup.folder(prefs)
+        val autoLast = AutoBackup.lastMillis(prefs)
+        SItem("Tägliche Sicherung", if (autoFolder.isBlank()) tr("Aus. Einmal am Tag in einen Ordner, die letzte Datei wird ersetzt.")
+            else tr("An. ") + (if (autoLast > 0) tr("Letzte Sicherung: ") + java.text.DateFormat.getDateTimeInstance(java.text.DateFormat.SHORT, java.text.DateFormat.SHORT).format(java.util.Date(autoLast)) else tr("noch keine")))
+        Row(Modifier.fillMaxWidth().padding(bottom = 8.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            SButton(if (autoFolder.isBlank()) "Ordner wählen" else "Ordner ändern") {
+                try { folderPicker.launch(null) } catch (e: android.content.ActivityNotFoundException) {
+                    android.widget.Toast.makeText(ctx, tr("Auf diesem Gerät fehlt die Ordnerauswahl"), android.widget.Toast.LENGTH_LONG).show()
+                }
+            }
+            if (autoFolder.isNotBlank()) SButton("Aus") { AutoBackup.clear(prefs) }
         }
         SItem("API-Schlüssel", "Eigene Datei, mit Passwort geschützt")
         Row(Modifier.fillMaxWidth().padding(bottom = 8.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {

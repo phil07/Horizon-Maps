@@ -840,6 +840,8 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
     init {
         // an older pack on the unit goes into its own area folder (it's the area that was chosen then)
         try { migratePack() } catch (e: Exception) { }
+        // the daily backup to the chosen folder: checked a little after start, then every half hour while the app runs
+        scope.launch { delay(20_000L); while (true) { try { withContext(Dispatchers.IO) { AutoBackup.runIfDue(ctx, prefs) } } catch (e: Exception) { }; delay(30 * 60_000L) } }
         // the one-way street warning went off too often on OpenStreetMap's data: off for everyone once (it can be switched back on)
         if (!prefs.b(PreferenceKeys.WRONGWAY_RESET, false)) { prefs.put(PreferenceKeys.WRONGWAY, false); prefs.put(PreferenceKeys.WRONGWAY_RESET, true) }
         // speed limits and the wrong-way warning read the roads from a downloaded area when one covers you (no network needed)
