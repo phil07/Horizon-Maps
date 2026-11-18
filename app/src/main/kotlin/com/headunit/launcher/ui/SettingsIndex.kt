@@ -63,6 +63,7 @@ internal val settingsIndex = listOf(
     SettingRef("Maut vermeiden nur in", "Länder für Mautvermeidung wählen", "Vermeiden", 3),
     SettingRef("Autobahnen vermeiden", "", "Vermeiden", 3),
     SettingRef("Fähren vermeiden", "", "Vermeiden", 3),
+    SettingRef("Autozüge vermeiden", "Eurotunnel, Alpen-Tunnelzüge", "Vermeiden", 3),
     SettingRef("Unbefestigte Straßen vermeiden", "", "Vermeiden", 3),
     SettingRef("Umweltzonen vermeiden", "Start- oder Zielzonen können nicht vermieden werden", "Vermeiden", 3),
     SettingRef("Öko-Routen", "Kraftstoffsparend statt am schnellsten", "Routenauswahl", 3),

@@ -577,8 +577,36 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
     }
 
     internal fun routesFrom(p: String, from: LL, to: LL, alternatives: Boolean, departAtMs: Long, via: List<LL>, headingDeg: Double, quick: Boolean): List<Route> =
-        if (p == "mapbox") try { MapboxRest.curbArrival = prefs.b(PreferenceKeys.CURB_ARRIVAL, true); MapboxRest.routes(mbToken, from, to, alternatives, departAtMs, via, headingDeg, quick, leftTraffic) } catch (e: Exception) { noteMbRefused(e); throw e }
+        if (p == "mapbox") try {
+            val curb = prefs.b(PreferenceKeys.CURB_ARRIVAL, true)
+            MapboxRest.curbArrival = curb
+            val rs = MapboxRest.routes(mbToken, from, to, alternatives, departAtMs, via, headingDeg, quick, leftTraffic)
+            if (curb) plainIfLooping(rs, from, to, departAtMs, via, headingDeg, quick) else rs
+        } catch (e: Exception) { noteMbRefused(e); throw e }
         else TomTomRest.routes(apiKey, from, to, alternatives, departAtMs, via, headingDeg, quick)
+
+    /**
+     * Arriving on your side of the road can make Mapbox's route go right past the destination and round to come back to it. When the
+     * best route passes within 40 m of the destination with more than 300 m still to go, the plain way (without the kerb side) is
+     * asked for and used instead, unless it's slower. The other suggested routes stay as they were.
+     */
+    private fun plainIfLooping(rs: List<Route>, from: LL, to: LL, departAtMs: Long, via: List<LL>, headingDeg: Double, quick: Boolean): List<Route> {
+        val top = rs.firstOrNull() ?: return rs
+        if (!passesDestination(top, to)) return rs
+        val plain = try {
+            MapboxRest.curbArrival = false
+            MapboxRest.routes(mbToken, from, to, false, departAtMs, via, headingDeg, quick, leftTraffic).firstOrNull()
+        } catch (e: Exception) { null } finally { MapboxRest.curbArrival = true }
+        if (plain == null || plain.time > top.time) return rs
+        android.util.Log.i("NavEngine", "kerb-side route looped past the destination: the plain way is used (${Math.round(plain.time)} s vs ${Math.round(top.time)} s)")
+        return listOf(plain) + rs.drop(1)
+    }
+
+    /** The route comes within 40 m of [to] while more than 300 m of it are still to go (it goes past and comes back). */
+    private fun passesDestination(r: Route, to: LL): Boolean {
+        for (i in r.pts.indices) if (r.len - r.cum[i] > 300.0 && Geo.dist(r.pts[i], to) < 40.0) return true
+        return false
+    }
 
     /**
      * Routes from whichever service is set up (see [provider]). With both a TomTom key and a Mapbox token (and Settings leaving the
@@ -599,8 +627,24 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
 
     internal fun netRoutes(from: LL, to: LL, alternatives: Boolean, departAtMs: Long = 0L, via: List<LL> = emptyList(), headingDeg: Double = -1.0, quick: Boolean = false,
                           askBoth: Boolean = false): List<Route> =
-        netRoutesRaw(from, to, alternatives, departAtMs, via, headingDeg, quick, askBoth)
+        (carTrainRoutes(from, to, alternatives, departAtMs, via, headingDeg, quick) ?: netRoutesRaw(from, to, alternatives, departAtMs, via, headingDeg, quick, askBoth))
+            // avoiding car trains: the routes without one go first (Mapbox can't leave them out, so its other suggestions are tried)
+            .let { rs -> if (prefs.b(PreferenceKeys.AVOID_CARTRAIN, false)) CarTrains.preferWithout(rs) else rs }
             .also { rs -> if (lastRouteProvider == "tomtom" && rs.isNotEmpty()) mapboxLanesFor(rs, from, to, via, headingDeg) }
+
+    /**
+     * Avoiding car trains with a TomTom key: TomTom plans the routes, since it can leave car trains out (avoid=carTrains) and Mapbox
+     * can't reliably. Null when that doesn't apply or TomTom has no route, so the usual services are asked.
+     */
+    private fun carTrainRoutes(from: LL, to: LL, alternatives: Boolean, departAtMs: Long, via: List<LL>, headingDeg: Double, quick: Boolean): List<Route>? {
+        if (!prefs.b(PreferenceKeys.AVOID_CARTRAIN, false) || !hasKey || refusedKey == apiKey || System.currentTimeMillis() < ttDownUntil) return null
+        return try {
+            routesFrom("tomtom", from, to, alternatives, departAtMs, via, headingDeg, quick).takeIf { it.isNotEmpty() }?.also { lastRouteProvider = "tomtom" }
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
+            null
+        }
+    }
 
     private fun netRoutesRaw(from: LL, to: LL, alternatives: Boolean, departAtMs: Long, via: List<LL>, headingDeg: Double, quick: Boolean,
                              askBoth: Boolean): List<Route> {
@@ -840,6 +884,8 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
     init {
         // an older pack on the unit goes into its own area folder (it's the area that was chosen then)
         try { migratePack() } catch (e: Exception) { }
+        // Italy's daily price list is kept with the app's files (see ItalyFuel)
+        ItalyFuel.dir = ctx.filesDir
         // the daily backup to the chosen folder: checked a little after start, then every half hour while the app runs
         scope.launch { delay(20_000L); while (true) { try { withContext(Dispatchers.IO) { AutoBackup.runIfDue(ctx, prefs) } } catch (e: Exception) { }; delay(30 * 60_000L) } }
         // the one-way street warning went off too often on OpenStreetMap's data: off for everyone once (it can be switched back on)
@@ -1050,7 +1096,7 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
     // ---- style ----
     fun styleUrl(dark: Boolean): String {
         val traffic = prefs.b(PreferenceKeys.TRAFFIC, true)
-        return if (hasKey && prefs.mapSource() == "tomtom" && refusedKey != apiKey) TomTomRest.styleUrl(apiKey, dark, traffic)
+        return if (hasKey && prefs.mapSource() == "tomtom" && refusedKey != apiKey && mapRefusedKey != apiKey) TomTomRest.styleUrl(apiKey, dark, traffic)
         else OsmStyle.json(dark)
     }
 
@@ -1218,10 +1264,20 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
     /** The map style failed to load (usually a signal blip): try again a few times, then fall back to the downloaded map if there is one. */
     /** A key TomTom's map server turned away (it may still work for search and routes): the OpenStreetMap map is used instead. */
     @Volatile private var refusedKey: String? = null
+    /** A key TomTom's map server turned away while its map was showing: Mapbox's map is used then (search and routes keep the key). */
+    @Volatile private var mapRefusedKey: String? = null
     private var searchRefusalShownFor: String? = null
 
     private fun onMapError(msg: String) {
         val m = msg.lowercase()
+        val refused = m.contains("401") || m.contains("403") || m.contains("unauthor") || m.contains("forbidden")
+        // TomTom's map is showing and TomTom turned the key away: Mapbox's map instead, with a note saying why (applyStyle). The key
+        // is remembered as refused for this run, so the map isn't asked for again; search and routes may still take it
+        if (map.recolourBase && hasKey && mapRefusedKey != apiKey && (refused || m.contains("tomtom"))) {
+            mapRefusedKey = apiKey
+            applyStyle(lastDark)
+            return
+        }
         // Mapbox turned the token away: say so (the map can't show without a working token)
         if (m.contains("401") || m.contains("403") || m.contains("unauthor") || m.contains("forbidden") || m.contains("access token")) {
             if (m.contains("403") || m.contains("forbidden"))
@@ -1344,7 +1400,7 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
         when {
             map.isSatellite || src == "mapbox" -> map.setStyleUrl(map.baseStyle())
             src == "tomtom" -> {
-                if (hasKey && refusedKey != apiKey) {
+                if (hasKey && refusedKey != apiKey && mapRefusedKey != apiKey) {
                     // TomTom's map in the Horizon colours, as in Horizon Nav
                     map.recolourBase = true
                     map.setStyleUrl(TomTomRest.styleUrl(apiKey, dark, prefs.b(PreferenceKeys.TRAFFIC, true)))
@@ -2430,6 +2486,7 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
             if (prefs.b(PreferenceKeys.AVOID_TOLL, false)) "tollRoads" else null,
             if (prefs.b(PreferenceKeys.AVOID_MOTORWAY, false)) "motorways" else null,
             if (prefs.b(PreferenceKeys.AVOID_FERRY, false)) "ferries" else null,
+            if (prefs.b(PreferenceKeys.AVOID_CARTRAIN, false)) "carTrains" else null,
             if (prefs.b(PreferenceKeys.AVOID_UNPAVED, true)) "unpavedRoads" else null,
         )
         TomTomRest.routeType = if (prefs.b(PreferenceKeys.ROUTE_ECO, false)) "eco" else "fastest"
@@ -2559,6 +2616,14 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
 
     /** True once a way was picked by hand from the choice (not the app's own pick): then it is kept, see [pickedSlower]. */
     private var userPicked = false
+
+    // the other arms of the roundabout on the turn card (see rbArms), kept for the turn they were worked out for
+    private var rbArmsRoute: Route? = null
+    private var rbArmsOff = -1.0
+    private var rbArmsCache: List<Double> = emptyList()
+
+    /** The difference between two turn angles, -180..180. */
+    private fun roundDiff(a: Double, b: Double): Double = ((a - b) % 360.0 + 540.0) % 360.0 - 180.0
 
     /** The route picked once on the map while choosing (drawn yellow), or -1. A second tap on it chooses it. */
     private var previewPickIdx = -1
@@ -3787,7 +3852,33 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
     }
 
     // ---- nearby fuel / charging / parking ----
-    fun clearNearby() { nearby = emptyList(); nearbyKind = null; nearbyBusy = false; stopMode = false }
+    fun clearNearby() { nearby = emptyList(); nearbyKind = null; nearbyBusy = false; stopMode = false; pinNearby() }
+
+    /** The places listed for Add a stop stand on the map (see [pinNearby]). */
+    private var nearbyPinned = false
+
+    /**
+     * Add a stop: the places listed along the route also stand on the map, each with its price or the minutes it adds, and the map
+     * zooms out to show them. Only while they're listed: closing the list takes them off and the map follows you again.
+     */
+    private fun pinNearby() {
+        val show = stopMode && nearby.any { it.ahead }
+        if (!show) {
+            if (nearbyPinned) { nearbyPinned = false; map.setChainPins(emptyList()); if (!previewing) recenter() }
+            return
+        }
+        nearbyPinned = true
+        map.setChainPins(nearby.map { n ->
+            val label = when {
+                n.price != null -> fmtFuelPrice(n.price, n.unit)
+                n.detourMin >= 0 -> Lang.t("+${n.detourMin} Min.", "+${n.detourMin} min")
+                else -> Geo.fmtDist(n.dist, imperial)
+            }
+            MapBinding.ChainPin(n.place.pos, label, null, false)
+        })
+        val pts = nearby.map { it.place.pos } + listOfNotNull(fix?.pos)
+        if (pts.size >= 2) map.fit(pts)
+    }
 
     private fun distToRoute(r: Route, p: LL): Double {
         var best = 1e9
@@ -3952,6 +4043,7 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
                     nearby = ParkingLive.sortNearby(ParkingLive.enrich(list, live.orEmpty(), origin, radius.toDouble())).take(15)
                 } else
                 nearby = sortNearby(list).take(15)
+                pinNearby()
                 loadLogos(nearby.map { it.place })
                 if (nearby.isEmpty()) toast(if (alongRoute) Lang.t("Nichts entlang der Route gefunden", "Nothing found along the route ahead") else Lang.t("Nichts in der Nähe gefunden", "Nothing found nearby"), 3000)
             } catch (e: Exception) { toast(searchFailText(e), 4500) }
@@ -4837,7 +4929,12 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
         map.onRouteCameras = { c -> knownCams = c; if (camerasOnMap()) mergeCams() }
         map.onViewMoved = { c -> viewMoved(c); garagesAt(c, false) }
         map.onGarageTap = { g -> showGarage(g) }
-        map.onChainTap = { i -> chain?.locs?.getOrNull(i)?.let { selectChain(it) } }
+        map.onChainTap = { i ->
+            val ch = chain
+            // a place listed for Add a stop: tapping it on the map adds it, as tapping it in the list does
+            if (ch == null && nearbyPinned) nearby.getOrNull(i)?.let { addStop(it.place) }
+            else ch?.locs?.getOrNull(i)?.let { selectChain(it) }
+        }
         // the phone, not while being guided: a tap on a free spot shows its address with "Los" (a second tap anywhere puts the card away)
         map.onFreeTap = { p ->
             if (!isCar && (route == null || previewing) && results.isEmpty() && chain == null && !chainBusy) { if (mapPick != null) clearPick() else showPick(p, null) }
@@ -5483,6 +5580,17 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
                     else Geo.roundaboutHeadings(r.pts, r.cum, cur.off, cur.rbEnd, limitAt, leftTraffic)?.let { (i, o) -> 0.0 to norm(eighth(o - i)) }
                 }
             } catch (e: Exception) { null }
+            // the roundabout's other arms (drawn faintly on the turn card and Android Auto's), from OpenStreetMap's ring, worked out once
+            // per roundabout; only when its exit agrees with the one shown, so a different ring nearby is never drawn
+            val rbArms: List<Double> = if (!isRb || rbGeo == null) emptyList() else {
+                if (rbArmsRoute !== r || rbArmsOff != cur.off) {
+                    rbArmsRoute = r; rbArmsOff = cur.off
+                    rbArmsCache = try {
+                        Roundabouts.turnAt(ctx, r, cur.off, leftTraffic)?.takeIf { abs(roundDiff(it.turn, rbGeo.second)) < 30.0 }?.others.orEmpty()
+                    } catch (e: Exception) { emptyList() }
+                }
+                rbArmsCache
+            }
             // Without an exit number the voice and Android Auto give a direction. It comes from the angle the turn card shows, not
             // from the route's own left/right/straight, which can differ at an oddly shaped roundabout.
             val rbMan = if (isRb && cur.roundExit <= 0 && rbGeo != null && !cur.maneuver.equals("ROUNDABOUT_BACK", true)) {
@@ -5507,7 +5615,7 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
                     else Lang.t("Dann ", "Then ") + Geo.maneuverText(nxt.maneuver, nxt.roundExit) + (if (nxt.street.isNotBlank()) Lang.t(" auf ${nxt.street}", " onto ${nxt.street}") else "")
                 } else "",
                 laneSec, Geo.stepTag(cur).ifBlank { lightTag }, laneAdv, cur.roundExit, cur.sign,
-                exitNo = cur.exitNo, rbIn = rbGeo?.first ?: cur.rbIn, rbOut = rbGeo?.second ?: cur.rbOut, rbExits = emptyList(), thenGap = if (thenOn) gap else 0.0, thenExit = if (thenOn) (nxt?.roundExit ?: 0) else 0,
+                exitNo = cur.exitNo, rbIn = rbGeo?.first ?: cur.rbIn, rbOut = rbGeo?.second ?: cur.rbOut, rbExits = rbArms, thenGap = if (thenOn) gap else 0.0, thenExit = if (thenOn) (nxt?.roundExit ?: 0) else 0,
                 junction = jc?.let { Junctions.label(it.first, it.second) }.orEmpty(), junctionName = jc?.first.orEmpty(),
             )
             // only publish a new turn card when something a driver can see changed (about 3 m of distance), so the screen is not redrawn four times a second for nothing

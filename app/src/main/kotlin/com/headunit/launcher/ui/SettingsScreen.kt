@@ -505,6 +505,7 @@ private fun RoutesSection(prefs: Prefs) {
         if (!prefs.b(PreferenceKeys.AVOID_TOLL, false)) SToggle(prefs, "Vignettenpflichtige Straßen meiden", PreferenceKeys.AVOID_VIGNETTE, false, "Nur bei Durchfahrt (AT, CH, SI, CZ, SK, HU, BG, RO)")
         SToggle(prefs, "Autobahnen vermeiden", "avoid_motorway", false)
         SToggle(prefs, "Fähren vermeiden", "avoid_ferry", false)
+        SToggle(prefs, "Autozüge vermeiden", "avoid_cartrain", false, "Z. B. Eurotunnel und die Alpen-Tunnelzüge. Ist ein Autozug der einzige Weg, wird er trotzdem genommen")
         SToggle(prefs, "Unbefestigte Straßen vermeiden", "avoid_unpaved", true)
         SToggle(prefs, "Umweltzonen vermeiden", "avoidzones", false, "Eine Start- oder Zielzone kann nicht vermieden werden")
         ZonesItem()

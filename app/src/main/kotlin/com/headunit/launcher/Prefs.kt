@@ -133,6 +133,8 @@ internal object PreferenceKeys {
     const val ARRIVALFX = "arrivalfx"
     const val AVGZONES = "avgzones"
     const val AVOID_FERRY = "avoid_ferry"
+    /** Keep routes off trains that carry cars (still used when one is the only way). */
+    const val AVOID_CARTRAIN = "avoid_cartrain"
     const val AVOID_MOTORWAY = "avoid_motorway"
     const val AVOID_TOLL = "avoid_toll"
     const val AVOID_VIGNETTE = "avoid_vignette"

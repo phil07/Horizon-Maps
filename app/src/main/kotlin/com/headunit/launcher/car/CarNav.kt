@@ -963,7 +963,13 @@ class MapScreen(carContext: CarContext, private val holder: CarHolder) : Screen(
                 m == "STRAIGHT" || m == "FOLLOW" -> Maneuver.TYPE_STRAIGHT
                 else -> Maneuver.TYPE_UNKNOWN
             }
-            val mb = Maneuver.Builder(type).setIcon(CarIcon.Builder(IconCompat.createWithResource(ctx, maneuverIcon(type))).build())
+            // the same arrow as the phone's turn card (bolder, curved, the roundabout with its real exit and number), drawn as a picture;
+            // the plain icon for the type if that fails
+            val pic = try {
+                com.headunit.launcher.ui.maneuverBitmap(160, t.maneuver, com.headunit.launcher.Geo.maneuverAngle(t.maneuver), t.exit, left,
+                    com.headunit.launcher.ui.roundaboutTurn(t.rbIn, t.rbOut), t.rbExits.map { com.headunit.launcher.ui.roundaboutTurn(t.rbIn, it) })
+            } catch (x: Throwable) { null }
+            val mb = Maneuver.Builder(type).setIcon(CarIcon.Builder(if (pic != null) IconCompat.createWithBitmap(pic) else IconCompat.createWithResource(ctx, maneuverIcon(type))).build())
             val isRb = type == Maneuver.TYPE_ROUNDABOUT_ENTER_AND_EXIT_CW_WITH_ANGLE || type == Maneuver.TYPE_ROUNDABOUT_ENTER_AND_EXIT_CCW_WITH_ANGLE
             var rbExit = t.exit
             if (isRb) {

@@ -375,7 +375,7 @@ private fun MapScreen(engine: NavEngine, onSettings: () -> Unit) {
                 }
             }
             // (adding a stop upright: the list sits along the bottom instead, see below)
-            if (engine.nearbyKind != null && (!previewing || engine.stopMode) && !(narrow && engine.stopMode)) NearbyCard(engine)
+            if (engine.nearbyKind != null && (!previewing || engine.stopMode) && !(narrow && engine.stopMode) && !(engine.stopsEditor && !narrow)) NearbyCard(engine)
         }
         // adding a stop on a phone held upright: the panel and the places along the route sit along the bottom, over the trip card's place,
         // with the places shown on the map above them
@@ -626,7 +626,13 @@ private fun MapScreen(engine: NavEngine, onSettings: () -> Unit) {
             enter = slideInHorizontally(initialOffsetX = { if (mir) -it else it }) + fadeIn(),
             exit = slideOutHorizontally(targetOffsetX = { if (mir) -it else it }) + fadeOut(),
         ) { OptionsSheet(engine, shareEta, voice = voice, wide = !narrow && maxWidth >= 860.dp && maxHeight < maxWidth, onSettings = { sheet = false; onSettings() }) { sheet = false } }
-        if (engine.stopsEditor) StopsDialog(engine, onClose = { engine.stopsEditor = false })
+        // Add a stop: a panel down the side on a phone held sideways (the route stays on the map beside it), a box over the map upright
+        if (engine.stopsEditor) {
+            if (narrow) StopsDialog(engine, onClose = { engine.stopsEditor = false })
+            else Box(Modifier.align(side(Alignment.TopStart)).padding(16.dp).width(400.dp).heightIn(max = maxHeight - 32.dp).zIndex(5f)) {
+                StopsDialog(engine, asPanel = true, onClose = { engine.clearNearby(); engine.stopsEditor = false })
+            }
+        }
         if (engine.chargerFilterOpen) ChargerFilterDialog(engine) { engine.chargerFilterOpen = false }
     }
 }

@@ -1302,7 +1302,7 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
         // the cone starts at the arrow's own spot and goes out ahead of it along your heading (it used to start 12 m ahead, and at a tilt it
         // could come out behind the car's picture)
         // the built-in car: the beam starts just behind its middle; your own model: at its front (the model is sized to the car's length)
-        val ahead = if (modelOn && modelShape == "own") OwnModel.CAR_LENGTH_M / 2 - 0.5 else -3.0
+        val ahead = if (modelOn && modelShape == "own") OwnModel.CAR_LENGTH_M * ownSize / 100.0 / 2 - 0.5 else -3.0
         val hr = Math.toRadians(meHeading)
         val q = LL(p.lat + ahead * Math.cos(hr) / 111_320.0, p.lon + ahead * Math.sin(hr) / (111_320.0 * Math.cos(Math.toRadians(p.lat)).coerceAtLeast(0.01)))
         val f = Feature.fromGeometry(Point.fromLngLat(q.lon, q.lat))
@@ -3635,6 +3635,17 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
     private fun modelPxPerUnit(): Double = arrowScale * (if (modelCarLike()) 300.0 / 4.4 * 0.6 * 0.28 else 300.0 * 0.42 * 0.31) * ownFactor()
 
     /**
+     * How big the car is on screen, in the same measure as [modelPxPerUnit] for the built-in car: for your own model without its
+     * unit factor (a model drawn in millimetres has a factor of about 0.001, one in odd small units of 100 or more), only with the size
+     * you set. The glow and the road name under the model go by this, so they fit round it as round the built-in car.
+     */
+    private fun modelPxCar(): Double = arrowScale * (if (modelCarLike()) 300.0 / 4.4 * 0.6 * 0.28 else 300.0 * 0.42 * 0.31) *
+        (if (modelShape == "own") ownSize / 100.0 else 1.0)
+
+    /** The glow's radius round the model (see [modelPxCar]). */
+    private fun glowRadius(): Double = modelPxCar() / max(0.1, pixelRatioUsed.toDouble()) * (if (modelCarLike()) 2.2 else 1.45)
+
+    /**
      * The model's size: the same size on screen at every zoom, exactly like the picture locator. Mapbox's location-indicator models
      * are sized in screen pixels per model unit ("viewport" scale mode), in the map's own pixels (screen pixels / pixel ratio).
      */
@@ -3674,7 +3685,7 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
                 addS(st, GeoJsonSource.Builder("dl-me-glow").featureCollection(FeatureCollection.fromFeatures(
                     if (p != null) listOf(Feature.fromGeometry(Point.fromLngLat(p.lon, p.lat))) else emptyList())).build())
                 addL(st, CircleLayer("dl-me-glow-l", "dl-me-glow").inSlot(TOP)
-                    .circleRadius(scale[0] * (if (car) 2.2 else 1.45)).circleBlur(0.85).circleColor("#4C9BE6").circleOpacity(0.55)
+                    .circleRadius(glowRadius()).circleBlur(0.85).circleColor("#4C9BE6").circleOpacity(0.55)
                     .circlePitchAlignment(CirclePitchAlignment.MAP).circleEmissiveStrength(1.0))
             }
             // the untinted part first (the blue disc under the arrow, or the car's glass, lights and tyres), then the coloured part
@@ -4141,7 +4152,7 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
             // the Classic look has a flat blue ring on the map under the arrow (the Modern look draws its ring in the picture itself)
             val discHalf = if (theme == "immersive") 0f else 15f * 0.625f * arrowScale * dens * Math.cos(Math.toRadians(tilt)).toFloat()
             // the picture has empty space round the arrow / car: measure where its drawing really ends at the bottom
-            val below = if (modelOn) (modelPxPerUnit() * (if (modelCarLike()) 2.3 else 0.85) * Math.cos(Math.toRadians(tilt))).toFloat()
+            val below = if (modelOn) (modelPxCar() * (if (modelCarLike()) 2.3 else 0.85) * Math.cos(Math.toRadians(tilt))).toFloat()
                         else if (locatorStyle != "flat" && bmp != null) drawnBelowCentre(bmp) * spriteSize()
                         else flatArrow?.let { drawnBelowCentre(it) * (if (theme == "immersive") 0.25f else 0.625f) * arrowScale * flatIconK().toFloat() * Math.cos(Math.toRadians(tilt)).toFloat() } ?: 0f
             roadView.translationY = pt.y + maxOf(discHalf, below) + 3f * dens
@@ -4213,7 +4224,7 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
             (layer("dl-me-arrow") as? SymbolLayer)?.iconSize((if (im) 0.25 else 0.625) * f)
             (layer("dl-me-halo") as? CircleLayer)?.circleRadius(15.0 * 0.625 * f)
             if (modelOn) { val sc = modelScale(); (layer("dl-me-model-a") as? ModelLayer)?.modelScale(sc); (layer("dl-me-model-b") as? ModelLayer)?.modelScale(sc)
-                (layer("dl-me-glow-l") as? CircleLayer)?.circleRadius(sc[0] * (if (modelCarLike()) 2.2 else 1.45)) }
+                (layer("dl-me-glow-l") as? CircleLayer)?.circleRadius(glowRadius()) }
         } catch (e: Exception) { }
         placeLocator()
     }

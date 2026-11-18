@@ -11,6 +11,7 @@ import java.net.URLEncoder
  *  - France: the government's open price feed (data.economie.gouv.fr), no key needed.
  *  - Austria: E-Control's Spritpreisrechner, no key needed (it gives the cheapest few stations round a point).
  *  - Germany: Tankerkönig (Markttransparenzstelle data), with a free key pasted in Settings.
+ *  - Italy: the government's daily price list (MIMIT), no key needed, fetched at most once a day (see ItalyFuel).
  * Prices come back in cents a litre. Everything here is network work: call it off the main thread. Any failure gives an empty
  * list, so the app simply falls back to its normal station search without prices.
  */
@@ -19,7 +20,7 @@ object EuFuel {
 
     /** Countries with a price service here (Germany only once a Tankerkönig key is in). */
     fun supported(country: String, prefs: Prefs): Boolean = when (country.uppercase()) {
-        "FR", "AT" -> true
+        "FR", "AT", "IT" -> true
         "DE" -> prefs.s(PreferenceKeys.TANKERKOENIG_KEY, "").isNotBlank()
         else -> false
     }
@@ -28,6 +29,7 @@ object EuFuel {
     fun hasFuel(country: String, fuel: String): Boolean = when (country.uppercase()) {
         "FR" -> fuel in setOf("E10", "E5", "B7", "E85", "LPG")
         "AT", "DE" -> fuel in setOf("E10", "E5", "B7")
+        "IT" -> ItalyFuel.hasFuel(fuel)
         else -> false
     }
 
@@ -37,6 +39,7 @@ object EuFuel {
             "FR" -> france(c, radiusKm.coerceIn(1, 25), fuel)
             "AT" -> austria(c, fuel)
             "DE" -> germany(prefs.s(PreferenceKeys.TANKERKOENIG_KEY, "").trim(), c, radiusKm.coerceIn(1, 25), fuel)
+            "IT" -> ItalyFuel.near(c, radiusKm.coerceIn(1, 25), fuel)
             else -> emptyList()
         }
     } catch (e: Exception) { emptyList() }

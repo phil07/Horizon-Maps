@@ -71,6 +71,7 @@ import androidx.compose.material.icons.rounded.Wc
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material.icons.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.Layers
 import androidx.compose.material.icons.rounded.MyLocation
 import androidx.compose.material.icons.rounded.PlayArrow
@@ -590,7 +591,11 @@ internal fun NearbyCard(engine: NavEngine) {
             IconBadge(nearbyIcon(engine.nearbyKind), c.accent, Modifier.padding(end = 12.dp), 36.dp)
             Text(title, color = c.text, fontSize = 20.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
             if (engine.nearbyBusy) CircularProgressIndicator(Modifier.size(18.dp), color = c.accent, strokeWidth = 2.dp)
-            Box(Modifier.padding(start = 10.dp).size(48.dp).clip(androidx.compose.foundation.shape.CircleShape).clickable { engine.clearNearby() }, contentAlignment = Alignment.Center) { Icon(Icons.Rounded.Close, Lang.t("Schließen", "Close"), tint = c.text, modifier = Modifier.size(32.dp)) }
+            // inside the Add a stop panel the arrow goes back to it; elsewhere the list closes
+            val back = engine.stopsEditor
+            Box(Modifier.padding(start = 10.dp).size(48.dp).clip(androidx.compose.foundation.shape.CircleShape).clickable { engine.clearNearby() }, contentAlignment = Alignment.Center) {
+                Icon(if (back) Icons.Rounded.ArrowBack else Icons.Rounded.Close, if (back) Lang.t("Zurück", "Back") else Lang.t("Schließen", "Close"), tint = c.text, modifier = Modifier.size(32.dp))
+            }
         }
         // along a route: least detour or cheapest; near the car, nearest or cheapest (the cheapest only with prices)
         if (hasPrices || along) Row(Modifier.padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {

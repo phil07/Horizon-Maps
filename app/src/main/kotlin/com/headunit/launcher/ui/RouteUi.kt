@@ -24,6 +24,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.horizontalScroll
@@ -369,10 +370,16 @@ private fun StopKindButton(icon: ImageVector, tint: Color, desc: String, onClick
     }
 }
 
+/**
+ * Add a stop. On a phone held sideways it is a panel down the side ([asPanel]), with the route still on the map; elsewhere a box over
+ * the map. Search sits at the top, clear of the keyboard. Fuel, Charger, Coffee, Food, Services and Toilets list those places along the
+ * route (on the map too, each with the time it adds); sideways the list opens in the same panel and its arrow goes back.
+ */
 @Composable
-fun StopsDialog(engine: NavEngine, onClose: () -> Unit) {
+fun StopsDialog(engine: NavEngine, asPanel: Boolean = false, onClose: () -> Unit) {
     val c = LocalVw.current
-    var stops by remember { mutableStateOf(engine.via) }
+    // (follows the route's stops: one added from the list along the route shows up here straight away)
+    var stops by remember(engine.via) { mutableStateOf(engine.via) }
     var q by remember { mutableStateOf("") }
     var results by remember { mutableStateOf<List<Place>>(emptyList()) }
     var busy by remember { mutableStateOf(false) }
@@ -383,35 +390,14 @@ fun StopsDialog(engine: NavEngine, onClose: () -> Unit) {
         results = try { engine.findPlaces(q) } catch (e: Exception) { emptyList() }
         busy = false
     }
-    Dialog(onDismissRequest = onClose, properties = DialogProperties(usePlatformDefaultWidth = false)) {
-        Column(Modifier.padding(horizontal = 16.dp).widthIn(max = 620.dp).fillMaxWidth().heightIn(max = 560.dp).clip(RoundedCornerShape(26.dp)).background(c.surface).padding(20.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+    // places of one kind along the route: listed (and shown on the map) rather than one added that you hadn't seen
+    val listKind: (String) -> Unit = { kind -> engine.stopMode = true; engine.loadNearby(kind, false); if (!asPanel) onClose() }
+    val content: @Composable androidx.compose.foundation.layout.ColumnScope.() -> Unit = {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(stringResource(R.string.ui_053), color = c.text, fontSize = 20.sp, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
                 Icon(Icons.Rounded.Close, Lang.t("Schließen", "Close"), tint = c.sub, modifier = Modifier.size(28.dp).clickable { onClose() })
             }
-            // one tap, no typing: the best one along the route ahead is added straight away
-            if (engine.dest != null) {
-                Text(stringResource(R.string.ui_037), color = c.sub, fontSize = 11.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
-                // the same round coloured icons as under the search bar, one row. Fuel lists the stations with their prices
-                val ev = engine.prefs.s(PreferenceKeys.FUEL_TYPE, "E10") == "EV"
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    if (!ev) StopKindButton(Icons.Rounded.LocalGasStation, Color(0xFFEA4335), stringResource(R.string.ui_084)) { engine.stopMode = true; engine.loadNearby("fuel", false); onClose() }
-                    StopKindButton(Icons.Rounded.EvStation, Color(0xFF34A853), stringResource(R.string.ui_085)) { engine.addBestStop("charging"); onClose() }
-                    StopKindButton(Icons.Rounded.LocalCafe, Color(0xFFA56BFF), stringResource(R.string.ui_086)) { engine.addBestStop("coffee"); onClose() }
-                    StopKindButton(Icons.Rounded.Restaurant, Color(0xFFF29900), stringResource(R.string.ui_087)) { engine.addBestStop("food"); onClose() }
-                    StopKindButton(Icons.Rounded.Apartment, Color(0xFF12A4B4), stringResource(R.string.ui_088)) { engine.addBestStop("services"); onClose() }
-                    StopKindButton(Icons.Rounded.Wc, Color(0xFF4C8DFF), stringResource(R.string.ui_089)) { engine.addBestStop("toilets"); onClose() }
-                }
-            }
-            // your own places, added to the list below (then Update route)
-            val mine = remember { listOfNotNull(engine.places.slot("home")?.let { Lang.t("Zuhause", "Home") to it }, engine.places.slot("work")?.let { Lang.t("Arbeit", "Work") to it }) +
-                engine.places.favourites().take(4).map { "★ " + it.name to it } }
-            if (mine.isNotEmpty()) {
-                Text(stringResource(R.string.ui_068), color = c.sub, fontSize = 11.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
-                Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    for ((name, p) in mine) Pill(name, false, { stops = (stops + p).take(8) })
-                }
-            }
+            // the search at the top, so the keyboard never covers it
             TextField(
                 value = q, onValueChange = { q = it }, singleLine = true,
                 placeholder = { Text(stringResource(R.string.ui_043)) },
@@ -435,6 +421,28 @@ fun StopsDialog(engine: NavEngine, onClose: () -> Unit) {
                             if (p.sub.isNotBlank()) Text(p.sub, color = c.sub, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                         }
                     }
+                }
+            }
+            // along the route: the same round coloured icons as under the search bar, one row
+            if (engine.dest != null) {
+                Text(stringResource(R.string.ui_037), color = c.sub, fontSize = 11.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+                val ev = engine.prefs.s(PreferenceKeys.FUEL_TYPE, "E10") == "EV"
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    if (!ev) StopKindButton(Icons.Rounded.LocalGasStation, Color(0xFFEA4335), stringResource(R.string.ui_084)) { listKind("fuel") }
+                    StopKindButton(Icons.Rounded.EvStation, Color(0xFF34A853), stringResource(R.string.ui_085)) { listKind("charging") }
+                    StopKindButton(Icons.Rounded.LocalCafe, Color(0xFFA56BFF), stringResource(R.string.ui_086)) { listKind("coffee") }
+                    StopKindButton(Icons.Rounded.Restaurant, Color(0xFFF29900), stringResource(R.string.ui_087)) { listKind("food") }
+                    StopKindButton(Icons.Rounded.Apartment, Color(0xFF12A4B4), stringResource(R.string.ui_088)) { listKind("services") }
+                    StopKindButton(Icons.Rounded.Wc, Color(0xFF4C8DFF), stringResource(R.string.ui_089)) { listKind("toilets") }
+                }
+            }
+            // your own places, added to the list below (then Update route)
+            val mine = remember { listOfNotNull(engine.places.slot("home")?.let { Lang.t("Zuhause", "Home") to it }, engine.places.slot("work")?.let { Lang.t("Arbeit", "Work") to it }) +
+                engine.places.favourites().take(4).map { "★ " + it.name to it } }
+            if (mine.isNotEmpty()) {
+                Text(stringResource(R.string.ui_068), color = c.sub, fontSize = 11.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+                Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    for ((name, p) in mine) Pill(name, false, { stops = (stops + p).take(8) })
                 }
             }
             val arrivals = remember(engine.via) { engine.stopArrivalTimes() }
@@ -467,7 +475,14 @@ fun StopsDialog(engine: NavEngine, onClose: () -> Unit) {
                 Pill(stringResource(R.string.ui_097), true, { engine.setStops(stops); onClose() })
                 Pill(Lang.t("Abbrechen", "Cancel"), false, onClose)
             }
-        }
+    }
+    if (asPanel) {
+        // the places of one kind along the route, in the same panel (its arrow goes back to this one)
+        if (engine.stopMode && engine.nearbyKind != null) NearbyCard(engine)
+        else Column(Modifier.fillMaxWidth().floating(26.dp).imePadding().padding(20.dp), verticalArrangement = Arrangement.spacedBy(10.dp), content = content)
+    } else Dialog(onDismissRequest = onClose, properties = DialogProperties(usePlatformDefaultWidth = false)) {
+        Column(Modifier.padding(horizontal = 16.dp).widthIn(max = 620.dp).fillMaxWidth().heightIn(max = 560.dp).clip(RoundedCornerShape(26.dp)).background(c.surface).imePadding().padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp), content = content)
     }
 }
 
