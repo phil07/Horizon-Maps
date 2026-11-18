@@ -3,8 +3,6 @@
 ### Neu
 - Abbiegepfeile: fetter, mit einer weichen Kurve und einer eingekerbten Spitze. Die Straße, die du verlässt, ist dahinter blass zu sehen. Im Kreisverkehr sind die anderen Ausfahrten blass zu sehen, die Ausfahrt-Nummer steht in der Mitte auf einer weichen Scheibe. Die großen Spurpfeile bleiben gleich.
   EN: Turn arrows: bolder, with a smooth curve and a notched head, and the road you're leaving shown faintly behind them. Roundabouts show the other exits faintly too, with the exit number in the middle on a soft disc. The big lane arrows are unchanged.
-- Android Auto: Der Abbiegepfeil hat dieselben Pfeile, auch den Kreisverkehr mit der echten Ausfahrt und Nummer. Dank an karthikeyansr-lgtm.
-  EN: Android Auto: the turn card gets the same arrows, including the roundabout with its real exit and number. Thanks to karthikeyansr-lgtm.
 
 ### Verbessert
 - Die Ecken der Abbiegekarte sind wieder etwas runder.
