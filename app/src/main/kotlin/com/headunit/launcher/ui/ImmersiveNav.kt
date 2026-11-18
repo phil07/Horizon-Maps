@@ -844,7 +844,7 @@ private fun TripArea(engine: NavEngine, shareEta: () -> Unit, narrow: Boolean = 
             if (cam != null && engine.alert?.kind != "camera") HazardBadge("camera", Lang.t("Blitzer", "Speed camera"), Geo.fmtDist(cam.toDouble(), engine.imperial))
         }
         eta?.let { e ->
-            val dc = if (e.delayMin >= 10) Bad else if (e.delayMin >= 1) Warn else Good
+            val dc = delayColour(e.delayMin, c.dark)
             val shape = RoundedCornerShape(22.dp)
             // landscape: the card is only as wide as its contents (figures, then the buttons close by), and the route bar matches that width.
             // portrait: full width, with the buttons under the figures.
@@ -1896,3 +1896,11 @@ internal fun findOn(prefs: com.headunit.launcher.Prefs, kind: String): Boolean =
 
 /** One row of a shortcut list ("My places", "My tracks"): its name, how far it is, the folder it's in (blank = none), and what a tap does. */
 internal class ShortcutRow(val name: String, val dist: Double, val folder: String, val go: () -> Unit)
+
+/** The colour of the time left: green on time, amber for a few minutes' delay, red for ten or more. On a light card deeper shades,
+ *  so they stand out against white. */
+internal fun delayColour(delayMin: Int, dark: Boolean): androidx.compose.ui.graphics.Color = when {
+    delayMin >= 10 -> if (dark) Bad else androidx.compose.ui.graphics.Color(0xFFC62828)
+    delayMin >= 1 -> if (dark) Warn else androidx.compose.ui.graphics.Color(0xFFB45309)
+    else -> if (dark) Good else androidx.compose.ui.graphics.Color(0xFF15803D)
+}

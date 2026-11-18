@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
@@ -98,16 +99,21 @@ internal fun SItem(title: String, sub: String? = null, onClick: (() -> Unit)? = 
         }
         return
     }
-    Row(
-        rowMod,
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Column(Modifier.weight(1f).padding(end = 14.dp)) {
+    // the words and the buttons side by side while there is room for both; with less room the buttons go onto their own line underneath,
+    // so the name is never squeezed into a column of single words or letters
+    BoxWithConstraints(rowMod) {
+        val beside = maxWidth >= 480.dp
+        if (beside) Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f).padding(end = 14.dp)) {
+                Text(tr(title), color = c.text, fontSize = 16.sp, fontWeight = FontWeight.Medium)
+                if (!sub.isNullOrBlank()) Text(tr(sub), color = c.sub, fontSize = 12.sp, modifier = Modifier.padding(top = 2.dp))
+            }
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End), verticalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.padding(start = 4.dp)) { trailing() }
+        } else Column(Modifier.fillMaxWidth()) {
             Text(tr(title), color = c.text, fontSize = 16.sp, fontWeight = FontWeight.Medium)
             if (!sub.isNullOrBlank()) Text(tr(sub), color = c.sub, fontSize = 12.sp, modifier = Modifier.padding(top = 2.dp))
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.padding(top = 6.dp)) { trailing() }
         }
-        // the buttons wrap onto as many lines as they need
-        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End), verticalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.padding(start = 4.dp)) { trailing() }
     }
 }
 

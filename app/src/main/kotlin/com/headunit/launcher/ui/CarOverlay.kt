@@ -653,7 +653,7 @@ private fun SoundPill(engine: NavEngine) {
 private fun TripCard(engine: NavEngine, fill: Boolean, oneLine: Boolean = false) {
     val e = engine.eta ?: return
     val c = LocalVw.current
-    val dc = if (e.delayMin >= 10) Bad else if (e.delayMin >= 1) Warn else Good
+    val dc = delayColour(e.delayMin, c.dark)
     // a short screen: time, arrival and distance on one line, with the end button (the figures stay, the rest goes)
     if (oneLine) {
         Row(Modifier.panel(10.dp, RoundedCornerShape(22.dp), c.surface).padding(start = 14.dp, end = 8.dp, top = 6.dp, bottom = 6.dp),
