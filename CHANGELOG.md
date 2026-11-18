@@ -7,6 +7,11 @@
 ### Behoben
 - Satellitenansicht auf dem Autodisplay: Das Autodisplay zeigt die Satellitenansicht, wenn sie eingeschaltet ist, statt immer die gezeichnete Karte. Fehlerberichte nennen jetzt auch, ob der Satellit an ist, und den letzten Fehler der Karte.
   EN: Satellite view on Android Auto: the car screen shows satellite view when it is switched on, instead of always the drawn map. Feedback reports now also say whether satellite is on and the last error the map gave.
+- Satellit bei Nacht: Mit Nacht gewählt (oder nach Einbruch der Dunkelheit) waren die Satellitenfotos so stark abgedunkelt, dass es aussah, als wäre der Satellit aus. Jetzt zeigen sie sich auch nachts im Tageslicht. Die Nachtabdunklung des Bildschirms bleibt. (Dank an Matattack99)
+  EN: Satellite at night: with Night chosen, or after dark, the satellite photos were dimmed until they hardly showed. They now show in daylight at night; the screen's own night dimming still applies. (Thanks to Matattack99)
+- Eigenes 3D-Modell mit Satellit: Das Einschalten des Satelliten ersetzte das echte 3D-Modell durch das eingebaute Auto-Bild. Das Modell zeigt sich jetzt auch im Satellitenbild. Fehlerberichte nennen außerdem, welche Karte wirklich angezeigt wird und was den Pfeil zeichnet. (Dank an Matattack99)
+  EN: Your own 3D model with satellite: switching satellite on swapped the real 3D model for the built-in car picture. The model now shows on satellite too. Feedback reports also say which map is really on screen and what draws your arrow. (Thanks to Matattack99)
+
 
 ## 1.0.246 — 2026-10-28
 

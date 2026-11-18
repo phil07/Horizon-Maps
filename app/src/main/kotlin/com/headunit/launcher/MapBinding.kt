@@ -138,6 +138,10 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
     /** Mapbox's own map couldn't get a piece of map (with no signal: an area it hasn't stored). */
     var onTileMissing: (() -> Unit)? = null
     private var satellite = false
+    /** What is really drawn: the map style and what draws the arrow (for the feedback report). */
+    fun drawingSummary(): String =
+        "map style: ${loadedStyle ?: "none"} · satellite: ${if (satellite) "on" else "off"} · arrow: ${if (modelOn) "3D model ($modelShape)" else locatorStyle}"
+
     /** The last error the map gave (for the feedback report); blank until one comes. */
     @Volatile var lastMapError: String = ""
     // index into satChain(): moves on when the current photo source refuses its tiles (429 / 401 / 403); -1 = not chosen yet
@@ -439,7 +443,7 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
 
     /** Satellite at "night" darkens the photos until there's next to nothing to see (it looked as if satellite wasn't working),
      *  so satellite goes no darker than dusk. */
-    private fun satLight(p: String): String = if (satellite && p == "night") "dusk" else p
+    private fun satLight(p: String): String = if (satellite) "day" else p
 
     /** One of Standard's settings (only once a style is showing; they're also written into the style when it loads). */
     private fun setBase(key: String, v: Value) {
@@ -2488,7 +2492,7 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
             .visibility(vis(locatorStyle == "flat")))
         // the real 3D model (Full 3D only); otherwise the 3D locator is drawn by locatorView over the map, see pushModel
         modelOn = false; modelAt = null
-        if (modelWanted && !modelBroken && !satellite && MapStylePolicy.supportsFullDetailFeatures(mapDetail)) installModel(st)
+        if (modelWanted && !modelBroken && MapStylePolicy.supportsFullDetailFeatures(mapDetail)) installModel(st)
         // (the road-name pill is roadView, see placeLocator)
         spriteName = null
         placeLocator()
