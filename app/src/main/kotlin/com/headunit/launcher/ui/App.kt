@@ -95,9 +95,11 @@ fun App(prefs: Prefs, engine: NavEngine, map: MapBinding) {
     }
     LaunchedEffect(installedVersion) {
         if (com.headunit.launcher.BuildConfig.UPDATE_REPO.isNotBlank() && prefs.s(PreferenceKeys.WHATS_NEW_SEEN_VERSION, "") != installedVersion) {
-            whatsNewVisible = true
             val previousVersion = prefs.s(PreferenceKeys.WHATS_NEW_SEEN_VERSION, "")
-            whatsNewNotes = try { kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { com.headunit.launcher.Updater.installedReleaseNotes(installedVersion, previousVersion, appCtx) } } catch (_: Exception) { "" }
+            val notes = try { kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { com.headunit.launcher.Updater.installedReleaseNotes(installedVersion, previousVersion, appCtx) } } catch (_: Exception) { "" }
+            whatsNewNotes = notes
+            // the card comes up only when there is something new to tell (an update with no notes shows nothing)
+            whatsNewVisible = notes.isNotBlank()
         }
     }
     LaunchedEffect(Unit) { while (true) { delay(60_000); nowMs = System.currentTimeMillis() } }

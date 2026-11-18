@@ -401,7 +401,7 @@ private fun MapScreen(engine: NavEngine, onSettings: () -> Unit) {
             // landscape: Settings sits to the left of the panel (to the right when mirrored) so the panel starts at the very top, with
             // zoom straight under it. Portrait: Settings above the panel, as there's no room beside it next to the search bar.
             val settingsAbove = narrow && showSettings
-            val turnAbove = if (narrow && routing && engine.turn != null) with(dens) { turnPx.toDp() } + 10.dp else 0.dp
+            val turnAbove = if (narrow && routing && engine.turn != null) with(dens) { turnPx.toDp() } + 16.dp else 0.dp
             val top = 16.dp * mainButtonScale + (if (settingsAbove) unit + 10.dp * mainButtonScale else 0.dp) + turnAbove
             // (with zoom hidden there's nothing to fit under the panel)
             val zoomH = (2 * 52 + 1).dp * mainButtonScale
@@ -1122,9 +1122,11 @@ internal fun ImmTurnCard(
     // read only while drawing, so the pulse repaints the card without recomposing it 60 times a second
     val pulse = rememberPulse(alive && t.dist < 80.0, 650)
     val glowCol = Color(0xFF7FFFE6)
+    // on a phone upright it grows evenly from the middle (from the left edge it ran off the right of the screen)
+    val growOrigin = if (androidx.compose.ui.platform.LocalConfiguration.current.screenWidthDp < 720) androidx.compose.ui.graphics.TransformOrigin(0.5f, 0f) else androidx.compose.ui.graphics.TransformOrigin(0f, 0f)
     Column(
         Modifier.fillMaxWidth()
-            .graphicsLayer { scaleX = grow; scaleY = grow; transformOrigin = androidx.compose.ui.graphics.TransformOrigin(0f, 0f) }
+            .graphicsLayer { scaleX = grow; scaleY = grow; transformOrigin = growOrigin }
             .shadow((if (compact) 5f else 12f + 14f * glow).dp, shape, ambientColor = glowCol, spotColor = glowCol)
             .clip(shape)
             .background(androidx.compose.ui.graphics.lerp(Teal, Color(0xFF14C9A6), 0.35f * glow))
