@@ -330,7 +330,13 @@ fun ManeuverArrow(
                     this.color = argb; textSize = 14f * s; textAlign = android.graphics.Paint.Align.CENTER; isFakeBoldText = true; isAntiAlias = true
                 }
                 val centre = p(cx, cy)
-                drawContext.canvas.nativeCanvas.drawText(roundaboutExit.toString(), centre.x, centre.y - (paint.descent() + paint.ascent()) / 2f, paint)
+                // a soft disc behind the number
+                drawCircle(color.copy(alpha = 0.16f), (rr - 2.5f) * s, centre)
+                // centred on the digits themselves (the font's box leaves space under them, so they used to sit high)
+                val txt = roundaboutExit.toString()
+                val bounds = android.graphics.Rect()
+                paint.getTextBounds(txt, 0, txt.length, bounds)
+                drawContext.canvas.nativeCanvas.drawText(txt, centre.x, centre.y - (bounds.top + bounds.bottom) / 2f, paint)
             }
             val endDeg = Math.toRadians((90f + sweep).toDouble())
             val dx = kotlin.math.cos(endDeg).toFloat()
@@ -351,14 +357,20 @@ fun ManeuverArrow(
         val ux = sin(r).toFloat(); val uy = -cos(r).toFloat()
         val x2 = x1 + ux * len; val y2 = y1 + uy * len
         if (u.startsWith("ROUNDABOUT")) drawCircle(color, 6f * s, p(24f, 38f), style = Stroke(width = 3f * s))
-        val shaft = Path().apply { moveTo(24 * s, 44 * s); lineTo(x1 * s, y1 * s); lineTo(x2 * s, y2 * s) }
-        drawPath(shaft, color, style = stroke)
+        // the road you're leaving, faint, going on straight behind the arrow
+        drawLine(color.copy(alpha = 0.3f), p(24f, 46f), p(24f, 6f), 4.5f * s, StrokeCap.Round)
+        // the arrow: bolder, bending in a smooth curve from the road you come in on to the head
+        val boldStroke = Stroke(width = 6.5f * s, cap = StrokeCap.Round, join = StrokeJoin.Round)
+        val bend = Path().apply { moveTo(24 * s, 44 * s); quadraticBezierTo(x1 * s, y1 * s, x2 * s, y2 * s) }
+        drawPath(bend, color, style = boldStroke)
+        // the head with a notch in its back
         val px = -uy; val py = ux
-        val hl = 11f; val hw = 9f
+        val hl = 12f; val hw = 10f
         val tip = p(x2 + ux * hl * 0.6f, y2 + uy * hl * 0.6f)
         val b1 = p(x2 - ux * hl * 0.4f + px * hw * 0.55f, y2 - uy * hl * 0.4f + py * hw * 0.55f)
+        val notch = p(x2 - ux * hl * 0.05f, y2 - uy * hl * 0.05f)
         val b2 = p(x2 - ux * hl * 0.4f - px * hw * 0.55f, y2 - uy * hl * 0.4f - py * hw * 0.55f)
-        val head = Path().apply { moveTo(tip.x, tip.y); lineTo(b1.x, b1.y); lineTo(b2.x, b2.y); close() }
+        val head = Path().apply { moveTo(tip.x, tip.y); lineTo(b1.x, b1.y); lineTo(notch.x, notch.y); lineTo(b2.x, b2.y); close() }
         drawPath(head, color)
     }
 }

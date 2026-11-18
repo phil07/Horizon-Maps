@@ -1116,7 +1116,7 @@ internal fun ImmTurnCard(
     footer: (@Composable () -> Unit)? = null,
 ) {
     // road-sign corners: the progress bar along the bottom reaches the very end of the card
-    val shape = RoundedCornerShape(4.dp)
+    val shape = RoundedCornerShape(7.dp)
     val frac = ((450.0 - t.dist) / 450.0).coerceIn(0.0, 1.0).toFloat()
     // living card: it grows a touch and starts to glow as the turn comes up, and pulses in the last 80 m
     val alive = engine.prefs.b(PreferenceKeys.LIVECARD, true)

@@ -1,18 +1,18 @@
 ## Unreleased
 
 ### Neu
-- Stopp hinzufügen, Tanken: Auf der Route zeigt jede Tankstelle den Preis deiner Kraftstoffsorte, die günstigste in Grün. Darunter steht der Umweg in Minuten.
-  EN: Add a stop, fuel: along your route every petrol station shows the price of your fuel, with the cheapest in green and the detour time under it.
-- Neuer Reiter „Günstigste“ neben „Geringster Umweg“.
-  EN: A new Cheapest tab next to Least detour.
-- Tankstellen mit Preis, die die Kartensuche nicht gefunden hat, werden in die Liste aufgenommen.
-  EN: Priced stations that the map search missed are added to the list.
-- Preise kommen wie bei der Tankstellenliste: Fuel Finder (Großbritannien), und die Preisdienste in Frankreich, Österreich und Deutschland (mit Schlüssel).
-  EN: Prices come from the same place as the fuel list: Fuel Finder (UK), and the price services in France, Austria and Germany (with a key).
+- Abbiegepfeile: fetter, mit einer weichen Kurve und einer eingekerbten Spitze. Die Straße, die du verlässt, ist dahinter blass zu sehen. Im Kreisverkehr sind die anderen Ausfahrten blass zu sehen, die Ausfahrt-Nummer steht in der Mitte auf einer weichen Scheibe. Die großen Spurpfeile bleiben gleich.
+  EN: Turn arrows: bolder, with a smooth curve and a notched head, and the road you're leaving shown faintly behind them. Roundabouts show the other exits faintly too, with the exit number in the middle on a soft disc. The big lane arrows are unchanged.
+- Android Auto: Der Abbiegepfeil hat dieselben Pfeile, auch den Kreisverkehr mit der echten Ausfahrt und Nummer. Dank an karthikeyansr-lgtm.
+  EN: Android Auto: the turn card gets the same arrows, including the roundabout with its real exit and number. Thanks to karthikeyansr-lgtm.
 
 ### Verbessert
-- Stopp hinzufügen: Die Knöpfe Tanken, Laden, Kaffee, Essen, Raststätten und Toiletten sind jetzt runde farbige Symbole wie unter der Suchleiste, in einer Reihe.
-  EN: Add a stop: the Fuel, Charger, Coffee, Food, Services and Toilets buttons are now the same round coloured icons as under the search bar, in one row.
+- Die Ecken der Abbiegekarte sind wieder etwas runder.
+  EN: The turn card's corners are slightly rounder again.
+
+### Behoben
+- Zahlen nicht mittig: Die Ausfahrt-Nummer im Kreisverkehr und die Zahl auf dem runden Tempolimit-Schild saßen etwas zu hoch. Beide stehen jetzt genau in der Mitte. Dank an karthikeyansr-lgtm.
+  EN: Numbers off-centre: the exit number in the roundabout icon and the number on the round speed limit sign sat slightly high; both are now exactly in the middle. Thanks to karthikeyansr-lgtm.
 
 ## 1.0.246 — 2026-10-28
 

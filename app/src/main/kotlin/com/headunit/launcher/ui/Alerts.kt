@@ -347,7 +347,11 @@ private fun SpeedLimitFace(engine: NavEngine, size: Dp, modifier: Modifier = Mod
                 size = androidx.compose.ui.geometry.Size(r * 1.76f, r * 1.76f), style = Stroke(width = r * 0.05f, cap = androidx.compose.ui.graphics.StrokeCap.Round))
         }
         Text("$n", color = if (engine.limitEstimated) Color(0xFF4A4A4A) else Color(0xFF111111), fontSize = (size.value * (if (n >= 100) 0.31f else 0.39f)).sp, fontWeight = FontWeight.Black, maxLines = 1,
-            letterSpacing = (-0.5).sp, style = androidx.compose.ui.text.TextStyle(shadow = androidx.compose.ui.graphics.Shadow(Color(0x33000000), Offset(0f, 1.5f), 2f)))
+            letterSpacing = (-0.5).sp, style = androidx.compose.ui.text.TextStyle(shadow = androidx.compose.ui.graphics.Shadow(Color(0x33000000), Offset(0f, 1.5f), 2f),
+                // centred on the digits (the font's line box puts them high)
+                lineHeight = (size.value * (if (n >= 100) 0.31f else 0.39f)).sp,
+                lineHeightStyle = androidx.compose.ui.text.style.LineHeightStyle(androidx.compose.ui.text.style.LineHeightStyle.Alignment.Center, androidx.compose.ui.text.style.LineHeightStyle.Trim.Both),
+                platformStyle = androidx.compose.ui.text.PlatformTextStyle(includeFontPadding = false)))
     }
 }
 
