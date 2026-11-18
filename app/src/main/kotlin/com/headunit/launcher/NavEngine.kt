@@ -3809,6 +3809,59 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
     val CAMPER_KINDS = setOf("camp", "dump", "lpg")
     val camperProfile: Boolean get() = !Vehicle.from(prefs).isCar
 
+    /** Fuel stations with live prices: the UK's Fuel Finder, or a country's own price service. Along the route, or near [centre]. */
+    private fun pricedFuel(kind: String, fuelLive: Boolean, fuelType: String, alongRoute: Boolean, rt: Route?, progress: Double,
+                           centre: LL, origin: LL, radius: Int): List<Nearby> {
+        if (kind != "fuel") return emptyList()
+        if (fuelLive) {
+            try { FuelFinder.refresh(ctx, prefs) } catch (e: Exception) { /* use what is stored */ }
+            val st = FuelFinder.stations(ctx)
+            if (st.isNotEmpty()) {
+                val out = ArrayList<Nearby>()
+                // only stations inside the box around the next 120 km of route are checked against the route itself
+                var bMinLat = 90.0; var bMaxLat = -90.0; var bMinLon = 180.0; var bMaxLon = -180.0
+                if (alongRoute && rt != null) for (i in rt.pts.indices) {
+                    if (rt.cum[i] < progress - 200 || rt.cum[i] > progress + 120_000) continue
+                    val q = rt.pts[i]
+                    bMinLat = min(bMinLat, q.lat); bMaxLat = max(bMaxLat, q.lat); bMinLon = min(bMinLon, q.lon); bMaxLon = max(bMaxLon, q.lon)
+                }
+                for (s0 in st) {
+                    if (alongRoute && rt != null) {
+                        if (s0.pos.lat < bMinLat - 0.015 || s0.pos.lat > bMaxLat + 0.015 || s0.pos.lon < bMinLon - 0.025 || s0.pos.lon > bMaxLon + 0.025) continue
+                        val pr = RouteExtras.project(rt, s0.pos, 1500.0, progress) ?: continue
+                        if (pr.first < progress - 100 || pr.first - progress > 120_000) continue
+                        val price = FuelFinder.priceOf(ctx, s0.id, fuelType)
+                        out += Nearby(Place(s0.name, listOf(s0.brand, s0.postcode).filter { it.isNotBlank() && it != s0.name }.joinToString(" · "), s0.pos),
+                            pr.first - progress, priceExtra(price, s0.motorway), price?.pence, detour(pr.second), true)
+                    } else {
+                        val dd = Geo.dist(centre, s0.pos)
+                        if (dd > radius) continue
+                        val price = FuelFinder.priceOf(ctx, s0.id, fuelType)
+                        out += Nearby(Place(s0.name, listOf(s0.brand, s0.postcode).filter { it.isNotBlank() && it != s0.name }.joinToString(" · "), s0.pos),
+                            Geo.dist(origin, s0.pos), priceExtra(price, s0.motorway), price?.pence)
+                    }
+                }
+                if (out.isNotEmpty()) return out
+            }
+        }
+        // outside the UK: live prices from the country's own price service (France, Austria, Germany with a key)
+        val cc = detectedCountry.uppercase()
+        if (cc != "GB" && EuFuel.supported(cc, prefs) && EuFuel.hasFuel(cc, fuelType) && online()) {
+            val eu = if (alongRoute && rt != null) EuFuel.along(cc, prefs, RouteExtras.line(rt, progress, progress + 60_000.0, 1500.0, 45), fuelType)
+                else EuFuel.near(cc, prefs, centre, radius / 1000 + 1, fuelType)
+            val out = ArrayList<Nearby>()
+            for (s0 in eu) {
+                if (alongRoute && rt != null) {
+                    val pr = RouteExtras.project(rt, s0.pos, 1500.0, progress) ?: continue
+                    if (pr.first < progress - 100) continue
+                    out += Nearby(Place(s0.name, s0.sub, s0.pos), pr.first - progress, "", s0.cents, detour(pr.second), true, unit = "€")
+                } else if (Geo.dist(centre, s0.pos) <= radius) out += Nearby(Place(s0.name, s0.sub, s0.pos), Geo.dist(origin, s0.pos), "", s0.cents, unit = "€")
+            }
+            if (out.isNotEmpty()) return out
+        }
+        return emptyList()
+    }
+
     fun loadNearby(kind: String, nearDest: Boolean, pickBest: Boolean = false) {
         val centre = (if (nearDest) dest?.pos else null) ?: fix?.pos ?: map.center() ?: run { toast(ctx.getString(R.string.toast_019)); return }
         val origin = fix?.pos ?: centre
@@ -3825,53 +3878,8 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
             try {
                 // the search runs on its own, and the 30 s limit just stops waiting for it: a blocked network read used to hold the
                 // limit up too (the timeout can't end a read that's waiting on a server), so a busy server left it spinning for minutes
+                val pricedWork = searchScope.async { pricedFuel(kind, fuelLive, fuelType, alongRoute, rt, progress, centre, origin, radius) }
                 val work = searchScope.async {
-                    if (fuelLive) {
-                        try { FuelFinder.refresh(ctx, prefs) } catch (e: Exception) { /* use what is stored */ }
-                        val st = FuelFinder.stations(ctx)
-                        if (st.isNotEmpty()) {
-                            val out = ArrayList<Nearby>()
-                            // only stations inside the box around the next 120 km of route are checked against the route itself
-                            var bMinLat = 90.0; var bMaxLat = -90.0; var bMinLon = 180.0; var bMaxLon = -180.0
-                            if (alongRoute && rt != null) for (i in rt.pts.indices) {
-                                if (rt.cum[i] < progress - 200 || rt.cum[i] > progress + 120_000) continue
-                                val q = rt.pts[i]
-                                bMinLat = min(bMinLat, q.lat); bMaxLat = max(bMaxLat, q.lat); bMinLon = min(bMinLon, q.lon); bMaxLon = max(bMaxLon, q.lon)
-                            }
-                            for (s0 in st) {
-                                if (alongRoute && rt != null) {
-                                    if (s0.pos.lat < bMinLat - 0.015 || s0.pos.lat > bMaxLat + 0.015 || s0.pos.lon < bMinLon - 0.025 || s0.pos.lon > bMaxLon + 0.025) continue
-                                    val pr = RouteExtras.project(rt, s0.pos, 1500.0, progress) ?: continue
-                                    if (pr.first < progress - 100 || pr.first - progress > 120_000) continue
-                                    val price = FuelFinder.priceOf(ctx, s0.id, fuelType)
-                                    out += Nearby(Place(s0.name, listOf(s0.brand, s0.postcode).filter { it.isNotBlank() && it != s0.name }.joinToString(" · "), s0.pos),
-                                        pr.first - progress, priceExtra(price, s0.motorway), price?.pence, detour(pr.second), true)
-                                } else {
-                                    val dd = Geo.dist(centre, s0.pos)
-                                    if (dd > radius) continue
-                                    val price = FuelFinder.priceOf(ctx, s0.id, fuelType)
-                                    out += Nearby(Place(s0.name, listOf(s0.brand, s0.postcode).filter { it.isNotBlank() && it != s0.name }.joinToString(" · "), s0.pos),
-                                        Geo.dist(origin, s0.pos), priceExtra(price, s0.motorway), price?.pence)
-                                }
-                            }
-                            if (out.isNotEmpty()) return@async out
-                        }
-                    }
-                    // outside the UK: live prices from the country's own price service (France, Austria, Germany with a key)
-                    val cc = detectedCountry.uppercase()
-                    if (kind == "fuel" && cc != "GB" && EuFuel.supported(cc, prefs) && EuFuel.hasFuel(cc, fuelType) && online()) {
-                        val eu = if (alongRoute && rt != null) EuFuel.along(cc, prefs, RouteExtras.line(rt, progress, progress + 60_000.0, 1500.0, 45), fuelType)
-                            else EuFuel.near(cc, prefs, centre, radius / 1000 + 1, fuelType)
-                        val out = ArrayList<Nearby>()
-                        for (s0 in eu) {
-                            if (alongRoute && rt != null) {
-                                val pr = RouteExtras.project(rt, s0.pos, 1500.0, progress) ?: continue
-                                if (pr.first < progress - 100) continue
-                                out += Nearby(Place(s0.name, s0.sub, s0.pos), pr.first - progress, "", s0.cents, detour(pr.second), true, unit = "€")
-                            } else if (Geo.dist(centre, s0.pos) <= radius) out += Nearby(Place(s0.name, s0.sub, s0.pos), Geo.dist(origin, s0.pos), "", s0.cents, unit = "€")
-                        }
-                        if (out.isNotEmpty()) return@async out
-                    }
                     // a motorhome's places: only OpenStreetMap knows pitches, dump stations and LPG (a wider strip along the route)
                     if (camper) {
                         return@async if (alongRoute && rt != null) {
@@ -3920,7 +3928,12 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
                         }
                     } else Overpass.nearby(kind, centre, radius).map { it.copy(dist = Geo.dist(origin, it.place.pos)) }
                 }
-                val list = kotlinx.coroutines.withTimeoutOrNull(30_000L) { work.await() }
+                // the price services' stations first; the map search's places are added after, except where a priced station is already
+                // there (a priced station the map search missed is added too)
+                val priced = kotlinx.coroutines.withTimeoutOrNull(30_000L) { pricedWork.await() } ?: emptyList()
+                val mapped = kotlinx.coroutines.withTimeoutOrNull(30_000L) { work.await() }
+                val list: List<Nearby>? = if (priced.isEmpty()) mapped
+                    else priced + (mapped ?: emptyList()).filter { m -> priced.none { Geo.dist(it.place.pos, m.place.pos) < 80.0 } }
                 if (list == null) { work.cancel(); toast(ctx.getString(R.string.toast_042), 4000); clearNearby(); return@launch }
                 if (pickBest) {
                     val ahead = list.filter { it.ahead || route == null }
@@ -4015,7 +4028,10 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
     private fun detour(off: Double): Int = Math.round((2.0 * off / 11.0 + 60.0) / 60.0).toInt()
 
     private fun sortNearby(l: List<Nearby>): List<Nearby> =
-        if (nearbySort == "cheap" && l.any { it.price != null }) l.sortedWith(compareBy<Nearby> { it.price ?: 9999.0 }.thenBy { it.dist }) else l.sortedBy { it.dist }
+        if (nearbySort == "cheap" && l.any { it.price != null }) l.sortedWith(compareBy<Nearby> { it.price ?: 9999.0 }.thenBy { it.dist })
+        // along a route, "least detour" is the order (the detour time, then how far ahead)
+        else if (nearbySort == "near" && l.any { it.ahead && it.detourMin >= 0 }) l.sortedWith(compareBy<Nearby> { if (it.detourMin >= 0) it.detourMin else 999 }.thenBy { it.dist })
+        else l.sortedBy { it.dist }
 
     fun changeNearbySort(mode: String) { nearbySort = mode; nearby = sortNearby(nearby) }
 

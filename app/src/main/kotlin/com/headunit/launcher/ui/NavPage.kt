@@ -583,6 +583,7 @@ internal fun NearbyCard(engine: NavEngine) {
     val along = engine.nearby.any { it.ahead }
     val title = (if (adding) Lang.t("Stopp hinzufügen: ", "Add a stop: ") else "") + nearbyTitle(engine.nearbyKind) + (if (along) Lang.t(" voraus", " ahead") else "")
     val hasPrices = engine.nearby.any { it.price != null }
+    val cheapest = engine.nearby.mapNotNull { it.price }.minOrNull()
     // a solid panel, like the other cards: the map must not show through the text
     Column(Modifier.floating(24.dp).background(c.surface).padding(14.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -591,10 +592,11 @@ internal fun NearbyCard(engine: NavEngine) {
             if (engine.nearbyBusy) CircularProgressIndicator(Modifier.size(18.dp), color = c.accent, strokeWidth = 2.dp)
             Box(Modifier.padding(start = 10.dp).size(48.dp).clip(androidx.compose.foundation.shape.CircleShape).clickable { engine.clearNearby() }, contentAlignment = Alignment.Center) { Icon(Icons.Rounded.Close, Lang.t("Schließen", "Close"), tint = c.text, modifier = Modifier.size(32.dp)) }
         }
-        if (hasPrices) Row(Modifier.padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
-            Pill(if (along) Lang.t("Am frühesten", "Soonest") else Lang.t("Am nächsten", "Nearest"), engine.nearbySort != "cheap", { engine.changeNearbySort("near") })
-            Pill(Lang.t("Am günstigsten", "Cheapest"), engine.nearbySort == "cheap", { engine.changeNearbySort("cheap") })
-            Text(com.headunit.launcher.FuelFinder.fuelName(engine.prefs.s(PreferenceKeys.FUEL_TYPE, "E10")), color = c.sub, fontSize = 12.sp, modifier = Modifier.padding(start = 6.dp))
+        // along a route: least detour or cheapest; near the car, nearest or cheapest (the cheapest only with prices)
+        if (hasPrices || along) Row(Modifier.padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+            Pill(if (along) Lang.t("Geringster Umweg", "Least detour") else Lang.t("Am nächsten", "Nearest"), engine.nearbySort != "cheap", { engine.changeNearbySort("near") })
+            if (hasPrices) Pill(Lang.t("Günstigste", "Cheapest"), engine.nearbySort == "cheap", { engine.changeNearbySort("cheap") })
+            if (hasPrices) Text(com.headunit.launcher.FuelFinder.fuelName(engine.prefs.s(PreferenceKeys.FUEL_TYPE, "E10")), color = c.sub, fontSize = 12.sp, modifier = Modifier.padding(start = 6.dp))
         }
         LazyColumn(Modifier.heightIn(max = 230.dp).padding(top = 6.dp)) {
             items(engine.nearby) { n ->
@@ -610,10 +612,15 @@ internal fun NearbyCard(engine: NavEngine) {
                         if (sub.isNotBlank()) Text(sub, color = c.sub, fontSize = 15.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     }
                     if (n.free != null || n.total != null || n.open != null) ParkSpaces(n)
-                    if (n.price != null) Text(com.headunit.launcher.fmtFuelPrice(n.price, n.unit), color = c.text, fontSize = 16.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(start = 8.dp))
+                    // a price: the cheapest one in green, with the detour time under it
+                    val showDetour = n.detourMin >= 0
+                    if (n.price != null) Column(horizontalAlignment = Alignment.End, modifier = Modifier.padding(start = 8.dp)) {
+                        Text(com.headunit.launcher.fmtFuelPrice(n.price, n.unit), color = if (n.price == cheapest) Good else c.text, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                        if (showDetour) Text(Lang.t("+${n.detourMin} Min.", "+${n.detourMin} min"), color = c.sub, fontSize = 11.sp)
+                    }
                     Column(horizontalAlignment = Alignment.End, modifier = Modifier.padding(start = 10.dp)) {
                         Text(Geo.fmtDist(n.dist, engine.imperial), color = c.accent, fontSize = 14.sp, fontWeight = FontWeight.Bold, modifier = Modifier.clip(RoundedCornerShape(50)).background(c.accent.copy(alpha = 0.14f)).padding(horizontal = 10.dp, vertical = 4.dp))
-                        if (n.detourMin >= 0) Text(Lang.t("+${n.detourMin} Min.", "+${n.detourMin} min"), color = c.sub, fontSize = 11.sp, modifier = Modifier.padding(top = 2.dp))
+                        if (n.price == null && showDetour) Text(Lang.t("+${n.detourMin} Min.", "+${n.detourMin} min"), color = c.sub, fontSize = 11.sp, modifier = Modifier.padding(top = 2.dp))
                     }
                 }
             }

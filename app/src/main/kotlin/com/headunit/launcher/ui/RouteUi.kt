@@ -34,6 +34,10 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.EvStation
+import androidx.compose.material.icons.rounded.LocalGasStation
+import androidx.compose.material.icons.rounded.Restaurant
+import androidx.compose.material.icons.rounded.Apartment
+import androidx.compose.material.icons.rounded.Wc
 import androidx.compose.ui.draw.scale
 import androidx.compose.material.icons.rounded.Warning
 import androidx.compose.material.icons.rounded.Route
@@ -356,6 +360,15 @@ fun CruisePill(engine: NavEngine, modifier: Modifier = Modifier) {
 }
 
 /** Edit the stops on the way: add by searching, move them up or down, or remove them. */
+/** A round coloured button for one kind of stop (the same look as the buttons under the search bar). */
+@Composable
+private fun StopKindButton(icon: ImageVector, tint: Color, desc: String, onClick: () -> Unit) {
+    val c = LocalVw.current
+    Box(Modifier.size(48.dp).panel(6.dp, CircleShape, c.surface).pressClick(onClick), contentAlignment = Alignment.Center) {
+        Icon(icon, desc, tint = tint, modifier = Modifier.size(24.dp))
+    }
+}
+
 @Composable
 fun StopsDialog(engine: NavEngine, onClose: () -> Unit) {
     val c = LocalVw.current
@@ -379,10 +392,15 @@ fun StopsDialog(engine: NavEngine, onClose: () -> Unit) {
             // one tap, no typing: the best one along the route ahead is added straight away
             if (engine.dest != null) {
                 Text(stringResource(R.string.ui_037), color = c.sub, fontSize = 11.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
-                Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    val ev = engine.prefs.s(PreferenceKeys.FUEL_TYPE, "E10") == "EV"
-                    for ((kind, name) in listOfNotNull(if (ev) null else "fuel" to stringResource(R.string.ui_084), "charging" to stringResource(R.string.ui_085), "coffee" to stringResource(R.string.ui_086), "food" to stringResource(R.string.ui_087), "services" to stringResource(R.string.ui_088), "toilets" to stringResource(R.string.ui_089)))
-                        Pill(name, false, { engine.addBestStop(kind); onClose() })
+                // the same round coloured icons as under the search bar, one row. Fuel lists the stations with their prices
+                val ev = engine.prefs.s(PreferenceKeys.FUEL_TYPE, "E10") == "EV"
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    if (!ev) StopKindButton(Icons.Rounded.LocalGasStation, Color(0xFFEA4335), stringResource(R.string.ui_084)) { engine.stopMode = true; engine.loadNearby("fuel", false); onClose() }
+                    StopKindButton(Icons.Rounded.EvStation, Color(0xFF34A853), stringResource(R.string.ui_085)) { engine.addBestStop("charging"); onClose() }
+                    StopKindButton(Icons.Rounded.LocalCafe, Color(0xFFA56BFF), stringResource(R.string.ui_086)) { engine.addBestStop("coffee"); onClose() }
+                    StopKindButton(Icons.Rounded.Restaurant, Color(0xFFF29900), stringResource(R.string.ui_087)) { engine.addBestStop("food"); onClose() }
+                    StopKindButton(Icons.Rounded.Apartment, Color(0xFF12A4B4), stringResource(R.string.ui_088)) { engine.addBestStop("services"); onClose() }
+                    StopKindButton(Icons.Rounded.Wc, Color(0xFF4C8DFF), stringResource(R.string.ui_089)) { engine.addBestStop("toilets"); onClose() }
                 }
             }
             // your own places, added to the list below (then Update route)
