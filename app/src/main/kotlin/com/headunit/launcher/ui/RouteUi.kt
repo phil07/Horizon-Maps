@@ -209,16 +209,19 @@ fun AvgSpeedCard(engine: NavEngine, modifier: Modifier = Modifier) {
     val k = if (engine.imperial) 2.23694 else 3.6
     val unit = if (engine.imperial) "mph" else "km/h"
     val shape = RoundedCornerShape(22.dp)
+    // deeper red and amber on a light card, so they stand out against white
+    val red = if (c.dark) Bad else Color(0xFFC62828)
+    val amber = if (c.dark) Warn else Color(0xFFB45309)
     Row(
-        modifier.fillMaxWidth().panel(8.dp, shape, c.surface).border(2.dp, if (a.over) Bad else Color.Transparent, shape).padding(horizontal = 16.dp, vertical = 10.dp),
+        modifier.fillMaxWidth().panel(8.dp, shape, c.surface).border(2.dp, if (a.over) red else Color.Transparent, shape).padding(horizontal = 16.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp),
     ) {
         val lim = a.limitMs?.let { (Math.round(it * k / 5.0) * 5).toInt() }
-        Box(Modifier.size(46.dp).clip(CircleShape).background(Color.White).border(5.dp, Bad, CircleShape), contentAlignment = Alignment.Center) {
+        Box(Modifier.size(46.dp).clip(CircleShape).background(Color.White).border(5.dp, red, CircleShape), contentAlignment = Alignment.Center) {
             Text(lim?.toString() ?: "?", color = Color.Black, fontSize = 17.sp, fontWeight = FontWeight.Bold)
         }
         Column(Modifier.weight(1f)) {
-            Text(if (a.ahead) Lang.t("ABSCHNITTSKONTROLLE VORAUS", "AVERAGE SPEED CHECK AHEAD") else Lang.t("ABSCHNITTSKONTROLLE", "AVERAGE SPEED CHECK"), color = Bad, fontSize = 11.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+            Text(if (a.ahead) Lang.t("ABSCHNITTSKONTROLLE VORAUS", "AVERAGE SPEED CHECK AHEAD") else Lang.t("ABSCHNITTSKONTROLLE", "AVERAGE SPEED CHECK"), color = red, fontSize = 11.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
             if (a.ahead) Text(Lang.t("Beginnt in ${Geo.fmtDist(a.toStartM, engine.imperial)} · ${Geo.fmtDist(a.leftM, engine.imperial)} lang", "Starts in ${Geo.fmtDist(a.toStartM, engine.imperial)} · ${Geo.fmtDist(a.leftM, engine.imperial)} long"), color = c.text, fontSize = 15.sp, fontWeight = FontWeight.Medium)
             else {
                 Text(Lang.t("noch ${Geo.fmtDist(a.leftM, engine.imperial)}", "${Geo.fmtDist(a.leftM, engine.imperial)} left"), color = c.sub, fontSize = 13.sp)
@@ -229,8 +232,8 @@ fun AvgSpeedCard(engine: NavEngine, modifier: Modifier = Modifier) {
                     val sv = Math.floor(safe * k).toInt()
                     val lv = Math.round(lm * k).toInt()
                     when {
-                        safe <= 0.5 || sv < lv - 25 -> Text(stringResource(R.string.ui_050), color = Bad, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
-                        sv < lv -> Text(Lang.t("Bleib für den Rest unter $sv $unit", "Keep under $sv $unit for the rest"), color = Warn, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                        safe <= 0.5 || sv < lv - 25 -> Text(stringResource(R.string.ui_050), color = red, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                        sv < lv -> Text(Lang.t("Bleib für den Rest unter $sv $unit", "Keep under $sv $unit for the rest"), color = amber, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
                         sv > lv -> Text(Lang.t("Bis ${minOf(sv, lv + 15)} $unit bleibst du darunter", "Up to ${minOf(sv, lv + 15)} $unit keeps you under"), color = c.sub, fontSize = 13.sp)
                         else -> {}
                     }

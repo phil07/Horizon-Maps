@@ -312,7 +312,7 @@ private fun MapLookSection(prefs: Prefs, engine: NavEngine) {
     }
     if (prefs.s(PreferenceKeys.LOOK, "standard") != "neon") OwnDesignGroup(prefs)
     SGroup("Tag und Nacht") {
-        SChoice("Tag und Nacht", listOf("auto" to "Auto", "lights" to "Scheinwerfer", "sun" to "Sonnenstand", "times" to "Feste Zeiten", "day" to "Tag", "night" to "Nacht"), prefs.s(PreferenceKeys.THEME, "auto"),
+        SChoice("Tag und Nacht", listOf("auto" to "Auto", "lights" to "Scheinwerfer", "sun" to "Sonnenstand", "times" to "Feste Zeiten", "day" to "Tag", "night" to "Nacht", "phone" to "Dunkelmodus des Telefons"), prefs.s(PreferenceKeys.THEME, "auto"),
             "Auto folgt dem Nachtmodus des Geräts") { prefs.put(PreferenceKeys.THEME, it) }
         if (prefs.s(PreferenceKeys.THEME, "auto") == "lights") {
             val learned = VendorLight.learned(prefs)
@@ -903,7 +903,7 @@ private fun GpxTracksGroup(engine: NavEngine) {
                 if (shown == t.id) { shown = null; engine.map.setTrack(emptyList()) }
                 else { shown = t.id; engine.map.setTrack(com.headunit.launcher.Gpx.load(ctx, t.id)) }
             }
-            SButton("Fahren", primary = true) {
+            SButton("Navigieren", primary = true) {
                 engine.driveTrack(t.name, com.headunit.launcher.Gpx.load(ctx, t.id))
                 engine.externalTick++
             }
@@ -1184,6 +1184,7 @@ private fun WhileDrivingSection(prefs: Prefs, engine: NavEngine) {
         SToggle(prefs, "Pfeil ohne Route auf der Straße halten", "snaproad", true)
         SToggle(prefs, "Pfeil seitlich lassen", PreferenceKeys.KEEP_ARROW_SIDE, false, "Auf breitem Bildschirm bleibt der Pfeil seitlich, wenn die Karten einklappen, statt in die Mitte zu gleiten")
         SToggle(prefs, "Karte in Tunnels dimmen", "tunneldim", true)
+        SToggle(prefs, "Uhr auf der Karte", PreferenceKeys.CLOCK_ON_MAP, false, "Eine kleine Uhr unter dem Tacho, wenn die Statusleiste des Geräts verdeckt ist")
         SToggle(prefs, "Weniger Buttons beim Fahren", "drivesimple", true)
         SToggle(prefs, "Tastatur beim Fahren sperren", "drivelock", false, "Sprachsuche funktioniert weiterhin")
     }
@@ -1396,7 +1397,9 @@ private fun AboutSection(prefs: Prefs, engine: NavEngine) {
     val exporter = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { uri ->
         if (uri != null) {
             val ok = try {
-                ctx.contentResolver.openOutputStream(uri)?.use { it.write(prefs.exportJson().toByteArray()) }
+                // the settings and saved places, and the GPX tracks with their folders
+                val backup = org.json.JSONObject(prefs.exportJson()).put("gpx_tracks", com.headunit.launcher.Gpx.backupArray(ctx))
+                ctx.contentResolver.openOutputStream(uri)?.use { it.write(backup.toString(2).toByteArray()) }
                 true
             } catch (e: Exception) { false }
             android.widget.Toast.makeText(ctx, if (ok) tr("Sicherung gespeichert") else tr("Sicherung konnte nicht gespeichert werden"), android.widget.Toast.LENGTH_SHORT).show()
@@ -1406,7 +1409,11 @@ private fun AboutSection(prefs: Prefs, engine: NavEngine) {
         if (uri != null) {
             val msg = try {
                 val text = ctx.contentResolver.openInputStream(uri)?.bufferedReader()?.use { it.readText() }.orEmpty()
-                "${prefs.importJson(text)} Einstellungen wiederhergestellt"
+                val o = org.json.JSONObject(text)
+                val tracks = o.optJSONArray("gpx_tracks")
+                o.remove("gpx_tracks")
+                val n = prefs.importJson(o.toString())
+                "$n Einstellungen wiederhergestellt" + (tracks?.let { " · ${com.headunit.launcher.Gpx.restoreArray(ctx, it)} Tracks" } ?: "")
             } catch (e: Exception) { "Datei ist keine gültige Sicherung" }
             android.widget.Toast.makeText(ctx, msg, android.widget.Toast.LENGTH_LONG).show()
         }

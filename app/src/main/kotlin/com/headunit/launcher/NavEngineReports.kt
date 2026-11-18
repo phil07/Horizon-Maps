@@ -249,7 +249,7 @@ internal fun NavEngine.checkYieldSigns(p: LL, heading: Double) {
     val stopOn = prefs.b(PreferenceKeys.STOP_SIGNS, false)
     val giveWayOn = prefs.b(PreferenceKeys.GIVE_WAY, false)
     val hit = yieldNear.firstOrNull { (s, stop) ->
-        (if (stop) stopOn else giveWayOn) && s !in yieldAlerted && Geo.dist(p, s) < 200.0 && abs(angDiff(Geo.bearing(p, s), heading)) <= 60.0
+        (if (stop) stopOn else giveWayOn) && s !in yieldAlerted && Geo.dist(p, s) < 200.0 && abs(angDiff(Geo.bearing(p, s), heading)) <= 25.0
     } ?: return
     yieldAlerted.add(hit.first)
     val text = if (hit.second) "Stoppschild voraus" else "Vorfahrt gewähren"

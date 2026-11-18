@@ -207,6 +207,7 @@ internal val settingsIndex = listOf(
     SettingRef("Fahrtenbuch", "Jede Fahrt wird beim Parken aufgezeichnet", "Fahrtenbuch", 7),
     SettingRef("Mediensteuerung", "Die Leiste erscheint nur, wenn etwas läuft", "Song und Cover", 11),
     SettingRef("Titel und Cover", "Zugriff für Titel und Cover", "Song und Cover", 11),
+    SettingRef("Uhr auf der Karte", "Kleine Uhr unter dem Tacho", "Beim Fahren", 11),
     SettingRef("Tacho und Tempolimitschild", "Tempolimit und Tachogröße", "Beim Fahren", 11),
     SettingRef("Farben", "Mapbox, Horizon, Blass oder Grau", "Karte", 0),
     SettingRef("Text- und Buttongröße", "Größe aller Elemente auf dem Bildschirm", "Bildschirm", 10),

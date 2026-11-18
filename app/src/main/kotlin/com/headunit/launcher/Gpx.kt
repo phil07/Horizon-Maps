@@ -90,6 +90,40 @@ object Gpx {
         return id
     }
 
+    /** The tracks for a backup: each with its name, its folder and its stored points. */
+    fun backupArray(ctx: Context): JSONArray {
+        val a = JSONArray()
+        for (t in list(ctx)) {
+            val f = File(dir(ctx), "${t.id}.txt")
+            if (f.exists()) a.put(JSONObject().put("name", t.name).put("g", t.group).put("text", f.readText()))
+        }
+        return a
+    }
+
+    /** Puts backed-up tracks back, each as a new track in its folder (one already there with the same name and folder is skipped). */
+    fun restoreArray(ctx: Context, a: JSONArray): Int {
+        val cur = list(ctx).toMutableList()
+        var n = 0
+        for (i in 0 until a.length()) {
+            val o = a.optJSONObject(i) ?: continue
+            val name = o.optString("name").take(60).ifBlank { "Track" }
+            val group = o.optString("g").trim().take(24)
+            if (cur.any { it.name == name && it.group == group }) continue
+            val text = o.optString("text")
+            val pts = text.lines().mapNotNull { line ->
+                val p = line.split(',')
+                if (p.size == 2) LL(p[0].toDoubleOrNull() ?: return@mapNotNull null, p[1].toDoubleOrNull() ?: return@mapNotNull null) else null
+            }
+            if (pts.size < 2) continue
+            val id = "t" + System.currentTimeMillis() + "_$i"
+            File(dir(ctx), "$id.txt").writeText(pts.joinToString("\n") { String.format(java.util.Locale.US, "%.6f,%.6f", it.lat, it.lon) })
+            cur += GpxTrack(id, name, pts.size, group, pts.firstOrNull())
+            n++
+        }
+        write(ctx, cur)
+        return n
+    }
+
     /** Puts the track in the folder [group] (blank takes it out of its folder). */
     fun setGroup(ctx: Context, id: String, group: String) =
         write(ctx, list(ctx).map { if (it.id == id) it.copy(group = group.trim().take(24)) else it })

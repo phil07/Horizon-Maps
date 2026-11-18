@@ -348,6 +348,8 @@ internal object PreferenceKeys {
     const val HOME_TILE = "home_tile"; const val WORK_TILE = "work_tile"
     /** Starred places of Your places show in the row under the search bar (off hides them all; they stay in search). */
     const val STARRED_ROW = "starred_row"
+    /** A small clock under the speedometer, for head units whose status bar is covered. */
+    const val CLOCK_ON_MAP = "clock_on_map"
     const val TRIP_BTN_SOUND = "tripbtn_sound"
     const val TRIP_BTN_END = "tripbtn_end"
     const val TRIP_BTN_SIZE = "tripbtn_size"

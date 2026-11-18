@@ -308,7 +308,8 @@ private fun CarScreen(engine: NavEngine, a: android.graphics.Rect?, actions: Car
                         footer = {
                             if (incShown || camShown) Column(Modifier.fillMaxWidth().background(GmGreenDeep).padding(horizontal = 14.dp, vertical = 6.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                                 if (incShown && inc != null) CarHazardLine("incident", inc.label, Geo.fmtDist(inc.dist, engine.imperial))
-                                if (camShown && cam != null) CarHazardLine("camera", "Blitzer", Geo.fmtDist(cam.toDouble(), engine.imperial))
+                                // (the average speed card takes this line's place while it shows)
+                                if (camShown && cam != null && engine.avgInfo == null) CarHazardLine("camera", "Blitzer", Geo.fmtDist(cam.toDouble(), engine.imperial))
                             }
                         })
                 }

@@ -102,7 +102,9 @@ fun phoneDark(ctx: android.content.Context, prefs: com.headunit.launcher.Prefs, 
         "sun" -> sun ?: system
         "lights" -> VendorLight.current(ctx, prefs) ?: if (system) true else if (seen) false else sun ?: false
         // a phone simply follows its own light or dark setting; Sun times is the choice for sunrise and sunset
-        else -> if (isPhoneDevice(ctx)) system else if (system) true else if (seen) false else sun ?: false
+        // on a phone Auto follows sunrise and sunset (a phone with dark mode on used to stay dark all day)
+        "phone" -> system
+        else -> if (isPhoneDevice(ctx)) sun ?: system else if (system) true else if (seen) false else sun ?: false
     }
 }
 

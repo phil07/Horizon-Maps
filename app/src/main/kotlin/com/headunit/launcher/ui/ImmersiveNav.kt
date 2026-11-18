@@ -1010,6 +1010,9 @@ private fun SpeedBlock(engine: NavEngine) {
         ) {
             Text("${Math.round(engine.shownSpeed * k)}", color = speedTint(engine) ?: c.text, fontSize = 30.sp, fontWeight = FontWeight.Bold, maxLines = 1)
             Text(if (engine.imperial) "mph" else "km/h", color = c.sub, fontSize = 12.sp)
+            // the clock, for head units whose own status bar is covered (Settings › While driving › Clock on the map)
+            if (engine.prefs.b(PreferenceKeys.CLOCK_ON_MAP, false)) Text(java.text.SimpleDateFormat("HH:mm", java.util.Locale.getDefault()).format(java.util.Date()),
+                color = c.text, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, modifier = Modifier.padding(top = 4.dp))
         }
         if (sign && !(show && signFirst)) SpeedLimitSign(engine, 70.dp)
     }

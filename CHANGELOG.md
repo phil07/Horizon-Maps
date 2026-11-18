@@ -1,10 +1,22 @@
 ## Unreleased
 
+### Neu
+- Uhr auf der Karte: Eine kleine Uhr unter dem Tacho, für Geräte, deren eigene Statusleiste verdeckt ist. Einstellung unter Beim Fahren › Uhr auf der Karte. (Dank an bijindas)
+  EN: Clock on the map: a small clock under the speedometer, for head units whose own status bar is covered. Setting under While driving › Clock on the map. (Thanks to bijindas)
+
+### Verbessert
+- GPX-Tracks in der Sicherung: Sichern und Wiederherstellen umfassen jetzt auch deine GPX-Tracks mit ihren Ordnern, wie schon deine Einstellungen und Orte. (Dank an bijindas)
+  EN: GPX tracks in backups: Back up and Restore now include your GPX tracks with their folders, as well as your settings and saved places. (Thanks to bijindas)
+- „Navigieren“ statt „Fahren“: Der Knopf, der einen Track fährt, heißt jetzt Navigieren. (Dank an bijindas)
+  EN: "Navigate" for GPX tracks: the button that drives a track says Navigate instead of "Drive". (Thanks to bijindas)
+
 ### Behoben
-- Eingequetschte Einstellungen: In Sprachen mit langen Wörtern wurde der Name einer Einstellung neben ihren Knöpfen auf ein Wort oder sogar einen Buchstaben pro Zeile gequetscht. Die Knöpfe rutschen jetzt darunter, wenn neben dem Namen kein Platz mehr ist. (Dank an fjanakovic)
-  EN: Squashed settings: in languages with long words, a setting's name could be squeezed to one word or one letter per line when it had buttons beside it. The buttons now move onto their own line underneath when there isn't room. (Thanks to fjanakovic)
-- Restzeit bei Tageslicht besser lesbar: Auf hellen Karten sind Grün, Gelb und Rot für die Restzeit dunkler, damit sie auf Weiß auffallen. (Dank an magnazan)
-  EN: Time left easier to read in daylight: on a light card the green, amber and red time left are deeper shades, so they stand out against white. (Thanks to magnazan)
+- Nachtkarte am Tag auf dem Handy: Mit eingeschaltetem Dunkelmodus des Telefons blieb die Karte bei Auto den ganzen Tag dunkel. Auf dem Handy folgt Auto jetzt Sonnenauf- und -untergang. Neu: „Dunkelmodus des Telefons“ richtet die Karte nach der Hell- oder Dunkeleinstellung des Telefons. (Dank an lukaszsakul)
+  EN: Night map by day on phones: with the phone's dark mode on, Auto kept the map dark all day. On a phone, Auto now follows sunrise and sunset, and a new "Phone's dark mode" choice matches the phone's own light or dark setting. (Thanks to lukaszsakul)
+- Durchschnittsgeschwindigkeit auf dem Autodisplay: Solange die Karte mit deinem Durchschnitt, dem Limit und dem Rest läuft, ersetzt sie die Blitzer-Zeile. Auf hellen Karten sind die Farben dunkler. (Dank an magnazan)
+  EN: Average speed checks on Android Auto: while the average speed card shows, it takes the place of the speed camera line, and its colours are deeper on a light card. (Thanks to magnazan)
+- Stoppschilder auf Seitenstraßen: Die Warnung „Stoppschild voraus“ kommt nur noch für Schilder vor dir auf deiner Straße, nicht mehr für die an Seitenstraßen, an denen du vorbeifährst. (Dank an dubrava4ever)
+  EN: Stop signs on side roads: the "Stop sign ahead" warning only goes off for signs ahead on your own road, not for those on the side streets you pass. (Thanks to dubrava4ever)
 
 ## 1.0.246 — 2026-10-28
 
