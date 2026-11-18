@@ -137,6 +137,9 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
     var onError: ((String) -> Unit)? = null
     /** Mapbox's own map couldn't get a piece of map (with no signal: an area it hasn't stored). */
     var onTileMissing: (() -> Unit)? = null
+    /** Mapbox turned down every satellite source (it says why in the feedback report) and the 3D model could not be loaded. */
+    var onSatelliteRefused: (() -> Unit)? = null
+    var onModelBroken: (() -> Unit)? = null
     private var satellite = false
     /** What is really drawn: the map style and what draws the arrow (for the feedback report). */
     fun drawingSummary(): String =
@@ -221,12 +224,16 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
                         }
                         style?.let { dropSatellite(it) }; reinstall()
                     }
+                } else if (satFails >= SatelliteSources.REFUSALS_TO_SWITCH) {
+                    // no source is left to try: say so, once
+                    satFails = 0
+                    main0.post { onSatelliteRefused?.invoke() }
                 }
             }
             // only the style itself failing is reported (a missing tile now and then is normal)
             if (e.type == MapLoadingErrorType.STYLE) onError?.invoke(e.message)
             // the 3D model couldn't be loaded: the picture of the same shape instead (until the app is restarted)
-            else if (modelOn && (e.sourceId ?: "").startsWith("dl-me-m")) main0.post { modelBroken = true; modelWanted = false; reinstall() }
+            else if (modelOn && (e.sourceId ?: "").startsWith("dl-me-m")) main0.post { modelBroken = true; modelWanted = false; reinstall(); onModelBroken?.invoke() }
             // a piece of Mapbox's map itself (not one of the app's extras, like traffic) couldn't be loaded
             else if ((e.type == MapLoadingErrorType.TILE || e.type == MapLoadingErrorType.SOURCE) && !(e.sourceId ?: "").startsWith("dl-")) onTileMissing?.invoke()
         }

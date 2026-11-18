@@ -1,17 +1,14 @@
 ## Unreleased
 
-### Neu
-- Autogas (LPG) als Kraftstoff: Preise gibt es in Frankreich. Sonst zeigt die Liste die Tankstellen, die in OpenStreetMap als Autogas-Verkauf eingetragen sind. (Dank an TheDMAI)
-  EN: LPG (Autogas) as a fuel: prices show in France. Elsewhere the list shows the stations mapped in OpenStreetMap as selling LPG. (Thanks to TheDMAI)
+### Verbessert
+- Straßennummern als Schilder auf der Abbiegekarte: Autobahnen blau mit Weiß, A-Straßen grün mit Gelb und B-Straßen weiß mit Schwarz, wie auf den echten Schildern. Die Ecken der Abbiegekarte sind etwas weniger rund. (Dank an karthikeyansr)
+  EN: UK road numbers as signs on the turn card: motorways in blue with white, A roads in green with yellow and B roads in white with black, as on the real signs. The turn card's corners are also a little less rounded. (Thanks to karthikeyansr)
 
 ### Behoben
-- Satellitenansicht auf dem Autodisplay: Das Autodisplay zeigt die Satellitenansicht, wenn sie eingeschaltet ist, statt immer die gezeichnete Karte. Fehlerberichte nennen jetzt auch, ob der Satellit an ist, und den letzten Fehler der Karte.
-  EN: Satellite view on Android Auto: the car screen shows satellite view when it is switched on, instead of always the drawn map. Feedback reports now also say whether satellite is on and the last error the map gave.
-- Satellit bei Nacht: Mit Nacht gewählt (oder nach Einbruch der Dunkelheit) waren die Satellitenfotos so stark abgedunkelt, dass es aussah, als wäre der Satellit aus. Jetzt zeigen sie sich auch nachts im Tageslicht. Die Nachtabdunklung des Bildschirms bleibt. (Dank an Matattack99)
-  EN: Satellite at night: with Night chosen, or after dark, the satellite photos were dimmed until they hardly showed. They now show in daylight at night; the screen's own night dimming still applies. (Thanks to Matattack99)
-- Eigenes 3D-Modell mit Satellit: Das Einschalten des Satelliten ersetzte das echte 3D-Modell durch das eingebaute Auto-Bild. Das Modell zeigt sich jetzt auch im Satellitenbild. Fehlerberichte nennen außerdem, welche Karte wirklich angezeigt wird und was den Pfeil zeichnet. (Dank an Matattack99)
-  EN: Your own 3D model with satellite: switching satellite on swapped the real 3D model for the built-in car picture. The model now shows on satellite too. Feedback reports also say which map is really on screen and what draws your arrow. (Thanks to Matattack99)
-
+- Eigene 3D-Modelle, die unsichtbar waren: Ein Modell, das sich selbst verkleinert (häufig bei Modellen von Sketchfab und anderen Seiten), erschien viel zu klein. Modelle werden jetzt so gemessen, wie die Karte sie zeichnet. Bereits gewählte werden einmal neu gemessen. (Dank an Matattack99)
+  EN: Own 3D models that were invisible: a model whose file scales itself down, common in models from Sketchfab and other sites, came out far too small to see. Models are now measured the way the map draws them, and ones picked before are measured again once. (Thanks to Matattack99)
+- Sagt, warum Satellit oder dein eigenes Modell nicht zu sehen sind: Wenn Mapbox für dein Token keine Satellitenbilder liefert oder das 3D-Modell nicht lädt, erscheint eine Meldung mit dem, was du probieren kannst. Der Fehlerbericht nennt den Grund von Mapbox. (Dank an Matattack99)
+  EN: Says why satellite or your own model didn't show: when Mapbox turns down satellite pictures for your token, or can't load your 3D model, a message now says so and what to try. The feedback report includes Mapbox's reason. (Thanks to Matattack99)
 
 ## 1.0.246 — 2026-10-28
 

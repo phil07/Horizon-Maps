@@ -1096,7 +1096,7 @@ internal fun ImmTurnCard(
     footer: (@Composable () -> Unit)? = null,
 ) {
     // road-sign corners: the progress bar along the bottom reaches the very end of the card
-    val shape = RoundedCornerShape(6.dp)
+    val shape = RoundedCornerShape(4.dp)
     val frac = ((450.0 - t.dist) / 450.0).coerceIn(0.0, 1.0).toFloat()
     // living card: it grows a touch and starts to glow as the turn comes up, and pulses in the last 80 m
     val alive = engine.prefs.b(PreferenceKeys.LIVECARD, true)
@@ -1217,8 +1217,9 @@ internal fun ImmTurnCard(
             }
         }
         // A proper UK direction sign: blue for motorways, green for primary roads, white for local roads.
-        if (signShown)
-            UkSign(t.sign, (t.exitNo.ifBlank { t.tag.removePrefix("Exit ").removePrefix("Ausfahrt ") }).takeIf { exitTag }.orEmpty(), t.street, Modifier.padding(start = if (compact) 12.dp else 16.dp, end = if (compact) 12.dp else 16.dp, bottom = if (compact) 5.dp else 12.dp))
+        // a UK road number in the street name shows as its road sign too, even when the route gives no separate sign
+        if (signShown || (engine.prefs.b(PreferenceKeys.UKSIGNS, true) && hasUkRoadRef(t.street)))
+            UkSign(if (signShown) t.sign else t.street, (t.exitNo.ifBlank { t.tag.removePrefix("Exit ").removePrefix("Ausfahrt ") }).takeIf { exitTag }.orEmpty(), t.street, Modifier.padding(start = if (compact) 12.dp else 16.dp, end = if (compact) 12.dp else 16.dp, bottom = if (compact) 5.dp else 12.dp))
         if (!compact && engine.prefs.b(PreferenceKeys.LANE_STRIP, true)) t.lanes?.let { ls ->
             // lane hero view: before a complex junction the lanes grow into a big picture with yours lit; simple ones keep the strip
             // (not in Android Auto: the big lane picture made the card grow to fill much of a car screen as soon as a junction came up)

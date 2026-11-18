@@ -639,6 +639,8 @@ fun FuelSuggestionRow(engine: NavEngine) {
 // ------------------------------------------------------------------ UK road signs
 
 private val ukRefRx = Regex("\\b([MAB][0-9]{1,4})(\\s?\\(M\\))?\\b")
+/** Whether a road name carries a UK road number (M, A or B), which then shows as a road sign. */
+internal fun hasUkRoadRef(s: String): Boolean = ukRefRx.containsMatchIn(s)
 // German numbers, with or without the space: "A 5", "A5", "B 27"
 private val deRefRx = Regex("\\b([AB])\\s?([0-9]{1,3})\\b")
 

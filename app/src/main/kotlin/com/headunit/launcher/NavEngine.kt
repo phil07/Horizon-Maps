@@ -952,6 +952,8 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
         // the parked-car spot is no longer used (the app lives in the car): drop any old one
         if (prefs.s(PreferenceKeys.PLACE_PARKED, "").isNotBlank()) places.clearParked()
         map.onError = { msg -> onMapError(msg) }
+        map.onSatelliteRefused = { toast(Lang.t("Mapbox liefert für dieses Token gerade keine Satellitenbilder. Andere Satellitenquelle unter Einstellungen › Satellitenbilder probieren oder das Mapbox-Token prüfen. Der Grund steht im Fehlerbericht.", "Mapbox is not giving satellite pictures for this token right now. Try another satellite source under Settings › Satellite pictures, or check the Mapbox token. The reason is in the feedback report."), 12_000) }
+        map.onModelBroken = { toast(Lang.t("Dein 3D-Modell lässt sich nicht laden. Stattdessen erscheint das Bild des Autos. Die Datei unter Einstellungen › Pfeil & Routenlinie prüfen.", "Your 3D model cannot be loaded. The car picture shows instead. Check the file under Settings › Arrow & route line."), 10_000) }
         // with no signal Mapbox's map keeps showing what it has stored; only when it starts missing pieces does the pack's map take over
         map.onTileMissing = {
             val now = android.os.SystemClock.uptimeMillis()
