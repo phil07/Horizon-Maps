@@ -299,7 +299,9 @@ private fun MapScreen(engine: NavEngine, onSettings: () -> Unit) {
         if (foldSearch) Box(Modifier.align(side(Alignment.TopStart)).padding(16.dp).zIndex(1f)) {
             ImmCircle(onClick = { searchOpen = true }, size = 56.dp) { Icon(Icons.Rounded.Search, Lang.t("Suche", "Search"), tint = LocalVw.current.text, modifier = Modifier.size(26.dp)) }
         }
-        Column(Modifier.align(side(Alignment.TopStart)).padding(16.dp).then(if (narrow) Modifier.fillMaxWidth().sides(end = 52.dp * mainButtonScale + 10.dp) else Modifier.width(380.dp))
+        // upright on a route the turn card takes the full width; the map buttons then sit under it (see the rail's top)
+        val turnFull = narrow && routing && engine.turn != null
+        Column(Modifier.align(side(Alignment.TopStart)).padding(16.dp).then(if (narrow && !turnFull) Modifier.fillMaxWidth().sides(end = 52.dp * mainButtonScale + 10.dp) else if (turnFull) Modifier.fillMaxWidth() else Modifier.width(380.dp))
             .onGloballyPositioned { report(0, it.boundsInParent()) }
             // the turn list opens over the trip card below it
             .zIndex(if (engine.itineraryOpen) 2f else 0f), verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -399,7 +401,8 @@ private fun MapScreen(engine: NavEngine, onSettings: () -> Unit) {
             // landscape: Settings sits to the left of the panel (to the right when mirrored) so the panel starts at the very top, with
             // zoom straight under it. Portrait: Settings above the panel, as there's no room beside it next to the search bar.
             val settingsAbove = narrow && showSettings
-            val top = 16.dp * mainButtonScale + (if (settingsAbove) unit + 10.dp * mainButtonScale else 0.dp)
+            val turnAbove = if (narrow && routing && engine.turn != null) with(dens) { turnPx.toDp() } + 10.dp else 0.dp
+            val top = 16.dp * mainButtonScale + (if (settingsAbove) unit + 10.dp * mainButtonScale else 0.dp) + turnAbove
             // (with zoom hidden there's nothing to fit under the panel)
             val zoomH = (2 * 52 + 1).dp * mainButtonScale
             // zoom goes under the panel unless that would touch the speedometer; then it moves beside the panel, and on a really short
@@ -1235,11 +1238,12 @@ internal fun ImmTurnCard(
         if (!compact && engine.prefs.b(PreferenceKeys.LANE_STRIP, true)) t.lanes?.let { ls ->
             // lane hero view: before a complex junction the lanes grow into a big picture with yours lit; simple ones keep the strip
             // (not in Android Auto: the big lane picture made the card grow to fill much of a car screen as soon as a junction came up)
-            val hero = !car && engine.prefs.s(PreferenceKeys.LANE_STYLE, "hero") == "hero" && ls.lanes.size >= 2 && t.dist < 900.0
+            val shortScreen = androidx.compose.ui.platform.LocalConfiguration.current.screenHeightDp < 500
+            val hero = !car && !shortScreen && engine.prefs.s(PreferenceKeys.LANE_STYLE, "hero") == "hero" && ls.lanes.size >= 2 && t.dist < 900.0
             if (hero) LaneHero(ls, t.maneuver, if (car) null else t.laneAdvice)
             else Box(Modifier.fillMaxWidth().background(TealDeep).padding(vertical = 4.dp), contentAlignment = Alignment.Center) { LaneRow(ls, t.maneuver, t.dist < 400.0) }
         }
-        val heroShown = !car && engine.prefs.b(PreferenceKeys.LANE_STRIP, true) && engine.prefs.s(PreferenceKeys.LANE_STYLE, "hero") == "hero" && (t.lanes?.lanes?.size ?: 0) >= 2 && t.dist < 900.0
+        val heroShown = !car && androidx.compose.ui.platform.LocalConfiguration.current.screenHeightDp >= 500 && engine.prefs.b(PreferenceKeys.LANE_STRIP, true) && engine.prefs.s(PreferenceKeys.LANE_STYLE, "hero") == "hero" && (t.lanes?.lanes?.size ?: 0) >= 2 && t.dist < 900.0
         if (!compact && !heroShown && !(car && t.lanes != null && engine.prefs.b(PreferenceKeys.LANE_STRIP, true))) t.laneAdvice?.let { Text(it, color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.fillMaxWidth().background(TealDeep).padding(horizontal = 18.dp, vertical = 6.dp)) }
         if (!compact && t.thenManeuver != null && !thenIcon) {
             Row(Modifier.fillMaxWidth().background(TealDeep).padding(horizontal = 18.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
