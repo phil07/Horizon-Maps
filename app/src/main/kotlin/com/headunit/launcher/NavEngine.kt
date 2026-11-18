@@ -728,10 +728,11 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
             val tt: List<Place>? = try { ttF.get(1000, java.util.concurrent.TimeUnit.MILLISECONDS) } catch (e: java.util.concurrent.TimeoutException) { startMapbox(); try { ttF.get() } catch (e: Exception) { null } } catch (e: Exception) { null }
             // both TomTom searches turned the key away: said once per key, instead of quietly showing thin results
             TomTomRest.searchRefusal?.let { why -> if (searchRefusalShownFor != apiKey) { searchRefusalShownFor = apiKey; scope.launch { toast(why, 9000) } } }
-            if (tt != null && (tt.size >= 4 || !hasMapbox)) return tt
+            // (Mapbox is asked too, however many TomTom finds: a nearer street of the same name could be missing otherwise)
             if (!hasMapbox) return tt ?: OsmSearch.geocode(country, q, near)
             startMapbox()
-            val mb = try { mbF?.get() ?: emptyList() } catch (e: Exception) { emptyList() }
+            val mb = try { mbF?.get(6, java.util.concurrent.TimeUnit.SECONDS) ?: emptyList() } catch (e: Exception) { emptyList() }
+            if (tt != null && mb.isEmpty()) return tt
             val out = ArrayList(tt ?: emptyList())
             for (p in mb) if (out.none { (it.name.equals(p.name, true) && Geo.dist(it.pos, p.pos) < 80) || Geo.dist(it.pos, p.pos) < 15 }) out += p
             return out
@@ -826,6 +827,7 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
     /** When the car came to rest near the destination, and when a route came to rest at all (0 = not stopped). */
     private var parkedNearSince = 0L
     private var parkedRouteSince = 0L
+    private var parkedCloseSince = 0L
     private var posSavedAt = 0L
     private var tripOn = false
     private var tripT0 = 0L
@@ -1709,7 +1711,17 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
 
     // ---- feedback ----
     /** Everything useful for a bug report, with your own words first: the app and unit, the main settings, the areas and the last crash. */
-    fun feedbackReport(note: String): String {
+    fun feedbackReport(note: String): String = redactKeys(buildReport(note))
+
+    /** The API keys and the Mapbox token blanked out of a report, wherever they appear (also in a map address). */
+    private fun redactKeys(text: String): String {
+        var out = text
+        val secrets = (prefs.secretKeys().map { prefs.s(it, "") } + listOf(apiKey, mbToken)).filter { it.length >= 6 }.distinct()
+        for (s in secrets) out = out.replace(s, "•••")
+        return out
+    }
+
+    private fun buildReport(note: String): String {
         val dm = ctx.resources.displayMetrics
         val crash = try { java.io.File(ctx.filesDir, "lastcrash.txt").takeIf { it.exists() }?.readText()?.take(2500) } catch (e: Exception) { null }
         return buildString {
@@ -3711,6 +3723,9 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
         val dpos = dest?.pos
         if (route != null && !previewing && dpos != null && p.speed < 0.8 && Geo.dist(p.pos, dpos) < 250.0) { if (parkedNearSince == 0L) parkedNearSince = now }
         else parkedNearSince = 0L
+        // stopped within about 40 m of the destination: arrived (for a few seconds), however much route is left
+        if (route != null && !previewing && dpos != null && p.speed < 0.8 && Geo.dist(p.pos, dpos) < 40.0) { if (parkedCloseSince == 0L) parkedCloseSince = now }
+        else parkedCloseSince = 0L
         // a route left running while parked: after half an hour it ends by itself, and with the app put away the GPS stops
         if (route != null && !previewing && p.speed < 0.8) {
             if (parkedRouteSince == 0L) parkedRouteSince = now
@@ -5491,7 +5506,8 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
                 speak(if (arriving) (if (side.isNotEmpty()) "Das Ziel liegt $side" else "Sie haben Ihr Ziel erreicht") else word.replaceFirstChar { it.uppercase() }, turn = true)
         }
         // arrived: at the end of the route and really there (not just level with the end of the route on another road)
-        val parkedHere = parkedNearSince > 0L && System.currentTimeMillis() - parkedNearSince >= 60_000L
+        val nowMs = System.currentTimeMillis()
+        val parkedHere = (parkedNearSince > 0L && nowMs - parkedNearSince >= 60_000L) || (parkedCloseSince > 0L && nowMs - parkedCloseSince >= 8_000L)
         val atEnd = parkedHere || (rem < 25 && fix.let { f -> f == null || Geo.dist(f.pos, dest?.pos ?: r.pts.last()) < 120.0 || Geo.dist(f.pos, r.pts.last()) < 120.0 })
         if (atEnd && said.add("end")) {
             toast(str(R.string.toast_060), 5000)

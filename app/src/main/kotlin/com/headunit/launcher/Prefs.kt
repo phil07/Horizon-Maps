@@ -350,6 +350,8 @@ internal object PreferenceKeys {
     const val STARRED_ROW = "starred_row"
     /** A small clock under the speedometer, for head units whose status bar is covered. */
     const val CLOCK_ON_MAP = "clock_on_map"
+    /** The speed limit sign big, where the speedometer was, and your speed small beside it. */
+    const val SPEED_SIGN_BIG = "speed_sign_big"
     const val TRIP_BTN_SOUND = "tripbtn_sound"
     const val TRIP_BTN_END = "tripbtn_end"
     const val TRIP_BTN_SIZE = "tripbtn_size"

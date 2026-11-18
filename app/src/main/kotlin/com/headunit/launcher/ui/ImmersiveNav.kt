@@ -996,6 +996,18 @@ private fun SpeedBlock(engine: NavEngine) {
     val sign = lim != null || engine.noLimit
     if (!sign && !show) return
     val k = if (engine.imperial) 2.23694 else 3.6
+    // the big limit sign: the sign where the speedometer was, your speed small beside it (it turns amber and red as before)
+    if (sign && engine.prefs.b(PreferenceKeys.SPEED_SIGN_BIG, false)) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            SpeedLimitSign(engine, 120.dp)
+            if (show) Column(Modifier.panel(8.dp, RoundedCornerShape(18.dp), c.surface).padding(horizontal = 12.dp, vertical = 6.dp),
+                horizontalAlignment = Alignment.CenterHorizontally) {
+                Text("${Math.round(engine.shownSpeed * k)}", color = speedTint(engine) ?: c.text, fontSize = 22.sp, fontWeight = FontWeight.Bold, maxLines = 1)
+                Text(if (engine.imperial) "mph" else "km/h", color = c.sub, fontSize = 10.sp)
+            }
+        }
+        return
+    }
     if (engine.prefs.b(PreferenceKeys.SPEEDRING, true)) { SpeedRing(engine, show, k); return }
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
         // Keep the speed cluster in the same screen position, but mirror the sign's

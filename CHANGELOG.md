@@ -1,14 +1,22 @@
 ## Unreleased
 
+### Neu
+- Großes Geschwindigkeitsschild: Eine neue Einstellung unter Beim Fahren tauscht die Anzeige. Das Tempolimit-Schild steht groß an der Stelle des Tachos, dein Tempo klein daneben. Dein Tempo wird bei der Grenze gelb und rot wie vorher. (Dank an ole1993)
+  EN: Big speed limit sign: a new setting under While driving swaps them round. The limit sign is big where the speedometer was, and your speed is small beside it. Your speed still turns amber and red near and over the limit. (Thanks to ole1993)
+
 ### Verbessert
-- Navigation starten auf dem Handy: Der Knopf bekommt den größeren Teil der Zeile und bleibt in einer Zeile. „Route überfliegen“ darf auf zwei Zeilen umbrechen, so werden lange Wörter (etwa auf Niederländisch) nicht mehr abgeschnitten. (Dank an smikkelvriend)
-  EN: Start navigation on phones: it gets the bigger share of the row and stays on one line, and Fly over route may use two lines, so long wordings (like Dutch) are no longer cut off. (Thanks to smikkelvriend)
+- Suche mit TomTom und Mapbox: Mit beiden fragt die Suche jetzt zugleich, und die Ergebnisse werden zusammengelegt. Ein Ort steht einmal in der Liste, der genaueste Treffer zuerst. Vorher wurde Mapbox nur gefragt, wenn TomTom weniger als vier Orte fand, so konnte eine nähere Straße gleichen Namens fehlen. (Dank an jvricardo1)
+  EN: Search with both: with a TomTom key and a Mapbox token, search asks both at the same time and puts their results together. A place is listed once, the nearest exact match first. Before, Mapbox was only asked when TomTom found fewer than four places, so a nearer street of the same name could be missing. (Thanks to jvricardo1)
 
 ### Behoben
-- Kraftstoffkosten auf den Routenoptionen: Ein Preis in Euro oder Pfund pro Liter (2.15 oder 2,15) wird jetzt richtig gelesen. Vorher wurde er als 2.15 Cent gelesen. Dasselbe gilt für den Strompreis. Cent (215) funktioniert weiter. (Dank an smikkelvriend)
-  EN: Fuel cost on the route options: a price typed in euros or pounds per litre (2.15 or 2,15) is understood now, as well as cents or pence (215). It used to be read as 2.15 cents. The same goes for the electricity price. (Thanks to smikkelvriend)
-- Einstellungen mit Bildschirmtastatur: Die Tastatur verdeckt das Feld nicht mehr, die Einstellungen scrollen darüber. (Android 11 und neuer, mit Vollbild.) (Dank an smikkelvriend)
-  EN: Settings with the on-screen keyboard: the keyboard no longer covers the box you're typing in; the settings scroll above it (Android 11 and newer, with full screen on). (Thanks to smikkelvriend)
+- Medienleiste: Der Songname erscheint jetzt bei mehr Musik-Apps. Manche schicken ihn an eine andere Stelle, und dann stand dort nur „Medien“. (Dank an bijindas)
+  EN: Media bar: the song's name now shows with more music apps. Some send it in a different place, which left the bar saying just "Media". (Thanks to bijindas)
+- Fehlerberichte enthalten keinen TomTom-Schlüssel und kein Mapbox-Token mehr. Sie werden überall unkenntlich gemacht, auch in der Adresse einer Karte, die nicht geladen hat. (Dank an zedje85)
+  EN: Feedback reports no longer include your TomTom key or Mapbox token: they're blanked out wherever they appear, including in the address of a map that failed to load. (Thanks to zedje85)
+- Ankunft: Stoppt man etwa 40 m vor dem Ziel, gilt man als angekommen, egal wie viel Route noch übrig ist. (Dank an Nubber99)
+  EN: Arriving: stopping within about 40 m of your destination now counts as arriving, however much route is left. (Thanks to Nubber99)
+- Sicherung: Wiederherstellen schließt die App nicht mehr, wenn auf dem Gerät die übliche Dateiauswahl fehlt. Es versucht die ältere Auswahl und sagt Bescheid, wenn beide fehlen. Das Sichern hat denselben Schutz. (Dank an franciscoserranoadt)
+  EN: Backup: Restore no longer closes the app on a phone or unit where the usual file picker is missing. It tries the older picker, and says so if neither is there. Back up gets the same protection. (Thanks to franciscoserranoadt)
 
 ## 1.0.246 — 2026-10-28
 

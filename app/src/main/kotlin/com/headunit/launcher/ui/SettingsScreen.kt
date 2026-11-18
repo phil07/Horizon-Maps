@@ -1179,6 +1179,7 @@ private fun WhileDrivingSection(prefs: Prefs, engine: NavEngine) {
         SToggle(prefs, "Tachoring", "speedring", true, "Füllt sich bis zum Tempolimit, färbt sich gelb dann rot")
         SSlider("Tempolimit- und Tachogröße", prefs.i(PreferenceKeys.SPEED_SIZE, 100).toFloat(), 50f..200f, "%", sub = "Auf Smartphone und Autodisplay", steps = 29, reset = 100f) { prefs.put(PreferenceKeys.SPEED_SIZE, it) }
         SToggle(prefs, "Sonnenzeiten auf Android Auto", PreferenceKeys.CARSUN, false, "Tag und Nacht auf dem Autodisplay folgen Sonnenauf- und -untergang, auch wenn das Auto bei Licht dunkel wird")
+        SToggle(prefs, "Großes Limit-Schild", PreferenceKeys.SPEED_SIGN_BIG, false, "Das Tempolimit-Schild groß an der Stelle des Tachos, dein Tempo klein daneben")
         SChoice("Tacho-Seite", listOf("right" to "Rechts", "left" to "Links", "auto" to "Automatisch"), prefs.s(PreferenceKeys.MAIN_SPEED_SIDE, "right"),
             "Auf Smartphone, Head-Unit und Android Auto (untere Ecke). Automatisch: wie früher. Das Limit-Schild steht immer zur Bildschirmmitte hin") { prefs.put(PreferenceKeys.MAIN_SPEED_SIDE, it) }
         SToggle(prefs, "Straße und Richtung beim Fahren ohne Route", "cruise", true)
@@ -1406,7 +1407,8 @@ private fun AboutSection(prefs: Prefs, engine: NavEngine) {
             android.widget.Toast.makeText(ctx, if (ok) tr("Sicherung gespeichert") else tr("Sicherung konnte nicht gespeichert werden"), android.widget.Toast.LENGTH_SHORT).show()
         }
     }
-    val importer = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+    // the picker for a restore: the newer one, or the older one on a unit where it is missing (a missing picker used to close the app)
+    val onImported: (android.net.Uri?) -> Unit = { uri ->
         if (uri != null) {
             val msg = try {
                 val text = ctx.contentResolver.openInputStream(uri)?.bufferedReader()?.use { it.readText() }.orEmpty()
@@ -1419,6 +1421,8 @@ private fun AboutSection(prefs: Prefs, engine: NavEngine) {
             android.widget.Toast.makeText(ctx, msg, android.widget.Toast.LENGTH_LONG).show()
         }
     }
+    val importer = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { onImported(it) }
+    val importerOld = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { onImported(it) }
     // the API keys: their own file, protected by a password the driver chooses (the normal backup never holds them)
     var keyDlg by remember { mutableStateOf("") }   // "", "export" or "import": the password dialog is open
     var keyPw by remember { mutableStateOf("") }
@@ -1464,8 +1468,18 @@ private fun AboutSection(prefs: Prefs, engine: NavEngine) {
         // the buttons sit under the title: beside it they squeezed the title into a narrow column
         SItem("Einstellungen und gespeicherte Orte")
         Row(Modifier.fillMaxWidth().padding(bottom = 8.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            SButton("Sichern") { exporter.launch("horizon-nav-backup.json") }
-            SButton("Wiederherstellen") { importer.launch(arrayOf("application/json", "text/plain", "*/*")) }
+            SButton("Sichern") {
+                try { exporter.launch("horizon-nav-backup.json") } catch (e: android.content.ActivityNotFoundException) {
+                    android.widget.Toast.makeText(ctx, tr("Auf diesem Gerät fehlt die Dateiauswahl zum Speichern"), android.widget.Toast.LENGTH_LONG).show()
+                }
+            }
+            SButton("Wiederherstellen") {
+                try { importer.launch(arrayOf("application/json", "text/plain", "*/*")) } catch (e: android.content.ActivityNotFoundException) {
+                    try { importerOld.launch("*/*") } catch (e2: android.content.ActivityNotFoundException) {
+                        android.widget.Toast.makeText(ctx, tr("Auf diesem Gerät fehlt die Dateiauswahl zum Wiederherstellen"), android.widget.Toast.LENGTH_LONG).show()
+                    }
+                }
+            }
         }
         SItem("API-Schlüssel", "Eigene Datei, mit Passwort geschützt")
         Row(Modifier.fillMaxWidth().padding(bottom = 8.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {

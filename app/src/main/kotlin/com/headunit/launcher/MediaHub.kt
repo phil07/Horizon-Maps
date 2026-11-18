@@ -45,8 +45,9 @@ object MediaHub {
             val s = sessions.firstOrNull { it.playbackState?.state == PlaybackState.STATE_PLAYING } ?: sessions.firstOrNull()
             if (s != null) {
                 val md = s.metadata
-                title = md?.getString(MediaMetadata.METADATA_KEY_TITLE) ?: ""
-                artist = md?.getString(MediaMetadata.METADATA_KEY_ARTIST) ?: ""
+                // some players send the song in another field: the first one that has a name is used
+                title = listOf(MediaMetadata.METADATA_KEY_TITLE, MediaMetadata.METADATA_KEY_DISPLAY_TITLE).firstNotNullOfOrNull { k -> md?.getString(k)?.takeIf { it.isNotBlank() } } ?: ""
+                artist = listOf(MediaMetadata.METADATA_KEY_ARTIST, MediaMetadata.METADATA_KEY_ALBUM_ARTIST, MediaMetadata.METADATA_KEY_DISPLAY_SUBTITLE).firstNotNullOfOrNull { k -> md?.getString(k)?.takeIf { it.isNotBlank() } } ?: ""
                 art = md?.getBitmap(MediaMetadata.METADATA_KEY_ALBUM_ART) ?: md?.getBitmap(MediaMetadata.METADATA_KEY_ART)
                 if (s.playbackState?.state == PlaybackState.STATE_PLAYING) playing = true
             }
