@@ -76,6 +76,7 @@ import androidx.compose.ui.unit.sp
 import com.headunit.launcher.BuildConfig
 import com.headunit.launcher.FuelFinder
 import com.headunit.launcher.KeyBackup
+import com.headunit.launcher.AutoBackup
 import com.headunit.launcher.Geo
 import com.headunit.launcher.Lang
 import com.headunit.launcher.NavEngine
