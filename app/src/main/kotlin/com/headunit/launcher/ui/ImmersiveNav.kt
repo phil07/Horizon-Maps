@@ -374,8 +374,13 @@ private fun MapScreen(engine: NavEngine, onSettings: () -> Unit) {
                     ParkingCard(engine)
                 }
             }
-            if (engine.nearbyKind != null && (!previewing || engine.stopMode)) NearbyCard(engine)
+            // (adding a stop upright: the list sits along the bottom instead, see below)
+            if (engine.nearbyKind != null && (!previewing || engine.stopMode) && !(narrow && engine.stopMode)) NearbyCard(engine)
         }
+        // adding a stop on a phone held upright: the panel and the places along the route sit along the bottom, over the trip card's place,
+        // with the places shown on the map above them
+        if (narrow && engine.stopMode && engine.nearbyKind != null) Box(Modifier.align(Alignment.BottomCenter).fillMaxWidth()
+            .heightIn(max = maxHeight * 0.5f).padding(start = 16.dp, end = 16.dp, bottom = if (tripPx > 0) tripH + 10.dp else 16.dp)) { NearbyCard(engine) }
 
         // ---- right side: the map buttons grouped in one panel at the top, zoom under it, and Settings beside it
         if (!previewing) {

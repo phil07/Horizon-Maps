@@ -1,12 +1,8 @@
 ## Unreleased
 
-### Verbessert
-- Scheinwerferkegel: Etwa halb so breit, damit er die Straße vor dir ausleuchtet und nicht die Gebäude daneben. (Dank an liamstears)
-  EN: Headlight beam: about half as wide, so it lights the road ahead rather than the buildings either side. (Thanks to liamstears)
-
 ### Behoben
-- Scheinwerfer mit eigenem 3D-Modell: Kein dunkler Fleck mehr um das Auto. Der Kegel beginnt an der Front deines Modells, statt an einem autoförmigen Ausschnitt, der nicht zur Form deines Modells passte. (Dank an liamstears)
-  EN: Headlight beam with your own 3D model: no more odd dark patch round the car. The beam now starts at the front of your model instead of a car-shaped box that didn't match your model's shape. (Thanks to liamstears)
+- Stopp hinzufügen hochkant: Die Liste der Orte entlang der Route steht unten, die Orte sind oben auf der Karte zu sehen. Vorher hat die Liste sie verdeckt. Die Liste hat dieselbe feste Fläche wie die anderen Karten, sodass die Karte nicht durch den Text scheint.
+  EN: Add a stop on a phone held upright: the list of places along the route now sits along the bottom, with the places shown on the map above it (the list covered them). The list has the same solid panel as the other cards, so the map doesn't show through the text.
 
 ## 1.0.246 — 2026-10-28
 

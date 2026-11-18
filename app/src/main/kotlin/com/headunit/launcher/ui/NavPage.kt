@@ -583,7 +583,8 @@ internal fun NearbyCard(engine: NavEngine) {
     val along = engine.nearby.any { it.ahead }
     val title = (if (adding) Lang.t("Stopp hinzufügen: ", "Add a stop: ") else "") + nearbyTitle(engine.nearbyKind) + (if (along) Lang.t(" voraus", " ahead") else "")
     val hasPrices = engine.nearby.any { it.price != null }
-    Column(Modifier.floating(24.dp).padding(14.dp)) {
+    // a solid panel, like the other cards: the map must not show through the text
+    Column(Modifier.floating(24.dp).background(c.surface).padding(14.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             IconBadge(nearbyIcon(engine.nearbyKind), c.accent, Modifier.padding(end = 12.dp), 36.dp)
             Text(title, color = c.text, fontSize = 20.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
