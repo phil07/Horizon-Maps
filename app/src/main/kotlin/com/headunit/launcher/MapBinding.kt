@@ -1301,7 +1301,8 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
         }
         // the cone starts at the arrow's own spot and goes out ahead of it along your heading (it used to start 12 m ahead, and at a tilt it
         // could come out behind the car's picture)
-        val ahead = -3.0
+        // the built-in car: the beam starts just behind its middle; your own model: at its front (the model is sized to the car's length)
+        val ahead = if (modelOn && modelShape == "own") OwnModel.CAR_LENGTH_M / 2 - 0.5 else -3.0
         val hr = Math.toRadians(meHeading)
         val q = LL(p.lat + ahead * Math.cos(hr) / 111_320.0, p.lon + ahead * Math.sin(hr) / (111_320.0 * Math.cos(Math.toRadians(p.lat)).coerceAtLeast(0.01)))
         val f = Feature.fromGeometry(Point.fromLngLat(q.lon, q.lat))
@@ -1316,7 +1317,8 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
         val w = 200; val h = 256
         val b = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
         val c = Canvas(b)
-        val half = (h * Math.tan(Math.toRadians(17.0))).toFloat()
+        // about half as wide as it was: it lights the road ahead, not the buildings either side
+        val half = (h * Math.tan(Math.toRadians(8.5))).toFloat()
         val path = Path().apply { moveTo(w / 2f, h - 2f); lineTo(w / 2f - half, 4f); lineTo(w / 2f + half, 4f); close() }
         val p = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             shader = android.graphics.LinearGradient(0f, h.toFloat(), 0f, 0f, intArrayOf(0x44FFF1C2.toInt(), 0x22FFF1C2.toInt(), 0x00FFF1C2), floatArrayOf(0f, 0.55f, 1f), android.graphics.Shader.TileMode.CLAMP)
