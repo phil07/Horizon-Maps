@@ -7,8 +7,8 @@
   EN: A new Cheapest tab next to Least detour.
 - Tankstellen mit Preis, die die Kartensuche nicht gefunden hat, werden in die Liste aufgenommen.
   EN: Priced stations that the map search missed are added to the list.
-- Preise kommen wie bei der Tankstellenliste: Fuel Finder (Großbritannien), und die Preisdienste in Frankreich, Österreich, Italien, Deutschland und NSW.
-  EN: Prices come from the same place as the fuel list: Fuel Finder (UK) and the price services in France, Austria, Italy, Germany and NSW.
+- Preise kommen wie bei der Tankstellenliste: Fuel Finder (Großbritannien), und die Preisdienste in Frankreich, Österreich und Deutschland (mit Schlüssel).
+  EN: Prices come from the same place as the fuel list: Fuel Finder (UK), and the price services in France, Austria and Germany (with a key).
 
 ### Verbessert
 - Stopp hinzufügen: Die Knöpfe Tanken, Laden, Kaffee, Essen, Raststätten und Toiletten sind jetzt runde farbige Symbole wie unter der Suchleiste, in einer Reihe.
