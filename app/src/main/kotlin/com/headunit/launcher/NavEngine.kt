@@ -950,6 +950,7 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
         map.onUserGesture = { if (following) { following = false }; scheduleRecentre(12_000) }
         map.onMapIdle = { box -> refreshChargerLayer(box) }
         map.onAltTap = { i -> switchToAlt(i) }
+        map.onPreviewTap = { k -> onPreviewRouteTap(k) }
         map.onChargerTap = { s -> chargerTapped(s) }
         // the parked-car spot is no longer used (the app lives in the car): drop any old one
         if (prefs.s(PreferenceKeys.PLACE_PARKED, "").isNotBlank()) places.clearParked()
@@ -2557,9 +2558,23 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
     /** True once a way was picked by hand from the choice (not the app's own pick): then it is kept, see [pickedSlower]. */
     private var userPicked = false
 
+    /** The route picked once on the map while choosing (drawn yellow), or -1. A second tap on it chooses it. */
+    private var previewPickIdx = -1
+
+    /** A tap on one of the other routes' lines on the map while choosing: the first tap picks it yellow, the second chooses it. */
+    fun onPreviewRouteTap(k: Int): Boolean {
+        if (!previewing) return false
+        val ri = routes.indices.filter { it != active }.getOrNull(k) ?: return false
+        if (previewPickIdx == ri) selectRoute(ri)
+        else { previewPickIdx = ri; map.setPreviewPick(routes[ri].pts) }
+        return true
+    }
+
     fun selectRoute(i: Int, byUser: Boolean = true) {
         if (i !in routes.indices) return
         if (byUser) userPicked = true
+        previewPickIdx = -1
+        map.setPreviewPick(null)
         map.stopFly()
         active = i; lastIdx = 0
         updateRouteZones()
@@ -2717,6 +2732,8 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
 
     internal fun drawRoutes() {
         val r = route ?: return
+        // the yellow pick is only for choosing a route
+        if (!previewing && previewPickIdx != -1) { previewPickIdx = -1; map.setPreviewPick(null) }
         // while choosing a route: the queues of every route, the others dimmed
         if (previewing) pushQueues(routes.indices.flatMap { i -> queuesFor(routes[i], 0.0, i != active) })
         map.setRoute(r.pts, routes.filterIndexed { i, _ -> i != active }.map { it.pts }, r.sev)

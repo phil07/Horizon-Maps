@@ -2223,6 +2223,7 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
             .minZoom(8.0)
             .visibility(vis(trafficOn && !(routing && hideTraffic))))
         addS(st, GeoJsonSource.Builder("dl-alts").featureCollection(empty()).build())
+        addS(st, GeoJsonSource.Builder("dl-pick").featureCollection(empty()).build())
         addS(st, GeoJsonSource.Builder("dl-live-alts").featureCollection(empty()).build())
         addS(st, GeoJsonSource.Builder("dl-live-bub").featureCollection(empty()).build())
         addS(st, GeoJsonSource.Builder("dl-route").featureCollection(empty()).build())
@@ -2278,6 +2279,8 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
             .iconAnchor(IconAnchor.BOTTOM).iconPitchAlignment(IconPitchAlignment.VIEWPORT)
             .iconSize(zoomed(1.6, 16 to 0.32, 20 to 0.9)).iconEmissiveStrength(1.0).minZoom(16.0))
         addL(st, ln("dl-alts-line", "dl-alts").lineColor(prefs.s(PreferenceKeys.ALT_ROUTE_COLOUR, "#C4D9E6")).lineWidth(if (im) 8.0 else 7.0).lineOpacity(0.92))
+        // a route picked once on the map while choosing (yellow): a second tap on it takes it
+        addL(st, ln("dl-pick-line", "dl-pick").lineColor("#FFCC00").lineWidth(if (im) 10.0 else 9.0).lineOpacity(0.95))
         // other ways to go while driving: grey, under the route
         addL(st, ln("dl-live-alts-line", "dl-live-alts").lineColor(prefs.s(PreferenceKeys.ALT_ROUTE_COLOUR, "#C4D9E6")).lineWidth(routeW(0.75f)).lineOpacity(0.92))
         // route ribbon: a soft shadow just below the line, so it looks lifted off the road (Full 3D, Settings > Route ribbon)
@@ -3017,7 +3020,18 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
     private fun pushRoute() {
         setLine(main)
         src("dl-alts")?.featureCollection(FeatureCollection.fromFeatures(ArrayList(alts.filter { it.size >= 2 }.map { line(it) })))
+        pushPick()
     }
+
+    /** The route picked once while choosing (yellow on the map), or null. */
+    private var pick: List<LL>? = null
+    fun setPreviewPick(p: List<LL>?) { pick = p?.takeIf { it.size >= 2 }; pushPick() }
+    private fun pushPick() {
+        src("dl-pick")?.featureCollection(FeatureCollection.fromFeatures(listOfNotNull(pick?.let { line(it) })))
+    }
+
+    /** Called with the index of an alternative line on the map while a route is being chosen (see tapAt). */
+    var onPreviewTap: ((Int) -> Boolean)? = null
 
     private var hazards: List<Pair<LL, Int>> = emptyList()
     /** Map icons by kind: camera, roadworks, closure, police, accident, hazard, breakdown, mobile camera, traffic jam. */
@@ -4818,6 +4832,27 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
         chainAt(sp)?.let { onChainTap?.invoke(it); return true }
         // a charge point on the map (drawn above the route, so it comes first)
         nearestCharger(sp)?.let { onChargerTap?.invoke(it); return true }
+        // choosing a route: a tap on one of the other routes' lines (see onPreviewTap)
+        if (liveLines.isEmpty() && alts.isNotEmpty() && onPreviewTap != null) run {
+            val hit = try {
+                val dp = mapView.resources.displayMetrics.density
+                var best = -1; var bd = 30.0 * dp
+                alts.forEachIndexed { i, line ->
+                    if (line.size < 2) return@forEachIndexed
+                    val px = pixels(line)
+                    for (n in 0 until px.size - 1) {
+                        val ax = px[n].x - sp.x; val ay = px[n].y - sp.y
+                        val dx = px[n + 1].x - px[n].x; val dy = px[n + 1].y - px[n].y
+                        val l2 = dx * dx + dy * dy
+                        val t = if (l2 > 0) (-(ax * dx + ay * dy) / l2).coerceIn(0.0, 1.0) else 0.0
+                        val d = Math.hypot(ax + dx * t, ay + dy * t)
+                        if (d < bd) { bd = d; best = i }
+                    }
+                }
+                best
+            } catch (e: Exception) { -1 }
+            if (hit >= 0 && onPreviewTap?.invoke(hit) == true) return true
+        }
         if (liveLines.isEmpty()) { val g = garageAt(sp) ?: return false; onGarageTap?.invoke(g); return true }
         return try {
             val dp = mapView.resources.displayMetrics.density

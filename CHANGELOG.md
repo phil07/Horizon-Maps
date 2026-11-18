@@ -1,8 +1,8 @@
 ## Unreleased
 
-### Behoben
-- Stopp hinzufügen hochkant: Die Liste der Orte entlang der Route steht unten, die Orte sind oben auf der Karte zu sehen. Vorher hat die Liste sie verdeckt. Die Liste hat dieselbe feste Fläche wie die anderen Karten, sodass die Karte nicht durch den Text scheint.
-  EN: Add a stop on a phone held upright: the list of places along the route now sits along the bottom, with the places shown on the map above it (the list covered them). The list has the same solid panel as the other cards, so the map doesn't show through the text.
+### Neu
+- Routen-Vorschau: Eine andere Route auf der Karte antippen, sie wird gelb hervorgehoben. Ein zweiter Tipp auf dieselbe Route wählt sie aus.
+  EN: Route preview: tap another route on the map and it turns yellow. Tap it again to choose it.
 
 ## 1.0.246 — 2026-10-28
 
