@@ -231,8 +231,14 @@ internal fun BoxScope.RoutePreview(engine: NavEngine) {
     // the settings are in km per kWh (electric) or litres per 100 km, and cents per kWh or per litre (a comma is taken too). It used to
     // reckon in miles, UK gallons and pounds, so the figure was far off
     fun num(k: String) = engine.prefs.s(k, "").replace(',', '.').toDoubleOrNull()?.takeIf { it > 0 }
+    // a price is cents (or pence) a litre or kWh, as 215 — or euros (or pounds) as 2.15 or 2,15: a decimal under 10 is euros
+    fun priceCents(k: String): Double? {
+        val s = engine.prefs.s(k, "").trim().replace(',', '.')
+        val v = s.toDoubleOrNull()?.takeIf { it > 0 } ?: return null
+        return if ((s.contains('.') || s.contains(',')) && v < 10.0) v * 100.0 else v
+    }
     val use = num(if (ev) PreferenceKeys.EVMPK else PreferenceKeys.FUELMPG)
-    val cents = num(if (ev) PreferenceKeys.EVPPK else PreferenceKeys.FUELPPL)
+    val cents = priceCents(if (ev) PreferenceKeys.EVPPK else PreferenceKeys.FUELPPL)
     // what a route costs in fuel (or charging): each route card shows its own, under its distance
     fun costOf(len: Double): String? = if (use != null && cents != null) {
         val km = len / 1000.0
@@ -441,7 +447,8 @@ internal fun BoxScope.RoutePreview(engine: NavEngine) {
             // a car screen (800–1000 dp wide) has little room left for the route cards (weighted, so measured last): compact there too
             if (engine.prefs.b(PreferenceKeys.FLYOVER, true)) FlyOverBtn(engine, compact = androidx.compose.ui.platform.LocalConfiguration.current.screenWidthDp < 1100)
             if (engine.prefs.b(PreferenceKeys.DEMO, false)) DemoStartBtn(engine)
-            startBtn(Modifier.width(210.dp))
+            // Start navigation gets the bigger share of the row and stays on one line
+            startBtn(Modifier.widthIn(min = 210.dp).weight(1.4f))
             RoundBtn(Icons.Rounded.Close, { engine.endRoute() }, size = 46.dp)
         }
         wxLine()
@@ -476,7 +483,7 @@ private fun FlyOverBtn(engine: NavEngine, compact: Boolean = false) {
         Icon(Icons.Rounded.PlayArrow, Lang.t("Route überfliegen", "Fly over route"), tint = c.accent, modifier = Modifier.size(24.dp))
         Text(
             if (engine.flyingOver) Lang.t("Überflug…", "Flying…") else if (compact) Lang.t("Überflug", "Fly over") else Lang.t("Route überfliegen", "Fly over route"),
-            color = c.accent, fontSize = if (compact) 14.sp else 15.sp, fontWeight = FontWeight.Bold, maxLines = 1, softWrap = false,
+            color = c.accent, fontSize = if (compact) 14.sp else 15.sp, fontWeight = FontWeight.Bold, maxLines = 2,
             modifier = Modifier.padding(start = if (compact) 4.dp else 6.dp),
         )
     }

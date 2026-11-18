@@ -1,12 +1,14 @@
 ## Unreleased
 
 ### Verbessert
-- Straßennummern im „Dann“-Satz: Die britischen Nummern erscheinen dort als dieselben blauen, grünen und weißen Schilder, an ihrem Platz im Satz. (Dank an karthikeyansr)
-  EN: UK road numbers in the "Then" line: they show as the same blue, green and white signs, in their place in the sentence. (Thanks to karthikeyansr)
+- Navigation starten auf dem Handy: Der Knopf bekommt den größeren Teil der Zeile und bleibt in einer Zeile. „Route überfliegen“ darf auf zwei Zeilen umbrechen, so werden lange Wörter (etwa auf Niederländisch) nicht mehr abgeschnitten. (Dank an smikkelvriend)
+  EN: Start navigation on phones: it gets the bigger share of the row and stays on one line, and Fly over route may use two lines, so long wordings (like Dutch) are no longer cut off. (Thanks to smikkelvriend)
 
 ### Behoben
-- Britische Straßenschilder: Straßen wie A1(M) zeigen ein blaues Autobahnschild statt eines grünen A1 mit „(M)“. Eine Nummer mit Leerzeichen („M 25“) bekommt jetzt auch ihr Schild. (Dank an karthikeyansr)
-  EN: UK road signs: roads like A1(M) now show as one blue motorway sign instead of a green A1 with "(M)". A road number with a space ("M 25") now gets its sign too. (Thanks to karthikeyansr)
+- Kraftstoffkosten auf den Routenoptionen: Ein Preis in Euro oder Pfund pro Liter (2.15 oder 2,15) wird jetzt richtig gelesen. Vorher wurde er als 2.15 Cent gelesen. Dasselbe gilt für den Strompreis. Cent (215) funktioniert weiter. (Dank an smikkelvriend)
+  EN: Fuel cost on the route options: a price typed in euros or pounds per litre (2.15 or 2,15) is understood now, as well as cents or pence (215). It used to be read as 2.15 cents. The same goes for the electricity price. (Thanks to smikkelvriend)
+- Einstellungen mit Bildschirmtastatur: Die Tastatur verdeckt das Feld nicht mehr, die Einstellungen scrollen darüber. (Android 11 und neuer, mit Vollbild.) (Dank an smikkelvriend)
+  EN: Settings with the on-screen keyboard: the keyboard no longer covers the box you're typing in; the settings scroll above it (Android 11 and newer, with full screen on). (Thanks to smikkelvriend)
 
 ## 1.0.246 — 2026-10-28
 

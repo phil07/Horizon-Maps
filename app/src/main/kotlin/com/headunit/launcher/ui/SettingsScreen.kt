@@ -9,6 +9,7 @@ import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.border
 import androidx.compose.foundation.horizontalScroll
@@ -224,7 +225,7 @@ private fun SettingsBody(prefs: Prefs, engine: NavEngine, onClose: () -> Unit) {
             label = "section",
         ) { cat ->
           CompositionLocalProvider(LocalSettingHighlight provides highlight) {
-            Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 4.dp, vertical = 4.dp)) {
+            Column(Modifier.fillMaxSize().imePadding().verticalScroll(rememberScrollState()).padding(horizontal = 4.dp, vertical = 4.dp)) {
                 if (narrowS) Row(Modifier.padding(bottom = 6.dp).clip(RoundedCornerShape(50)).clickable { showList = true }.padding(end = 12.dp), verticalAlignment = Alignment.CenterVertically) {
                     Box(Modifier.size(42.dp).clip(CircleShape).background(c.tile), contentAlignment = Alignment.Center) {
                         Icon(Icons.Rounded.ArrowBack, "Alle Einstellungen", tint = c.text, modifier = Modifier.size(22.dp))
@@ -1047,7 +1048,7 @@ private fun FuelSection(prefs: Prefs, engine: NavEngine) {
         val carKwh = if (prefs.s(PreferenceKeys.EV_CAR, "").isNotBlank()) com.headunit.launcher.EvCars.batteryKwh(prefs) else null
         if (carKwh != null) SItem("Nutzbare Batterie", "${evNum(carKwh)} kWh aus den Fahrzeugdaten")
         else SFieldItem("Nutzbare Batterie (kWh)", prefs.s(PreferenceKeys.EV_BATTERY_KWH, ""), "Für Akkuschätzung und Ladestopps (Standard: 60 kWh)", placeholder = "z. B. 64", number = true) { s -> prefs.put(PreferenceKeys.EV_BATTERY_KWH, s.replace(',', '.').filter { it.isDigit() || it == '.' }.take(5)) }
-        SFieldItem("Strompreis (Cent pro kWh)", prefs.s(PreferenceKeys.EVPPK, ""), placeholder = "z. B. 38", number = true) { s -> prefs.put(PreferenceKeys.EVPPK, s.replace(',', '.').filter { it.isDigit() || it == '.' }.take(6)) }
+        SFieldItem("Strompreis (Cent oder Euro pro kWh)", prefs.s(PreferenceKeys.EVPPK, ""), placeholder = "z. B. 38 oder 0,38", number = true) { s -> prefs.put(PreferenceKeys.EVPPK, s.replace(',', '.').filter { it.isDigit() || it == '.' }.take(6)) }
         SFieldItem("Restreichweite am Ziel (km)", prefs.s(PreferenceKeys.EV_DEST_KM, ""), "Mindestreichweite bei Ankunft (Standard: 50 km)", placeholder = "z. B. 50", number = true) { s -> prefs.put(PreferenceKeys.EV_DEST_KM, s.filter { it.isDigit() }.take(3).toIntOrNull()?.coerceAtMost(500)?.toString() ?: "") }
         SFieldItem("Restreichweite an der Ladesäule (km)", prefs.s(PreferenceKeys.EV_CHARGER_KM, ""), "Puffer, falls die Säule belegt ist (Standard: 30 km)", placeholder = "z. B. 30", number = true) { s -> prefs.put(PreferenceKeys.EV_CHARGER_KM, s.filter { it.isDigit() }.take(3).toIntOrNull()?.coerceAtMost(500)?.toString() ?: "") }
         SChoice("Ladesäulen für Ladestopps", listOf("0" to "Alle", "50" to "50 kW", "150" to "150 kW", "300" to "300 kW"), prefs.i(PreferenceKeys.EV_MIN_KW, 50).toString(),
@@ -1059,7 +1060,7 @@ private fun FuelSection(prefs: Prefs, engine: NavEngine) {
         EvWidgetItem(prefs)
     } else SGroup("Kraftstoffkosten auf der Route") {
         SFieldItem("Verbrauch (Liter pro 100 km)", prefs.s(PreferenceKeys.FUELMPG, ""), placeholder = "z. B. 6.5", number = true) { s -> prefs.put(PreferenceKeys.FUELMPG, s.replace(',', '.').filter { it.isDigit() || it == '.' }.take(5)) }
-        SFieldItem("Kraftstoffpreis (Cent pro Liter)", prefs.s(PreferenceKeys.FUELPPL, ""), placeholder = "z. B. 175.9", number = true) { s -> prefs.put(PreferenceKeys.FUELPPL, s.replace(',', '.').filter { it.isDigit() || it == '.' }.take(6)) }
+        SFieldItem("Kraftstoffpreis (Cent oder Euro pro Liter)", prefs.s(PreferenceKeys.FUELPPL, ""), placeholder = "z. B. 175 oder 1,75", number = true) { s -> prefs.put(PreferenceKeys.FUELPPL, s.replace(',', '.').filter { it.isDigit() || it == '.' }.take(6)) }
         SFieldItem("Tankinhalt (Liter)", prefs.s(PreferenceKeys.FUEL_TANK_L, ""), "Für die Tank-Reichweite", placeholder = "z. B. 50", number = true) { s -> prefs.put(PreferenceKeys.FUEL_TANK_L, s.filter { it.isDigit() }.take(3)) }
     }
     LearnedGroup(engine)
