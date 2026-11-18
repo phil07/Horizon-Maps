@@ -95,8 +95,8 @@ private class Section(val title: String, val sub: String, val icon: ImageVector,
 
 // (the order here is the order in the list; SettingsIndex refers to them by number)
 private val sections = listOf(
-    Section("Kartenansicht", "Tag und Nacht, Details, 3D, Satellit", Icons.Rounded.Map, Color(0xFF4C8DFF), "KARTE"),
-    Section("Auf der Karte", "Verkehr, Ampeln, Kameras, Schilder, Wetter", Icons.Rounded.Traffic, Color(0xFF4C8DFF)),
+    Section("Kartenansicht", "Licht, Wetter, Details, 3D, Satellit", Icons.Rounded.Map, Color(0xFF4C8DFF), "KARTE"),
+    Section("Auf der Karte", "Verkehr, Ampeln, Kameras, Schilder", Icons.Rounded.Traffic, Color(0xFF4C8DFF)),
     Section("Pfeil & Routenlinie", "Pfeil oder Auto, Farben, Routendesign", Icons.Rounded.Navigation, Color(0xFF4C8DFF)),
     Section("Routen", "Vermeiden, Öko, schnellere Routen, Start", Icons.Rounded.Route, Color(0xFF12A4B4), "FAHREN"),
     Section("Abbiegekarte & Spuren", "Schilder, Spuren, Fahrtenkarte, Ankunft", Icons.Rounded.TurnRight, Color(0xFF12A4B4)),
@@ -105,7 +105,8 @@ private val sections = listOf(
     Section("Orte & Fahrten", "Zuhause, Arbeit, Favoriten, Teilen, Fahrtenbuch", Icons.Rounded.Star, Color(0xFFF29900), "DU"),
     Section("Kraftstoff & Laden", "Spritart, Preise, Elektroauto", Icons.Rounded.LocalGasStation, Color(0xFF34A853)),
     Section("Offline-Karten", "Karten, Routen und Orte ohne Empfang", Icons.Rounded.CloudDownload, Color(0xFF8E5CF0)),
-    Section("Bildschirm & Größen", "Helligkeit, Größen, Einheiten, beim Fahren", Icons.Rounded.BrightnessMedium, Color(0xFFFFB020), "GERÄT"),
+    Section("Bildschirm & Größen", "Helligkeit, Größen, Einheiten", Icons.Rounded.BrightnessMedium, Color(0xFFFFB020), "GERÄT"),
+    Section("Beim Fahren", "Straßenname, Tacho, Tunnel, Medien, Sperren", Icons.Rounded.DirectionsCar, Color(0xFF12A4B4)),
     Section("Android Auto", "Autodisplay-Größen und Einrichtung", Icons.Rounded.DirectionsCar, Color(0xFF9CA4BF)),
     Section("Leistung", "Flüssigkeit auf langsamen Displays, Demo", Icons.Rounded.Speed, Color(0xFF9CA4BF)),
     Section("Schlüssel & Konten", "Kartenschlüssel und Suche", Icons.Rounded.VpnKey, Color(0xFF9CA4BF)),
@@ -245,9 +246,10 @@ private fun SettingsBody(prefs: Prefs, engine: NavEngine, onClose: () -> Unit) {
                         8 -> FuelSection(prefs, engine)
                         9 -> { OfflineMapsContent(prefs, engine); OfflinePlacesGroup(engine) }
                         10 -> ScreenSection(prefs, engine)
-                        11 -> AndroidAutoSection(prefs)
-                        12 -> PerformanceSection(prefs)
-                        13 -> KeysSection(prefs, engine)
+                        11 -> WhileDrivingSection(prefs, engine)
+                        12 -> AndroidAutoSection(prefs)
+                        13 -> PerformanceSection(prefs)
+                        14 -> KeysSection(prefs, engine)
                         else -> AboutSection(prefs, engine)
                     }
                 }
@@ -338,6 +340,10 @@ private fun MapLookSection(prefs: Prefs, engine: NavEngine) {
         SChoice("Mapbox-Logo-Position", listOf("tl" to "Oben links", "tr" to "Oben rechts", "bl" to "Unten links", "br" to "Unten rechts"), prefs.s(PreferenceKeys.MAPBOX_LOGO, "tr"),
             "Ecke für das geforderte Mapbox-Logo wählen") { prefs.put(PreferenceKeys.MAPBOX_LOGO, it) }
     }
+    SGroup("Wetter") {
+        SToggle(prefs, "Wettereffekte auf der Karte", "rainfx", false, "Regen, Schnee und Nebel passend zum Wetter")
+        SToggle(prefs, "Regenradar-Ebene", "radar", false, "Live-Radar von RainViewer unter der Route")
+    }
     SGroup("3D und Satellit") {
         SToggle(prefs, "Satellit", "satellite", false)
         SToggle(prefs, "3D-Gebäude", "buildings3d", true)
@@ -374,10 +380,6 @@ private fun OnTheMapSection(prefs: Prefs, engine: NavEngine) {
         SToggle(prefs, "Straßenlaternen", "lamps", false, if (prefs.b(PreferenceKeys.LAMPS, false)) "Aktuell: " + engine.map.lampInfo() else null)
         if (prefs.b(PreferenceKeys.LAMPS, false)) SToggle(prefs, "Laternen aus OpenStreetMap", PreferenceKeys.LAMPS_ONLINE, true, "Echte Laternenstandorte, wo Leute sie eingetragen haben. Einmal pro Gebiet geladen, einen Monat gespeichert")
         if (prefs.b(PreferenceKeys.LAMPS, false)) SSlider("Laternenabstand", prefs.s(PreferenceKeys.LAMPGAP, "40").toFloatOrNull() ?: 40f, 15f..120f, " m", reset = 40f) { prefs.put(PreferenceKeys.LAMPGAP, it.toString()) }
-    }
-    SGroup("Wetter") {
-        SToggle(prefs, "Wettereffekte auf der Karte", "rainfx", false, "Regen, Schnee und Nebel passend zum Wetter")
-        SToggle(prefs, "Regenradar-Ebene", "radar", false, "Live-Radar von RainViewer unter der Route")
     }
 }
 
@@ -718,15 +720,16 @@ private fun PlaceItem(label: String, p: Place?, onChange: () -> Unit, onClear: (
 @Composable
 private fun PlacesSection(engine: NavEngine) {
     val pl = engine.places
-    SGroup("Verknüpfungen", footer = "Knöpfe in der Reihe unter der Suche. Der Knopf zeigt eine Liste, den nächsten Ort oder Track zuerst.") {
+    SGroup("Unter der Suchleiste", footer = "Die Knöpfe unter der Suchleiste: Verknüpfungen, Such-Knöpfe, die Suchleiste und Zuhause und Arbeit. Der Knopf zeigt eine Liste, den nächsten Ort oder Track zuerst.") {
         SToggle(engine.prefs, "Meine Orte", PreferenceKeys.SC_PLACES, false, "Liste deiner Orte und Favoriten")
         SToggle(engine.prefs, "Meine Tracks", PreferenceKeys.SC_TRACKS, false, "Liste deiner GPX-Tracks")
-    }
-    SGroup("Such-Knöpfe unter der Suche", footer = "Jeder Knopf einzeln ein- oder ausschalten. Ausgeschaltete kommen nicht von allein zurück.") {
         for ((kind, label) in listOf("fuel" to "Tanken", "charging" to "Laden", "food" to "Essen", "coffee" to "Kaffee", "parking" to "Parken",
             "camp" to "Stellplätze", "dump" to "Entsorgung", "lpg" to "Autogas")) {
             SToggle(engine.prefs, label, "find_$kind", true, "Knopf „$label in der Nähe“")
         }
+        SToggle(engine.prefs, "Suche als Knopf", PreferenceKeys.SEARCH_FOLD, false, "Ohne Route nur ein runder Knopf in der Ecke")
+        SToggle(engine.prefs, "Zuhause", PreferenceKeys.HOME_TILE, true, "Die Kachel Zuhause mit der Fahrtzeit")
+        SToggle(engine.prefs, "Arbeit", PreferenceKeys.WORK_TILE, true, "Die Kachel Arbeit mit der Fahrtzeit")
     }
     GpxTracksGroup(engine)
     var settingSlot by remember { mutableStateOf<String?>(null) }
@@ -767,13 +770,6 @@ private fun PlacesSection(engine: NavEngine) {
         SItem("Ort hinzufügen") { SButton("Hinzufügen", primary = true) { adding = true } }
     }
     // Home and Work under the search bar: each can be left off (the app and Android Auto alike)
-    SGroup("Suchleiste", footer = "Ohne Route klappt die Suchleiste mit ihren Knöpfen in einen runden Suchknopf in der Ecke zusammen. Die Karte hat dann den ganzen Bildschirm, und Ihr Pfeil steht in der Mitte.") {
-        SToggle(engine.prefs, "Suche als Knopf", PreferenceKeys.SEARCH_FOLD, false, "Ohne Route nur ein runder Knopf in der Ecke")
-    }
-    SGroup("Zuhause und Arbeit unter der Suche", footer = "Die beiden Kacheln unter der Suchleiste einzeln ein- oder ausblenden. Gilt für die App und Android Auto.") {
-        SToggle(engine.prefs, "Zuhause", PreferenceKeys.HOME_TILE, true, "Die Kachel Zuhause mit der Fahrtzeit")
-        SToggle(engine.prefs, "Arbeit", PreferenceKeys.WORK_TILE, true, "Die Kachel Arbeit mit der Fahrtzeit")
-    }
     // the order of these shortcuts under the search bar: each moves up or down with its arrows
     if (mine.size > 1) SGroup("Deine Reihenfolge", footer = "Die Reihenfolge der Knöpfe unter der Suchleiste. Mit den Pfeilen verschieben.") {
         mine.forEachIndexed { i, lp ->
@@ -1150,6 +1146,23 @@ private fun ScreenSection(prefs: Prefs, engine: NavEngine) {
         }
 
     }
+    SGroup("Einheiten") {
+        SChoice("Entfernung und Tempo", listOf("km" to "Kilometer", "mi" to "Meilen"), if (engine.imperial) "mi" else "km") { prefs.put(PreferenceKeys.DISTANCE_UNIT, it) }
+        SChoice("Temperatur", listOf("C" to "°C", "F" to "°F"), if (isImperial(prefs)) "F" else "C") { prefs.put(PreferenceKeys.TEMPERATURE_UNIT, it) }
+        SChoice("Fahrseite", listOf("" to "Automatisch", "rhd" to "Rechtslenker (Linksverkehr)", "lhd" to "Linkslenker (Rechtsverkehr)"), prefs.s(PreferenceKeys.DRIVE, ""),
+            when (prefs.s(PreferenceKeys.DRIVE, "")) {
+                "rhd" -> "Fahrer rechts: Karten links, Buttons rechts"
+                "lhd" -> "Fahrer links: Bildschirm gespiegelt, Karten rechts"
+                else -> "Nach aktuellem Land"
+            }) { prefs.put(PreferenceKeys.DRIVE, it) }
+    }
+}
+
+// ------------------------------------------------------------------ Android Auto
+
+/** Beim Fahren: its own page (road name, arrow, tunnels, media controls, locking). */
+@Composable
+private fun WhileDrivingSection(prefs: Prefs, engine: NavEngine) {
     SGroup("Song und Cover", footer = "Zurück, Pause und Weiter unten auf dem Fahrbildschirm, solange auf dem Autodisplay Musik oder Radio läuft, aus jeder App. Mit Benachrichtigungszugriff stehen auch Titel, Interpret und Cover dabei.") {
         val ctx = LocalContext.current
         val access = com.headunit.launcher.MediaHub.hasAccess(ctx)
@@ -1175,19 +1188,7 @@ private fun ScreenSection(prefs: Prefs, engine: NavEngine) {
         SToggle(prefs, "Weniger Buttons beim Fahren", "drivesimple", true)
         SToggle(prefs, "Tastatur beim Fahren sperren", "drivelock", false, "Sprachsuche funktioniert weiterhin")
     }
-    SGroup("Einheiten") {
-        SChoice("Entfernung und Tempo", listOf("km" to "Kilometer", "mi" to "Meilen"), if (engine.imperial) "mi" else "km") { prefs.put(PreferenceKeys.DISTANCE_UNIT, it) }
-        SChoice("Temperatur", listOf("C" to "°C", "F" to "°F"), if (isImperial(prefs)) "F" else "C") { prefs.put(PreferenceKeys.TEMPERATURE_UNIT, it) }
-        SChoice("Fahrseite", listOf("" to "Automatisch", "rhd" to "Rechtslenker (Linksverkehr)", "lhd" to "Linkslenker (Rechtsverkehr)"), prefs.s(PreferenceKeys.DRIVE, ""),
-            when (prefs.s(PreferenceKeys.DRIVE, "")) {
-                "rhd" -> "Fahrer rechts: Karten links, Buttons rechts"
-                "lhd" -> "Fahrer links: Bildschirm gespiegelt, Karten rechts"
-                else -> "Nach aktuellem Land"
-            }) { prefs.put(PreferenceKeys.DRIVE, it) }
-    }
 }
-
-// ------------------------------------------------------------------ Android Auto
 
 @Composable
 private fun AndroidAutoSection(prefs: Prefs) {

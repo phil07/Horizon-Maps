@@ -14,6 +14,9 @@
 - Kraftstoffkosten auf jeder Route: Jede Routenkarte zeigt, was die Route ungefähr an Sprit (oder Strom) kostet. Vorher stand das am Ende der Stopp-Reihe, außer Sicht. (Dank an pc4096)
   EN: Fuel cost on each route: every route card shows roughly what the route costs in fuel (or charging). It used to sit at the far end of the Stops row, out of sight. (Thanks to pc4096)
 
+- Einstellungen aufgeräumt: „Beim Fahren“ hat eine eigene Seite mit Straßenname, Tacho, Tunnel, Medien und Sperren. „Bildschirm & Größen“ ist dadurch kürzer. Das Wetter steht bei Licht und 3D. Alles zur Suchleiste ist in einer Gruppe „Unter der Suchleiste“. Die Einstellungssuche findet alles am neuen Ort.
+  EN: Tidier Settings: While driving has its own page with road name, speedometer, tunnels, media controls and locking, so Screen & sizes is shorter. Weather sits with the light and 3D. Everything about the search bar is in one group, "Under the search bar". Settings search finds everything in its new place.
+
 ### Behoben
 - Ankunft auf großen Parkplätzen: Wer innerhalb von 250 m vom Ziel eine Minute steht, ist angekommen. Die Route endet, wenn du parkst, nicht erst am Eingang des Ladens. (Dank an pc4096)
   EN: Arriving in a big car park: stopping for a minute within 250 m of the destination counts as arriving, so the route ends when you park, not only at the shop's front door. (Thanks to pc4096)
