@@ -1,8 +1,8 @@
 ## Unreleased
 
 ### Neu
-- Spritpreise in Italien: Tankstellenliste und Tankvorschläge zeigen Preise aus der täglichen Preisliste des Ministeriums (MIMIT), ohne Schlüssel. Die Liste wird höchstens einmal am Tag geladen und auf dem Gerät gespeichert.
-  EN: Fuel prices in Italy: the fuel list and fuel stop suggestions show prices from the government's own daily price list (MIMIT), with no key needed. The list is fetched at most once a day and kept on the device.
+- Spritpreise in Italien: Tankstellenliste und Tankvorschläge zeigen Preise aus der täglichen Preisliste des Ministeriums (MIMIT), ohne Schlüssel. Die Liste wird höchstens einmal am Tag geladen und auf dem Gerät gespeichert. Die Tankstellen heißen nach ihrer Marke (Agip Eni, Q8).
+  EN: Fuel prices in Italy: the fuel list and fuel stop suggestions show prices from the government's own daily price list (MIMIT), with no key needed. The list is fetched at most once a day and kept on the device. Stations are named by their brand (Agip Eni, Q8).
 - Autozüge vermeiden: Ein neuer Schalter neben „Fähren vermeiden“ hält die Route von Zügen fern, die Autos mitnehmen (Eurotunnel, die Alpen-Tunnelzüge, Sylt-Shuttle). Ist ein Autozug der einzige Weg, wird er trotzdem genommen. Mit TomTom-Schlüssel plant TomTom die Route, ohne Schlüssel kommen die anderen Mapbox-Vorschläge zuerst.
   EN: Avoid car trains: a new switch next to Avoid ferries keeps your route off trains that carry cars (the Channel Tunnel shuttle, the Alpine tunnel trains, the Sylt shuttle). If a car train is the only way there, it is still used. With a TomTom key TomTom plans the route; without one, Mapbox's other suggested routes are tried first.
 

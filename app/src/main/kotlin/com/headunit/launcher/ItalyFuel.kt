@@ -88,8 +88,9 @@ object ItalyFuel {
                 val lat = p[8].trim().replace(',', '.').toDoubleOrNull() ?: return@forEach
                 val lon = p[9].trim().replace(',', '.').toDoubleOrNull() ?: return@forEach
                 if (lat < 35.0 || lat > 48.0 || lon < 6.0 || lon > 19.0) return@forEach
-                val brand = p[2].trim(); val name = p[4].trim(); val town = p[6].trim()
-                val title = listOf(brand, name).filter { it.isNotBlank() }.distinct().joinToString(" · ").ifBlank { "Distributore" }
+                // the brand ("Agip Eni", "Q8") as the name: the station's own name is often just a code ("AG021"), the operator a company
+                val town = p[6].trim()
+                val title = p[2].trim().ifBlank { p[1].trim() }.ifBlank { "Distributore" }
                 st[p[0].trim()] = Site(title, listOf(p[5].trim(), town).filter { it.isNotBlank() }.joinToString(", "), LL(lat, lon))
             }
         }
