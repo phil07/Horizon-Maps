@@ -812,20 +812,44 @@ fun PackAgeCard(engine: NavEngine) {
 fun AppUpdateCard(engine: NavEngine) {
     val u = engine.appUpdate ?: return
     val c = LocalVw.current
-    val shape = RoundedCornerShape(22.dp)
-    // text on top and the buttons in their own row underneath: side by side, a narrow phone squeezed the title to a few letters a line
+    val shape = RoundedCornerShape(28.dp)
+    // styled like the What's new card: a header with both versions and the count of changes, then the buttons. On a short landscape
+    // screen the whole card scrolls rather than running off the edge.
+    val maxH = (androidx.compose.ui.platform.LocalConfiguration.current.screenHeightDp.dp * 0.75f).coerceAtLeast(200.dp)
+    val items = remember(u.releaseNotes) { parseNotes(u.releaseNotes) }
+    val summary = remember(u.releaseNotes) { notesSummary(u.releaseNotes) }
+    var open by remember { mutableStateOf(false) }
+    val headBg = if (c.dark) Color(0xFF203B62) else Color(0xFFDCEBFF)
+    val headTitle = if (c.dark) Color.White else Color(0xFF172B46)
+    val headSub = if (c.dark) Color(0xFFD8E7FA) else Color(0xFF405875)
+    val tints = if (c.dark) listOf(Color(0xFF7FE0A5), Color(0xFF7FB0FF), Color(0xFFFFC46B)) else listOf(Color(0xFF15803D), Color(0xFF1D5FD1), Color(0xFFB45309))
     Column(
-        Modifier.fillMaxWidth().panel(8.dp, shape, c.surface).padding(start = 16.dp, end = 12.dp, top = 10.dp, bottom = 10.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
+        Modifier.fillMaxWidth().heightIn(max = maxH).clip(shape).background(c.surface).border(1.dp, c.line, shape).verticalScroll(rememberScrollState()).padding(18.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Column(Modifier.fillMaxWidth()) {
-            Text(stringResource(R.string.ui_025), color = c.text, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
-            Text(Lang.t("Installiert ${com.headunit.launcher.BuildConfig.VERSION_NAME}  →  Verfügbar ${u.version}", "Installed ${com.headunit.launcher.BuildConfig.VERSION_NAME}  →  Available ${u.version}"), color = c.sub, fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            Text(if (engine.updateBusy || engine.updateStatus.isNotBlank()) engine.updateStatus else Lang.t("Jetzt aktualisieren: Einstellungen und Orte bleiben erhalten", "Update now: your settings and places are kept"),
-                color = c.sub, fontSize = 12.sp, maxLines = 2, overflow = TextOverflow.Ellipsis)
-            if (u.releaseNotes.isNotBlank() && !engine.updateBusy) {
-                Text(plainNotes(u.releaseNotes), color = c.sub, fontSize = 11.sp, maxLines = 3, overflow = TextOverflow.Ellipsis)
+        Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(22.dp)).background(headBg).padding(16.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
+            Text(Lang.t("UPDATE VERFÜGBAR", "UPDATE AVAILABLE"), color = c.accent, fontSize = 11.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.5.sp)
+            Text(Lang.t("Horizon Nav ${u.version}", "Horizon Nav ${u.version}"), color = headTitle, fontSize = 24.sp, fontWeight = FontWeight.Bold, lineHeight = 28.sp)
+            Text(Lang.t("Installiert ${com.headunit.launcher.BuildConfig.VERSION_NAME}  →  neu ${u.version}", "Installed ${com.headunit.launcher.BuildConfig.VERSION_NAME}  →  new ${u.version}"), color = headSub, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(summary.ifBlank { Lang.t("Einstellungen und Orte bleiben erhalten", "Settings and places are kept") }, color = headSub, fontSize = 13.sp, maxLines = 2, overflow = TextOverflow.Ellipsis)
+        }
+        Text(if (engine.updateBusy || engine.updateStatus.isNotBlank()) engine.updateStatus else Lang.t("Jetzt aktualisieren: Einstellungen und Orte bleiben erhalten", "Update now: your settings and places are kept"),
+            color = c.sub, fontSize = 12.sp, maxLines = 2, overflow = TextOverflow.Ellipsis)
+        // what's in it: folded at first; open, the headline of every change since your version
+        if (items.isNotEmpty() && !engine.updateBusy) {
+            Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).clickable { open = !open }.padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                Text(Lang.t("Was drin ist", "What's in it"), color = c.text, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
+                Text(if (open) "▴" else "▾", color = c.accent, fontSize = 16.sp)
             }
+            if (open) Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                for (kind in 0..2) for (n in items.filter { x -> x.kind == kind }) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(Modifier.size(8.dp).clip(CircleShape).background(tints[kind]))
+                        Text(n.title.ifBlank { n.desc }, color = c.text, fontSize = 13.sp, maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(start = 10.dp))
+                    }
+                }
+            }
+        }
             // Horizon Nav isn't on Google Play, so "installed by Google Play" means a tool like AAEnabler installed it to get it into
             // Android Auto. Android Auto drops apps that update themselves, so say so before they find it missing in the car.
             val ctx = androidx.compose.ui.platform.LocalContext.current
@@ -834,7 +858,6 @@ fun AppUpdateCard(engine: NavEngine) {
                 if (android.os.Build.VERSION.SDK_INT >= 29) Lang.t("Mit AAEnabler installiert: Aktualisieren speichert die neue Version in Downloads, damit du sie mit AAEnabler installieren kannst und sie in Android Auto bleibt.", "Installed with AAEnabler: Update saves the new version to your Downloads, so you can install it with AAEnabler and keep it in Android Auto.")
                 else Lang.t("Mit AAEnabler (o. Ä.) installiert? Ein Update hier nimmt die App aus Android Auto: Installiere die neue Version danach wieder mit AAEnabler.", "Installed with AAEnabler (or similar)? Updating here takes it out of Android Auto: install the new version with AAEnabler again afterwards."),
                 color = Warn, fontSize = 11.sp, maxLines = 3, overflow = TextOverflow.Ellipsis)
-        }
         if (!engine.updateBusy) Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)) {
             Pill(Lang.t("Später", "Later"), false, { engine.snoozeAppUpdate() })
             Pill(Lang.t("Aktualisieren", "Update"), true, { engine.installAppUpdate() })

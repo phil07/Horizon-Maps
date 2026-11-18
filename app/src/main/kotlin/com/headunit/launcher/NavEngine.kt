@@ -823,6 +823,9 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
     private val camAlerted = HashSet<LL>()
     private var drove = false
     private var stillSince = 0L
+    /** When the car came to rest near the destination, and when a route came to rest at all (0 = not stopped). */
+    private var parkedNearSince = 0L
+    private var parkedRouteSince = 0L
     private var posSavedAt = 0L
     private var tripOn = false
     private var tripT0 = 0L
@@ -1375,6 +1378,14 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
         if (evLoaded) try { evSave() } catch (_: Exception) {}
         try { lm?.removeUpdates(this) } catch (_: Exception) {}
         lm = null
+    }
+
+    /** Map options › Close Horizon Nav: any route ends, the GPS stops, and the app is closed so nothing keeps running in the background. */
+    fun closeApp() {
+        try { endRoute() } catch (_: Exception) {}
+        stopLocation()
+        (ctx as? android.app.Activity)?.finishAndRemoveTask()
+        android.os.Process.killProcess(android.os.Process.myPid())
     }
 
     override fun onLocationChanged(l: Location) = handleLocation(l, false)
@@ -3692,6 +3703,15 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
             tripOn = true; tripT0 = now; tripDistance = 0.0; tripMoveSec = 0; tripTop = p.speed; tripLast = p.pos
             breakNext = 7200L; tripPts = arrayListOf(p.pos)
         }
+        // parked near the destination for a minute: arrived, even when that is a big car park's entrance away from the shop
+        val dpos = dest?.pos
+        if (route != null && !previewing && dpos != null && p.speed < 0.8 && Geo.dist(p.pos, dpos) < 250.0) { if (parkedNearSince == 0L) parkedNearSince = now }
+        else parkedNearSince = 0L
+        // a route left running while parked: after half an hour it ends by itself, and with the app put away the GPS stops
+        if (route != null && !previewing && p.speed < 0.8) {
+            if (parkedRouteSince == 0L) parkedRouteSince = now
+            else if (now - parkedRouteSince > 30 * 60_000L) { parkedRouteSince = 0L; endRoute(); if (!appVisible) stopLocation() }
+        } else parkedRouteSince = 0L
         // ---- end of trip (stopped for two minutes) ----
         if (p.speed > 4.0) { drove = true; stillSince = 0L }
         else if (p.speed < 0.8 && drove) {
@@ -5465,7 +5485,8 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
                 speak(if (arriving) (if (side.isNotEmpty()) "Das Ziel liegt $side" else "Sie haben Ihr Ziel erreicht") else word.replaceFirstChar { it.uppercase() }, turn = true)
         }
         // arrived: at the end of the route and really there (not just level with the end of the route on another road)
-        val atEnd = rem < 25 && fix.let { f -> f == null || Geo.dist(f.pos, dest?.pos ?: r.pts.last()) < 120.0 || Geo.dist(f.pos, r.pts.last()) < 120.0 }
+        val parkedHere = parkedNearSince > 0L && System.currentTimeMillis() - parkedNearSince >= 60_000L
+        val atEnd = parkedHere || (rem < 25 && fix.let { f -> f == null || Geo.dist(f.pos, dest?.pos ?: r.pts.last()) < 120.0 || Geo.dist(f.pos, r.pts.last()) < 120.0 })
         if (atEnd && said.add("end")) {
             toast(str(R.string.toast_060), 5000)
             if (navStartMs > 0) {

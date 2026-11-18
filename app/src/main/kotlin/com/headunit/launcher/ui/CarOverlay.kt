@@ -946,7 +946,7 @@ private fun CarChips(engine: NavEngine, actions: CarActions, rows: Int) {
             val tracksC = com.headunit.launcher.Gpx.list(ctxC)
             if (customsC.isNotEmpty() || favsC.isNotEmpty() || tracksC.isNotEmpty() || engine.prefs.b(PreferenceKeys.SC_PLACES, false) || engine.prefs.b(PreferenceKeys.SC_TRACKS, false)) {
                 Row(Modifier.fillMaxWidth().horizontalScroll(androidx.compose.foundation.rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    for (cu in customsC) CarChip(androidx.compose.material.icons.Icons.Rounded.Place, Color(0xFF4C8DFF), cu.label, "car-own-${cu.label}") { engine.startRoute(cu.place) }
+                    for (cu in customsC.filter { engine.prefs.b(PreferenceKeys.STARRED_ROW, true) && it.starred }) CarChip(androidx.compose.material.icons.Icons.Rounded.Place, Color(0xFF4C8DFF), cu.label, "car-own-${cu.label}") { engine.startRoute(cu.place) }
                     for (f in favsC) CarChip(androidx.compose.material.icons.Icons.Rounded.Star, Color(0xFFF29900), f.name, "car-fav-${f.name}") { engine.startRoute(f) }
                     for (t in tracksC) CarChip(androidx.compose.material.icons.Icons.Rounded.Route, Color(0xFF2E7D32), t.name, "car-trk-${t.id}") { engine.driveTrack(t.name, com.headunit.launcher.Gpx.load(ctxC, t.id)) }
                     if (engine.prefs.b(PreferenceKeys.SC_PLACES, false)) CarChip(androidx.compose.material.icons.Icons.Rounded.Place, Color(0xFF4C8DFF), Lang.t("Meine Orte", "My places"), "car-sc-places") { engine.carListKind = "places" }
@@ -1088,24 +1088,35 @@ private fun CarListScreen(engine: NavEngine, kind: String) {
     val c = LocalVw.current
     val ctx = LocalContext.current
     val here = engine.fix?.pos
-    val rows: List<Triple<String, Double, () -> Unit>> = if (kind == "places") {
-        (engine.places.customs().map { Pair(it.label, it.place) } + engine.places.favourites().map { Pair(it.name, it) }).map { (name, p) ->
-            Triple(name, here?.let { Geo.dist(it, p.pos) } ?: 0.0, { engine.startRoute(p); engine.carListKind = null })
-        }.sortedBy { it.second }
+    val rows: List<ShortcutRow> = if (kind == "places") {
+        (engine.places.customs().map { Triple(it.label, it.place, it.folder) } + engine.places.favourites().map { Triple(it.name, it, "") }).map { (name, p, folder) ->
+            ShortcutRow(name, here?.let { Geo.dist(it, p.pos) } ?: 0.0, folder) { engine.startRoute(p); engine.carListKind = null }
+        }
     } else com.headunit.launcher.Gpx.list(ctx).mapNotNull { t ->
-        t.start?.let { s -> Triple(t.name, here?.let { Geo.dist(it, s) } ?: 0.0, { engine.driveTrack(t.name, com.headunit.launcher.Gpx.load(ctx, t.id)); engine.carListKind = null }) }
-    }.sortedBy { it.second }
+        t.start?.let { s -> ShortcutRow(t.name, here?.let { Geo.dist(it, s) } ?: 0.0, t.group) { engine.driveTrack(t.name, com.headunit.launcher.Gpx.load(ctx, t.id)); engine.carListKind = null } }
+    }
+    // folders first, then what's in no folder; a folder opens to its own places or tracks, and Back goes up again
+    var inFolder by remember { mutableStateOf<String?>(null) }
+    val folders = if (inFolder == null) rows.map { it.folder }.filter { it.isNotBlank() }.distinct().sorted() else emptyList()
+    val shown = (if (inFolder == null) rows.filter { it.folder.isBlank() } else rows.filter { it.folder == inFolder }).sortedBy { it.dist }
     Column(Modifier.fillMaxSize().background(c.surface).padding(start = 28.dp, end = 28.dp, top = 22.dp, bottom = 18.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(if (kind == "places") Lang.t("Meine Orte", "My places") else Lang.t("Meine Tracks", "My tracks"), color = c.text, fontSize = 28.sp, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
+            Text(inFolder ?: if (kind == "places") Lang.t("Meine Orte", "My places") else Lang.t("Meine Tracks", "My tracks"), color = c.text, fontSize = 28.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
+            if (inFolder != null) CarKey(Lang.t("‹ Zurück", "‹ Back"), "carlist-back", wide = true) { inFolder = null }
             CarKey(Lang.t("Schließen", "Close"), "carlist-close", wide = true) { engine.carListKind = null }
         }
         if (rows.isEmpty()) Text(if (kind == "places") Lang.t("Noch keine Orte gespeichert.", "No places saved yet.") else Lang.t("Noch keine Tracks importiert.", "No tracks imported yet."), color = c.sub, fontSize = 20.sp, modifier = Modifier.padding(top = 18.dp))
         LazyColumn(Modifier.weight(1f).padding(top = 14.dp)) {
-            itemsIndexed(rows) { i, r ->
-                Row(Modifier.fillMaxWidth().height(60.dp).carTap("carlist-$kind-$i") { r.third() }.padding(horizontal = 6.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Text(r.first, color = c.text, fontSize = 22.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
-                    if (here != null) Text(Geo.fmtDist(r.second, engine.imperial), color = c.sub, fontSize = 18.sp)
+            itemsIndexed(folders) { fi, f ->
+                Row(Modifier.fillMaxWidth().height(60.dp).carTap("carlist-folder-$fi") { inFolder = f }.padding(horizontal = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Text(f, color = c.text, fontSize = 22.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
+                    Text("${rows.count { it.folder == f }} ›", color = c.sub, fontSize = 18.sp)
+                }
+            }
+            itemsIndexed(shown) { i, r ->
+                Row(Modifier.fillMaxWidth().height(60.dp).carTap("carlist-$kind-$i") { r.go() }.padding(horizontal = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Text(r.name, color = c.text, fontSize = 22.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
+                    if (here != null) Text(Geo.fmtDist(r.dist, engine.imperial), color = c.sub, fontSize = 18.sp)
                 }
             }
         }

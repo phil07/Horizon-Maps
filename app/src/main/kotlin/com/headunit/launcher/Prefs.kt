@@ -346,6 +346,8 @@ internal object PreferenceKeys {
     const val TRIP_BTN_OTHERS = "tripbtn_others"
     /** Home and Work under the search bar, each on its own (the app and Android Auto alike) */
     const val HOME_TILE = "home_tile"; const val WORK_TILE = "work_tile"
+    /** Starred places of Your places show in the row under the search bar (off hides them all; they stay in search). */
+    const val STARRED_ROW = "starred_row"
     const val TRIP_BTN_SOUND = "tripbtn_sound"
     const val TRIP_BTN_END = "tripbtn_end"
     const val TRIP_BTN_SIZE = "tripbtn_size"

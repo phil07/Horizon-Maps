@@ -50,6 +50,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.item
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -736,6 +737,11 @@ private fun OptionsSheet(engine: NavEngine, shareEta: () -> Unit, voice: () -> U
         } else {
             // while navigating the trip tools come first; otherwise the map
             tripPart(); mapPart(); restPart()
+        }
+        // closes the app: any route ends, the GPS stops and the app is gone, so nothing keeps running in the background
+        Box(Modifier.fillMaxWidth().padding(top = 6.dp).clip(RoundedCornerShape(14.dp)).background(Bad.copy(alpha = 0.16f))
+            .clickable { close(); engine.closeApp() }.padding(vertical = 12.dp), contentAlignment = Alignment.Center) {
+            Text(Lang.t("Horizon Nav schließen", "Close Horizon Nav"), color = Bad, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
         }
     }
 }
@@ -1445,10 +1451,12 @@ private fun ImmChips(engine: NavEngine, focusSearch: () -> Unit) {
     val rawCustom = engine.prefs.s(PreferenceKeys.PLACES_CUSTOM, "")
     val rawFav = engine.prefs.s(PreferenceKeys.PLACES_FAVOURITES, "")
     // (own = true for one of your labelled places, false for a favourite)
-    val mine: List<Triple<com.headunit.launcher.Place, String, Boolean>> = remember(rawCustom, rawFav) {
+    // only the starred ones of Your places are in the row (Settings › Places & trips › Your places); the switch there hides them all
+    val showStarred = engine.prefs.b(PreferenceKeys.STARRED_ROW, true)
+    val mine: List<Triple<com.headunit.launcher.Place, String, Boolean>> = remember(rawCustom, rawFav, showStarred) {
         val custom = engine.places.customs()
         val favs = engine.places.favourites().filter { f -> custom.none { Geo.dist(it.place.pos, f.pos) < 60 } }
-        custom.map { Triple(it.place, it.label, true) } + favs.map { Triple(it, it.name, false) }
+        (if (showStarred) custom.filter { it.starred }.map { Triple(it.place, it.label, true) } else emptyList()) + favs.map { Triple(it, it.name, false) }
     }
     // the GPX tracks (saved routes) and the "Add a place" tile close the same row: all of it scrolls sideways
     val ctxT = LocalContext.current
@@ -1457,25 +1465,42 @@ private fun ImmChips(engine: NavEngine, focusSearch: () -> Unit) {
     if (addingPlace) AddPlaceDialog(engine, null) { addingPlace = false }
     // the shortcuts "My places" and "My tracks" (Settings › Places & trips › Shortcuts): their list opens here, nearest first
     var listKind by remember { mutableStateOf<String?>(null) }
+    // the folder open in that list (null = the top level); every time the list opens it starts at the top
+    var listFolder by remember { mutableStateOf<String?>(null) }
+    LaunchedEffect(listKind) { listFolder = null }
     val cList = LocalVw.current
     val here = engine.fix?.pos
     listKind?.let { kind ->
-        val rows: List<Triple<String, Double, () -> Unit>> = if (kind == "places") {
-            (engine.places.customs().map { Pair(it.label, it.place) } + engine.places.favourites().map { Pair(it.name, it) }).map { (name, p) ->
-                Triple(name, here?.let { Geo.dist(it, p.pos) } ?: 0.0, { engine.startRoute(p); listKind = null })
-            }.sortedBy { it.second }
+        val rows: List<ShortcutRow> = if (kind == "places") {
+            (engine.places.customs().map { Triple(it.label, it.place, it.folder) } + engine.places.favourites().map { Triple(it.name, it, "") }).map { (name, p, folder) ->
+                ShortcutRow(name, here?.let { Geo.dist(it, p.pos) } ?: 0.0, folder) { engine.startRoute(p); listKind = null }
+            }
         } else com.headunit.launcher.Gpx.list(ctxT).mapNotNull { t ->
-            t.start?.let { s -> Triple(t.name, here?.let { Geo.dist(it, s) } ?: 0.0, { engine.driveTrack(t.name, com.headunit.launcher.Gpx.load(ctxT, t.id)); listKind = null }) }
-        }.sortedBy { it.second }
+            t.start?.let { s -> ShortcutRow(t.name, here?.let { Geo.dist(it, s) } ?: 0.0, t.group) { engine.driveTrack(t.name, com.headunit.launcher.Gpx.load(ctxT, t.id)); listKind = null } }
+        }
+        // folders first, then what's in no folder; a folder opens to its own places or tracks, and ‹ goes back
+        val inFolder = listFolder
+        val folders = if (inFolder == null) rows.map { it.folder }.filter { it.isNotBlank() }.distinct().sorted() else emptyList()
+        val shown = (if (inFolder == null) rows.filter { it.folder.isBlank() } else rows.filter { it.folder == inFolder }).sortedBy { it.dist }
         androidx.compose.material3.AlertDialog(onDismissRequest = { listKind = null }, confirmButton = { },
-            title = { Text(if (kind == "places") Lang.t("Meine Orte", "My places") else Lang.t("Meine Tracks", "My tracks"), color = cList.text) },
+            title = { Text(inFolder ?: if (kind == "places") Lang.t("Meine Orte", "My places") else Lang.t("Meine Tracks", "My tracks"), color = cList.text) },
             text = {
                 if (rows.isEmpty()) Text(if (kind == "places") Lang.t("Noch keine Orte gespeichert.", "No places saved yet.") else Lang.t("Noch keine Tracks importiert.", "No tracks imported yet."), color = cList.sub)
                 else LazyColumn(Modifier.heightIn(max = 380.dp)) {
-                    items(rows) { (name, d, go) ->
-                        Row(Modifier.fillMaxWidth().clickable { go() }.padding(vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Text(name, color = cList.text, fontSize = 16.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
-                            if (here != null) Text(Geo.fmtDist(d, engine.imperial), color = cList.sub, fontSize = 13.sp, modifier = Modifier.padding(start = 10.dp))
+                    if (inFolder != null) item {
+                        Text("‹ " + Lang.t("Zurück", "Back"), color = cList.accent, fontSize = 15.sp, fontWeight = FontWeight.SemiBold,
+                            modifier = Modifier.clickable { listFolder = null }.padding(vertical = 8.dp))
+                    }
+                    items(folders) { f ->
+                        Row(Modifier.fillMaxWidth().clickable { listFolder = f }.padding(vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Text(f, color = cList.text, fontSize = 16.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
+                            Text("${rows.count { it.folder == f }} ›", color = cList.sub, fontSize = 13.sp)
+                        }
+                    }
+                    items(shown) { r ->
+                        Row(Modifier.fillMaxWidth().clickable { r.go() }.padding(vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Text(r.name, color = cList.text, fontSize = 16.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
+                            if (here != null) Text(Geo.fmtDist(r.dist, engine.imperial), color = cList.sub, fontSize = 13.sp, modifier = Modifier.padding(start = 10.dp))
                         }
                     }
                 }
@@ -1869,3 +1894,6 @@ private fun MediaKey(icon: ImageVector, desc: String, onClick: () -> Unit) {
 
 /** Whether a find button (fuel, parking, camp…) is on: each one can be taken off in Settings › Places & trips › Verknüpfungen. */
 internal fun findOn(prefs: com.headunit.launcher.Prefs, kind: String): Boolean = prefs.b("find_$kind", true)
+
+/** One row of a shortcut list ("My places", "My tracks"): its name, how far it is, the folder it's in (blank = none), and what a tap does. */
+internal class ShortcutRow(val name: String, val dist: Double, val folder: String, val go: () -> Unit)

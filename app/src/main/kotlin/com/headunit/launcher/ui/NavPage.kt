@@ -233,8 +233,9 @@ internal fun BoxScope.RoutePreview(engine: NavEngine) {
     fun num(k: String) = engine.prefs.s(k, "").replace(',', '.').toDoubleOrNull()?.takeIf { it > 0 }
     val use = num(if (ev) PreferenceKeys.EVMPK else PreferenceKeys.FUELMPG)
     val cents = num(if (ev) PreferenceKeys.EVPPK else PreferenceKeys.FUELPPL)
-    val costText = if (use != null && cents != null && selRoute != null) {
-        val km = selRoute.len / 1000.0
+    // what a route costs in fuel (or charging): each route card shows its own, under its distance
+    fun costOf(len: Double): String? = if (use != null && cents != null) {
+        val km = len / 1000.0
         val amount = if (ev) km / use * cents / 100.0 else km * use / 100.0 * cents / 100.0
         (if (ev) Lang.t("Laden etwa ", "Charging about ") else Lang.t("Sprit etwa ", "Fuel about ")) +
             java.text.NumberFormat.getCurrencyInstance(java.util.Locale.GERMANY).format(amount)
@@ -294,7 +295,6 @@ internal fun BoxScope.RoutePreview(engine: NavEngine) {
         else Pill(Lang.t("+ Tanken", "+ Fuel"), engine.stopMode && engine.nearbyKind == "fuel", { engine.stopMode = true; engine.loadNearby("fuel", false) })
         Pill(if (engine.via.isEmpty()) Lang.t("+ Stopp", "+ Stop") else Lang.t("Stopps bearbeiten", "Edit stops"), false, { engine.stopsEditor = true })
         if (engine.via.isNotEmpty()) Text(engine.via.joinToString(" › ") { it.name }, color = c.text, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.widthIn(max = 220.dp))
-        if (costText != null) Text(costText, color = c.sub, fontSize = 13.sp, modifier = Modifier.padding(horizontal = 8.dp))
     }
     // electric: the battery now, the least you want to arrive with, and the eco route; charging stops are then planned.
     // A fresh reading from the battery widget makes the "battery now" setting pointless: then only the other two are shown.
@@ -363,6 +363,8 @@ internal fun BoxScope.RoutePreview(engine: NavEngine) {
                     Geo.fmtDist(r.len, engine.imperial) + " · " + if (delayMin >= 1) Lang.t("+$delayMin Min. Verkehr", "+$delayMin min traffic") else if (via.isNotEmpty()) Lang.t("über $via", "via $via") else Lang.t("keine Verzögerung", "no delays"),
                     color = if (delayMin >= 10) Bad else if (delayMin >= 1) Warn else c.sub, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis,
                 )
+                // what this route costs in fuel (or charging), from Settings > Driving
+                costOf(r.len)?.let { Text(it, color = c.sub, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis) }
                 // tolls and vignettes, so the routes can be compared before one is chosen
                 val pay = remember(r) {
                     val vig = try { com.headunit.launcher.Vignette.along(r).map { it.cc } } catch (e: Exception) { emptyList() }

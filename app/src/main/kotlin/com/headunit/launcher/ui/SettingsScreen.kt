@@ -739,8 +739,10 @@ private fun PlacesSection(engine: NavEngine) {
     val raw = engine.prefs.s(PreferenceKeys.PLACES_CUSTOM, "")
     val mine = remember(raw) { pl.customs() }
     var renaming by remember { mutableStateOf<String?>(null) }
+    var folderFor by remember { mutableStateOf<String?>(null) }
     var adding by remember { mutableStateOf(false) }
-    SGroup("Eigene Orte", footer = "Eigene benannte Orte unter der Suchleiste.") {
+    SGroup("Eigene Orte", footer = "Markierte Orte kommen in die Reihe unter der Suchleiste. Ordner gruppieren sie in der Liste „Meine Orte“.") {
+        SToggle(engine.prefs, "Markierte Orte unter der Suche", PreferenceKeys.STARRED_ROW, true, "Aus: alle markierten Orte sind ausgeblendet. Sie bleiben in der Suche und in „Meine Orte“.")
         if (mine.isEmpty()) SNote("Noch keine eigenen Orte vorhanden.")
         mine.forEach { lp ->
             if (renaming == lp.label) {
@@ -749,7 +751,15 @@ private fun PlacesSection(engine: NavEngine) {
                     SField(t, { t = it.take(24) }, width = 220.dp)
                     SButton("Speichern", primary = true) { pl.renameCustom(lp.label, t); renaming = null }
                 }
-            } else SItem(lp.label, lp.place.name + if (lp.place.sub.isNotBlank()) ", " + lp.place.sub else "") {
+            } else if (folderFor == lp.label) {
+                var f by remember(lp.label) { mutableStateOf(lp.folder) }
+                SItem("Ordner für ${lp.label}", "Einen neuen Namen eintippen oder einen vorhandenen. Leer: kein Ordner.") {
+                    SField(f, { f = it.take(24) }, width = 220.dp)
+                    SButton("Speichern", primary = true) { pl.setFolder(lp.label, f); folderFor = null }
+                }
+            } else SItem(lp.label, (if (lp.folder.isNotBlank()) "Ordner: ${lp.folder} · " else "") + lp.place.name + if (lp.place.sub.isNotBlank()) ", " + lp.place.sub else "") {
+                SButton(if (lp.starred) "★ Markiert" else "☆ Markieren", primary = lp.starred) { pl.setStar(lp.label, !lp.starred) }
+                SButton("Ordner") { folderFor = lp.label }
                 SButton("Umbenennen") { renaming = lp.label }
                 SButton("Entfernen", danger = true) { pl.removeCustom(lp.label) }
             }

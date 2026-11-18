@@ -4,7 +4,8 @@ import org.json.JSONArray
 import org.json.JSONObject
 
 /** A place you saved yourself under your own name ("Mum's", "Gym"). */
-class LabeledPlace(val label: String, val place: Place)
+/** One of your own places: [starred] ones sit in the row under the search bar; [folder] (blank = none) groups it in the shortcut lists. */
+data class LabeledPlace(val label: String, val place: Place, val starred: Boolean = false, val folder: String = "")
 
 /** Saved places (home, work, your own labelled places, favourites, recents), stored as JSON in [Prefs]. */
 class PlaceStore(private val prefs: Prefs) {
@@ -44,13 +45,13 @@ class PlaceStore(private val prefs: Prefs) {
         if (s.isBlank()) return emptyList()
         return try {
             val a = JSONArray(s)
-            (0 until a.length()).mapNotNull { i -> try { val o = a.getJSONObject(i); LabeledPlace(o.optString("l"), dec(o)) } catch (e: Exception) { null } }
+            (0 until a.length()).mapNotNull { i -> try { val o = a.getJSONObject(i); LabeledPlace(o.optString("l"), dec(o), o.optBoolean("s", false), o.optString("f", "")) } catch (e: Exception) { null } }
         } catch (e: Exception) { emptyList() }
     }
 
     private fun writeCustoms(list: List<LabeledPlace>) {
         val a = JSONArray()
-        list.forEach { a.put(enc(it.place).put("l", it.label)) }
+        list.forEach { a.put(enc(it.place).put("l", it.label).put("s", it.starred).put("f", it.folder)) }
         prefs.put(PreferenceKeys.PLACES_CUSTOM, a.toString())
     }
 
@@ -63,8 +64,12 @@ class PlaceStore(private val prefs: Prefs) {
     fun removeCustom(label: String) = writeCustoms(customs().filterNot { it.label == label })
     fun renameCustom(old: String, new: String) {
         val n = new.trim().take(24); if (n.isBlank()) return
-        writeCustoms(customs().map { if (it.label == old) LabeledPlace(n, it.place) else it })
+        writeCustoms(customs().map { if (it.label == old) it.copy(label = n) else it })
     }
+    /** A star puts the place in the row under the search bar (next to Home and Work). */
+    fun setStar(label: String, on: Boolean) = writeCustoms(customs().map { if (it.label == label) it.copy(starred = on) else it })
+    /** Puts the place in the folder [folder] of Your places (blank takes it out of its folder). */
+    fun setFolder(label: String, folder: String) = writeCustoms(customs().map { if (it.label == label) it.copy(folder = folder.trim().take(24)) else it })
     fun moveCustom(label: String, by: Int) {
         val l = customs().toMutableList(); val i = l.indexOfFirst { it.label == label }; val j = i + by
         if (i < 0 || j !in l.indices) return
