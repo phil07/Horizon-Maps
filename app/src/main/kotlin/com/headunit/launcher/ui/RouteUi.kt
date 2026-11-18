@@ -638,7 +638,32 @@ fun FuelSuggestionRow(engine: NavEngine) {
 
 // ------------------------------------------------------------------ UK road signs
 
-private val ukRefRx = Regex("\\b([MAB][0-9]{1,4})(\\s?\\(M\\))?\\b")
+private val ukRefRx = Regex("\\b([MAB])\\s?([0-9]{1,4})(?![0-9])(\\s?\\(M\\))?")
+/** A sentence with UK road numbers in it: each number shows as its road sign (motorway blue, A green, B white), the rest as text. */
+@Composable
+internal fun RoadTextLine(text: String, color: Color, fontSize: androidx.compose.ui.unit.TextUnit, modifier: Modifier = Modifier) {
+    val matches = ukRefRx.findAll(text).toList()
+    if (matches.isEmpty()) { Text(text, color = color, fontSize = fontSize, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = modifier); return }
+    Row(modifier, verticalAlignment = Alignment.CenterVertically) {
+        var pos = 0
+        for (m in matches) {
+            if (m.range.first > pos) Text(text.substring(pos, m.range.first), color = color, fontSize = fontSize, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            val motorway = m.groupValues[1] == "M" || m.groupValues[3].isNotBlank()
+            val primary = !motorway && m.groupValues[1] == "A"
+            val label = m.groupValues[1] + m.groupValues[2] + (if (m.groupValues[3].isNotBlank()) "(M)" else "")
+            val bg = when { motorway -> Color(0xFF0065B3); primary -> Color(0xFF00703C); else -> Color.White }
+            val fg = when { motorway || primary -> Color.White; else -> Color(0xFF111111) }
+            val edge = if (motorway || primary) Color.White else Color(0xFF111111)
+            val badge = RoundedCornerShape(4.dp)
+            Box(Modifier.padding(horizontal = 3.dp).clip(badge).background(bg).border(1.dp, edge, badge).padding(horizontal = 5.dp, vertical = 0.dp)) {
+                Text(label, color = if (!motorway && !primary) fg else if (primary) Color(0xFFFFD200) else fg, fontSize = fontSize * 0.85f, fontWeight = FontWeight.Bold, maxLines = 1)
+            }
+            pos = m.range.last + 1
+        }
+        if (pos < text.length) Text(text.substring(pos), color = color, fontSize = fontSize, maxLines = 1, overflow = TextOverflow.Ellipsis)
+    }
+}
+
 /** Whether a road name carries a UK road number (M, A or B), which then shows as a road sign. */
 internal fun hasUkRoadRef(s: String): Boolean = ukRefRx.containsMatchIn(s)
 // German numbers, with or without the space: "A 5", "A5", "B 27"
@@ -657,7 +682,7 @@ fun UkSign(sign: String, junction: String, street: String, modifier: Modifier = 
     val de = com.headunit.launcher.RoadRefs.country.uppercase() == "DE"
     val rx = if (de) deRefRx else ukRefRx
     val refs = if (de) deRefRx.findAll(text).map { it.groupValues[1] + " " + it.groupValues[2] }.distinct().toList()
-        else ukRefRx.findAll(text).map { it.groupValues[1] + (if (it.groupValues[2].isNotBlank()) " (M)" else "") }.distinct().toList()
+        else ukRefRx.findAll(text).map { it.groupValues[1] + it.groupValues[2] + (if (it.groupValues[3].isNotBlank()) " (M)" else "") }.distinct().toList()
     // (Mapbox writes "M27: Salisbury, Ringwood": the colon after the road number is split off too, so it never shows as ": Salisbury")
     val dests = text.split(',', '/', ';', '|', ':').map { rx.replace(it, "").replace(Regex("[()]"), "").trim().trim(':', '-', '–', ' ') }.filter { it.length >= 3 && it.any { ch -> ch.isLetter() } }.distinct().take(3)
     // the motorway class (M roads / Autobahn) and the primary class (A roads / Bundesstraßen)
