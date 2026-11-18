@@ -720,6 +720,11 @@ private fun PlaceItem(label: String, p: Place?, onChange: () -> Unit, onClear: (
 @Composable
 private fun PlacesSection(engine: NavEngine) {
     val pl = engine.places
+    val raw = engine.prefs.s(PreferenceKeys.PLACES_CUSTOM, "")
+    val mine = remember(raw) { pl.customs() }
+    var renaming by remember { mutableStateOf<String?>(null) }
+    var folderFor by remember { mutableStateOf<String?>(null) }
+    var adding by remember { mutableStateOf(false) }
     SGroup("Unter der Suchleiste", footer = "Die Knöpfe unter der Suchleiste: Verknüpfungen, Such-Knöpfe, die Suchleiste und Zuhause und Arbeit. Der Knopf zeigt eine Liste, den nächsten Ort oder Track zuerst.") {
         SToggle(engine.prefs, "Meine Orte", PreferenceKeys.SC_PLACES, false, "Liste deiner Orte und Favoriten")
         SToggle(engine.prefs, "Meine Tracks", PreferenceKeys.SC_TRACKS, false, "Liste deiner GPX-Tracks")
@@ -730,21 +735,6 @@ private fun PlacesSection(engine: NavEngine) {
         SToggle(engine.prefs, "Suche als Knopf", PreferenceKeys.SEARCH_FOLD, false, "Ohne Route nur ein runder Knopf in der Ecke")
         SToggle(engine.prefs, "Zuhause", PreferenceKeys.HOME_TILE, true, "Die Kachel Zuhause mit der Fahrtzeit")
         SToggle(engine.prefs, "Arbeit", PreferenceKeys.WORK_TILE, true, "Die Kachel Arbeit mit der Fahrtzeit")
-    }
-    GpxTracksGroup(engine)
-    var settingSlot by remember { mutableStateOf<String?>(null) }
-    val slotsRaw = engine.prefs.s(PreferenceKeys.PLACE_HOME, "") + engine.prefs.s("place_work", "")
-    SGroup("Gespeicherte Orte", footer = "Auch über die Buttons unter der Suchleiste festlegbar.") {
-        PlaceItem("Zuhause", remember(slotsRaw) { pl.slot("home") }, { settingSlot = "home" }) { pl.clearSlot("home") }
-        PlaceItem("Arbeitsplatz", remember(slotsRaw) { pl.slot("work") }, { settingSlot = "work" }) { pl.clearSlot("work") }
-    }
-    settingSlot?.let { s -> AddPlaceDialog(engine, null, slot = s) { settingSlot = null } }
-    val raw = engine.prefs.s(PreferenceKeys.PLACES_CUSTOM, "")
-    val mine = remember(raw) { pl.customs() }
-    var renaming by remember { mutableStateOf<String?>(null) }
-    var folderFor by remember { mutableStateOf<String?>(null) }
-    var adding by remember { mutableStateOf(false) }
-    SGroup("Eigene Orte", footer = "Markierte Orte kommen in die Reihe unter der Suchleiste. Ordner gruppieren sie in der Liste „Meine Orte“.") {
         SToggle(engine.prefs, "Markierte Orte unter der Suche", PreferenceKeys.STARRED_ROW, true, "Aus: alle markierten Orte sind ausgeblendet. Sie bleiben in der Suche und in „Meine Orte“.")
         if (mine.isEmpty()) SNote("Noch keine eigenen Orte vorhanden.")
         mine.forEach { lp ->
@@ -768,17 +758,26 @@ private fun PlacesSection(engine: NavEngine) {
             }
         }
         SItem("Ort hinzufügen") { SButton("Hinzufügen", primary = true) { adding = true } }
-    }
-    // Home and Work under the search bar: each can be left off (the app and Android Auto alike)
-    // the order of these shortcuts under the search bar: each moves up or down with its arrows
-    if (mine.size > 1) SGroup("Deine Reihenfolge", footer = "Die Reihenfolge der Knöpfe unter der Suchleiste. Mit den Pfeilen verschieben.") {
-        mine.forEachIndexed { i, lp ->
-            SItem(lp.label) {
-                SButton("↑") { if (i > 0) pl.moveCustom(lp.label, -1) }
-                SButton("↓") { if (i < mine.size - 1) pl.moveCustom(lp.label, 1) }
+        if (mine.size > 1) {
+            SNote("Die Reihenfolge der Knöpfe unter der Suchleiste. Mit den Pfeilen verschieben.")
+            mine.forEachIndexed { i, lp ->
+                SItem(lp.label) {
+                    SButton("↑") { if (i > 0) pl.moveCustom(lp.label, -1) }
+                    SButton("↓") { if (i < mine.size - 1) pl.moveCustom(lp.label, 1) }
+                }
             }
         }
     }
+    GpxTracksGroup(engine)
+    var settingSlot by remember { mutableStateOf<String?>(null) }
+    val slotsRaw = engine.prefs.s(PreferenceKeys.PLACE_HOME, "") + engine.prefs.s("place_work", "")
+    SGroup("Gespeicherte Orte", footer = "Auch über die Buttons unter der Suchleiste festlegbar.") {
+        PlaceItem("Zuhause", remember(slotsRaw) { pl.slot("home") }, { settingSlot = "home" }) { pl.clearSlot("home") }
+        PlaceItem("Arbeitsplatz", remember(slotsRaw) { pl.slot("work") }, { settingSlot = "work" }) { pl.clearSlot("work") }
+    }
+    settingSlot?.let { s -> AddPlaceDialog(engine, null, slot = s) { settingSlot = null } }
+    // Home and Work under the search bar: each can be left off (the app and Android Auto alike)
+    // the order of these shortcuts under the search bar: each moves up or down with its arrows
     if (adding) AddPlaceDialog(engine, null) { adding = false }
     val favRaw = engine.prefs.s(PreferenceKeys.PLACES_FAVOURITES, "")
     val favs = remember(favRaw) { pl.favourites() }
