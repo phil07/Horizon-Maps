@@ -1643,9 +1643,8 @@ private fun ImmQuick(engine: NavEngine, showSaved: Boolean = true) {
         val mine = engine.places.customs()
         val favs = engine.places.favourites().filter { f -> mine.none { Geo.dist(it.place.pos, f.pos) < 60 } }
         val recents = engine.places.recents().filter { r -> favs.none { Geo.dist(it.pos, r.pos) < 60 } && mine.none { Geo.dist(it.place.pos, r.pos) < 60 } }
-        recents.take(4).map { Triple(it, 2, it.name) }
+        recents.map { Triple(it, 2, it.name) }
     }
-    var showAll by rememberSaveable { mutableStateOf(false) }
     var adding by remember { mutableStateOf(false) }
     if (adding) AddPlaceDialog(engine, null) { adding = false }
     val here = engine.fix?.pos
@@ -1664,7 +1663,7 @@ private fun ImmQuick(engine: NavEngine, showSaved: Boolean = true) {
                 Icon(Icons.Rounded.Close, Lang.t("Schließen", "Dismiss"), tint = Color.White, modifier = Modifier.padding(start = 8.dp).size(24.dp).clickable { engine.resume = null; engine.prefs.put(PreferenceKeys.RESUME, "{}") })
             }
         }
-        // three places on show to keep the map clear; "All" opens the rest (it used to be a list up to five tall)
+        // every recent place is in the list; the list scrolls (its height is capped below)
         AnimatedVisibility(showSaved && engine.prefs.b(PreferenceKeys.QUICKLIST, true),
             enter = fadeIn(tween(200)) + androidx.compose.animation.expandVertically(tween(240)), exit = fadeOut(tween(140)) + androidx.compose.animation.shrinkVertically(tween(200))) {
         // folded down to this one line on every start; tapping the header unfolds it (and folds it again)
@@ -1677,8 +1676,6 @@ private fun ImmQuick(engine: NavEngine, showSaved: Boolean = true) {
                     Icon(if (folded) Icons.Rounded.KeyboardArrowDown else Icons.Rounded.KeyboardArrowUp,
                         if (folded) Lang.t("Aufklappen", "Unfold") else Lang.t("Zuklappen", "Fold"), tint = c.sub, modifier = Modifier.padding(start = 4.dp).size(20.dp))
                 }
-                if (!folded && saved.size > 3) Text(if (showAll) Lang.t("Weniger", "Less") else Lang.t("Alle ${saved.size}", "All ${saved.size}"), color = c.accent, fontSize = 12.sp, fontWeight = FontWeight.SemiBold,
-                    modifier = Modifier.clip(RoundedCornerShape(12.dp)).clickable { showAll = !showAll }.padding(horizontal = 8.dp, vertical = 6.dp))
                 if (!folded) Row(Modifier.clip(RoundedCornerShape(12.dp)).clickable { adding = true }.padding(horizontal = 8.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Rounded.Add, null, tint = c.accent, modifier = Modifier.size(16.dp))
                     Text(stringResource(R.string.ui_003), color = c.accent, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(start = 2.dp))
@@ -1686,7 +1683,7 @@ private fun ImmQuick(engine: NavEngine, showSaved: Boolean = true) {
             }
             if (!folded && saved.isEmpty()) Text(stringResource(R.string.ui_039), color = c.sub, fontSize = 12.sp, modifier = Modifier.padding(start = 14.dp, end = 14.dp, bottom = 8.dp))
             if (!folded) LazyColumn(Modifier.heightIn(max = 200.dp)) {
-                items(if (showAll) saved else saved.take(3)) { (p, kind, label) ->
+                items(saved) { (p, kind, label) ->
                     val fav = kind != 2
                     // swipe a place sideways to take it off the list (a favourite is unstarred, a recent one forgotten, your own place removed)
                     var dx by remember { mutableStateOf(0f) }

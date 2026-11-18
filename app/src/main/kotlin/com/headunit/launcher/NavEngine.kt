@@ -3988,6 +3988,8 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
     private var gPos: LL? = null
     private var gHead = 0.0
     private var gSpeed = 0.0
+    /** On a route: the headlight beam has come on since you first moved off (reset when the route ends). */
+    private var beamLatched = false
     private var gProg = 0.0
     private var glideRoute: Route? = null
     private var glideOnRoute = false
@@ -4183,7 +4185,10 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
             lookB = gHead
         }
         val gp = gPos ?: return
-        map.setBeam(prefs.b(PreferenceKeys.HEADLIGHT_BEAM, false) && lastDark, gSpeed)
+        // on a route the beam comes on once you first move off, and then stays on to the end (even at lights); without one it shows while you move
+        val guided = r != null && !previewing
+        if (!guided) beamLatched = false else if (gSpeed >= 2.0) beamLatched = true
+        map.setBeam(prefs.b(PreferenceKeys.HEADLIGHT_BEAM, false) && lastDark && (!guided || beamLatched), gSpeed, guided)
         map.setMe(gp, gHead, 0)
         if (glideOnRoute && r != null && !previewing) {
             if (now - gDoneAt >= (if (following) 350L else 1500L)) { gDoneAt = now; updateDone(r, gProg) }

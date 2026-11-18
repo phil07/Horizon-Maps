@@ -73,6 +73,7 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.material.icons.rounded.WaterDrop
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
@@ -160,10 +161,14 @@ fun RouteBar(engine: NavEngine, modifier: Modifier = Modifier, thin: Boolean = f
             val y0 = (size.height - th) / 2f
             val bw = size.width / bins
             drawRoundRect(Color.Black.copy(alpha = 0.45f), Offset(0f, y0 - 1.5f), Size(size.width, th + 3f), CornerRadius(th))
-            for (b in 0 until bins) {
-                val done = (b + 1f) / bins <= frac
-                val col = when (levels[b]) { 2 -> Bad; 1 -> Warn; else -> accent }
-                drawRect(if (done) Color(0xFF8A8F99) else col, Offset(b * bw, y0), Size(bw + 0.6f, th))
+            // the coloured parts are cut to the track's rounded ends
+            val track = androidx.compose.ui.graphics.Path().apply { addRoundRect(androidx.compose.ui.geometry.RoundRect(0f, y0, size.width, y0 + th, CornerRadius(th))) }
+            clipPath(track) {
+                for (b in 0 until bins) {
+                    val done = (b + 1f) / bins <= frac
+                    val col = when (levels[b]) { 2 -> Bad; 1 -> Warn; else -> accent }
+                    drawRect(if (done) Color(0xFF8A8F99) else col, Offset(b * bw, y0), Size(bw + 0.6f, th))
+                }
             }
             // the arrow: the map's own locator, shrunk and turned to point along the bar
             val sz = (if (thin) 38.dp else 32.dp).toPx()

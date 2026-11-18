@@ -1259,17 +1259,19 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
     private var beamPushedAt = 0L
 
     /** Cheap (no work on the map): the engine calls this with every position. */
-    fun setBeam(on: Boolean, speedMs: Double) {
-        beamOn = on; beamSpeed = speedMs
+    fun setBeam(on: Boolean, speedMs: Double, stay: Boolean = false) {
+        beamOn = on; beamSpeed = speedMs; beamStay = stay
         // (taken off the map only once it has really stopped or been switched off)
         if (beamShown && (!on || android.os.SystemClock.uptimeMillis() >= beamHold)) main0.post { pushBeam() }
     }
+    /** [beamStay]: on a route the beam stays on from the first move to the end, also while stopped at lights. */
+    private var beamStay = false
 
     private fun pushBeam() {
         val s = src("dl-beam") ?: return
         val p = me
         val now = android.os.SystemClock.uptimeMillis()
-        if (beamOn && beamSpeed >= 2.0) beamHold = now + 1500L
+        if (beamOn && (beamStay || beamSpeed >= 2.0)) beamHold = now + 1500L
         if (!beamOn || p == null || now >= beamHold) {
             if (beamShown) { beamShown = false; beamAt = null; s.featureCollection(empty()) }
             return

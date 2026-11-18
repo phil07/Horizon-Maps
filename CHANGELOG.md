@@ -1,12 +1,12 @@
 ## Unreleased
 
-### Neu
-- Stopp hinzufügen von der Fahrtkarte: Neben „Route beenden“ gibt es einen Plus-Knopf. Er öffnet deine Stopps, wo du unterwegs einen Stopp hinzufügst. (Dank an karthikeyansr-lgtm)
-  EN: Add a stop from the trip card: a plus button next to "End route" opens your stops, where you can add one on the way. (Thanks to karthikeyansr-lgtm)
-
 ### Verbessert
-- Abbiegekarte: Der Fortschrittsbalken sitzt ein Stück innen, sodass seine runden Ecken die letzten Sekunden nicht mehr verdecken. Im Kreisverkehr steht die Ausfahrtnummer groß im größeren Ring, auf der Abbiegekarte und in der „Dann“-Zeile. Die „Dann“-Zeile nennt dann nur noch die Straße.
-  EN: Turn card: the progress bar sits a little way in, so its rounded corners no longer hide the last seconds. At a roundabout, the exit number is written large inside a bigger ring, on the turn card and in the "then" line. The "then" line now only names the road. (Thanks to karthikeyansr-lgtm)
+- Fahrtkarte: Der farbige Fortschrittsbalken hat runde Enden.
+  EN: Trip card: the coloured progress bar has rounded ends.
+- Letzte Orte unter der Suche: Alle zuletzt genutzten Orte stehen in der Liste, die scrollt. Der Schalter „Alle“ / „Weniger“ entfällt.
+  EN: Recent places under the search bar: all of them are in the list, which scrolls. The "All" / "Less" switch is gone.
+- Scheinwerferkegel unter dem 3D-Auto: Der Kegel beginnt unter dem 3D-Auto und ragt nicht mehr über sein Dach. Er flackert nicht mehr. Auf einer Route geht er an, sobald du losfährst, und bleibt bis zum Ziel an, auch wenn du an Ampeln hältst. Ohne Route zeigt er sich, während du fährst. (Dank an liamstears)
+  EN: Headlight beam under the 3D car: the beam starts under the 3D car and no longer shines over its roof, and it no longer flickers. On a route it comes on once you first move off and stays on to the end, even when you stop at lights; with no route it shows while you are moving. (Thanks to liamstears)
 
 ## 1.0.246 — 2026-10-28
 
