@@ -1200,6 +1200,9 @@ internal fun ImmTurnCard(
                         modifier = Modifier.widthIn(max = 190.dp).clip(RoundedCornerShape(6.dp)).background(Color.White.copy(alpha = 0.18f)).padding(horizontal = 7.dp, vertical = 2.dp))
                     else if (t.tag.isNotBlank() && !(ukSign && exitTag)) Text(t.tag, color = Color.White, fontSize = chipSp, fontWeight = FontWeight.Bold, maxLines = 1,
                         modifier = Modifier.clip(RoundedCornerShape(6.dp)).background(Color.White.copy(alpha = 0.18f)).padding(horizontal = 7.dp, vertical = 2.dp))
+                    // an exit number with no tag: the badge shows it (the blue exit strip below the card is gone)
+                    else if (t.tag.isBlank() && t.exitNo.isNotBlank() && !ukSign) Text(Lang.t("Ausfahrt ${t.exitNo}", "Exit ${t.exitNo}"), color = Color.White, fontSize = chipSp, fontWeight = FontWeight.Bold, maxLines = 1,
+                        modifier = Modifier.clip(RoundedCornerShape(6.dp)).background(Color.White.copy(alpha = 0.18f)).padding(horizontal = 7.dp, vertical = 2.dp))
                     if (!ukSign && t.sign.isNotBlank() && t.sign != t.street) {
                         // the places on the sign, in the colour of the road they're on: blue Autobahn, yellow Bundes-/Landes-/Kreisstraße, white otherwise
                         val sc = signColors(t.sign + " " + t.street, t.exitNo.isNotBlank() || exitTag)
@@ -1217,50 +1220,10 @@ internal fun ImmTurnCard(
                 Text(Lang.t("dann", "then"), color = Color.White.copy(alpha = 0.85f), fontSize = 11.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(top = 2.dp))
             }
         }
-        // Explicit slip-road / motorway-exit cue. Lane guidance alone can be ambiguous on
-        // fast roads, so make the exit manoeuvre visible in the turn card as well.
-        val maneuverUpper = t.maneuver.uppercase()
+        // (the blue "AUSFAHRT 17" strip that was here is gone: the exit badge beside the road name already shows the number, and
+        // the strip's arrows always pointed right, even for an exit on the left)
         val exitTag = t.tag.startsWith("Exit", ignoreCase = true) || t.tag.startsWith("Ausfahrt ")
-        val exitLike = t.exitNo.isNotBlank() ||
-            exitTag ||
-            maneuverUpper.contains("EXIT") ||
-            maneuverUpper.contains("OFF_RAMP") ||
-            maneuverUpper == "TAKE_EXIT" ||
-            maneuverUpper.startsWith("MOTORWAY_EXIT")
-        // Only when the UK road sign below isn't shown: it already carries the exit, and the same thing twice on the card is clutter.
         val signShown = engine.prefs.b(PreferenceKeys.UKSIGNS, true) && (t.sign.isNotBlank() && t.sign != t.street || exitTag)
-        if (exitLike && !signShown && !maneuverUpper.startsWith("ROUNDABOUT")) {
-            val exitNum = t.exitNo.ifBlank {
-                t.tag.replaceFirst(Regex("^(Exit|Ausfahrt)\\s*", RegexOption.IGNORE_CASE), "").trim().takeIf { it.isNotBlank() }.orEmpty()
-            }
-            // a plain exit's name goes with its number ("AUSFAHRT  17 Weiterstadt"); an interchange's name is on the chip above
-            val exitLabel = if (t.junctionName.isNotBlank() && !Junctions.isInterchange(t.junctionName))
-                t.junction.replaceFirst(Regex("^(Exit|Ausfahrt)\\s*", RegexOption.IGNORE_CASE), "").trim() else exitNum
-            Row(
-                Modifier.fillMaxWidth()
-                    .padding(start = if (compact) 12.dp else 16.dp, end = if (compact) 12.dp else 16.dp, bottom = 6.dp)
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(Color(0xFF1554A8))
-                    .padding(horizontal = 10.dp, vertical = if (compact) 5.dp else 7.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                // a drawn arrow, as tall as the text (the "↗" character came out tiny in the car), pointing to the side the exit is on
-                val exitIcon = if (maneuverUpper.contains("LEFT")) androidx.compose.material.icons.Icons.Rounded.NorthWest else androidx.compose.material.icons.Icons.Rounded.NorthEast
-                val exitIconSize = if (car) 34.dp else if (compact) 24.dp else 28.dp
-                androidx.compose.material3.Icon(exitIcon, null, tint = Color.White, modifier = Modifier.size(exitIconSize))
-                Text(
-                    if (exitLabel.isNotBlank()) Lang.t("AUSFAHRT  $exitLabel", "EXIT  $exitLabel") else Lang.t("AUSFAHRT", "EXIT / SLIP ROAD"),
-                    color = Color.White,
-                    fontSize = if (car) 21.sp else if (compact) 13.sp else 15.sp,
-                    fontWeight = FontWeight.ExtraBold,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.padding(start = 7.dp)
-                )
-                Spacer(Modifier.weight(1f))
-                androidx.compose.material3.Icon(exitIcon, null, tint = Color.White.copy(alpha = 0.9f), modifier = Modifier.size(exitIconSize))
-            }
-        }
         // A proper UK direction sign: blue for motorways, green for primary roads, white for local roads.
         // a UK road number in the street name shows as its road sign too, even when the route gives no separate sign
         if (signShown || (engine.prefs.b(PreferenceKeys.UKSIGNS, true) && hasUkRoadRef(t.street)))

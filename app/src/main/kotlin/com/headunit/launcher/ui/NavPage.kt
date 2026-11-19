@@ -746,21 +746,31 @@ internal fun LaneHero(sec: LaneSec, maneuver: String, advice: String?) {
                     while (y < h) { drawLine(Color.White.copy(alpha = 0.75f * a), o(xAt(f0, y), y), o(xAt(f0, minOf(h, y + dash)), minOf(h, y + dash)), 4.dp.toPx()); y += dash + gap }
                 }
                 val cx = xAt((f0 + f1) / 2f, h * 0.55f)
-                val dirs = lane.dirs.sortedBy { d -> if (if (anyFollow) d == lane.follow else laneMatches(d, maneuver)) 1 else 0 }
-                dirs.forEach { d ->
-                    val hit = if (anyFollow) d == lane.follow else laneMatches(d, maneuver)
-                    val col = if (active && hit) Color.White else Color.White.copy(alpha = if (active) 0.45f else 0.28f)
-                    val baseY = h - 12.dp.toPx(); val midY = h * 0.5f
-                    val len = 26.dp.toPx()
-                    drawLine(col.copy(alpha = col.alpha * a), o(cx, baseY), o(cx, midY), stroke, round)
-                    rotate(laneAngle(d), o(cx, midY)) {
-                        val tip = o(cx, midY - len)
-                        drawLine(col.copy(alpha = col.alpha * a), o(cx, midY), tip, stroke, round)
-                        val hd = 10.dp.toPx()
-                        drawLine(col.copy(alpha = col.alpha * a), tip, o(cx - hd, tip.y + hd), stroke, round)
-                        drawLine(col.copy(alpha = col.alpha * a), tip, o(cx + hd, tip.y + hd), stroke, round)
-                    }
+                // Each lane's arrows as one shape: the faded ones (lanes or turns not to take) are stroked as a single path, so where their
+                // lines join and where two arrows share a stem they are evenly faded (drawn one line at a time, the overlaps came out
+                // brighter). The arrow to take is drawn fully white on top.
+                val baseY = h - 12.dp.toPx(); val midY = h * 0.5f
+                val len = 26.dp.toPx(); val hd = 10.dp.toPx()
+                fun arrow(path: androidx.compose.ui.graphics.Path, d: String) {
+                    val rad = Math.toRadians(laneAngle(d).toDouble())
+                    val cs = kotlin.math.cos(rad).toFloat(); val sn = kotlin.math.sin(rad).toFloat()
+                    // a point of the upright arrow, turned round the middle of the lane (as the canvas turns: clockwise, y down)
+                    fun r(x: Float, y: Float): androidx.compose.ui.geometry.Offset { val dx = x - cx; val dy = y - midY; return o(cx + dx * cs - dy * sn, midY + dx * sn + dy * cs) }
+                    val tip = r(cx, midY - len)
+                    val l = r(cx - hd, midY - len + hd); val rr = r(cx + hd, midY - len + hd)
+                    path.moveTo(cx, baseY); path.lineTo(cx, midY); path.lineTo(tip.x, tip.y)
+                    path.moveTo(l.x, l.y); path.lineTo(tip.x, tip.y); path.lineTo(rr.x, rr.y)
                 }
+                val lineStyle = androidx.compose.ui.graphics.drawscope.Stroke(width = stroke, cap = round, join = androidx.compose.ui.graphics.StrokeJoin.Round)
+                val faded = androidx.compose.ui.graphics.Path()
+                val lit = androidx.compose.ui.graphics.Path()
+                var anyFaded = false; var anyLit = false
+                lane.dirs.forEach { d ->
+                    val hit = if (anyFollow) d == lane.follow else laneMatches(d, maneuver)
+                    if (active && hit) { arrow(lit, d); anyLit = true } else { arrow(faded, d); anyFaded = true }
+                }
+                if (anyFaded) drawPath(faded, Color.White.copy(alpha = (if (active) 0.45f else 0.28f) * a), style = lineStyle)
+                if (anyLit) drawPath(lit, Color.White.copy(alpha = a), style = lineStyle)
             }
             // solid road edges
             drawLine(Color.White.copy(alpha = 0.9f * a), o(xAt(0f, 0f), 0f), o(0f, h), 5.dp.toPx())
