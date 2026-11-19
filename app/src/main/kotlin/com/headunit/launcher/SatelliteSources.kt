@@ -20,7 +20,7 @@ internal data class StateWms(
 internal object SatelliteSources {
 
     /** The automatic order of the worldwide photo sources; Esri and MapTiler only with a key. */
-    fun chain(esriKey: String, maptilerKey: String, tomtomKey: String = ""): List<SatProvider> = chain(AUTO, esriKey, maptilerKey, tomtomKey)
+    fun chain(esriKey: String, maptilerKey: String): List<SatProvider> = chain(AUTO, esriKey, maptilerKey)
 
     /**
      * The sources to try for a choice in Settings ("auto", "mapbox", "landesamt", "esri", "maptiler", "eox"). A fixed choice
