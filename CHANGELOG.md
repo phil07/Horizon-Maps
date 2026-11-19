@@ -1,8 +1,8 @@
 ## Unreleased
 
 ### Neu
-- Ortskarte mit mehr auf einen Blick: Tippst du auf ein Geschäft oder Suchergebnis, zeigt die Karte, ob es geöffnet ist, wie weit es ist, eine ungefähre Fahrzeit und die Ankunftszeit. Dazu Los, Als Stopp, Speichern, Anrufen, Website und Teilen. Anrufen und Website blenden sich während der Fahrt aus. (Dank an Dry-Secretary2456)
-  EN: Place card with more at a glance: tap a shop or search result and the card shows whether it's open, how far it is, a rough drive time and the arrival time. Go, Add stop, Save, Call, Website and Share are there too. Call and Website hide while you're moving. (thanks to Dry-Secretary2456)
+- Android Auto: die Ortskarte: Tippst du auf dem Autobildschirm auf ein Geschäft, zeigt die Karte, ob es geöffnet ist, wie weit es ist und wann du ankommst. Mit Hierhin fahren oder Als Stopp auf einer Route.
+  EN: Android Auto: the place card: tap a shop on the car's map and the card shows whether it's open, how far it is and when you'd arrive. Go, or Add stop on a route.
 
 ## 1.0.246 — 2026-10-28
 

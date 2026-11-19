@@ -554,10 +554,17 @@ private fun PickCard(engine: NavEngine) {
         Box(Modifier.size(44.dp).clip(androidx.compose.foundation.shape.CircleShape).background(Color(0xFFEA4335).copy(alpha = 0.18f)), contentAlignment = Alignment.Center) {
             androidx.compose.material3.Icon(androidx.compose.material.icons.Icons.Rounded.Place, null, tint = Color(0xFFEA4335), modifier = Modifier.size(26.dp))
         }
+        // how far, roughly how long (about 45 km/h over the straight line) and when you'd arrive, as on the phone
+        val mins = engine.fix?.pos?.let { Math.round(Geo.dist(it, p.pos) / 12.5 / 60.0).toInt() }
+        val arriveAt = mins?.let { m ->
+            val cal = java.util.Calendar.getInstance(); cal.add(java.util.Calendar.MINUTE, m)
+            String.format(java.util.Locale.US, "%02d:%02d", cal.get(java.util.Calendar.HOUR_OF_DAY), cal.get(java.util.Calendar.MINUTE))
+        }
         Column(Modifier.weight(1f, fill = false)) {
             Text(p.name, color = c.text, fontSize = 19.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            val sub = listOfNotNull(dist, p.sub.ifBlank { null }).joinToString(" · ")
+            val sub = listOfNotNull(dist, mins?.let { Lang.t("ca. $it Min.", "about $it min") }, arriveAt?.let { Lang.t("Ankunft $it", "arrive $it") }, p.sub.ifBlank { null }).joinToString(" · ")
             if (sub.isNotBlank()) Text(sub, color = c.sub, fontSize = 15.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            HoursLine(p)
         }
         Box(Modifier.carTap("pick-go") { engine.goPick() }) { ImmPill(if (guiding) Lang.t("Als Stopp", "Add stop") else Lang.t("Hierhin fahren", "Go here"), {}, filled = true) }
         Box(Modifier.carTap("pick-no") { engine.clearPick() }) { ImmPill(Lang.t("Abbrechen", "Cancel"), {}) }
