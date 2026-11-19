@@ -763,8 +763,8 @@ class MapScreen(carContext: CarContext, private val holder: CarHolder) : Screen(
             // soon as a trip started. Melden stays there, as before. Cars that don't pass taps on can't use the buttons on the map, so
             // there Beenden and the sound are in the bar as well
             if (taps) {
-                // the voice guidance (all, alerts only, off) beside 2D / 3D: the same button as on the map's edge, which stays too
-                strip.addAction(view)
+                // only the voice guidance (all, alerts only, off) up here: 2D / 3D beside it overlapped on the map's top left. 2D / 3D
+                // stays in Settings and on the phone
                 strip.addAction(sound)
             } else {
                 strip.addAction(Action.Builder().setTitle("Beenden").setOnClickListener { e?.endRoute(); invalidate() }.build())

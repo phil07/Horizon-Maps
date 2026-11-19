@@ -1,8 +1,8 @@
 ## Unreleased
 
-### Improved
-- Die Einstellungen laufen jetzt wirklich über den ganzen Bildschirm: Der schwarze Streifen oben ist weg. Die Kameraaussparung wird nur dort freigehalten, wo sie tatsächlich ist.
-  EN: The settings now really use the full screen: the black strip at the top is gone. The camera cutout is only kept clear where it actually is.
+### Fixed
+- Android Auto: Während der Fahrt liegen die Buttons oben links auf der Karte nicht mehr übereinander. Der 2D-Knopf ist dort weggefallen, die Tonstufe bleibt. 2D und 3D stellst du weiter in den Einstellungen oder auf dem Telefon um.
+  EN: On Android Auto, the buttons at the top left of the map no longer overlap while driving. The 2D button is gone from there, the voice button stays. You still switch 2D and 3D in Settings or on the phone.
 
 ## 1.0.246 — 2026-10-28
 
