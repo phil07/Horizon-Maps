@@ -2307,6 +2307,13 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
                 else toast(ctx.getString(R.string.toast_022), 3000)
                 return@launch
             }
+            // without keys of your own, the free services are asked last and not on every letter: the saved places and the downloaded
+            // pack first, OpenStreetMap only when those give too little, after a short pause (one more letter cancels the pause)
+            if (prefs.s(PreferenceKeys.API_KEY, "").isBlank() && prefs.s(PreferenceKeys.MAPBOX_TOKEN, "").isBlank()) {
+                val local0 = offlineMatches(q, near)
+                if (local0.size >= 3) { results = rankResults(q, near, emptyList(), local0); return@launch }
+                kotlinx.coroutines.delay(700L)
+            }
             // the online search and the saved / downloaded places run at the same time, and their results are merged
             val localJob = async { offlineMatches(q, near) }
             val nearJob = async(Dispatchers.IO) { try { nearbyMatches(q, near) } catch (e: Exception) { emptyList() } }

@@ -1,8 +1,8 @@
 ## Unreleased
 
 ### Verbessert
-- Android Auto: die Routenwahl zeigt bei jeder Route ungefähr, was sie an Sprit oder Laden kostet, wie auf dem Telefon. (Dank an pc4096)
-  EN: Fuel estimate on Android Auto: the route choice on the car screen now shows roughly what each route costs in fuel or charging, as on the phone. (thanks to pc4096)
+- Kostenlose Suche verlässlicher: Ohne eigene Schlüssel sucht die Suche zuerst in deinen gespeicherten Orten und im heruntergeladenen Paket. OpenStreetMap wird nur gefragt, wenn das zu wenig ergibt, und nicht bei jedem Buchstaben.
+  EN: Free search, more reliable: without keys of your own, search looks in your saved places and downloaded pack first, and only asks OpenStreetMap when they don't have enough, and not on every letter you type.
 
 ## 1.0.246 — 2026-10-28
 
