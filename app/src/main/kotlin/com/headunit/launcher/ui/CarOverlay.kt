@@ -62,6 +62,7 @@ import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material.icons.rounded.Route
 import androidx.compose.material.icons.rounded.Place
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.offset
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.runtime.getValue
@@ -141,7 +142,29 @@ fun CarOverlay(engine: NavEngine, area: State<android.graphics.Rect?>, dark: Sta
     val textScale = engine.prefs.i(PreferenceKeys.CAR_TEXT_SIZE, 100).coerceIn(75, 150) / 100f
     CompositionLocalProvider(LocalDensity provides Density(base.density * scale.value * user, base.fontScale * textScale)) {
         engine.carSearchAction = { actions.search() }
-        VwTheme(dark.value) { Box(Modifier.fillMaxSize()) { CarScreen(engine, area.value, actions, onCover); if (engine.stopsScreen) CarStopsScreen(engine); engine.carListKind?.let { CarListScreen(engine, it) } } }
+        VwTheme(dark.value) {
+            BoxWithConstraints(Modifier.fillMaxSize()) {
+                // Android Auto's split screen (the map as one card beside the media card or others): the map's surface is still the
+                // whole screen, and only the card's part of it is visible. Everything the app draws is laid out within that card,
+                // sized to it (a narrow card gets the tall layout), instead of across the whole screen with half of it under the
+                // other cards. The full screen with Android Auto's thin bar only is laid out as before.
+                val av = area.value
+                val inCard = av != null && av.width() > 0 && av.height() > 0 && av.width() < constraints.maxWidth * 0.75f
+                if (inCard && av != null) {
+                    val d = LocalDensity.current
+                    Box(Modifier.offset { androidx.compose.ui.unit.IntOffset(av.left, av.top) }
+                        .size(with(d) { av.width().toDp() }, with(d) { av.height().toDp() })) {
+                        CarScreen(engine, av, actions, onCover, inCard = true)
+                        if (engine.stopsScreen) CarStopsScreen(engine)
+                        engine.carListKind?.let { CarListScreen(engine, it) }
+                    }
+                } else {
+                    CarScreen(engine, av, actions, onCover)
+                    if (engine.stopsScreen) CarStopsScreen(engine)
+                    engine.carListKind?.let { CarListScreen(engine, it) }
+                }
+            }
+        }
     }
 }
 
@@ -180,7 +203,7 @@ internal fun Modifier.carTap(id: String, action: () -> Unit): Modifier {
 }
 
 @Composable
-private fun CarScreen(engine: NavEngine, a: android.graphics.Rect?, actions: CarActions, onCover: (Int) -> Unit) {
+private fun CarScreen(engine: NavEngine, a: android.graphics.Rect?, actions: CarActions, onCover: (Int) -> Unit, inCard: Boolean = false) {
     BoxWithConstraints(Modifier.fillMaxSize()) {
         // (counted for the performance meter: how often this whole layout is worked out again)
         if (com.headunit.launcher.PerfStats.on) androidx.compose.runtime.SideEffect { com.headunit.launcher.PerfStats.carDraws++ }
@@ -212,10 +235,11 @@ private fun CarScreen(engine: NavEngine, a: android.graphics.Rect?, actions: Car
         val tile = maxHeight < 300.dp
         if (engine.isCar && engine.carShort != shortCar) engine.carShort = shortCar
         val portrait = maxHeight > maxWidth * 1.1f || narrow
-        val insL = with(dens) { (a?.left ?: 0).toDp() }
-        val insT = with(dens) { (a?.top ?: 0).toDp() }
-        val insR = with(dens) { (wPx - (a?.right ?: wPx.toInt())).coerceAtLeast(0f).toDp() }
-        val insB = with(dens) { (hPx - (a?.bottom ?: hPx.toInt())).coerceAtLeast(0f).toDp() }
+        // (laid out within a split-screen card: this box is the card itself, so nothing of it is covered)
+        val insL = if (inCard) 0.dp else with(dens) { (a?.left ?: 0).toDp() }
+        val insT = if (inCard) 0.dp else with(dens) { (a?.top ?: 0).toDp() }
+        val insR = if (inCard) 0.dp else with(dens) { (wPx - (a?.right ?: wPx.toInt())).coerceAtLeast(0f).toDp() }
+        val insB = if (inCard) 0.dp else with(dens) { (hPx - (a?.bottom ?: hPx.toInt())).coerceAtLeast(0f).toDp() }
         val edge = when {
             maxWidth < 600.dp -> 8.dp
             portrait -> 10.dp

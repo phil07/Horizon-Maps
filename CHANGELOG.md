@@ -1,8 +1,8 @@
 ## Unreleased
 
-### Improved
-- Android Auto während der Fahrt: Das Zahnrad oben links ist weg, die Einstellungen bleiben unten links bei Zoom und Zentrieren. Oben steht jetzt das rote ✕ zum Beenden, die Spalte darunter beginnt mit Melden. Die Abbiegekarte und die Fahrtleiste unten rücken direkt neben die Knöpfe, ohne große Lücke.
-  EN: Android Auto while driving: the gear at the top left is gone; Settings stays at the bottom left with zoom and re-centre. The top now holds the red ✕ to end the trip, and the column below starts with Report. The turn card and the trip bar at the bottom sit right beside the buttons, without a big gap.
+### Fixed
+- Android Auto im geteilten Bildschirm: Wenn die Karte als Kachel neben Musik oder einer anderen App steht, ordnet die App Abbiegekarte, Fahrtleiste, Tacho und Knöpfe jetzt innerhalb dieser Kachel an und passt sie an ihre Größe an. Vorher lagen sie teils unter der anderen Kachel, und die Fahrtleiste war links abgeschnitten. Pfeil und Route bleiben in der Kachel sichtbar.
+  EN: Android Auto split screen: when the map is a card beside music or another app, the turn card, trip bar, speed and buttons are now laid out within that card and fit its size. Before, some of them lay under the other card and the trip bar was cut off on the left. The arrow and the route stay visible in the card.
 
 ## 1.0.246 — 2026-10-28
 
