@@ -1,8 +1,8 @@
 ## Unreleased
 
 ### Neu
-- Android Auto: Großes Tempolimit-Schild: Der Schalter steht jetzt auch in den Einstellungen des Autos und wirkt mit der kompakten Tachoanzeige.
-  EN: Android Auto: Big speed limit sign: the switch is now in the car's own settings too, and works with the compact speedometer.
+- Android Auto: Parkhäuser nahe deinem Ziel und die nächste Raststelle erscheinen auf dem Autobildschirm, wie in der App. Ein Tipp auf ein Parkhaus fährt dorthin.
+  EN: Android Auto: car parks near your destination and the next motorway services show on the car screen, as in the app. Tap a car park to drive there.
 
 ## 1.0.246 — 2026-10-28
 
