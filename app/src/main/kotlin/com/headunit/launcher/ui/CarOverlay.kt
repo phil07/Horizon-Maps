@@ -238,7 +238,8 @@ private fun CarScreen(engine: NavEngine, a: android.graphics.Rect?, actions: Car
         val colInStrip = insL >= colBtn
         val colShift = if (ownCol && !colInStrip) colBtn + 14.dp else 0.dp
         // the cards start just right of the column (and of Android Auto's button above it), not at the far side of its whole strip
-        val left = if (ownCol && colInStrip) insL / 2 + maxOf(colBtn, gearSize) / 2 + 12.dp else insL + edge + colShift
+        // (the column stands 12 dp from the left edge; the cards start right of it and right of Android Auto's button, whichever is further)
+        val left = if (ownCol && colInStrip) maxOf(12.dp + colBtn, insL / 2 + gearSize / 2) + 12.dp else insL + edge + colShift
         // Wide screens: level with Android Auto's buttons (top right); narrow/tall screens: below them.
         // (landscape: a smaller gap at the top, so the search bar sits level with Android Auto's Melden button beside it)
         val topTarget = if (portrait) insT + edge else insT.coerceAtMost(12.dp) + (edge / 2)
@@ -383,7 +384,8 @@ private fun CarScreen(engine: NavEngine, a: android.graphics.Rect?, actions: Car
         // charger filter while driving. Zoom in and out and re-centre are Android Auto's own buttons on the right (more compact),
         // which the map follows. A button that doesn't apply keeps its place empty, so the others stay where they are.
         if (ownCol) {
-            val x = if (colInStrip) (insL - colBtn) / 2 else insL + edge
+            // close to the left edge (Android Auto's own button stays in the middle of its strip, a little to the right above)
+            val x = if (colInStrip) 12.dp else insL + edge
             // under Android Auto's button
             val y0 = gearTop + gearSize + colGap
             val filterY = y0 + (colBtn + colGap) * 2

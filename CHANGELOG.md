@@ -1,8 +1,8 @@
 ## Unreleased
 
-### Fixed
-- TomTom-Meldungen: Fast jede Abfrage nach Unfällen, Baustellen und Sperrungen bei TomTom wurde abgelehnt, weil die App ein Feld unter einem Namen abfragte, den TomTom nicht kennt. Jetzt kommen sie durch, erscheinen auf der Karte und werden auf der Route wieder angesagt. Danke an bijindas, der es in TomToms Nutzungsstatistik entdeckt hat.
-  EN: TomTom incidents: almost every check for accidents, roadworks and closures from TomTom was being turned down, because the app asked for a detail under a name TomTom doesn't use. They now come through, show on the map and are announced on your route again. Thanks to bijindas, who spotted it in TomTom's usage stats.
+### Improved
+- Android Auto: Die runden Knöpfe stehen jetzt nah am linken Bildschirmrand. Das Zahnrad oben setzt Android Auto selbst, es bleibt an seinem Platz.
+  EN: Android Auto: the round buttons now stand close to the left edge of the screen. The gear at the top is placed by Android Auto itself and stays where it is.
 
 ## 1.0.246 — 2026-10-28
 
