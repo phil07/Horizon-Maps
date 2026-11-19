@@ -1,8 +1,8 @@
 ## Unreleased
 
-### Neu
-- Spanien: Live-Meldungen der DGT. Unfälle, Baustellen, Sperrungen, Gefahren und die vernetzten V16-Warnbaken liegengebliebener Autos erscheinen auf der Karte im Umkreis von 10 km und werden auf deiner Route angesagt wie die TomTom-Meldungen. Kostenlos, ohne Schlüssel, auch ohne TomTom-Schlüssel. Was TomTom schon meldet, kommt nicht doppelt. Katalonien und das Baskenland veröffentlichen ihre Meldungen getrennt und sind noch nicht dabei. Danke an franciscoserranoadt.
-  EN: Spain: live incidents from the DGT. Accidents, roadworks, closures, hazards and the connected V16 beacons of broken-down cars show on the map within 10 km and are announced on your route like TomTom's. Free, no key, and they work without a TomTom key too. What TomTom already reports isn't repeated. Catalonia and the Basque Country publish theirs separately and aren't included yet. Thanks to franciscoserranoadt.
+### Fixed
+- Android Auto: Die runden Knöpfe links liegen nicht mehr unter dem Zahnrad oben, sondern beginnen darunter. Sie sind so groß wie das Zahnrad (auf kleinen Bildschirmen etwas kleiner). Abbiegekarte und Fortschrittsbalken rücken näher an die Knöpfe heran.
+  EN: Android Auto: the round buttons on the left no longer lie under the gear at the top but start below it. They are as big as the gear (a little smaller on small screens). The turn card and the progress bar sit closer to the buttons.
 
 ## 1.0.246 — 2026-10-28
 

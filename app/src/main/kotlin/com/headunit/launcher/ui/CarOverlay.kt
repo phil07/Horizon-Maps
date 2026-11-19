@@ -225,11 +225,17 @@ private fun CarScreen(engine: NavEngine, a: android.graphics.Rect?, actions: Car
         // the app's own button column: narrow, round, icons only, on the left. The cards start to its right (where Android Auto has
         // no column of its own beside the app's area), so nothing lies over anything.
         val ownCol = CarTaps.available && engine.arrival == null && !engine.previewing && maxHeight >= 300.dp
-        val colBtn = if (maxHeight < 440.dp) 44.dp else 56.dp
+        // Android Auto's own button (Settings, the one button its bar must have) sits at the top of this column: about 80 dp round,
+        // from 23 dp down. The app's buttons are as big as it (smaller only where two columns of them would not fit the height),
+        // and the column starts under it, so they don't lie over each other
+        val gearTop = 23.dp
+        val gearSize = 80.dp
         val colGap = 8.dp
+        val colBtn = ((maxHeight - gearTop - gearSize - colGap * 7 - 36.dp) / 7).coerceIn(40.dp, gearSize)
         val colInStrip = !portrait && insL > 156.dp
         val colShift = if (ownCol && !colInStrip) colBtn + 14.dp else 0.dp
-        val left = insL + edge + colShift
+        // the cards start just right of the column (and of Android Auto's button above it), not at the far side of its whole strip
+        val left = if (ownCol && colInStrip) insL / 2 + maxOf(colBtn, gearSize) / 2 + 12.dp else insL + edge + colShift
         // Wide screens: level with Android Auto's buttons (top right); narrow/tall screens: below them.
         // (landscape: a smaller gap at the top, so the search bar sits level with Android Auto's Melden button beside it)
         val topTarget = if (portrait) insT + edge else insT.coerceAtMost(12.dp) + (edge / 2)
@@ -375,7 +381,8 @@ private fun CarScreen(engine: NavEngine, a: android.graphics.Rect?, actions: Car
         // which the map follows. A button that doesn't apply keeps its place empty, so the others stay where they are.
         if (ownCol) {
             val x = if (colInStrip) (insL - colBtn) / 2 else insL + edge
-            val y0 = 27.dp
+            // under Android Auto's button
+            val y0 = gearTop + gearSize + colGap
             val filterY = y0 + (colBtn + colGap) * 2
             @Composable fun btn(id: String, icon: androidx.compose.ui.graphics.vector.ImageVector, tint: Color, fill: Color, on: () -> Unit) {
                 Box(Modifier.size(colBtn).panel(10.dp, androidx.compose.foundation.shape.CircleShape, fill).carTap(id) { on() }, contentAlignment = Alignment.Center) {
