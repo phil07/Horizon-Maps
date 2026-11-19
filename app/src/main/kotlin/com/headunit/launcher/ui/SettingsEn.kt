@@ -400,6 +400,7 @@ internal object SettingsEn {
         "Festlegen" to "Set",
         "Gespeicherte Orte" to "Saved places",
         "Zuhause" to "Home",
+        "Für Autos mit Drehknopf ohne Touchscreen" to "For cars with a rotary knob and no touchscreen",
         "Suchleiste und Orte auf der Karte ausblenden" to "Leave the search bar and places off the map",
         "Für Autos mit Drehknopf ohne Touchscreen: Suchleiste, Zuhause, Arbeit, Schnellwahl und Vorschlag verschwinden, wenn du nicht navigierst. Suche, Zuhause, Arbeit und gespeicherte Orte bleiben unter Orte (★)" to "For cars with a rotary knob and no touchscreen: the search bar, Home, Work, shortcuts and the suggestion go when you're not navigating. Search, Home, Work and your saved places stay under Places (★)",
         "Arbeitsplatz" to "Work",

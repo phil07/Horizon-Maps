@@ -1194,7 +1194,6 @@ private fun WhileDrivingSection(prefs: Prefs, engine: NavEngine) {
         SSlider("Tempolimit- und Tachogröße", prefs.i(PreferenceKeys.SPEED_SIZE, 100).toFloat(), 50f..200f, "%", sub = "Auf Smartphone und Autodisplay", steps = 29, reset = 100f) { prefs.put(PreferenceKeys.SPEED_SIZE, it) }
         SToggle(prefs, "Sonnenzeiten auf Android Auto", PreferenceKeys.CARSUN, false, "Tag und Nacht auf dem Autodisplay folgen Sonnenauf- und -untergang, auch wenn das Auto bei Licht dunkel wird")
         SToggle(prefs, "Großes Limit-Schild", PreferenceKeys.SPEED_SIGN_BIG, false, "Das Tempolimit-Schild groß an der Stelle des Tachos, dein Tempo klein daneben")
-        SToggle(prefs, "Suchleiste und Orte auf der Karte ausblenden", PreferenceKeys.CAR_HIDE_SEARCH, false, "Für Autos mit Drehknopf ohne Touchscreen: Suchleiste, Zuhause, Arbeit, Schnellwahl und Vorschlag verschwinden, wenn du nicht navigierst. Suche, Zuhause, Arbeit und gespeicherte Orte bleiben unter Orte (★)")
         SChoice("Tacho-Seite", listOf("right" to "Rechts", "left" to "Links", "auto" to "Automatisch"), prefs.s(PreferenceKeys.MAIN_SPEED_SIDE, "right"),
             "Auf Smartphone, Head-Unit und Android Auto (untere Ecke). Automatisch: wie früher. Das Limit-Schild steht immer zur Bildschirmmitte hin") { prefs.put(PreferenceKeys.MAIN_SPEED_SIDE, it) }
         SToggle(prefs, "Straße und Richtung beim Fahren ohne Route", "cruise", true)
@@ -1210,6 +1209,9 @@ private fun WhileDrivingSection(prefs: Prefs, engine: NavEngine) {
 @Composable
 private fun AndroidAutoSection(prefs: Prefs) {
     val ctx = LocalContext.current
+    SGroup("Auf der Karte") {
+        SToggle(prefs, "Suchleiste und Orte auf der Karte ausblenden", PreferenceKeys.CAR_HIDE_SEARCH, false, "Für Autos mit Drehknopf ohne Touchscreen: Suchleiste, Zuhause, Arbeit, Schnellwahl und Vorschlag verschwinden, wenn du nicht navigierst. Suche, Zuhause, Arbeit und gespeicherte Orte bleiben unter Orte (★)")
+    }
     SGroup("Autodisplay") {
         val gh = "com.google.android.projection.gearhead"
         val ghUri = android.net.Uri.parse("package:$gh")

@@ -165,6 +165,7 @@ internal val settingsIndex = listOf(
     SettingRef("Entfernung und Tempo", "", "Einheiten", 10),
     SettingRef("Temperatur", "", "Einheiten", 10),
     SettingRef("Fahrseite", "Links- oder Rechtsverkehr", "Einheiten", 10),
+    SettingRef("Suchleiste und Orte auf der Karte ausblenden", "Für Autos mit Drehknopf ohne Touchscreen", "Auf der Karte", 12),
     SettingRef("Gesamtgröße auf dem Autodisplay", "", "Autodisplay", 12),
     SettingRef("Tacho- und Tempolimitgröße", "", "Autodisplay", 12),
     SettingRef("Erweiterte Autodisplay-Größen", "", "Autodisplay", 12),
