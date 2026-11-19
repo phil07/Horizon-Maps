@@ -1,8 +1,12 @@
 ## Unreleased
 
+### Neu
+- Android Auto: Suchleiste und Orte auf der Karte ausblenden. Ein neuer Schalter unter Einstellungen › Android Auto (und in den Einstellungen im Auto) lässt Suchleiste, Zuhause und Arbeit, die Schnellwahl und den Fahrtvorschlag weg, wenn du nicht navigierst. Gedacht für Autos mit Drehknopf ohne Touchscreen: Die Karte bekommt den ganzen Bildschirm, und Orte (★) in den Knöpfen von Android Auto hat weiter Suche, Zuhause, Arbeit und deine gespeicherten Orte. Danke an wass0035.
+  EN: Android Auto: leave the search bar and places off the map. A new switch in Settings › Android Auto (and in the car's own settings) leaves out the search bar, Home and Work, the shortcuts and the trip suggestion when you're not navigating. For cars with a rotary knob and no touchscreen: the map gets the whole screen, and Places (★) in Android Auto's own buttons still has Search, Home, Work and your saved places. Thanks to wass0035.
+
 ### Improved
-- Android Auto: Die runden Knöpfe stehen jetzt nah am linken Bildschirmrand. Das Zahnrad oben setzt Android Auto selbst, es bleibt an seinem Platz.
-  EN: Android Auto: the round buttons now stand close to the left edge of the screen. The gear at the top is placed by Android Auto itself and stays where it is.
+- Gefahrenradar ohne Zebrastreifen: Wer die Zebrastreifen unter Einstellungen › Auf der Karte ausschaltet, sieht auch keine Fußgängerüberwege mehr im Gefahrenradar. Danke an joel941703.
+  EN: Hazard radar without crossings: switching off Zebra crossings in Settings › On the map now takes pedestrian crossings off the hazard radar too. Thanks to joel941703.
 
 ## 1.0.246 — 2026-10-28
 

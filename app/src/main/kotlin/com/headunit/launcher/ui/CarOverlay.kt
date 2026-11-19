@@ -352,7 +352,10 @@ private fun CarScreen(engine: NavEngine, a: android.graphics.Rect?, actions: Car
             // sized like the car's own Melden button: big enough to hit and read while driving
             // (on a short screen: slimmer, so the chips below get the room)
             val barH = if (engine.carShort) 56.dp else 80.dp
-            Row(Modifier.fillMaxWidth().height(barH).panel(10.dp, RoundedCornerShape(40.dp), c.surface).padding(end = if (engine.carShort) 6.dp else 10.dp),
+            // Settings › Android Auto › hide the search bar: for cars with a knob and no touchscreen, the bar, Home and Work, the
+            // shortcuts and the suggestion are left off (Places ★ in Android Auto's own buttons has them all); notices stay
+            val hideTop = engine.prefs.b(PreferenceKeys.CAR_HIDE_SEARCH, false)
+            if (!hideTop) Row(Modifier.fillMaxWidth().height(barH).panel(10.dp, RoundedCornerShape(40.dp), c.surface).padding(end = if (engine.carShort) 6.dp else 10.dp),
                 verticalAlignment = Alignment.CenterVertically) {
                 // the bar opens the search (Saved & recent folds itself, by its own header)
                 Row(Modifier.weight(1f).fillMaxHeight().carTap("search") { actions.search() }.padding(start = if (engine.carShort) 16.dp else 24.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -365,7 +368,7 @@ private fun CarScreen(engine: NavEngine, a: android.graphics.Rect?, actions: Car
             }
             NoticeCard(engine, big = true)
             if (!engine.cruising) CompositionLocalProvider(LocalDensity provides Density(dens.density * cardScale, dens.fontScale)) { PlannedCard(engine) }
-            CarChips(engine, actions, if (engine.notice != null) 0 else savedRows)
+            if (!hideTop) CarChips(engine, actions, if (engine.notice != null) 0 else savedRows)
             // (portrait screens: battery and range stay here; on a landscape screen they sit above the speed, bottom right)
             if (portrait) EvPill(engine)
         }

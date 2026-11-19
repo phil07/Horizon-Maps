@@ -362,6 +362,8 @@ internal object PreferenceKeys {
     const val AUTO_BACKUP_LAST = "auto_backup_last"
     /** The speed limit sign big, where the speedometer was, and your speed small beside it. */
     const val SPEED_SIGN_BIG = "speed_sign_big"
+    /** Android Auto: the search bar, Home and Work, the shortcut buttons and the suggestion card left off the map when not navigating (rotary-knob cars). */
+    const val CAR_HIDE_SEARCH = "car_hide_search"
     const val TRIP_BTN_SOUND = "tripbtn_sound"
     const val TRIP_BTN_END = "tripbtn_end"
     const val TRIP_BTN_SIZE = "tripbtn_size"

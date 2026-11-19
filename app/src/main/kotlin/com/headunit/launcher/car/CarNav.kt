@@ -773,6 +773,9 @@ class MapScreen(carContext: CarContext, private val holder: CarHolder) : Screen(
         } else if (taps) {
             // cars that pass taps on use the app's own search bar, chips and button column on the map (Melden, zoom and re-centre are
             // there). The bar can't be empty: Settings, which the column doesn't have, stays as its one button
+            // (with the search bar left off the map, Places (★) comes up here too: Search, Home, Work and the saved places)
+            if (e?.prefs?.b(PreferenceKeys.CAR_HIDE_SEARCH, false) == true)
+                strip.addAction(Action.Builder().setIcon(icon(R.drawable.ic_car_star)).setOnClickListener { screenManager.push(PlacesScreen(carContext, holder)) }.build())
             strip.addAction(Action.Builder().setIcon(icon(R.drawable.ic_car_settings)).setOnClickListener { openSettings() }.build())
         } else {
             // cars that don't pass taps on: Melden has the Search button's place, and Suche is the first row in Orte
@@ -1523,6 +1526,8 @@ class CarSettingsScreen(carContext: CarContext, private val holder: CarHolder, p
         rows += toggleRow(Lang.t("Fähren meiden", "Avoid ferries"), "avoid_ferry", false, null, reroute)
         // the same switch as on the phone: the limit sign big where the speedometer was, your speed small beside it
         rows += toggleRow(Lang.t("Großes Limit-Schild", "Big limit sign"), PreferenceKeys.SPEED_SIGN_BIG, false, Lang.t("Am Tacho, Tempo klein daneben", "Where the speedometer was, speed small beside it"))
+        // the same switch as on the phone (first in the list: a car with a knob and few rows still shows it)
+        rows.add(0, toggleRow(Lang.t("Suchleiste ausblenden", "Hide the search bar"), PreferenceKeys.CAR_HIDE_SEARCH, false, Lang.t("Karte ohne Suchleiste und Orte, Suche über Orte (★)", "Map without search bar and places, search under Places (★)")))
         val list = ItemList.Builder()
         for (r in rows.take(limit.coerceIn(1, 12))) list.addItem(r)
         return ListTemplate.Builder().setTitle(Lang.t("Einstellungen", "Settings")).setHeaderAction(Action.BACK).setSingleList(list.build()).build()

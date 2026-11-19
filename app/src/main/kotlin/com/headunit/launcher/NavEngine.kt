@@ -6028,7 +6028,8 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
         for (h in pl.hz) when (h.poi.kind) {
             "bump" -> if (prefs.b(PreferenceKeys.BUMPS, false)) add("bump", h.off, Lang.t("Bodenwelle", "Speed bump"))
             "school" -> if (prefs.b(PreferenceKeys.SCHOOLS, false)) add("school", h.off, if (school) Lang.t("Schule · Schulweg", "School · school run") else Lang.t("Schule", "School"))
-            "crossing" -> add("crossing", h.off, Lang.t("Fußgängerüberweg", "Crossing"))
+            // (switched off with the zebra crossings on the map: the radar keeps to what matters to you as a driver)
+            "crossing" -> if (prefs.b(PreferenceKeys.ZEBRAS, true)) add("crossing", h.off, Lang.t("Fußgängerüberweg", "Crossing"))
             "rail" -> if (prefs.b(PreferenceKeys.RAILFORD, false)) add("rail", h.off, Lang.t("Bahnübergang", "Level crossing"))
             "ford" -> if (prefs.b(PreferenceKeys.RAILFORD, false)) add("ford", h.off, Lang.t("Furt", "Ford"))
         }
