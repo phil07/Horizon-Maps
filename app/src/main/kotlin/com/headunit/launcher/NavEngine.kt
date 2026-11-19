@@ -2454,7 +2454,10 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
         results = emptyList()
         mapPick = p
         map.setPick(p.pos)
-        map.cameraTo(p.pos, null, 0.0, 16.0, 700, 0.0)
+        // its building lights up (where the map has one; a place without a building just shows the pin), and the place is
+        // centred below the search bar, which stays clear at the top
+        map.highlightDestination(p.pos)
+        map.cameraTo(p.pos, null, 0.0, 16.0, 700, 0.3)
     }
 
     fun pickPlace(p: Place) {

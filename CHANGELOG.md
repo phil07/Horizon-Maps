@@ -1,10 +1,10 @@
 ## Unreleased
 
 ### Verbessert
-- Ortskarte unten statt mitten auf der Karte: Tippst du auf ein Suchergebnis, schließt sich die Tastatur, die Karte fährt zum Ort, und die Karte öffnet sich unten am Bildschirm (auf dem Head Unit oder quer gehaltenem Handy an der Fahrerseite). Bei Tag- und Nachtfarben.
-  EN: Place card docked like Add a stop: tapping a search result closes the keyboard, moves the map to the place and opens its card along the bottom of the screen (or down the driver's side on a head unit or a phone held sideways). Works in day and night colours.
-- Ankunftskarte: Restzeit, Ankunft und verbleibende Strecke stehen jetzt zusammen links auf der Karte statt verteilt über die ganze Karte.
-  EN: Arrival card figures grouped: time left, arrival and distance to go now sit together on the left of the card instead of spread across it.
+- Spur-Bild vor einer Kreuzung deutlicher: Die Pfeile, die Spurlinien und die Straßenränder sind dicker, damit man es auf einen Blick liest. Auf Straßen mit vielen Spuren bleiben die Pfeile etwas schmaler, damit sie nicht ineinander laufen. (Dank an karthikeyansr-lgtm)
+  EN: Bolder lane view: the big lane picture before a junction has thicker arrows, lane markings and road edges, so it reads at a glance. On roads with many lanes the arrows stay a little slimmer so they don't run into each other. (thanks to karthikeyansr-lgtm)
+- Gefundene Orte leuchten auf: Wählst du ein Suchergebnis, zentriert die Karte den Ort im Bereich, den die Suchleiste nicht belegt. Sein Gebäude wird hervorgehoben (bei Nacht heller, und mit den 3D-Gebäuden erhöht). Orte ohne Gebäude zeigen nur die Nadel.
+  EN: Searched places lit up: pick a search result and the map now centres the place in the part of the screen the search bar leaves clear, with its building highlighted (lighter at night, and raised with the 3D buildings). Places without a building just show the pin.
 
 ## 1.0.246 — 2026-10-28
 

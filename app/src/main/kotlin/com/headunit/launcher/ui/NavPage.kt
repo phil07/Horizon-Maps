@@ -728,7 +728,8 @@ internal fun LaneHero(sec: LaneSec, maneuver: String, advice: String?) {
             fun xAt(frac: Float, y: Float): Float { val t = y / h; val ins = topInset * (1f - t); return ins + frac * (w - 2 * ins) }
             val road = androidx.compose.ui.graphics.Path().apply { moveTo(xAt(0f, 0f), 0f); lineTo(xAt(1f, 0f), 0f); lineTo(w, h); lineTo(0f, h); close() }
             drawPath(road, Color(0xFF233B42).copy(alpha = a))
-            val stroke = 6.dp.toPx()
+            // thicker arrows; on roads with four lanes or more a little slimmer, so they don't run into each other
+            val stroke = (if (n >= 4) 6.dp else 8.dp).toPx()
             val round = androidx.compose.ui.graphics.StrokeCap.Round
             fun o(x: Float, y: Float) = androidx.compose.ui.geometry.Offset(x, y)
             sec.lanes.forEachIndexed { idx, lane ->
@@ -742,7 +743,7 @@ internal fun LaneHero(sec: LaneSec, maneuver: String, advice: String?) {
                 if (idx > 0) {
                     var y = 0f
                     val dash = 14.dp.toPx(); val gap = 10.dp.toPx()
-                    while (y < h) { drawLine(Color.White.copy(alpha = 0.75f * a), o(xAt(f0, y), y), o(xAt(f0, minOf(h, y + dash)), minOf(h, y + dash)), 2.5.dp.toPx()); y += dash + gap }
+                    while (y < h) { drawLine(Color.White.copy(alpha = 0.75f * a), o(xAt(f0, y), y), o(xAt(f0, minOf(h, y + dash)), minOf(h, y + dash)), 4.dp.toPx()); y += dash + gap }
                 }
                 val cx = xAt((f0 + f1) / 2f, h * 0.55f)
                 val dirs = lane.dirs.sortedBy { d -> if (if (anyFollow) d == lane.follow else laneMatches(d, maneuver)) 1 else 0 }
@@ -762,8 +763,8 @@ internal fun LaneHero(sec: LaneSec, maneuver: String, advice: String?) {
                 }
             }
             // solid road edges
-            drawLine(Color.White.copy(alpha = 0.9f * a), o(xAt(0f, 0f), 0f), o(0f, h), 3.dp.toPx())
-            drawLine(Color.White.copy(alpha = 0.9f * a), o(xAt(1f, 0f), 0f), o(w, h), 3.dp.toPx())
+            drawLine(Color.White.copy(alpha = 0.9f * a), o(xAt(0f, 0f), 0f), o(0f, h), 5.dp.toPx())
+            drawLine(Color.White.copy(alpha = 0.9f * a), o(xAt(1f, 0f), 0f), o(w, h), 5.dp.toPx())
         }
         if (advice != null) Text(advice, color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = 6.dp, start = 16.dp, end = 16.dp))
     }
