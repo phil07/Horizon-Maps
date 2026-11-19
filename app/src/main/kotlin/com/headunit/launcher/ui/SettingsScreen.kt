@@ -581,7 +581,7 @@ private fun GuidanceSection(prefs: Prefs) {
     }
     SGroup("Ankunft") {
         SToggle(prefs, "Ankunftsmoment", "arrivalfx", true, "Kamera schwenkt zum Ziel und zeigt Parkplätze")
-        SToggle(prefs, "Parkplätze nahe dem Ziel", "parkprompt", true, "Parkplatzvorschläge vor der Ankunft")
+        SToggle(prefs, "Parkplätze nahe dem Ziel", PreferenceKeys.PARKPROMPT, false, "Parkplatzvorschläge vor der Ankunft")
         SToggle(prefs, "Ziel beleuchten", PreferenceKeys.LIGHT_DEST, true, "Das Gebäude bleibt bei der Ankunft beleuchtet, der Eingang bekommt eine Markierung, eine gepunktete Linie zeigt den Fußweg vom Parkplatz")
         SToggle(prefs, "Rückroute", "routeback", true, "Ein Tipp für den Weg zurück zum Startort")
         SToggle(prefs, "Parkplatz über Bluetooth merken", "parkbt", true, "Speichert den Standort beim Trennen vom Auto-Bluetooth")

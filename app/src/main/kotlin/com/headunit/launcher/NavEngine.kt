@@ -1922,7 +1922,7 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
     private var parkingFor: Route? = null
 
     private fun checkParking(r: Route, rem: Double) {
-        if (parkingFor === r || rem > 1700.0 || rem < 150.0 || r.len < 3000.0 || previewing || !prefs.b(PreferenceKeys.PARKPROMPT, true)) return
+        if (parkingFor === r || rem > 1700.0 || rem < 150.0 || r.len < 3000.0 || previewing || !prefs.b(PreferenceKeys.PARKPROMPT, false)) return
         val d = dest ?: return
         parkingFor = r
         // going to a car park already: nothing to offer

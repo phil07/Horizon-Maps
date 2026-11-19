@@ -232,7 +232,8 @@ internal object PreferenceKeys {
     const val NIGHTSKY = "nightsky"
     const val PACKINSTALLED = "packinstalled"
     const val PACKNAG = "packnag"
-    const val PARKPROMPT = "parkprompt"
+    /** Car parks suggested shortly before arriving. Off unless switched on (a new key: it used to be on for everyone). */
+    const val PARKPROMPT = "parkprompt2"
     const val PLACE_HOME = "place_home"
     const val PLANNED = "planned"
     const val POLICEALERTS = "policealerts"

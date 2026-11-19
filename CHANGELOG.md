@@ -1,14 +1,8 @@
 ## Unreleased
 
 ### Improved
-- Fehlerberichte enthalten jetzt, was die letzten fünf Routen beendet hat: welcher Bildschirm, ob die Fahrt nach Hause, zur Arbeit oder woandershin ging (nie der Ort selbst) und welcher Teil der App sie beendet hat. Damit lässt sich eine Route finden, die sich von selbst abbricht. Danke an carlb051.
-  EN: Problem reports now include what ended the last five routes: which screen, whether it went to Home, Work or elsewhere (never the place itself) and which part of the app ended it, to track down a route that cancels itself. Thanks to carlb051.
-- Immer Nacht bei Tageslicht: Die Karte bleibt dunkel, aber Sterne, leuchtende Straßenlaternen und der Scheinwerferkegel kommen erst, wenn es draußen wirklich dunkel ist. Danke an bijindas.
-  EN: Always night in daylight: the map stays dark, but the stars, lit street lamps and headlight beam only come on once it's actually dark outside. Thanks to bijindas.
-
-### Fixed
-- Absturz beim Antippen eines Suchtreffers, während oben in der Liste „Alle Standorte anzeigen“ stand. Danke an DJSatan.
-  EN: Crash when tapping a search result while "See all locations" was showing at the top of the list. Thanks to DJSatan.
+- Kurz vor dem Ziel schlägt die App keine Parkplätze mehr vor, auch nicht auf Android Auto. Wer die Vorschläge haben will, schaltet „Parkplätze nahe dem Ziel“ in den Einstellungen ein.
+  EN: The app no longer suggests car parks shortly before you arrive, on Android Auto either. To have them, switch on "Car parks near the destination" in Settings.
 
 ## 1.0.246 — 2026-10-28
 
