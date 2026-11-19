@@ -279,8 +279,9 @@ fun App(prefs: Prefs, engine: NavEngine, map: MapBinding) {
                     if (back.value > 0.01f) Box(Modifier.fillMaxSize().graphicsLayer { alpha = back.value }.background(c.bg))
                 }
                 // the cards and buttons keep clear only of the camera hole itself (8 dp under it), not of a whole status-bar-high strip
-                // the settings run edge to edge: no status bar strip above them (it only keeps the camera cutout clear)
-                Box(Modifier.fillMaxSize().padding(cutoutPadding()).then(if (settings) Modifier else Modifier.windowInsetsPadding(WindowInsets.systemBars))) {
+                // the settings run edge to edge: no status bar strip above them. They only keep clear of a real camera hole
+                // (cutoutPadding without its fallback to the whole safe inset, which is what drew the black strip)
+                Box(Modifier.fillMaxSize().padding(if (settings) cutoutPadding(fallbackSafe = false) else cutoutPadding()).then(if (settings) Modifier else Modifier.windowInsetsPadding(WindowInsets.systemBars))) {
                 if (!setupDone) {
                     // (setup asks for the key itself)
                     LaunchedEffect(Unit) { prefs.put(PreferenceKeys.MAPBOX_PROMPT, false) }
