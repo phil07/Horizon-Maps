@@ -1,8 +1,8 @@
 ## Unreleased
 
 ### Neu
-- Ankunftszeiten mit dem üblichen Verkehr: Routen aus der heruntergeladenen Karte (Gratisversion oder ohne Empfang) rechnen jetzt die Staus ein, die zu dieser Tageszeit üblich sind, mehr zu den Stoßzeiten werktags und in Städten als auf der Autobahn. Die Berechnung läuft auf dem Telefon, nichts wird gesendet.
-  EN: Arrival times that know the usual traffic: routes planned from your downloaded map (the free version, or anywhere without signal) now allow for the hold-ups that are normal at that time of day, more in the weekday rush hours and in towns than on motorways. Worked out on your phone, with nothing sent anywhere.
+- Die App lernt deine üblichen Fahrten: Sie merkt sich, wie lange eine Fahrt zu einem Ziel zur jeweiligen Tageszeit wirklich dauert, und nutzt die übliche Zeit für die Ankunft, sobald sie dieselbe Fahrt zweimal gesehen hat. Nur auf deinem Telefon gespeichert.
+  EN: The app learns your usual trips: it remembers how long a trip to a place really takes at each time of day, and uses that for the arrival time once it has seen the same trip twice. Kept only on your phone.
 
 ## 1.0.246 — 2026-10-28
 

@@ -5582,7 +5582,11 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
             trackPace(r, progress)
             // electric: the charging stops still ahead, each with its charging time and about 5 minutes to get off, plug in and back on
             val charge = if (isEv) evPlanned.filter { st -> via.any { Geo.dist(it.pos, st.n.place.pos) < 30.0 } }.sumOf { (it.minutes + 5) * 60.0 } else 0.0
-            val secs = r.freeFlow * frac * etaPace() + ahead + Vehicle.extraSecs(r.limits, progress, Vehicle.active.maxMs) + charge
+            // a usual trip to this place (made twice at this time of day): its usual time, less what has already gone
+            val usual = if (navStartMs > 0) dest?.name?.let { LearnedTrips.usual(prefs, it, navStartMs) } else null
+            val elapsedS = (System.currentTimeMillis() - navStartMs) / 1000.0
+            val secs = if (usual != null && usual > 0 && elapsedS < usual * 1.3) max(60.0, usual - elapsedS) + charge
+                else r.freeFlow * frac * etaPace() + ahead + Vehicle.extraSecs(r.limits, progress, Vehicle.active.maxMs) + charge
             val delayMin = Math.round(ahead / 60.0).toInt()
             val arrive = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date(System.currentTimeMillis() + (secs * 1000).toLong()))
             eta = EtaInfo(arrive, rem, secs, delayMin, charge)
@@ -5746,6 +5750,8 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
             toast(str(R.string.toast_060), 5000)
             if (navStartMs > 0) {
                 val secsT = (System.currentTimeMillis() - navStartMs) / 1000.0
+                // the trip is learned: the next one to this place at this time of day is timed by it
+                dest?.name?.let { LearnedTrips.record(prefs, it, navStartMs, secsT) }
                 val dd = max(0.0, tripDist - navStartDist)
                 val sideA = try { arrivalSide(r, r.steps.lastOrNull()?.maneuver ?: "") } catch (e: Exception) { "" }
                 val a = ArrivalInfo(dest, dest?.name ?: Lang.t("Ziel", "Destination"), dd, secsT, if (secsT > 0) dd / secsT else 0.0, sideA)
