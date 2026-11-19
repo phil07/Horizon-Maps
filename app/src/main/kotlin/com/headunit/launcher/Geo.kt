@@ -55,6 +55,8 @@ data class Place(val name: String, val sub: String, val pos: LL) {
     var brand: String? = null
     /** "Geöffnet bis 20:00" or "Geschlossen · öffnet 08:00" when the search gave opening times (see OpenHours). Not saved, not compared. */
     var hours: String? = null
+    /** The shop's phone number when the search gave one (for the card's Call button). Not saved, not compared. */
+    var phone: String? = null
 }
 
 /** The name of a spot held on the map with no place there: in the app's language (older ones were always "Dropped pin"). */
@@ -521,6 +523,7 @@ object TomTomRest {
                 p.web = poi.optString("url").takeIf { it.isNotBlank() }
                 p.brand = poi.optJSONArray("brands")?.optJSONObject(0)?.optString("name")?.takeIf { it.isNotBlank() }
                 p.hours = try { OpenHours.fromTomTom(poi) } catch (e: Exception) { null }
+                p.phone = poi.optString("phone").takeIf { it.isNotBlank() }
             }
             if (out.none { it.name == p.name && Geo.dist(it.pos, p.pos) < 60 }) out += p
         }

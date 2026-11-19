@@ -1,10 +1,8 @@
 ## Unreleased
 
-### Verbessert
-- Spur-Bild vor einer Kreuzung deutlicher: Die Pfeile, die Spurlinien und die Straßenränder sind dicker, damit man es auf einen Blick liest. Auf Straßen mit vielen Spuren bleiben die Pfeile etwas schmaler, damit sie nicht ineinander laufen. (Dank an karthikeyansr-lgtm)
-  EN: Bolder lane view: the big lane picture before a junction has thicker arrows, lane markings and road edges, so it reads at a glance. On roads with many lanes the arrows stay a little slimmer so they don't run into each other. (thanks to karthikeyansr-lgtm)
-- Gefundene Orte leuchten auf: Wählst du ein Suchergebnis, zentriert die Karte den Ort im Bereich, den die Suchleiste nicht belegt. Sein Gebäude wird hervorgehoben (bei Nacht heller, und mit den 3D-Gebäuden erhöht). Orte ohne Gebäude zeigen nur die Nadel.
-  EN: Searched places lit up: pick a search result and the map now centres the place in the part of the screen the search bar leaves clear, with its building highlighted (lighter at night, and raised with the 3D buildings). Places without a building just show the pin.
+### Neu
+- Ortskarte mit mehr auf einen Blick: Tippst du auf ein Geschäft oder Suchergebnis, zeigt die Karte, ob es geöffnet ist, wie weit es ist, eine ungefähre Fahrzeit und die Ankunftszeit. Dazu Los, Als Stopp, Speichern, Anrufen, Website und Teilen. Anrufen und Website blenden sich während der Fahrt aus. (Dank an Dry-Secretary2456)
+  EN: Place card with more at a glance: tap a shop or search result and the card shows whether it's open, how far it is, a rough drive time and the arrival time. Go, Add stop, Save, Call, Website and Share are there too. Call and Website hide while you're moving. (thanks to Dry-Secretary2456)
 
 ## 1.0.246 — 2026-10-28
 

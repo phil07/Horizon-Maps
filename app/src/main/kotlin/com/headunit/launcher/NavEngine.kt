@@ -208,7 +208,7 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
                     val hit = withContext(Dispatchers.IO) { try { TomTomRest.poiNear(apiKey, name, null, p, 150).firstOrNull() } catch (e: Exception) { null } } ?: return@launch
                     val cur = mapPick
                     if (cur != null && Geo.dist(cur.pos, p) < 1.0) {
-                        mapPick = Place(cur.name, cur.sub, cur.pos).also { it.hours = hit.hours; it.web = hit.web; it.brand = hit.brand }
+                        mapPick = Place(cur.name, cur.sub, cur.pos).also { it.hours = hit.hours; it.web = hit.web; it.brand = hit.brand; it.phone = hit.phone }
                         loadLogos(listOfNotNull(mapPick))
                     }
                 }
@@ -2448,6 +2448,28 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
     }
 
     fun cancelWaiting() { waitingFor = null; waitJob?.cancel() }
+
+    /** Dials the place's number (the dialler opens; the call is made by the person). */
+    fun callPlace(phone: String) {
+        try { ctx.startActivity(android.content.Intent(android.content.Intent.ACTION_DIAL, android.net.Uri.parse("tel:" + phone.filter { it.isDigit() || it == '+' })).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)) }
+        catch (e: Exception) { toast(Lang.t("Kein Telefon-App gefunden", "No phone app found"), 3000) }
+    }
+
+    /** Opens the place's website in the browser. */
+    fun openWebsite(url: String) {
+        val u = if (url.startsWith("http")) url else "https://$url"
+        try { ctx.startActivity(android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(u)).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)) }
+        catch (e: Exception) { toast(Lang.t("Kein Browser gefunden", "No browser found"), 3000) }
+    }
+
+    /** The share menu with the place's name, address and a map link. */
+    fun sharePlace(p: Place) {
+        val link = "https://www.openstreetmap.org/?mlat=${p.pos.lat}&mlon=${p.pos.lon}#map=17/${p.pos.lat}/${p.pos.lon}"
+        val text = (if (p.sub.isNotBlank()) "${p.name}, ${p.sub}" else p.name) + "\n" + link
+        val send = android.content.Intent(android.content.Intent.ACTION_SEND).setType("text/plain").putExtra(android.content.Intent.EXTRA_TEXT, text)
+        try { ctx.startActivity(android.content.Intent.createChooser(send, p.name).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)) }
+        catch (e: Exception) { toast(Lang.t("Teilen-Menü nicht verfügbar", "No share menu"), 3000) }
+    }
 
     /** A search result tapped: the list closes, the map moves to the place and its card opens (Go on the card starts the route). */
     fun showResultCard(p: Place) {

@@ -1329,13 +1329,23 @@ private fun PhonePickCard(engine: NavEngine) {
     val p = engine.mapPick ?: return
     val c = LocalVw.current
     val hasTrip = engine.dest != null && engine.route != null
-    val dist = engine.fix?.pos?.let { Geo.fmtDist(Geo.dist(it, p.pos), engine.imperial) }
+    val here = engine.fix?.pos
+    val dist = here?.let { Geo.fmtDist(Geo.dist(it, p.pos), engine.imperial) }
+    // a rough drive time (about 45 km/h over the straight line): an estimate, not a route
+    val mins = here?.let { Math.round(Geo.dist(it, p.pos) / 12.5 / 60.0).toInt() }
+    val arriveAt = mins?.let { m ->
+        val cal = java.util.Calendar.getInstance(); cal.add(java.util.Calendar.MINUTE, m)
+        String.format(java.util.Locale.US, "%02d:%02d", cal.get(java.util.Calendar.HOUR_OF_DAY), cal.get(java.util.Calendar.MINUTE))
+    }
+    var fav by remember(p) { mutableStateOf(engine.places.isFavourite(p)) }
+    // calling and the website wait until you stop
+    val moving = engine.driving
     Column(Modifier.widthIn(max = 420.dp).panel(12.dp, RoundedCornerShape(24.dp), c.surface).padding(horizontal = 16.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             PlaceLogo(engine, p)
             Column(Modifier.padding(start = 12.dp).weight(1f)) {
                 Text(p.name, color = c.text, fontSize = 17.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                val sub = listOfNotNull(dist, p.sub.ifBlank { null }).joinToString(" · ")
+                val sub = listOfNotNull(dist, mins?.let { Lang.t("ca. $it Min.", "about $it min") }, arriveAt?.let { Lang.t("Ankunft $it", "arrive $it") }).joinToString(" · ")
                 if (sub.isNotBlank()) Text(sub, color = c.sub, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 HoursLine(p)
             }
@@ -1344,8 +1354,14 @@ private fun PhonePickCard(engine: NavEngine) {
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             Text(Lang.t("Los", "Go"), color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.Bold, textAlign = androidx.compose.ui.text.style.TextAlign.Center,
                 modifier = Modifier.weight(1f).clip(RoundedCornerShape(50)).background(c.accent).clickable { engine.routePick() }.padding(vertical = 11.dp))
-            if (hasTrip) Text(Lang.t("Als Stopp", "Add as stop"), color = c.accent, fontSize = 15.sp, fontWeight = FontWeight.Bold, textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+            if (hasTrip) Text(Lang.t("Als Stopp", "Add stop"), color = c.accent, fontSize = 15.sp, fontWeight = FontWeight.Bold, textAlign = androidx.compose.ui.text.style.TextAlign.Center,
                 modifier = Modifier.weight(1f).clip(RoundedCornerShape(50)).border(1.dp, c.accent, RoundedCornerShape(50)).clickable { engine.stopPick() }.padding(vertical = 10.dp))
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+            Pill(if (fav) Lang.t("Gespeichert", "Saved") else Lang.t("Speichern", "Save"), fav, { fav = engine.places.toggleFavourite(p) })
+            if (!moving && p.phone != null) Pill(Lang.t("Anrufen", "Call"), false, { engine.callPlace(p.phone!!) })
+            if (!moving && p.web != null) Pill(Lang.t("Website", "Website"), false, { engine.openWebsite(p.web!!) })
+            Pill(Lang.t("Teilen", "Share"), false, { engine.sharePlace(p) })
         }
     }
 }
