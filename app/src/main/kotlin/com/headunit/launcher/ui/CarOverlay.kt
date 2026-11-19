@@ -565,6 +565,7 @@ private fun PickCard(engine: NavEngine) {
             val sub = listOfNotNull(dist, mins?.let { Lang.t("ca. $it Min.", "about $it min") }, arriveAt?.let { Lang.t("Ankunft $it", "arrive $it") }, p.sub.ifBlank { null }).joinToString(" · ")
             if (sub.isNotBlank()) Text(sub, color = c.sub, fontSize = 15.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
             HoursLine(p)
+            engine.pickOffer?.let { Text(it, color = c.text, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis) }
         }
         Box(Modifier.carTap("pick-go") { engine.goPick() }) { ImmPill(if (guiding) Lang.t("Als Stopp", "Add stop") else Lang.t("Hierhin fahren", "Go here"), {}, filled = true) }
         Box(Modifier.carTap("pick-no") { engine.clearPick() }) { ImmPill(Lang.t("Abbrechen", "Cancel"), {}) }

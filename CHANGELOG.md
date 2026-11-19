@@ -1,8 +1,10 @@
 ## Unreleased
 
 ### Neu
-- Android Auto: die Ortskarte: Tippst du auf dem Autobildschirm auf ein Geschäft, zeigt die Karte, ob es geöffnet ist, wie weit es ist und wann du ankommst. Mit Hierhin fahren oder Als Stopp auf einer Route.
-  EN: Android Auto: the place card: tap a shop on the car's map and the card shows whether it's open, how far it is and when you'd arrive. Go, or Add stop on a route.
+- Android Auto: die Ortskarte zeigt den Spritpreis einer Tankstelle oder die Ladepunkte einer Ladesäule, wenn die App sie schon kennt. Wie auf dem Telefon.
+  EN: Android Auto: the place card shows a petrol station's price or a charger's plugs when the app already knows them, as on the phone.
+- Ortskarte auf dem Telefon: Spritpreis oder Ladepunkte erscheinen auf der Karte, wenn die App sie kennt.
+  EN: Phone place card: the petrol price or the charge points show on the card when the app knows them.
 
 ## 1.0.246 — 2026-10-28
 

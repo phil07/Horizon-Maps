@@ -1348,6 +1348,7 @@ private fun PhonePickCard(engine: NavEngine) {
                 val sub = listOfNotNull(dist, mins?.let { Lang.t("ca. $it Min.", "about $it min") }, arriveAt?.let { Lang.t("Ankunft $it", "arrive $it") }).joinToString(" · ")
                 if (sub.isNotBlank()) Text(sub, color = c.sub, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 HoursLine(p)
+                engine.pickOffer?.let { Text(it, color = c.text, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis) }
             }
             Icon(Icons.Rounded.Close, Lang.t("Schließen", "Close"), tint = c.sub, modifier = Modifier.size(40.dp).clip(CircleShape).clickable { engine.clearPick() }.padding(8.dp))
         }
