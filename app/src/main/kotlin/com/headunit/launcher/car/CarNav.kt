@@ -761,9 +761,9 @@ class MapScreen(carContext: CarContext, private val holder: CarHolder) : Screen(
             // soon as a trip started. Melden stays there, as before. Cars that don't pass taps on can't use the buttons on the map, so
             // there Beenden and the sound are in the bar as well
             if (taps) {
-                // nothing for the map up here: it is always 3D on the car, and the voice guidance is on the trip bar at the bottom
-                // (beside the overview and end). The bar can't be empty, so Settings stays, as in the other car bar
-                strip.addAction(Action.Builder().setIcon(icon(R.drawable.ic_car_settings)).setOnClickListener { openSettings() }.build())
+                // the bar can't be empty: Beenden (red ✕) is its one button, and the app's column below it starts with Melden.
+                // Settings is the gear in the app's own buttons at the bottom left, so it isn't up here twice
+                strip.addAction(Action.Builder().setIcon(rowIcon(carContext, R.drawable.ic_car_close, 0xFFE53935.toInt())).setOnClickListener { e?.endRoute(); invalidate() }.build())
             } else {
                 strip.addAction(Action.Builder().setTitle("Beenden").setOnClickListener { e?.endRoute(); invalidate() }.build())
                 strip.addAction(reportAction())

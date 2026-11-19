@@ -239,12 +239,17 @@ private fun CarScreen(engine: NavEngine, a: android.graphics.Rect?, actions: Car
         val colShift = if (ownCol && !colInStrip) colBtn + 14.dp else 0.dp
         // the cards start just right of the column (and of Android Auto's button above it), not at the far side of its whole strip
         // (the column stands 12 dp from the left edge; the cards start right of it and right of Android Auto's button, whichever is further)
-        val left = if (ownCol && colInStrip) maxOf(12.dp + colBtn, insL / 2 + gearSize / 2) + 12.dp else insL + edge + colShift
+        // while driving, Android Auto's one button is Beenden (red ✕) and the column under it starts with Melden: the turn card and
+        // the trip bar go right beside the column (12 dp from it), the turn card starting under that button, level with Melden
+        val driveCol = ownCol && colInStrip && engine.route != null && !engine.previewing
+        val colTop = gearTop + gearSize + colGap
+        val left = if (driveCol) 12.dp + colBtn + 12.dp
+            else if (ownCol && colInStrip) maxOf(12.dp + colBtn, insL / 2 + gearSize / 2) + 12.dp else insL + edge + colShift
         // Wide screens: level with Android Auto's buttons (top right); narrow/tall screens: below them.
         // (landscape: a smaller gap at the top, so the search bar sits level with Android Auto's Melden button beside it)
         val topTarget = if (portrait) insT + edge else insT.coerceAtMost(12.dp) + (edge / 2)
         // On tall screens Android Auto's buttons hide after a few seconds and the cards move up smoothly.
-        val top by androidx.compose.animation.core.animateDpAsState(topTarget, tween(300), label = "carTop")
+        val top by androidx.compose.animation.core.animateDpAsState(if (driveCol) maxOf(topTarget, colTop) else topTarget, tween(300), label = "carTop")
         val controlsGap = when {
             portrait -> 64.dp
             maxWidth < 900.dp -> 68.dp
@@ -390,8 +395,9 @@ private fun CarScreen(engine: NavEngine, a: android.graphics.Rect?, actions: Car
             // close to the left edge (Android Auto's own button stays in the middle of its strip, a little to the right above)
             val x = if (colInStrip) 12.dp else insL + edge
             // under Android Auto's button
-            val y0 = gearTop + gearSize + colGap
-            val filterY = y0 + (colBtn + colGap) * 2
+            val y0 = colTop
+            // (while driving, Beenden is Android Auto's button above: the column starts with Melden)
+            val filterY = y0 + (colBtn + colGap) * (if (guiding) 1 else 2)
             @Composable fun btn(id: String, icon: androidx.compose.ui.graphics.vector.ImageVector, tint: Color, fill: Color, on: () -> Unit) {
                 Box(Modifier.size(colBtn).panel(10.dp, androidx.compose.foundation.shape.CircleShape, fill).carTap(id) { on() }, contentAlignment = Alignment.Center) {
                     Icon(icon, null, tint = tint, modifier = Modifier.size(colBtn * 0.5f))
@@ -407,8 +413,7 @@ private fun CarScreen(engine: NavEngine, a: android.graphics.Rect?, actions: Car
                 btn("own-recentre", Icons.Rounded.MyLocation, c.text, c.surface) { engine.recenter(true) }
             }
             Column(Modifier.padding(start = x, top = y0), verticalArrangement = Arrangement.spacedBy(colGap)) {
-                if (guiding) btn("own-end", Icons.Rounded.Close, Color.White, Color(0xFFD32F2F)) { engine.endRoute() }
-                else Box(Modifier.size(colBtn))
+                if (!guiding) Box(Modifier.size(colBtn))
                 btn("own-report", Icons.Rounded.Warning, c.text, c.surface) { actions.report() }
                 if (tripFilter) btn("trip-filter", Icons.Rounded.FilterList, if (engine.chargerMinKw > 0) Color.White else c.text, if (engine.chargerMinKw > 0) c.accent else c.surface) { engine.chargerFilterOpen = !engine.chargerFilterOpen }
                 else Box(Modifier.size(colBtn))

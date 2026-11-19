@@ -1,12 +1,8 @@
 ## Unreleased
 
 ### Improved
-- Abbiegekarte an Autobahnausfahrten: Der blaue Streifen „AUSFAHRT 4“ ist weg. Das Ausfahrt-Schild neben dem Straßennamen zeigt die Nummer schon, und die Pfeile des Streifens zeigten immer nach rechts, auch bei einer Ausfahrt links. Danke an mjdshibly.
-  EN: Turn card at motorway exits: the blue "EXIT 4" strip is gone. The exit badge beside the road name already shows the number, and the strip's arrows always pointed right, even for an exit on the left. Thanks to mjdshibly.
-
-### Fixed
-- Blasse Spurpfeile: Im großen Spurbild hatten die blassen Pfeile (Spuren, die du nicht nehmen sollst) hellere Stellen, wo ihre Linien zusammenkamen und wo zwei Pfeile einen Stiel teilen. Die Pfeile einer Spur werden jetzt als eine Form gezeichnet, die blassen sind gleichmäßig blass. Danke an mjdshibly.
-  EN: Faded lane arrows: in the big lane picture the faded arrows (lanes not to use) had brighter patches where their lines joined and where two arrows share a stem. Each lane's arrows are now drawn as one shape, so the faded ones are evenly faded. Thanks to mjdshibly.
+- Android Auto während der Fahrt: Das Zahnrad oben links ist weg, die Einstellungen bleiben unten links bei Zoom und Zentrieren. Oben steht jetzt das rote ✕ zum Beenden, die Spalte darunter beginnt mit Melden. Die Abbiegekarte und die Fahrtleiste unten rücken direkt neben die Knöpfe, ohne große Lücke.
+  EN: Android Auto while driving: the gear at the top left is gone; Settings stays at the bottom left with zoom and re-centre. The top now holds the red ✕ to end the trip, and the column below starts with Report. The turn card and the trip bar at the bottom sit right beside the buttons, without a big gap.
 
 ## 1.0.246 — 2026-10-28
 
