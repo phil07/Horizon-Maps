@@ -229,6 +229,12 @@ internal fun NavEngine.pushHazards(progress: Double) {
             val k = when (inc.cat.lowercase()) { "roadclosed" -> 2; "roadworks", "laneclosed" -> 1; else -> -1 }
             if (k >= 0) list += inc.pts.first() to k
         }
+        // Spain: the DGT's incidents within 10 km round you, with or without a route (the V16 beacons as a broken-down car)
+        val here = fix?.pos
+        if (here != null && countryCode() == "ES") for (inc in DgtRest.near(here, 10_000.0)) {
+            val k = when (inc.cat) { "roadClosed" -> 2; "roadWorks", "laneClosed" -> 1; "accident" -> 4; "danger" -> 5; "breakdown" -> 6; "jam" -> 8; else -> -1 }
+            if (k >= 0) list += inc.pts.first() to k
+        }
     }
     var sig = list.size
     for ((p, k) in list) sig = sig * 31 + (p.lat * 1e5).toInt() * 7 + (p.lon * 1e5).toInt() + k
@@ -269,4 +275,18 @@ internal fun NavEngine.autobahnIncidents(r: Route): List<Incident> {
         scope.launch { abItems = withContext(Dispatchers.IO) { try { AutobahnRest.incidents(roads) } catch (e: Exception) { emptyList() } } }
     }
     return abItems
+}
+
+/**
+ * Spain: the DGT's incidents (DgtRest). Looked at every 15 minutes while you are in Spain and incidents are switched on; read again
+ * only when the DGT has changed the file. The map's icons round you are brought up to date every minute.
+ */
+internal fun NavEngine.dgtTick() {
+    if (!prefs.b(PreferenceKeys.INCIDENTS, true) || countryCode() != "ES") return
+    scope.launch {
+        val changed = withContext(Dispatchers.IO) { DgtRest.refreshIfDue() }
+        if (changed) hazardSig = -1
+        // with a route, the route's check draws them (and gives the progress); without one, they are drawn here
+        if (route == null) pushHazards(Double.MAX_VALUE) else if (changed) pushHazards(hzProgress)
+    }
 }

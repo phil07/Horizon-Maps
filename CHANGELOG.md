@@ -1,8 +1,8 @@
 ## Unreleased
 
-### Fixed
-- Android Auto: Im Suchfeld bringt „Zwischenziel …“ oder „Fahre zusätzlich nach …“ den Ort als Zwischenstopp. Das Ziel bleibt dabei. Ein normaler Ortsname fragt wie bisher, ob er Zwischenstopp oder neues Ziel werden soll.
-  EN: On Android Auto, "Zwischenziel …" or "Fahre zusätzlich nach …" in the search box adds the place as a stop, and the destination stays. A plain place name still asks whether it becomes a stop or the new destination.
+### Neu
+- Spanien: Live-Meldungen der DGT. Unfälle, Baustellen, Sperrungen, Gefahren und die vernetzten V16-Warnbaken liegengebliebener Autos erscheinen auf der Karte im Umkreis von 10 km und werden auf deiner Route angesagt wie die TomTom-Meldungen. Kostenlos, ohne Schlüssel, auch ohne TomTom-Schlüssel. Was TomTom schon meldet, kommt nicht doppelt. Katalonien und das Baskenland veröffentlichen ihre Meldungen getrennt und sind noch nicht dabei. Danke an franciscoserranoadt.
+  EN: Spain: live incidents from the DGT. Accidents, roadworks, closures, hazards and the connected V16 beacons of broken-down cars show on the map within 10 km and are announced on your route like TomTom's. Free, no key, and they work without a TomTom key too. What TomTom already reports isn't repeated. Catalonia and the Basque Country publish theirs separately and aren't included yet. Thanks to franciscoserranoadt.
 
 ## 1.0.246 — 2026-10-28
 

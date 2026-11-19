@@ -889,7 +889,7 @@ internal object SettingsEn {
         "Automatisch aus z. B. in DE, FR und CH" to "Automatically off e.g. in DE, FR and CH",
         "Nur Anzeige; Warnungen dort nur mit „Blitzer“ an" to "Display only; warnings there only with \"Speed cameras\" on",
         "Freie Plätze live, wo verfügbar. Daten: MobiData BW, ParkenDD" to "Live free spaces where available. Data: MobiData BW, ParkenDD",
-        "Baustellen und Sperrungen auf Autobahnen. Daten: Autobahn GmbH" to "Roadworks and closures on motorways. Data: Autobahn GmbH",
+        "Baustellen und Sperrungen auf Autobahnen. Daten: Autobahn GmbH. In Spanien: Unfälle, Baustellen, Sperrungen, Gefahren und V16-Pannenbaken der DGT (nap.dgt.es)" to "Roadworks and closures on motorways. Data: Autobahn GmbH. In Spain: accidents, roadworks, closures, hazards and V16 breakdown beacons from the DGT (nap.dgt.es)",
         "Bei falscher Fahrtrichtung; Fehlalarme möglich" to "On wrong direction; false alarms possible",
         "Amtliche Warnungen auf der Strecke (Deutschland)" to "Official warnings on the route (Germany)",
         "Alarm bei Meldung bis 30 km voraus" to "Alarm for a report up to 30 km ahead",

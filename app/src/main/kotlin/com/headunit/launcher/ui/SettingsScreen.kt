@@ -644,7 +644,7 @@ private fun AlertsSection(prefs: Prefs, engine: NavEngine) {
         SToggle(prefs, "Sektionskontrollen (Abschnittskontrolle)", "avgzones", true, "Durchschnittstempo im Vergleich zum Limit")
     }
     SGroup("Unterwegs", footer = "Informationen stammen aus OpenStreetMap.") {
-        SToggle(prefs, "Baustellen und Ereignisse", "incidents", true, "Baustellen und Sperrungen auf Autobahnen. Daten: Autobahn GmbH")
+        SToggle(prefs, "Baustellen und Ereignisse", "incidents", true, "Baustellen und Sperrungen auf Autobahnen. Daten: Autobahn GmbH. In Spanien: Unfälle, Baustellen, Sperrungen, Gefahren und V16-Pannenbaken der DGT (nap.dgt.es)")
         SToggle(prefs, "Einbahnstraßen-Warnung", "wrongway", false, "Bei falscher Fahrtrichtung; Fehlalarme möglich")
         SToggle(prefs, "Bremsschwellen", "bumps", false)
         SToggle(prefs, "Schulen zu Schulzeiten", "schools", false)
