@@ -1,10 +1,8 @@
 ## Unreleased
 
-### Neu
-- Ziel bei laufender Fahrt: Wählst du einen Ort aus der Suche (getippt oder per Sprache) oder bei Android Auto, fragt die App jetzt, ob er als Zwischenziel hinzukommt oder das aktuelle Ziel ersetzt. Auf dem Handy erscheint die Frage als kleine Karte und verschwindet nach 15 Sekunden ohne Antwort, das alte Ziel bleibt dann. Auf Android Auto bleibt sie stehen, bis du wählst.
-  EN: Destination while driving: when you pick a place from the search (typed or by voice) or on Android Auto, the app now asks whether it is added as a stop or replaces the current destination. On the phone the question is a small card that goes away after 15 seconds without an answer, and the old destination stays. On Android Auto it stays until you choose.
-- Sprachbefehl für Zwischenziele: „Zwischenziel …“ oder „Fahre zusätzlich nach …“ fügt den Ort direkt als Zwischenziel hinzu.
-  EN: Voice command for stops: "Zwischenziel …" or "Fahre zusätzlich nach …" adds the place straight away as a stop.
+### Improved
+- Android Auto: Die Karte ist immer in 3D. Die 2D/3D-Knöpfe sind oben entfallen, ebenso die Glocke für die Sprachansagen während der Fahrt. Die Glocke bleibt im Fortschrittsbalken unten, neben Übersicht und Abbrechen.
+  EN: Android Auto: the map is always 3D. The 2D/3D buttons are gone from the top bar, and so is the voice button while driving. The voice button stays on the progress bar at the bottom, beside overview and end.
 
 ## 1.0.246 — 2026-10-28
 

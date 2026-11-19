@@ -50,7 +50,9 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
     var eta by mutableStateOf<EtaInfo?>(null)
     var following by mutableStateOf(true)
     // (remembered: it used to start in 3D every time, even if you'd left it in 2D)
-    var tilt3d by mutableStateOf(prefs.b(PreferenceKeys.VIEW_3D, true))
+    // the phone's own choice (2D or 3D); on Android Auto the map is always 3D, which looks better there
+    private var tilt3dPref by mutableStateOf(prefs.b(PreferenceKeys.VIEW_3D, true))
+    val tilt3d: Boolean get() = tilt3dPref || RouteSync.carOn
     var simMode by mutableIntStateOf(0)
     var message by mutableStateOf<String?>(null)
     var busy by mutableStateOf(false)
@@ -3086,8 +3088,8 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
     }
 
     fun toggleTilt() {
-        tilt3d = !tilt3d
-        prefs.put(PreferenceKeys.VIEW_3D, tilt3d)
+        tilt3dPref = !tilt3dPref
+        prefs.put(PreferenceKeys.VIEW_3D, tilt3dPref)
         refreshTilt()
         if (following) fix?.let { onPosition(it, true) }
     }

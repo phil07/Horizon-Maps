@@ -244,6 +244,8 @@ fun App(prefs: Prefs, engine: NavEngine, map: MapBinding) {
             val carOn = com.headunit.launcher.RouteSync.carOn
             var phoneMap by remember { mutableStateOf(false) }
             LaunchedEffect(carOn) { if (!carOn) phoneMap = false }
+            // the map is 3D while Android Auto is connected, and goes back to the phone's own choice when it is not
+            LaunchedEffect(carOn) { engine.refreshTilt() }
             // the phone's engine leaves speed limit, camera and traffic lookups to the car while the phone isn't showing its map
             val mapShown = !carOn || phoneMap || settings
             androidx.compose.runtime.SideEffect { engine.showingMap = mapShown }

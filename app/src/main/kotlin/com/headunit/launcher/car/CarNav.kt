@@ -738,8 +738,6 @@ class MapScreen(carContext: CarContext, private val holder: CarHolder) : Screen(
         // voice guidance: all / alerts only / off (the same as the app's sound button)
         val soundIcon = when (e?.soundMode ?: 0) { 0 -> R.drawable.ic_car_sound_on; 1 -> R.drawable.ic_car_sound_alerts; else -> R.drawable.ic_car_sound_off }
         val sound = Action.Builder().setIcon(icon(soundIcon)).setOnClickListener { e?.cycleSound(); invalidate() }.build()
-        // 2D / 3D (as the app's own button): the title says which view a tap switches to
-        val view = Action.Builder().setTitle(if (e?.tilt3d != false) "2D" else "3D").setOnClickListener { e?.toggleTilt(); invalidate() }.build()
         val demoOn = e != null && (e.prefs.b(PreferenceKeys.DEMO, false) || e.simMode != 0)
         val fr = e?.faster
         if (guiding && fr != null) {
@@ -763,9 +761,9 @@ class MapScreen(carContext: CarContext, private val holder: CarHolder) : Screen(
             // soon as a trip started. Melden stays there, as before. Cars that don't pass taps on can't use the buttons on the map, so
             // there Beenden and the sound are in the bar as well
             if (taps) {
-                // only the voice guidance (all, alerts only, off) up here: 2D / 3D beside it overlapped on the map's top left. 2D / 3D
-                // stays in Settings and on the phone
-                strip.addAction(sound)
+                // nothing for the map up here: it is always 3D on the car, and the voice guidance is on the trip bar at the bottom
+                // (beside the overview and end). The bar can't be empty, so Settings stays, as in the other car bar
+                strip.addAction(Action.Builder().setIcon(icon(R.drawable.ic_car_settings)).setOnClickListener { openSettings() }.build())
             } else {
                 strip.addAction(Action.Builder().setTitle("Beenden").setOnClickListener { e?.endRoute(); invalidate() }.build())
                 strip.addAction(reportAction())
@@ -781,7 +779,6 @@ class MapScreen(carContext: CarContext, private val holder: CarHolder) : Screen(
             strip.addAction(reportAction())
             strip.addAction(if (e?.carShort == true) Action.Builder().setIcon(icon(R.drawable.ic_car_star)).setOnClickListener { screenManager.push(PlacesScreen(carContext, holder)) }.build()
                 else Action.Builder().setTitle(Lang.t("Orte", "Places")).setOnClickListener { screenManager.push(PlacesScreen(carContext, holder)) }.build())
-            strip.addAction(view)
             strip.addAction(Action.Builder().setIcon(icon(R.drawable.ic_car_settings)).setOnClickListener { openSettings() }.build())
         }
         val mapStrip = ActionStrip.Builder()
@@ -1172,8 +1169,6 @@ class LayersScreen(carContext: CarContext, private val holder: CarHolder) : Scre
         val e = holder.engine
         // most important first: a car that shows fewer rows loses the last ones
         val rows = listOf(
-            Row.Builder().setTitle(Lang.t("3D-Ansicht", "3D view"))
-                .setToggle(Toggle.Builder { _ -> holder.engine?.toggleTilt(); invalidate() }.setChecked(e?.tilt3d != false).build()).build(),
             row(Lang.t("Verkehr", "Traffic"), PreferenceKeys.TRAFFIC, true),
             row(Lang.t("Satellit", "Satellite"), PreferenceKeys.SATELLITE, false),
             row(Lang.t("Blitzer", "Speed cameras"), PreferenceKeys.CAMERA_MAP, true),
