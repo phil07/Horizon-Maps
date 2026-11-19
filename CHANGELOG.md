@@ -1,8 +1,10 @@
 ## Unreleased
 
-### Behoben
-- Kosten für Sprit und Laden in Rupien, Kronen und mehr: Die Kosten auf den Routenoptionen erscheinen jetzt in der Währung des Landes, in dem du fährt. Außerhalb von Pfund-, Euro- und Dollarländern nimmt das Preisfeld den Preis so, wie er geschrieben ist (₹107.40 je Liter). Bisher wurde er als Paise gelesen, und die Kosten waren 100-mal zu klein. (Dank an bijindas)
-  EN: Fuel and charging costs in rupees, kroner and more: the cost on the route options is now shown in the currency of the country you're driving in, and outside pound, euro and dollar countries the price box takes the price as normally written (₹107.40 a litre), where it used to read it as paise and show the cost 100 times too small. (thanks to bijindas)
+### Verbessert
+- Ortskarte unten statt mitten auf der Karte: Tippst du auf ein Suchergebnis, schließt sich die Tastatur, die Karte fährt zum Ort, und die Karte öffnet sich unten am Bildschirm (auf dem Head Unit oder quer gehaltenem Handy an der Fahrerseite). Bei Tag- und Nachtfarben.
+  EN: Place card docked like Add a stop: tapping a search result closes the keyboard, moves the map to the place and opens its card along the bottom of the screen (or down the driver's side on a head unit or a phone held sideways). Works in day and night colours.
+- Ankunftskarte: Restzeit, Ankunft und verbleibende Strecke stehen jetzt zusammen links auf der Karte statt verteilt über die ganze Karte.
+  EN: Arrival card figures grouped: time left, arrival and distance to go now sit together on the left of the card instead of spread across it.
 
 ## 1.0.246 — 2026-10-28
 

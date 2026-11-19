@@ -2449,6 +2449,14 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
 
     fun cancelWaiting() { waitingFor = null; waitJob?.cancel() }
 
+    /** A search result tapped: the list closes, the map moves to the place and its card opens (Go on the card starts the route). */
+    fun showResultCard(p: Place) {
+        results = emptyList()
+        mapPick = p
+        map.setPick(p.pos)
+        map.cameraTo(p.pos, null, 0.0, 16.0, 700, 0.0)
+    }
+
     fun pickPlace(p: Place) {
         val slot = pendingSave
         if (slot != null) {

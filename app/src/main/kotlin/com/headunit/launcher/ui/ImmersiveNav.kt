@@ -293,7 +293,11 @@ private fun MapScreen(engine: NavEngine, onSettings: () -> Unit) {
         val boxW = constraints.maxWidth.toFloat().coerceAtLeast(1f); val boxH = constraints.maxHeight.toFloat().coerceAtLeast(1f)
         fun report(i: Int, r: androidx.compose.ui.geometry.Rect) { engine.setPanel(i, r.left / boxW, r.top / boxH, r.right / boxW, r.bottom / boxH) }
         // a place tapped on the map: its card floats over everything else (also over the route options while choosing a route)
-        if (engine.mapPick != null) Box(Modifier.align(Alignment.Center).offset(y = (-70).dp).padding(horizontal = 16.dp).zIndex(30f)) { PhonePickCard(engine) }
+        // docked like Add a stop: along the bottom, or down the driver's side when the screen is held sideways (a head unit too)
+        if (engine.mapPick != null) {
+            val landscape = boxW > boxH
+            Box(Modifier.align(if (landscape) side(Alignment.CenterStart) else Alignment.BottomCenter).padding(16.dp).zIndex(30f)) { PhonePickCard(engine) }
+        }
         // the media bar: back, play / pause and next while music plays (see MediaHub)
         if (engine.prefs.b(PreferenceKeys.MEDIA_CONTROLS, false)) Box(Modifier.align(Alignment.BottomCenter).padding(bottom = 12.dp).zIndex(1f)) { MediaBar(engine) }
         if (foldSearch) Box(Modifier.align(side(Alignment.TopStart)).padding(16.dp).zIndex(1f)) {
@@ -875,11 +879,14 @@ private fun TripArea(engine: NavEngine, shareEta: () -> Unit, narrow: Boolean = 
                 // electric: roughly how much battery you'll arrive with (amber under 20%, red under 10%)
                 val evPct = engine.evArrivalPct()
                 val evCol = if (evPct == null) c.text else if (evPct < 10) Bad else if (evPct < 20) Warn else Good
+                // the figures sit together on the left of the card (one group, not spread across it)
                 val stats: @Composable () -> Unit = {
-                    ImmStat(Geo.fmtDur(e.secs), if (e.delayMin >= 1) Lang.t("+${e.delayMin} Min. Verkehr", "+${e.delayMin} min traffic") else Lang.t("Restzeit", "time left"), dc)
-                    ImmStat(e.arrive, Lang.t("Ankunft", "arrival"), c.text)
-                    ImmStat(Geo.fmtDist(e.dist, engine.imperial), Lang.t("verbleibend", "to go"), c.text)
-                    if (evPct != null) ImmStat("$evPct%", Lang.t("Akku bei Ankunft", "battery at arrival"), evCol)
+                    Row(horizontalArrangement = Arrangement.spacedBy(22.dp), verticalAlignment = Alignment.CenterVertically) {
+                        ImmStat(Geo.fmtDur(e.secs), if (e.delayMin >= 1) Lang.t("+${e.delayMin} Min. Verkehr", "+${e.delayMin} min traffic") else Lang.t("Restzeit", "time left"), dc)
+                        ImmStat(e.arrive, Lang.t("Ankunft", "arrival"), c.text)
+                        ImmStat(Geo.fmtDist(e.dist, engine.imperial), Lang.t("verbleibend", "to go"), c.text)
+                        if (evPct != null) ImmStat("$evPct%", Lang.t("Akku bei Ankunft", "battery at arrival"), evCol)
+                    }
                 }
                 val buttons: @Composable () -> Unit = {
                     // electric: chargers along the route from here
@@ -1378,7 +1385,7 @@ private fun ImmResults(engine: NavEngine, onPicked: () -> Unit) {
     }
     LazyColumn(Modifier.fillMaxWidth().heightIn(max = 420.dp).panel(10.dp, shape, c.surface).padding(vertical = 6.dp)) {
         items(engine.results) { p ->
-            Row(Modifier.fillMaxWidth().clickable { onPicked(); engine.pickPlace(p) }.padding(horizontal = 16.dp, vertical = 11.dp), verticalAlignment = Alignment.CenterVertically) {
+            Row(Modifier.fillMaxWidth().clickable { onPicked(); engine.showResultCard(p) }.padding(horizontal = 16.dp, vertical = 11.dp), verticalAlignment = Alignment.CenterVertically) {
                 PlaceLogo(engine, p)
                 Column(Modifier.padding(start = 14.dp).weight(1f)) {
                     Text(p.name, color = c.text, fontSize = 17.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
