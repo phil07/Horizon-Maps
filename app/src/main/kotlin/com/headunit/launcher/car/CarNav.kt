@@ -1243,10 +1243,17 @@ class SearchScreen(carContext: CarContext, private val holder: CarHolder, initia
         }
     }
 
-    private val typed = Runnable { if (query.trim().length >= 2) holder.engine?.search(query) }
+    private val typed = Runnable { if (query.trim().length >= 2) searchText(query) }
+
+    /** A search text: "Zwischenziel …" (typed or spoken on the car's keyboard) searches for a stop, the destination stays. */
+    private fun searchText(text: String) {
+        val e = holder.engine ?: return
+        val stop = com.headunit.launcher.stopPlace(text.trim().lowercase(java.util.Locale.GERMAN))
+        if (stop != null) { e.stopMode = true; e.search(stop) } else e.search(text)
+    }
 
     init {
-        if (initial.length >= 2) holder.engine?.search(initial)
+        if (initial.length >= 2) searchText(initial)
         lifecycle.addObserver(object : DefaultLifecycleObserver {
             override fun onStart(owner: LifecycleOwner) { handler.post(poll) }
             override fun onStop(owner: LifecycleOwner) { handler.removeCallbacks(poll); handler.removeCallbacks(typed) }

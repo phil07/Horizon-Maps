@@ -1,8 +1,8 @@
 ## Unreleased
 
-### Improved
-- Android Auto: Die Karte ist immer in 3D. Die 2D/3D-Knöpfe sind oben entfallen, ebenso die Glocke für die Sprachansagen während der Fahrt. Die Glocke bleibt im Fortschrittsbalken unten, neben Übersicht und Abbrechen.
-  EN: Android Auto: the map is always 3D. The 2D/3D buttons are gone from the top bar, and so is the voice button while driving. The voice button stays on the progress bar at the bottom, beside overview and end.
+### Fixed
+- Android Auto: Im Suchfeld bringt „Zwischenziel …“ oder „Fahre zusätzlich nach …“ den Ort als Zwischenstopp. Das Ziel bleibt dabei. Ein normaler Ortsname fragt wie bisher, ob er Zwischenstopp oder neues Ziel werden soll.
+  EN: On Android Auto, "Zwischenziel …" or "Fahre zusätzlich nach …" in the search box adds the place as a stop, and the destination stays. A plain place name still asks whether it becomes a stop or the new destination.
 
 ## 1.0.246 — 2026-10-28
 

@@ -76,6 +76,16 @@ fun NavEngine.useVoice(name: String) {
     try { tts?.voices?.firstOrNull { it.name == name }?.let { tts?.voice = it } } catch (e: Exception) { }
 }
 
+/**
+ * "Zwischenziel …", "Zwischenstopp …", "fahre zusätzlich nach …": the place a stop is asked for (in lower case), or null when the text is
+ * not a stop request. The destination stays where it is for those.
+ */
+fun stopPlace(t: String): String? {
+    Regex("^(?:zwischenziel|zwischenstopp|zwischenhalt)\\s+(?:bei|in|nach|zu|zum|zur|an|am)?\\s*(.+)$").find(t)?.let { return it.groupValues[1] }
+    Regex("^(?:fahr(?:e)?|navigier(?:e)?|bring(?:e)?|führ(?:e)?)?\\s*(?:mich\\s+)?(?:zusätzlich|auch noch|noch|auch)\\s+(?:nach|zu|zum|zur|in|an)\\s+(.+)$").find(t)?.let { return it.groupValues[1] }
+    return null
+}
+
 fun NavEngine.handleVoice(raw: String): String? {
     val t = raw.lowercase(Locale.GERMAN).trim().removePrefix("hey horizon").removePrefix("hallo horizon").trim(' ', ',', '.', '!', '?')
     fun has(vararg w: String) = w.any { t.contains(it) }
@@ -93,8 +103,7 @@ fun NavEngine.handleVoice(raw: String): String? {
         val w = places.slot("work"); if (w != null) { say(Lang.t("Fahre zur Arbeit", "Going to work")); askNewDest(w) } else say(Lang.t("Arbeit ist noch nicht festgelegt", "Work isn't set yet")); return ""
     }
     // "Zwischenziel … " / "fahre zusätzlich nach …": a stop on the way, the destination stays
-    Regex("^(?:zwischenziel|zwischenstopp|zwischenhalt)\\s+(?:bei|in|nach|zu|zum|zur|an|am)?\\s*(.+)$").find(t)?.let { return "stop:" + it.groupValues[1] }
-    Regex("^(?:fahr(?:e)?|navigier(?:e)?|bring(?:e)?|führ(?:e)?)?\\s*(?:mich\\s+)?(?:zusätzlich|auch noch|noch|auch)\\s+(?:nach|zu|zum|zur|in|an)\\s+(.+)$").find(t)?.let { return "stop:" + it.groupValues[1] }
+    stopPlace(t)?.let { return "stop:$it" }
     // reports
     if (t.startsWith("report") || t.startsWith("melde") || t.startsWith("meldung")) {
         val k = when {
