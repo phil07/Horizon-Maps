@@ -230,19 +230,21 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
     fun clearPick() { pickJob?.cancel(); pickJob = null; mapPick = null; pickOffer = null; map.setPick(null) }
 
     /** The fuel price or the charge points of the spot at [p], from the data the app already holds (nothing new is fetched for it). */
-    private fun pickOfferFor(p: LL): String? = try {
-        val fuel = prefs.s(PreferenceKeys.FUEL_TYPE, "E10")
-        if (fuel == "EV") {
-            val s = chgAll.filter { Geo.dist(it.pos, p) < 40.0 }.minByOrNull { Geo.dist(it.pos, p) } ?: return null
-            listOfNotNull(s.total?.let { Lang.t("$it Ladepunkte", "$it charge points") }, s.kw?.let { "$it kW" }).joinToString(" · ").ifBlank { null }
-        } else {
-            val cc = countryCode()
-            if (!EuFuel.supported(cc, prefs) || !EuFuel.hasFuel(cc, fuel)) return null
-            val st = EuFuel.near(cc, prefs, p, 1, fuel).minByOrNull { Geo.dist(it.pos, p) } ?: return null
-            if (Geo.dist(st.pos, p) > 60.0) return null
-            fmtFuelPrice(st.cents, if (cc.uppercase() in setOf("GB", "UK")) "p" else "€")
-        }
-    } catch (e: Exception) { null }
+    private fun pickOfferFor(p: LL): String? {
+        return try {
+            val fuel = prefs.s(PreferenceKeys.FUEL_TYPE, "E10")
+            if (fuel == "EV") {
+                val s = chgAll.filter { Geo.dist(it.pos, p) < 40.0 }.minByOrNull { Geo.dist(it.pos, p) } ?: return null
+                listOfNotNull(s.total?.let { Lang.t("$it Ladepunkte", "$it charge points") }, s.kw?.let { "$it kW" }).joinToString(" · ").ifBlank { null }
+            } else {
+                val cc = countryCode()
+                if (!EuFuel.supported(cc, prefs) || !EuFuel.hasFuel(cc, fuel)) return null
+                val st = EuFuel.near(cc, prefs, p, 1, fuel).minByOrNull { Geo.dist(it.pos, p) } ?: return null
+                if (Geo.dist(st.pos, p) > 60.0) return null
+                fmtFuelPrice(st.cents, if (cc.uppercase() in setOf("GB", "UK")) "p" else "€")
+            }
+        } catch (e: Exception) { null }
+    }
 
     /** The picked spot becomes a stop on the trip being driven or chosen (the phone's "Als Stopp"). */
     fun stopPick() {
