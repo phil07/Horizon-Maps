@@ -238,10 +238,14 @@ internal fun BoxScope.RoutePreview(engine: NavEngine) {
     // the settings are in km per kWh (electric) or litres per 100 km, and cents per kWh or per litre (a comma is taken too). It used to
     // reckon in miles, UK gallons and pounds, so the figure was far off
     fun num(k: String) = engine.prefs.s(k, "").replace(',', '.').toDoubleOrNull()?.takeIf { it > 0 }
-    // a price is cents (or pence) a litre or kWh, as 215 — or euros (or pounds) as 2.15 or 2,15: a decimal under 10 is euros
+    // the country the car is in: its currency is used for the costs
+    val cc = engine.countryCode()
+    // a price is cents (or pence) a litre or kWh, as 215 — or euros (or pounds) as 2.15 or 2,15: a decimal under 10 is euros.
+    // In other countries a price is written as it is (₹107.40 a litre), so it is taken as whole units
     fun priceCents(k: String): Double? {
         val s = engine.prefs.s(k, "").trim().replace(',', '.')
         val v = s.toDoubleOrNull()?.takeIf { it > 0 } ?: return null
+        if (!com.headunit.launcher.centsStyle(cc)) return v * 100.0
         return if ((s.contains('.') || s.contains(',')) && v < 10.0) v * 100.0 else v
     }
     val use = num(if (ev) PreferenceKeys.EVMPK else PreferenceKeys.FUELMPG)
@@ -251,7 +255,7 @@ internal fun BoxScope.RoutePreview(engine: NavEngine) {
         val km = len / 1000.0
         val amount = if (ev) km / use * cents / 100.0 else km * use / 100.0 * cents / 100.0
         (if (ev) Lang.t("Laden etwa ", "Charging about ") else Lang.t("Sprit etwa ", "Fuel about ")) +
-            java.text.NumberFormat.getCurrencyInstance(java.util.Locale.GERMANY).format(amount)
+            com.headunit.launcher.moneyText(amount, cc)
     } else null
     val eco = engine.prefs.b(PreferenceKeys.ROUTE_ECO, false)
     val evPlan = if (ev) engine.evPlanned else emptyList()

@@ -18,6 +18,20 @@ fun fmtFuelPrice(price: Double, unit: String): String =
     if (unit == "€") (if (Lang.de) String.format(java.util.Locale.GERMANY, "%.3f €", price / 100.0) else String.format(java.util.Locale.UK, "€%.3f", price / 100.0))
     else String.format(java.util.Locale.UK, "%.1fp", price)
 
+/** The currency of a country (by its code), euros when it isn't known. */
+fun currencyOf(cc: String): java.util.Currency =
+    try { java.util.Currency.getInstance(java.util.Locale("", cc.uppercase())) } catch (e: Exception) { java.util.Currency.getInstance("EUR") }
+
+/** Pound, euro and dollar countries: prices are whole cents or pence, a decimal under 10 is whole units. Elsewhere a price is as written. */
+fun centsStyle(cc: String): Boolean = currencyOf(cc).currencyCode in setOf("EUR", "GBP", "USD")
+
+/** An amount of money in the country's currency, the local way ("12,30 €", "£12.30", "₹12.30"). */
+fun moneyText(amount: Double, cc: String): String {
+    val nf = java.text.NumberFormat.getCurrencyInstance(if (Lang.de) java.util.Locale.GERMANY else java.util.Locale.UK)
+    nf.currency = currencyOf(cc)
+    return nf.format(amount)
+}
+
 /** Free OpenStreetMap queries: speed limits, speed cameras and nearby fuel / charging / parking. */
 object Overpass {
     private val endpoints = listOf(

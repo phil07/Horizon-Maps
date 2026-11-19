@@ -1,14 +1,8 @@
 ## Unreleased
 
-### Neu
-- Ankunftszeit senden: Ein neuer Knopf auf der Fahrtkarte öffnet das Teilen-Menü deines Handys mit einer fertigen Nachricht („Auf dem Weg nach …, Ankunft etwa 10:42“) und einem Kartenlink, zum Senden per WhatsApp, SMS oder wie du willst. Er erscheint nur, wenn du stehst, damit niemand beim Fahren einen Kontakt wählt. (Dank an Dotancom)
-  EN: Send your arrival time: a new button on the trip card opens your phone's share menu with a message ready ("On my way to …, arriving about 10:42") and a map link, to send by WhatsApp, text or anything else. It shows only while you're stopped, so nobody picks a contact while driving. (thanks to Dotancom)
-- Spritpreise in Spanien: Die Live-Preise jeder Tankstelle aus dem spanischen Ministerium für ökologischen Wandel (kostenlos, ohne Schlüssel) erscheinen in der Kraftstoffliste, bei „Günstigste“ in „Stopp hinzufügen“ und bei den Tankvorschlägen. Sie werden auf dem Gerät gespeichert und etwa alle vier Stunden aktualisiert, sodass Preise auch bei einem Ausfall des Dienstes angezeigt werden. (Dank an franciscoserranoadt)
-  EN: Fuel prices in Spain: every petrol station's live prices from the Spanish Ministry for the Ecological Transition (free, no key), in the fuel list, Cheapest in Add a stop and the fuel stop suggestions. Kept on the device and refreshed every few hours, so prices still show if the service is down for a while. (thanks to franciscoserranoadt)
-
-### Verbessert
-- Die Zurück-Taste in den Einstellungen bleibt stehen: Auf dem Handy im Hochformat sitzen der Zurück-Pfeil und der Seitenname jetzt in einer Leiste oben auf jeder Einstellungsseite statt im Scrollen. Die Einstellungen werden oben und unten sanft ausgeblendet. (Dank an yurividal)
-  EN: Settings back button stays put: on phones held upright, the back arrow and the page name now sit in a bar at the top of each settings page instead of scrolling away, and the settings fade softly at the top and bottom edges. (thanks to yurividal)
+### Behoben
+- Kosten für Sprit und Laden in Rupien, Kronen und mehr: Die Kosten auf den Routenoptionen erscheinen jetzt in der Währung des Landes, in dem du fährt. Außerhalb von Pfund-, Euro- und Dollarländern nimmt das Preisfeld den Preis so, wie er geschrieben ist (₹107.40 je Liter). Bisher wurde er als Paise gelesen, und die Kosten waren 100-mal zu klein. (Dank an bijindas)
+  EN: Fuel and charging costs in rupees, kroner and more: the cost on the route options is now shown in the currency of the country you're driving in, and outside pound, euro and dollar countries the price box takes the price as normally written (₹107.40 a litre), where it used to read it as paise and show the cost 100 times too small. (thanks to bijindas)
 
 ## 1.0.246 — 2026-10-28
 
