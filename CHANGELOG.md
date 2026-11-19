@@ -1,8 +1,8 @@
 ## Unreleased
 
-### Neu
-- Die App lernt deine üblichen Fahrten: Sie merkt sich, wie lange eine Fahrt zu einem Ziel zur jeweiligen Tageszeit wirklich dauert, und nutzt die übliche Zeit für die Ankunft, sobald sie dieselbe Fahrt zweimal gesehen hat. Nur auf deinem Telefon gespeichert.
-  EN: The app learns your usual trips: it remembers how long a trip to a place really takes at each time of day, and uses that for the arrival time once it has seen the same trip twice. Kept only on your phone.
+### Improved
+- Die Einstellungen laufen jetzt über den ganzen Bildschirm: Oben bleibt kein schwarzer Streifen der Statusleiste mehr stehen. Die Kameraaussparung wird weiterhin freigehalten.
+  EN: The settings now use the full screen: no black strip of the status bar stays at the top. The camera cutout is still kept clear.
 
 ## 1.0.246 — 2026-10-28
 
