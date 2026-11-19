@@ -959,7 +959,7 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
                     toast(str(R.string.rest_437, d.name), 3500)
                     startRoute(d, 0, keepVia = true, startNow = true)
                 }
-            } else if (o.has("la") && age < 15 * 60_000L)
+            } else if (o.has("la") && age < 15 * 60_000L && !o.optBoolean("near", false))
                 // stopped navigating 4 to 15 minutes ago: offer to carry on with the "Resume trip" card
                 resume = Place(o.optString("n"), o.optString("s"), LL(o.getDouble("la"), o.getDouble("lo")))
         } catch (e: Exception) { }
@@ -1059,7 +1059,9 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
     /** Puts the music back up once every announcement has finished (not after each one, so it doesn't flicker between them). */
     internal fun unduck() {
         spoken = (spoken - 1).coerceAtLeast(0)
-        if (spoken > 0) return
+        // the focus is held only while something is being said or waits to be said: given back as soon as the queue is empty
+        if (spoken > 0 && (playing != null || speechQ.isNotEmpty() || speechSegs.isNotEmpty())) return
+        spoken = 0
         try { focusReq?.let { audioMgr.abandonAudioFocusRequest(it) } } catch (e: Exception) { }
         focusReq = null
     }
@@ -3808,7 +3810,7 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
         }
         // parked near the destination for a minute: arrived, even when that is a big car park's entrance away from the shop
         val dpos = dest?.pos
-        if (route != null && !previewing && dpos != null && p.speed < 0.8 && Geo.dist(p.pos, dpos) < 250.0) { if (parkedNearSince == 0L) parkedNearSince = now }
+        if (route != null && !previewing && dpos != null && p.speed < 0.8 && Geo.dist(p.pos, dpos) < 400.0) { if (parkedNearSince == 0L) parkedNearSince = now }
         else parkedNearSince = 0L
         // stopped within about 40 m of the destination: arrived (for a few seconds), however much route is left
         if (route != null && !previewing && dpos != null && p.speed < 0.8 && Geo.dist(p.pos, dpos) < 40.0) { if (parkedCloseSince == 0L) parkedCloseSince = now }
@@ -5375,6 +5377,8 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
         try {
             val o = org.json.JSONObject(prefs.s(PreferenceKeys.RESUME, "{}"))
             o.put("n", d.name).put("s", d.sub).put("la", d.pos.lat).put("lo", d.pos.lon).put("b", now)
+            // near the destination when the app last saw you: arrived, so starting again doesn't pick the trip back up
+            fix?.let { f -> o.put("near", Geo.dist(f.pos, d.pos) < 400.0) }
             if (!o.has("t")) o.put("t", now)
             val a = org.json.JSONArray()
             for (v in via) a.put(org.json.JSONObject().put("n", v.name).put("s", v.sub).put("la", v.pos.lat).put("lo", v.pos.lon))

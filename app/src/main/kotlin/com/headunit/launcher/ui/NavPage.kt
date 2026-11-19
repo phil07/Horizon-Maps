@@ -23,6 +23,12 @@ import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.height
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.foundation.shape.RoundedCornerShape
+import kotlinx.coroutines.launch
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -314,9 +320,9 @@ internal fun BoxScope.RoutePreview(engine: NavEngine) {
         val fromWidget = engine.evNowPct() != null
         if (!fromWidget) {
             Text(stringResource(R.string.ui_007), color = c.sub, fontSize = 13.sp, modifier = Modifier.padding(horizontal = 10.dp))
-            Pill("−", false, { engine.prefs.put(PreferenceKeys.EV_CHARGE_PCT, (pct - 10).coerceAtLeast(5)); engine.refreshEvPlan() })
+            StepPill("−") { engine.prefs.put(PreferenceKeys.EV_CHARGE_PCT, (engine.prefs.i(PreferenceKeys.EV_CHARGE_PCT, 80).coerceIn(5, 100) - 1).coerceAtLeast(5)); engine.refreshEvPlan() }
             Text("$pct%", color = c.text, fontSize = 16.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 4.dp))
-            Pill("+", false, { engine.prefs.put(PreferenceKeys.EV_CHARGE_PCT, (pct + 10).coerceAtMost(100)); engine.refreshEvPlan() })
+            StepPill("+") { engine.prefs.put(PreferenceKeys.EV_CHARGE_PCT, (engine.prefs.i(PreferenceKeys.EV_CHARGE_PCT, 80).coerceIn(5, 100) + 1).coerceAtMost(100)); engine.refreshEvPlan() }
         }
         Text(Lang.t("Am Ziel mind.", "At destination, at least"), color = c.sub, fontSize = 13.sp, modifier = Modifier.padding(start = if (fromWidget) 10.dp else 14.dp, end = 4.dp))
         for (km in listOf(30, 50, 100)) Pill("$km km", destKm == km, { engine.prefs.put(PreferenceKeys.EV_DEST_KM, km); engine.refreshEvPlan() })
@@ -766,4 +772,31 @@ private fun DemoStartBtn(engine: NavEngine) {
     Box(Modifier.height(72.dp).clip(RoundedCornerShape(36.dp)).background(c.surface2).clickable { engine.beginDemo() }.padding(horizontal = 16.dp), contentAlignment = Alignment.Center) {
         Text("Demo", color = c.text, fontSize = 16.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
     }
+}
+
+/** A round step button (the battery's − and +): one step per touch, and it keeps going while held, faster the longer. */
+@Composable
+private fun StepPill(text: String, onStep: () -> Unit) {
+    val c = LocalVw.current
+    val step by rememberUpdatedState(onStep)
+    val scope = rememberCoroutineScope()
+    Box(
+        Modifier
+            .pointerInput(Unit) {
+                detectTapGestures(onPress = {
+                    step()
+                    val repeat = scope.launch {
+                        delay(400L)
+                        var n = 0
+                        while (true) { step(); n++; delay(if (n < 12) 150L else 70L) }
+                    }
+                    tryAwaitRelease()
+                    repeat.cancel()
+                })
+            }
+            .clip(RoundedCornerShape(50))
+            .background(c.tile)
+            .padding(horizontal = 18.dp, vertical = 10.dp),
+        contentAlignment = Alignment.Center,
+    ) { Text(text, color = c.text, fontSize = 15.sp, fontWeight = FontWeight.Medium) }
 }

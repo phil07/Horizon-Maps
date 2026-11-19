@@ -1,8 +1,14 @@
 ## Unreleased
 
+### Verbessert
+- Batterie um 1 % statt in Zehnerschritten: Das − und das + an der Batterie auf der Routenkarte gehen 1 % auf und ab und laufen weiter, solange man sie hält. (Dank an Dry-Secretary2456)
+  EN: Battery by 1 %: the − and + by the battery on the route screen go up and down 1 % at a time, and keep going while held, instead of jumping in tens. (thanks to Dry-Secretary2456)
+
 ### Behoben
-- Satellitenbilder leer bei manchen: Seit Ende Oktober weist Mapbox die Satellitenbilder für viele ab ("zu viele Anfragen"), auch weit unter den Grenzen. Mit einem TomTom-Schlüssel springen jetzt TomToms Satellitenbilder automatisch ein, mit Mapbox-Straßen und -Namen darüber. Ohne TomTom-Schlüssel erklärt die App, was los ist. (Dank an atnr, Matattack99)
-  EN: Satellite view blank for some people: since late October Mapbox has been refusing its satellite pictures for many people ("too many requests"), even well inside their limits. With a TomTom key, TomTom's satellite pictures now take their place automatically, with Mapbox's roads and names on top. Without a TomTom key, the app explains what is happening. (thanks to atnr, Matattack99)
+- Fährt noch nach dem Parken: Wird das Auto innerhalb von 400 m vor dem Ziel abgestellt, endet die Fahrt jetzt, auf Android Auto und auf dem Telefon. Startet man die App direkt am Ziel neu, wird die Fahrt nicht mehr wieder aufgenommen. (Dank an pc4096)
+  EN: Still navigating after parking: switching the car off within 400 m of the destination now ends the trip, on Android Auto and on the phone. Starting the app again right by the destination no longer picks the trip back up. (thanks to pc4096)
+- Musik oder Radio stoppt nach Ansagen: Kam eine zweite Ansage, während die erste noch lief, wurde die Musik nicht wieder laut gestellt und blieb auf manchen Autoradios stumm. Die Musik wird jetzt immer zurückgegeben, sobald die Stimme fertig ist. (Dank an adernev)
+  EN: Music or radio stopping after directions: when a second direction came while the first was still being spoken, the music was not always handed back, and on some head units it stayed quiet. The music is now always handed back once the voice has finished. (thanks to adernev)
 
 ## 1.0.246 — 2026-10-28
 
