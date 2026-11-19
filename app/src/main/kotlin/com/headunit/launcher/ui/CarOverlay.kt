@@ -520,7 +520,9 @@ private fun CarScreen(engine: NavEngine, a: android.graphics.Rect?, actions: Car
         if (previewing) Box(Modifier.align(Alignment.BottomCenter).padding(start = left, end = if (portrait) rightBottom else rightTop, bottom = bottom)) {
             // drawn half as large again as the app's (its text was too small to read in the car), and with the car card size setting
             // (the route choice cards follow the Button size as well as the Card size)
-            CompositionLocalProvider(LocalDensity provides Density(dens.density * cardScale * 1.5f * buttonScale, dens.fontScale)) { CarRoutePreview(engine) }
+            CompositionLocalProvider(LocalDensity provides Density(dens.density * cardScale * 1.5f * buttonScale, dens.fontScale)) {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) { CarRouteExtras(engine); CarRoutePreview(engine) }
+            }
         }
 
         // working out a route: a small spinner at the top, as in the app
@@ -815,6 +817,27 @@ private fun NavEngine.soundIcon(): androidx.compose.ui.graphics.vector.ImageVect
     0 -> androidx.compose.material.icons.Icons.Rounded.VolumeUp
     1 -> androidx.compose.material.icons.Icons.Rounded.NotificationsActive
     else -> androidx.compose.material.icons.Icons.Rounded.VolumeOff
+}
+
+/** On the route choice, as on the phone: the clean air zones the route goes into (with Avoid zones), and on larger screens the weather along it. */
+@Composable
+private fun CarRouteExtras(engine: NavEngine) {
+    val c = LocalVw.current
+    val zones = engine.routeZones
+    val wx = if (engine.carShort) emptyList() else engine.routeWx
+    if (zones.isEmpty() && wx.isEmpty()) return
+    Column(Modifier.widthIn(max = 900.dp).panel(10.dp, RoundedCornerShape(24.dp), c.surface).padding(horizontal = 18.dp, vertical = 10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        if (zones.isNotEmpty()) Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Text(Lang.t("Führt durch ", "Goes into ") + zones.joinToString(", ") + Lang.t(". Umweltzone", ". Clean air zone"), color = Warn, fontSize = 18.sp,
+                fontWeight = FontWeight.SemiBold, maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
+            if (!engine.prefs.b(PreferenceKeys.AVOIDZONES, false)) Box(Modifier.carTap("car-avoid-zones") {
+                engine.prefs.put(PreferenceKeys.AVOIDZONES, true); engine.dest?.let { engine.startRoute(it, engine.departMin, true) }
+            }) { ImmPill(Lang.t("Zonen meiden", "Avoid zones"), {}, filled = true) }
+        }
+        if (wx.isNotEmpty()) Text(wx.take(3).joinToString("   ") { w ->
+            "${Geo.fmtDur(w.minutes * 60.0)} ${Math.round(w.temp)}°"
+        }, color = c.sub, fontSize = 17.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+    }
 }
 
 /** The app's route choice, as on its own screen: pick a route, start with Start (or wait 10 s). Stacks up on narrow screens. */

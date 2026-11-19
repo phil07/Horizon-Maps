@@ -1,8 +1,8 @@
 ## Unreleased
 
 ### Neu
-- Android Auto: Parkhäuser nahe deinem Ziel und die nächste Raststelle erscheinen auf dem Autobildschirm, wie in der App. Ein Tipp auf ein Parkhaus fährt dorthin.
-  EN: Android Auto: car parks near your destination and the next motorway services show on the car screen, as in the app. Tap a car park to drive there.
+- Android Auto: bei der Routenwahl warnt eine Zeile, wenn eine Route in eine Umweltzone oder Low-Emission-Zone fährt, mit Zonen meiden. Auf größeren Bildschirmen steht das Wetter entlang der Route dabei.
+  EN: Android Auto: on the route choice, a line warns when a route goes into a clean air or low emission zone, with Avoid zones. On larger screens the weather along the way shows too.
 
 ## 1.0.246 — 2026-10-28
 
