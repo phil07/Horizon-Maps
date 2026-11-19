@@ -335,6 +335,7 @@ private fun MapScreen(engine: NavEngine, onSettings: () -> Unit) {
                         CompositionLocalProvider(LocalDensity provides Density(chipsDensity.density * (if (sidewaysPhone(engine)) 0.85f else 1f), chipsDensity.fontScale)) {
                             ImmChips(engine) { try { focus.requestFocus() } catch (_: Exception) {} }
                         }
+                        PredictionCard(engine)
                         NoticeCard(engine)
                         AnimatedVisibility(!cruising, enter = fadeIn(tween(220)) + androidx.compose.animation.expandVertically(tween(260)), exit = fadeOut(tween(140)) + androidx.compose.animation.shrinkVertically(tween(200))) {
                             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -1714,6 +1715,22 @@ private fun ParkedCard(engine: NavEngine) {
         Box(Modifier.size(40.dp).clip(CircleShape).clickable { engine.prefs.put(PreferenceKeys.PARKED_SPOT, "") }, contentAlignment = Alignment.Center) {
             Icon(Icons.Rounded.Close, Lang.t("Parkplatz vergessen", "Forget where you parked"), tint = c.sub, modifier = Modifier.size(22.dp))
         }
+    }
+}
+
+/** Where you're probably heading (a place you often drive to at this time, with its drive time): a green card with Go. */
+@Composable
+internal fun PredictionCard(engine: NavEngine) {
+    val pr = engine.prediction ?: return
+    if (engine.route != null || engine.previewing) return
+    val mins = if (pr.mins >= 0) Geo.fmtDur(pr.mins * 60.0) else null
+    Row(Modifier.fillMaxWidth().shadow(6.dp, RoundedCornerShape(22.dp)).clip(RoundedCornerShape(22.dp)).background(Good)
+        .clickable { engine.startRoute(pr.place) }.padding(horizontal = 16.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
+        Column(Modifier.weight(1f)) {
+            Text(listOfNotNull(pr.title, mins).joinToString(" · "), color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            if (pr.note.isNotBlank()) Text(pr.note, color = Color.White.copy(alpha = 0.85f), fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        }
+        Text(Lang.t("Los", "Go"), color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.Bold)
     }
 }
 

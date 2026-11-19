@@ -79,6 +79,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
@@ -908,6 +909,18 @@ private fun CarChips(engine: NavEngine, actions: CarActions, rows: Int) {
         }
     }
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        // where you're probably heading: the green card, under the search bar (Go starts the route)
+        engine.prediction?.takeIf { engine.route == null && !engine.previewing }?.let { pr ->
+            val mins = if (pr.mins >= 0) Geo.fmtDur(pr.mins * 60.0) else null
+            Row(Modifier.fillMaxWidth().shadow(6.dp, RoundedCornerShape(26.dp)).clip(RoundedCornerShape(26.dp)).background(Good)
+                .carTap("car-predict") { engine.startRoute(pr.place) }.padding(horizontal = 22.dp, vertical = 14.dp), verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f)) {
+                    Text(listOfNotNull(pr.title, mins).joinToString(" · "), color = Color.White, fontSize = 22.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    if (pr.note.isNotBlank()) Text(pr.note, color = Color.White.copy(alpha = 0.85f), fontSize = 16.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                }
+                Text(Lang.t("Los", "Go"), color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+            }
+        }
         val showHome = engine.prefs.b(PreferenceKeys.HOME_TILE, true); val showWork = engine.prefs.b(PreferenceKeys.WORK_TILE, true)
         if (showHome || showWork) Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             if (showHome) tile("home", androidx.compose.material.icons.Icons.Rounded.Home, Color(0xFF4C8DFF), stringResource(R.string.ui_100), home, engine.slotMins["home"], Modifier.weight(1.2f))

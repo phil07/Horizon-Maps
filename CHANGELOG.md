@@ -1,8 +1,8 @@
 ## Unreleased
 
 ### Neu
-- Android Auto: deine gespeicherten Orte unter der Suchleiste: Zuhause und Arbeit kommen Favoriten und Sternorte dazu, so viele wie passen, mit Alle für den Rest. Die Liste darunter zeigt jetzt nur noch zuletzt besuchte Orte, damit nichts doppelt erscheint.
-  EN: Android Auto: your saved places under the search bar: Home and Work are joined by your starred places and favourites, as many as fit, with All for the rest. The list below now shows recent places only, so nothing appears twice.
+- Vorschlagskarte: Wohin du wahrscheinlich fährst, etwa Arbeit am Morgen, mit der Fahrzeit und einem Knopf Los. Sie steht unter der Suchleiste, auf dem Telefon und auf Android Auto, und verschwindet, sobald eine Route läuft.
+  EN: Suggested destination card: where you're probably heading, such as work in the morning, with its drive time and a Go button. It shows under the search bar, on the phone and on Android Auto, and goes once a route runs.
 
 ## 1.0.246 — 2026-10-28
 

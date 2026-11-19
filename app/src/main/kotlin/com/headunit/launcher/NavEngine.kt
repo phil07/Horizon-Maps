@@ -913,6 +913,8 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
         // Italy's daily price list is kept with the app's files (see ItalyFuel)
         ItalyFuel.dir = ctx.filesDir
         SpainFuel.dir = ctx.filesDir
+        // the suggested destination (where you're probably heading) is looked at once a minute while idle; the card shows it
+        scope.launch { while (true) { try { refreshPrediction() } catch (e: Exception) { }; delay(60_000L) } }
         // the daily backup to the chosen folder: checked a little after start, then every half hour while the app runs
         scope.launch { delay(20_000L); while (true) { try { withContext(Dispatchers.IO) { AutoBackup.runIfDue(ctx, prefs) } } catch (e: Exception) { }; delay(30 * 60_000L) } }
         // the one-way street warning went off too often on OpenStreetMap's data: off for everyone once (it can be switched back on)
