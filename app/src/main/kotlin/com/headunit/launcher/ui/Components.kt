@@ -318,7 +318,7 @@ fun androidx.compose.ui.graphics.drawscope.DrawScope.drawManeuverArrow(
         // The highlighted arc follows the traffic: clockwise where people keep left (UK), anticlockwise elsewhere.
         // (The exit's number isn't used for the direction: a "2nd exit" can point anywhere, depending on the roundabout.)
         // with an exit number the ring is bigger, so the number fits inside it
-        val cx = 24f; val cy = 25f; val rr = if (roundaboutExit > 0) 11f else 8f
+        val cx = 24f; val cy = 25f; val rr = if (roundaboutExit > 0) 10f else 8f
         val ringRect = Rect(Offset((cx - rr) * s, (cy - rr) * s), Size(rr * 2f * s, rr * 2f * s))
         val ringStroke = Stroke(width = 3.5f * s, cap = StrokeCap.Round)
         drawCircle(color.copy(alpha = 0.3f), rr * s, p(cx, cy), style = ringStroke)
@@ -353,14 +353,15 @@ fun androidx.compose.ui.graphics.drawscope.DrawScope.drawManeuverArrow(
         val endDeg = Math.toRadians((90f + sweep).toDouble())
         val dx = kotlin.math.cos(endDeg).toFloat()
         val dy = kotlin.math.sin(endDeg).toFloat()
-        // the exit reaches as far out as before, so the arrow head stays inside the icon
-        val reach = rr + (if (roundaboutExit > 0) 7f else 10f)
-        val ex = cx + dx * reach; val ey = cy + dy * reach
-        drawLine(color, p(cx + dx * rr, cy + dy * rr), p(ex, ey), sw, StrokeCap.Round)
-        val tip = p(ex + dx * 5f, ey + dy * 5f)
+        // the stem leaves the ring with a gap, and the head sits clear of the ring at its end, inside the icon: so it reads as an arrow
+        val tipR = 22.5f
+        val bcR = tipR - 5f
+        drawLine(color, p(cx + dx * (rr + 2.5f), cy + dy * (rr + 2.5f)), p(cx + dx * bcR, cy + dy * bcR), sw, StrokeCap.Round)
+        val tip = p(cx + dx * tipR, cy + dy * tipR)
+        val bx = cx + dx * bcR; val by = cy + dy * bcR
         val px = -dy; val py = dx
-        val h1 = p(ex - dx * 3f + px * 4.5f, ey - dy * 3f + py * 4.5f)
-        val h2 = p(ex - dx * 3f - px * 4.5f, ey - dy * 3f - py * 4.5f)
+        val h1 = p(bx + px * 3.5f, by + py * 3.5f)
+        val h2 = p(bx - px * 3.5f, by - py * 3.5f)
         drawPath(Path().apply { moveTo(tip.x, tip.y); lineTo(h1.x, h1.y); lineTo(h2.x, h2.y); close() }, color)
         return
     }
