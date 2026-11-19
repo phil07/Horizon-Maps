@@ -1,8 +1,8 @@
 ## Unreleased
 
 ### Fixed
-- Android Auto: Die runden Knöpfe stehen jetzt in einer Reihe direkt unter dem Zahnrad, auch auf hohen Bildschirmen. Vorher standen sie dort rechts daneben.
-  EN: Android Auto: the round buttons now stand in one line right under the gear, on tall screens too. Before, they stood to its right there.
+- TomTom-Meldungen: Fast jede Abfrage nach Unfällen, Baustellen und Sperrungen bei TomTom wurde abgelehnt, weil die App ein Feld unter einem Namen abfragte, den TomTom nicht kennt. Jetzt kommen sie durch, erscheinen auf der Karte und werden auf der Route wieder angesagt. Danke an bijindas, der es in TomToms Nutzungsstatistik entdeckt hat.
+  EN: TomTom incidents: almost every check for accidents, roadworks and closures from TomTom was being turned down, because the app asked for a detail under a name TomTom doesn't use. They now come through, show on the map and are announced on your route again. Thanks to bijindas, who spotted it in TomTom's usage stats.
 
 ## 1.0.246 — 2026-10-28
 
