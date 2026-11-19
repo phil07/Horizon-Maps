@@ -254,9 +254,9 @@ private fun MapScreen(engine: NavEngine, onSettings: () -> Unit) {
     // Search as a button (Settings › Places & trips › Search bar): with no route, the bar and its buttons fold into one round button
     var searchOpen by remember { mutableStateOf(false) }
     val foldOn = engine.prefs.b(PreferenceKeys.SEARCH_FOLD, false)
-    val foldSearch = foldOn && !routing && !engine.previewing && !engine.walking && !searchOpen
+    val foldSearch = (foldOn || engine.searchTucked) && !routing && !engine.previewing && !engine.walking && !searchOpen
     BackHandler(enabled = foldOn && searchOpen && !routing) { searchOpen = false }
-    LaunchedEffect(searchOpen) { if (searchOpen) try { focus.requestFocus() } catch (e: Exception) { } }
+    LaunchedEffect(searchOpen) { if (searchOpen) { engine.searchTucked = false; try { focus.requestFocus() } catch (e: Exception) { } } }
     LaunchedEffect(routing) { if (routing) searchOpen = false }
     val previewing = engine.previewing
     val simple by remember { derivedStateOf { engine.driving && engine.prefs.b(PreferenceKeys.DRIVESIMPLE, true) } }

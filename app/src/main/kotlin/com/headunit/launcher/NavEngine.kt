@@ -56,6 +56,8 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
     var busy by mutableStateOf(false)
     /** Saved & recent under the search bar starts folded on every start (app or car connection); a tap unfolds it until the next one. */
     var quickFolded by mutableStateOf(true)
+    // the search bar folded away after the map was moved by hand with no route (the round button or re-centre brings it back)
+    var searchTucked by mutableStateOf(false)
     var previewing by mutableStateOf(false)
     var northUp by mutableStateOf(false)
     var results by mutableStateOf<List<Place>>(emptyList())
@@ -995,7 +997,7 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
         }
 // a place tapped on the map: a card with its name, "Los" and "Als Stopp" (holding on it still goes there straight away)
         map.onPoiTap = { name, p -> tappedPoi = name to p; tappedAt = android.os.SystemClock.uptimeMillis(); showPick(p, name) }
-        map.onUserGesture = { if (following) { following = false }; scheduleRecentre(12_000) }
+        map.onUserGesture = { if (following) { following = false }; if (route == null && !previewing && !walking) searchTucked = true; scheduleRecentre(12_000) }
         map.onMapIdle = { box -> refreshChargerLayer(box) }
         map.onAltTap = { i -> switchToAlt(i) }
         map.onPreviewTap = { k -> onPreviewRouteTap(k) }
@@ -2919,7 +2921,7 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
         map.setRoute(emptyList(), emptyList()); map.setDest(null); map.setVia(emptyList()); map.setTurnPulse(false); laneKey = null; map.setLanes(emptyList()); map.setLaneSign(null, emptyList()); laneSignFor = -1.0; bubbleLanes = null; map.setLaneBubble(null, emptyList()); map.setRouteShift(emptyList()); laneLatAt = null; laneShiftEnd = 0.0
         map.highlightDestination(null)
         stopSim()
-        speechQ.clear(); playing = null; playingId = ""
+        speechQ.clear(); speechSegs.clear(); playing = null; playingId = ""
         tts?.stop()
         // a stopped announcement never reports done: put the music back up here
         spoken = 0; unduck()
@@ -2937,6 +2939,7 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
      * back to automatic. On a route the zoom is always automatic.
      */
     fun recenter(byUser: Boolean = false) {
+        searchTucked = false
         val wasFollowing = following
         following = true
         val resetZoom = route != null || (byUser && wasFollowing)
@@ -3813,7 +3816,7 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
         // a route left running while parked: after half an hour it ends by itself, and with the app put away the GPS stops
         if (route != null && !previewing && p.speed < 0.8) {
             if (parkedRouteSince == 0L) parkedRouteSince = now
-            else if (now - parkedRouteSince > 30 * 60_000L) { parkedRouteSince = 0L; endRoute(); if (!appVisible) stopLocation() }
+            else if (now - parkedRouteSince > 30 * 60_000L) { parkedRouteSince = 0L; endRoute(); if (!appVisible && !RouteSync.carConnected()) stopLocation() }
         } else parkedRouteSince = 0L
         // ---- end of trip (stopped for two minutes) ----
         if (p.speed > 4.0) { drove = true; stillSince = 0L }
@@ -7338,6 +7341,11 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
     internal val speechQ = ArrayDeque<Utt>()
     internal var playing: Utt? = null
     internal var playingId = ""
+    /** The pieces of the utterance being read, each with the language whose voice reads it (null: the head unit's own voice). */
+    internal val speechSegs = ArrayDeque<Pair<String, java.util.Locale?>>()
+    /** The voice the head unit started with, and whether a piece in another script is being read in its own voice. */
+    internal var homeVoice: android.speech.tts.Voice? = null
+    internal var inForeignVoice = false
     internal var uttSeq = 0
     internal val speechMain = android.os.Handler(android.os.Looper.getMainLooper())
 

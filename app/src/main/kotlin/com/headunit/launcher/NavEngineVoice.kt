@@ -511,6 +511,7 @@ internal fun NavEngine.routeExtrasTick(r: Route, progress: Double) {
 
 fun NavEngine.speakForce(text: String) {
     if (!ttsReady) return
+    restoreHomeVoice()
     tts?.speak(text, TextToSpeech.QUEUE_FLUSH, null, "read")
 }
 

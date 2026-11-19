@@ -124,7 +124,7 @@ fun CarOverlay(engine: NavEngine, area: State<android.graphics.Rect?>, dark: Sta
     LaunchedEffect(carRoadName) { engine.map.setRoadNameScale(carRoadName / 100f) }
     val carFlags = engine.prefs.b(PreferenceKeys.FLAGS_3D, true); val carWave = engine.prefs.b(PreferenceKeys.FLAGS_WAVE, true)
     LaunchedEffect(carFlags, carWave) { engine.map.refreshFlags() }
-    val carLamps = engine.prefs.b(PreferenceKeys.LAMPS, true)
+    val carLamps = engine.prefs.b(PreferenceKeys.LAMPS, false)
     LaunchedEffect(carLamps) { engine.map.lampsEnabled(carLamps) }
     val carTrees = engine.prefs.b(PreferenceKeys.TREES, true)
     LaunchedEffect(carTrees) { engine.map.treesEnabled(carTrees) }

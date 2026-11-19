@@ -137,7 +137,7 @@ class MainActivity : ComponentActivity() {
                     else if (to == null) {
                         NavService.stop(applicationContext)
                         // the route ended (arrived or cancelled) while another app was in front: GPS can rest too
-                        if (!lifecycle.currentState.isAtLeast(androidx.lifecycle.Lifecycle.State.STARTED)) engine.stopLocation()
+                        if (!lifecycle.currentState.isAtLeast(androidx.lifecycle.Lifecycle.State.STARTED) && !RouteSync.carConnected()) engine.stopLocation()
                     }
                 }
         }
@@ -246,7 +246,8 @@ class MainActivity : ComponentActivity() {
         if (!::engine.isInitialized) return
         engine.appVisible = false
         // with no route there is nothing to guide, so GPS is switched off while the app is in the background
-        if (!guiding()) engine.stopLocation()
+        // (not while the car screen is connected: its map needs the GPS with the phone locked)
+        if (!guiding() && !RouteSync.carConnected()) engine.stopLocation()
     }
 
     override fun onDestroy() {

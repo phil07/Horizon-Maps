@@ -165,7 +165,7 @@ internal fun NavEngine.enqueue(u: Utt) {
         val p = playing
         // a plain note being read out is cut short; a warning or a turn call is finished first (cutting a turn call off mid
         // sentence left half a direction)
-        if (p != null && p.kind == 0) { playing = null; playingId = ""; try { tts?.stop() } catch (e: Exception) { } }
+        if (p != null && p.kind == 0) { playing = null; playingId = ""; speechSegs.clear(); try { tts?.stop() } catch (e: Exception) { } }
     } else speechQ.addLast(u)
     playNext()
 }
@@ -182,11 +182,10 @@ private fun NavEngine.playNext() {
         if (ch != voiceChan) { voiceChan = ch; try { tts?.setAudioAttributes(speechAttrs) } catch (e: Exception) { } }
         spoken = 1
         duck()
-        val id = "nav${++uttSeq}"
-        playing = u; playingId = id
-        val r = tts?.speak(u.text, TextToSpeech.QUEUE_ADD, null, id)
-        if (r == TextToSpeech.ERROR) { playing = null; playingId = ""; continue }
-        return
+        playing = u
+        speechSegs.clear(); speechSegs.addAll(speechSegments(u.text))
+        if (speakNextSegment()) return
+        playing = null; playingId = ""
     }
     // nothing left to say: the music comes back up
     spoken = 1; unduck()
@@ -196,7 +195,77 @@ private fun NavEngine.playNext() {
 internal fun NavEngine.uttDone(id: String?) {
     speechMain.post {
         if (id == null || id != playingId) return@post
-        playing = null; playingId = ""
+        playingId = ""
+        // a sentence with a piece in another script is read piece by piece: the next piece first
+        if (speakNextSegment()) return@post
+        playing = null
+        restoreHomeVoice()
         playNext()
     }
+}
+
+/** The language whose voice reads a letter of this script, or null for Latin letters (the head unit's own voice reads those). */
+internal fun scriptLanguage(cp: Int): String? = when (Character.UnicodeBlock.of(cp)) {
+    Character.UnicodeBlock.HEBREW -> "he"
+    Character.UnicodeBlock.ARABIC, Character.UnicodeBlock.ARABIC_SUPPLEMENT -> "ar"
+    Character.UnicodeBlock.CYRILLIC, Character.UnicodeBlock.CYRILLIC_SUPPLEMENTARY -> "ru"
+    Character.UnicodeBlock.GREEK -> "el"
+    Character.UnicodeBlock.THAI -> "th"
+    Character.UnicodeBlock.HIRAGANA, Character.UnicodeBlock.KATAKANA -> "ja"
+    Character.UnicodeBlock.HANGUL_SYLLABLES, Character.UnicodeBlock.HANGUL_JAMO -> "ko"
+    Character.UnicodeBlock.CJK_UNIFIED_IDEOGRAPHS -> "zh"
+    else -> null
+}
+
+/**
+ * Splits a sentence by script: letters the head unit's voice can't read (a Hebrew street name, say) are spoken in a voice for
+ * that script. Numbers, spaces and punctuation stay with the piece before them.
+ */
+internal fun speechSegments(text: String): List<Pair<String, Locale?>> {
+    val out = ArrayList<Pair<String, Locale?>>()
+    val sb = StringBuilder()
+    var cur: String? = null
+    fun flush() { if (sb.isNotBlank()) out.add(sb.toString() to cur?.let { Locale.forLanguageTag(it) }); sb.setLength(0) }
+    var i = 0
+    while (i < text.length) {
+        val cp = text.codePointAt(i)
+        i += Character.charCount(cp)
+        if (Character.isLetter(cp)) {
+            val lang = scriptLanguage(cp)
+            if (lang != cur) { flush(); cur = lang }
+        }
+        sb.appendCodePoint(cp)
+    }
+    flush()
+    return out
+}
+
+/**
+ * Speaks the next piece of the utterance being read, in the voice for its script when the phone has one. False when nothing
+ * was spoken (the pieces are used up, or the engine refused them).
+ */
+internal fun NavEngine.speakNextSegment(): Boolean {
+    val t = tts ?: return false
+    while (true) {
+        val (text, lang) = speechSegs.removeFirstOrNull() ?: run { restoreHomeVoice(); return false }
+        val voice = lang?.let { l ->
+            t.voices?.filter { it.locale.language == l.language && it.features?.contains(TextToSpeech.Engine.KEY_FEATURE_NOT_INSTALLED) != true }
+                ?.maxByOrNull { it.quality }
+        }
+        try {
+            if (voice != null) { if (!inForeignVoice) homeVoice = t.voice; t.voice = voice; inForeignVoice = true }
+            else restoreHomeVoice()
+        } catch (e: Exception) { }
+        val id = "nav${++uttSeq}"
+        playingId = id
+        if (t.speak(text, TextToSpeech.QUEUE_ADD, null, id) != TextToSpeech.ERROR) return true
+        playingId = ""
+    }
+}
+
+/** Back to the voice the head unit started with, after a piece in another script. */
+internal fun NavEngine.restoreHomeVoice() {
+    if (!inForeignVoice) return
+    inForeignVoice = false
+    try { homeVoice?.let { tts?.voice = it } } catch (e: Exception) { }
 }

@@ -405,10 +405,8 @@ class CarSurface(private val carContext: CarContext, private val onReady: (MapBi
             } catch (e: Throwable) { }
             // drawn straight to its own surface (no extra copy each frame, which a texture view would cost)
             val m = MapBinding(p.context, true, 1f, ratio)
-            // Android Auto: keep street-lamp models and their light pools off to reduce visual clutter
-            // and rendering work on the car display. This is scoped to the car map; the phone app's
-            // Street lamps preference remains unchanged.
-            m.lampsEnabled(false)
+            // Android Auto follows the Street lamps setting, like the trees and the other 3D details
+            m.lampsEnabled(Prefs(p.context.applicationContext).b(PreferenceKeys.LAMPS, false))
             // a touch thicker route line on the car screen, where it looked thin against the buildings
             m.routeBoost = 1.2f
             // the satellite and 3D-building choices from the phone's settings apply to the car map as well (it used to ignore them)
