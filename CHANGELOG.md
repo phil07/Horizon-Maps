@@ -1,8 +1,8 @@
 ## Unreleased
 
-### Improved
-- Kurz vor dem Ziel schlägt die App keine Parkplätze mehr vor, auch nicht auf Android Auto. Wer die Vorschläge haben will, schaltet „Parkplätze nahe dem Ziel“ in den Einstellungen ein.
-  EN: The app no longer suggests car parks shortly before you arrive, on Android Auto either. To have them, switch on "Car parks near the destination" in Settings.
+### Fixed
+- Android Auto: Die runden Knöpfe stehen jetzt in einer Reihe direkt unter dem Zahnrad, auch auf hohen Bildschirmen. Vorher standen sie dort rechts daneben.
+  EN: Android Auto: the round buttons now stand in one line right under the gear, on tall screens too. Before, they stood to its right there.
 
 ## 1.0.246 — 2026-10-28
 

@@ -232,7 +232,10 @@ private fun CarScreen(engine: NavEngine, a: android.graphics.Rect?, actions: Car
         val gearSize = 80.dp
         val colGap = 8.dp
         val colBtn = ((maxHeight - gearTop - gearSize - colGap * 7 - 36.dp) / 7).coerceIn(40.dp, gearSize)
-        val colInStrip = !portrait && insL > 156.dp
+        // Android Auto's own strip on the left (where its button sits, in the middle of it): the column goes in it, right under that
+        // button, whenever the strip is wide enough for one, on a wide or a tall screen alike (it used to need a wide screen and
+        // 156 dp, and on other screens stood to the right of the strip instead)
+        val colInStrip = insL >= colBtn
         val colShift = if (ownCol && !colInStrip) colBtn + 14.dp else 0.dp
         // the cards start just right of the column (and of Android Auto's button above it), not at the far side of its whole strip
         val left = if (ownCol && colInStrip) insL / 2 + maxOf(colBtn, gearSize) / 2 + 12.dp else insL + edge + colShift
