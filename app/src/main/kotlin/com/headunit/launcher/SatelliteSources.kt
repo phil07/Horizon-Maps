@@ -1,7 +1,7 @@
 package com.headunit.launcher
 
 /** Where the satellite photos come from. */
-internal enum class SatProvider { MAPBOX, ESRI, MAPTILER, EOX }
+internal enum class SatProvider { MAPBOX, TOMTOM, ESRI, MAPTILER, EOX }
 
 /** One German state's free aerial photos (Digitale Orthophotos, about 20 cm per pixel) as a WMS, with the rough area it covers. */
 internal data class StateWms(
@@ -20,21 +20,23 @@ internal data class StateWms(
 internal object SatelliteSources {
 
     /** The automatic order of the worldwide photo sources; Esri and MapTiler only with a key. */
-    fun chain(esriKey: String, maptilerKey: String): List<SatProvider> = chain(AUTO, esriKey, maptilerKey)
+    fun chain(esriKey: String, maptilerKey: String, tomtomKey: String = ""): List<SatProvider> = chain(AUTO, esriKey, maptilerKey, tomtomKey)
 
     /**
      * The sources to try for a choice in Settings ("auto", "mapbox", "landesamt", "esri", "maptiler", "eox"). A fixed choice
      * still ends with EOX, so a refused key or a missing one never leaves the map without photos.
      */
-    fun chain(choice: String, esriKey: String, maptilerKey: String): List<SatProvider> {
-        val esri = esriKey.isNotBlank(); val mt = maptilerKey.isNotBlank()
+    fun chain(choice: String, esriKey: String, maptilerKey: String, tomtomKey: String = ""): List<SatProvider> {
+        val esri = esriKey.isNotBlank(); val mt = maptilerKey.isNotBlank(); val tt = tomtomKey.isNotBlank()
         return when (choice) {
             "mapbox" -> listOf(SatProvider.MAPBOX, SatProvider.EOX)
             "landesamt" -> buildList { if (esri) add(SatProvider.ESRI); if (mt) add(SatProvider.MAPTILER); add(SatProvider.EOX) }
             "esri" -> if (esri) listOf(SatProvider.ESRI, SatProvider.EOX) else listOf(SatProvider.EOX)
             "maptiler" -> if (mt) listOf(SatProvider.MAPTILER, SatProvider.EOX) else listOf(SatProvider.EOX)
             "eox" -> listOf(SatProvider.EOX)
-            else -> buildList { add(SatProvider.MAPBOX); if (esri) add(SatProvider.ESRI); if (mt) add(SatProvider.MAPTILER); add(SatProvider.EOX) }
+            "tomtom" -> if (tt) listOf(SatProvider.TOMTOM, SatProvider.EOX) else listOf(SatProvider.EOX)
+            // Mapbox refused (too many requests, or its limits): TomTom's photos come next, when there is a TomTom key
+            else -> buildList { add(SatProvider.MAPBOX); if (tt) add(SatProvider.TOMTOM); if (esri) add(SatProvider.ESRI); if (mt) add(SatProvider.MAPTILER); add(SatProvider.EOX) }
         }
     }
     const val AUTO = "auto"
@@ -79,6 +81,8 @@ internal object SatelliteSources {
     }
     const val REFUSALS_TO_SWITCH = 10
 
+    fun tomtomTiles(key: String) = "https://api.tomtom.com/map/1/tile/sat/main/{z}/{x}/{y}.jpg?key=${key.trim()}"
+    const val TOMTOM_CREDIT = "Luftbilder: © TomTom"
     fun esriTiles(key: String) = "https://ibasemaps-api.arcgis.com/arcgis/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}?token=${key.trim()}"
     fun maptilerTiles(key: String) = "https://api.maptiler.com/tiles/satellite-v2/{z}/{x}/{y}.jpg?key=${key.trim()}"
     const val EOX_TILES = "https://tiles.maps.eox.at/wmts/1.0.0/s2cloudless-2023_3857/default/GoogleMapsCompatible/{z}/{y}/{x}.jpg"

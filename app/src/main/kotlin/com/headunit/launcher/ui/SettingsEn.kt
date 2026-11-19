@@ -938,7 +938,7 @@ internal object SettingsEn {
         "Ohne Empfang: Routen und Suche aus dem Offline-Paket." to "With no signal: routes and search from the offline pack.",
         "noch keine Abfrage" to "no request yet",
         "Tempolimits aus Straßenfotos. Kostenlos auf mapillary.com" to "Speed limits from street photos. Free at mapillary.com",
-        "Automatisch: Mapbox, Landesamt (DE), Esri, MapTiler, EOX. Anbieter ohne Schlüssel werden übersprungen." to "Automatic: Mapbox, state survey (DE), Esri, MapTiler, EOX. Providers without a key are skipped.",
+        "Automatisch: Mapbox, TomTom, Landesamt (DE), Esri, MapTiler, EOX. Anbieter ohne Schlüssel werden übersprungen." to "Automatic: Mapbox, TomTom, state survey (DE), Esri, MapTiler, EOX. Providers without a key are skipped.",
         "Landesamt: amtliche Luftbilder (nur Deutschland)" to "State survey: official aerial photos (Germany only)",
         "Speichert Luftbilder entlang der Route" to "Saves satellite images along the route",
         "In die Zwischenablage. Kann Standortdaten enthalten." to "To the clipboard. May contain location data.",

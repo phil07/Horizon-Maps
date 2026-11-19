@@ -152,7 +152,9 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
     private fun satChoice() = prefs.s(PreferenceKeys.SAT_SOURCE, SatelliteSources.AUTO)
     /** The satellite sources to try (Settings > Satellitenbilder; Esri and MapTiler only once their key is in Settings). */
     private fun satChain(): List<SatProvider> =
-        SatelliteSources.chain(satChoice(), prefs.s(PreferenceKeys.ESRI_KEY, ""), prefs.s(PreferenceKeys.MAPTILER_KEY, ""))
+        SatelliteSources.chain(satChoice(), prefs.s(PreferenceKeys.ESRI_KEY, ""), prefs.s(PreferenceKeys.MAPTILER_KEY, ""), tomtomKey())
+    /** The TomTom key (the one in Settings, or the built-in one): TomTom's photos are a source once Mapbox refuses. */
+    private fun tomtomKey(): String = prefs.s(PreferenceKeys.API_KEY, "").ifBlank { BuildConfig.TOMTOM_API_KEY }.trim()
     private var satSig: String? = null
     private var satFails = 0
     private var buildings3d = true
@@ -569,6 +571,8 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
                     .tileSize(512).maxzoom(20L).attribution(SatelliteSources.MAPTILER_CREDIT).build()
                 // EOX's Sentinel-2 photos stop at zoom 13 (free for non-commercial use, attribution required)
                 // (through the photo store on the phone: kept for later, and for routes fetched ahead)
+                SatProvider.TOMTOM -> RasterSource.Builder("dl-sat").tiles(listOf(SatelliteSources.tomtomTiles(tomtomKey()))).tileSize(256).maxzoom(19L)
+                    .attribution(SatelliteSources.TOMTOM_CREDIT).build()
                 SatProvider.EOX -> RasterSource.Builder("dl-sat").tiles(listOf(SatTileCache.tileUrl(ctx, "eox") ?: SatelliteSources.EOX_TILES)).tileSize(256).maxzoom(13L)
                     .attribution(SatelliteSources.EOX_CREDIT).build()
             }

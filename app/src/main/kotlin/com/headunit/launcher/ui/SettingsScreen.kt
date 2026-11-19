@@ -1324,8 +1324,8 @@ private fun KeysSection(prefs: Prefs, engine: NavEngine) {
         SFieldItem("Mapbox Zugangstoken", prefs.s(PreferenceKeys.MAPBOX_TOKEN, ""), "Öffentliches Token (beginnt mit pk.) einfügen",
             placeholder = "Token einfügen") { prefs.put(PreferenceKeys.MAPBOX_TOKEN, com.headunit.launcher.MapboxRest.clean(it)) }
     }
-    SGroup("Satellitenbilder", footer = "Automatisch: Mapbox, Landesamt (DE), Esri, MapTiler, EOX. Anbieter ohne Schlüssel werden übersprungen.") {
-        SChoice("Quelle", listOf("auto" to "Automatisch", "mapbox" to "Mapbox", "landesamt" to "Landesamt", "esri" to "Esri", "maptiler" to "MapTiler", "eox" to "EOX"),
+    SGroup("Satellitenbilder", footer = "Automatisch: Mapbox, TomTom, Landesamt (DE), Esri, MapTiler, EOX. Anbieter ohne Schlüssel werden übersprungen.") {
+        SChoice("Quelle", listOf("auto" to "Automatisch", "mapbox" to "Mapbox", "landesamt" to "Landesamt", "esri" to "Esri", "maptiler" to "MapTiler", "tomtom" to "TomTom", "eox" to "EOX"),
             prefs.s(PreferenceKeys.SAT_SOURCE, "auto"), "Landesamt: amtliche Luftbilder (nur Deutschland)") { prefs.put(PreferenceKeys.SAT_SOURCE, it) }
         SChoice("Straßen über dem Luftbild", listOf("subtle" to "Dezent", "normal" to "Normal", "strong" to "Kräftig"),
             prefs.s(PreferenceKeys.SAT_HYBRID, "normal")) { prefs.put(PreferenceKeys.SAT_HYBRID, it) }
