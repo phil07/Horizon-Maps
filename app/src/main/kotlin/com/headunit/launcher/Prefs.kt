@@ -240,6 +240,8 @@ internal object PreferenceKeys {
     const val PREDICT = "predict"
     /** Your usual trips: how long they took, by place and time of day (kept on the phone; see LearnedTrips). */
     const val LEARNED_TRIPS = "learned_trips"
+    /** What ended the last five routes, for problem reports (never the place itself). */
+    const val ROUTE_ENDS = "route_ends"
     const val QUICKLIST = "quicklist"
     /** Tap the battery widget's refresh button now and then while Android Auto is connected. */
     const val EV_AUTOREFRESH = "evautorefresh"

@@ -1426,9 +1426,16 @@ private fun ImmResults(engine: NavEngine, onPicked: () -> Unit) {
             if (k in seen) null else { seen += k; val n = engine.chainCount(p); if (n >= 2) p to n else null }
         }.toMap()
     }
+    // the list as it was drawn: a tap empties engine.results while the list is still on screen (it used to be read again then)
+    val shownResults = engine.results
     LazyColumn(Modifier.fillMaxWidth().heightIn(max = 420.dp).panel(10.dp, shape, c.surface).padding(vertical = 6.dp)) {
-        items(engine.results) { p ->
-            Row(Modifier.fillMaxWidth().clickable { onPicked(); engine.pickResult(p) }.padding(horizontal = 16.dp, vertical = 11.dp), verticalAlignment = Alignment.CenterVertically) {
+        items(shownResults) { p ->
+            Row(Modifier.fillMaxWidth().clickable {
+                // (picked once: a second tap in the same moment, on the row or its "See all" line, is ignored)
+                if (engine.results !== shownResults) return@clickable
+                onPicked()
+                try { engine.pickResult(p) } catch (e: Exception) { android.util.Log.w("ImmResults", "pick failed", e) }
+            }.padding(horizontal = 16.dp, vertical = 11.dp), verticalAlignment = Alignment.CenterVertically) {
                 PlaceLogo(engine, p)
                 Column(Modifier.padding(start = 14.dp).weight(1f)) {
                     Text(p.name, color = c.text, fontSize = 17.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
@@ -1438,7 +1445,7 @@ private fun ImmResults(engine: NavEngine, onPicked: () -> Unit) {
                 if (here != null) Text(Geo.fmtDist(Geo.dist(here, p.pos), engine.imperial), color = c.sub, fontSize = 13.sp, modifier = Modifier.padding(start = 8.dp))
             }
             chainRows[p]?.let { n ->
-                Row(Modifier.fillMaxWidth().clickable { engine.showAllLocations(p) }.padding(start = 72.dp, end = 16.dp, top = 0.dp, bottom = 10.dp),
+                Row(Modifier.fillMaxWidth().clickable { if (engine.results === shownResults) engine.showAllLocations(p) }.padding(start = 72.dp, end = 16.dp, top = 0.dp, bottom = 10.dp),
                     verticalAlignment = Alignment.CenterVertically) {
                     Icon(androidx.compose.material.icons.Icons.Rounded.LocationOn, null, tint = c.accent, modifier = Modifier.size(18.dp))
                     Text(Lang.t("Alle $n Standorte anzeigen", "See all $n locations"), color = c.accent, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(start = 6.dp))

@@ -52,6 +52,8 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
     // (remembered: it used to start in 3D every time, even if you'd left it in 2D)
     // the phone's own choice (2D or 3D); on Android Auto the map is always 3D, which looks better there
     private var tilt3dPref by mutableStateOf(prefs.b(PreferenceKeys.VIEW_3D, true))
+    /** Whether it is really dark outside (see darkOutside), looked at every minute and when day or night changes. */
+    var outsideDarkNow by mutableStateOf(true)
     val tilt3d: Boolean get() = tilt3dPref || RouteSync.carOn
     var simMode by mutableIntStateOf(0)
     var message by mutableStateOf<String?>(null)
@@ -274,6 +276,8 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
 
     /** A search result tapped: while driving it is asked about (see [askNewDest]), otherwise its card shows as before. */
     fun pickResult(p: Place) {
+        // a "See all locations" search still running would draw its pins and move the map after the pick: it is stopped first
+        if (chain != null || chainBusy) closeChain()
         if (route != null && !previewing && dest != null) { results = emptyList(); askNewDest(p) } else showResultCard(p)
     }
 
@@ -944,7 +948,7 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
         ItalyFuel.dir = ctx.filesDir
         SpainFuel.dir = ctx.filesDir
         // the suggested destination (where you're probably heading) is looked at once a minute while idle; the card shows it
-        scope.launch { while (true) { try { refreshPrediction() } catch (e: Exception) { }; try { dgtTick() } catch (e: Exception) { }; delay(60_000L) } }
+        scope.launch { while (true) { try { refreshPrediction() } catch (e: Exception) { }; try { dgtTick() } catch (e: Exception) { }; try { refreshOutsideDark() } catch (e: Exception) { }; delay(60_000L) } }
         // the daily backup to the chosen folder: checked a little after start, then every half hour while the app runs
         scope.launch { delay(20_000L); while (true) { try { withContext(Dispatchers.IO) { AutoBackup.runIfDue(ctx, prefs) } } catch (e: Exception) { }; delay(30 * 60_000L) } }
         // the one-way street warning went off too often on OpenStreetMap's data: off for everyone once (it can be switched back on)
@@ -1427,8 +1431,26 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
      * or the OpenStreetMap map. With no signal the downloaded pack's own map is shown (unless a saved Mapbox area covers where
      * you are). Day and night on Mapbox's map only change its light (a smooth fade, no reload).
      */
+    /**
+     * Whether it is really dark outside. Only "Always night" asks: by day the map stays dark, but the stars, the lit street lamps and
+     * the headlight beam wait until the sun is down where you are. Any other setting: the map's own night decides, as before.
+     */
+    fun darkOutside(now: Long = System.currentTimeMillis()): Boolean {
+        val phoneTheme = prefs.s(PreferenceKeys.THEME, "auto")
+        val th = if (isCar) prefs.s(PreferenceKeys.CARTHEME, "car").let { if (it == "phone") phoneTheme else it } else phoneTheme
+        if (th != "night") return true
+        val p = fix?.pos ?: return true
+        return !Sun.isDay(p.lat, p.lon, now)
+    }
+    internal fun refreshOutsideDark() {
+        val d = try { darkOutside() } catch (e: Exception) { true }
+        if (d != outsideDarkNow) outsideDarkNow = d
+        map.setOutsideDark(d)
+    }
+
     fun applyStyle(dark: Boolean) {
         lastDark = dark
+        refreshOutsideDark()
         map.nightStyle = dark
         map.applyHdRoads(hdRoadsWanted())
         if (map.onRestyle == null) map.onRestyle = { restyle() }
@@ -1841,6 +1863,26 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
         return out
     }
 
+    /**
+     * What ended a route, kept for problem reports (the last five): when, on which screen, during the route choice or the drive,
+     * whether it went to Home, Work or elsewhere (never the place itself), and the part of the app that ended it. To track down a
+     * route that cancels itself.
+     */
+    private fun noteRouteEnd() {
+        val d = dest ?: return
+        if (route == null) return
+        fun near(slot: String) = places.slot(slot)?.let { Geo.dist(it.pos, d.pos) < 150.0 } == true
+        val kind = if (near("home")) "Home" else if (near("work")) "Work" else "elsewhere"
+        // the first two places in the app's own code that led here (button, voice, arrival, the car screen...)
+        val by = Throwable().stackTrace.asSequence()
+            .filter { it.className.startsWith("com.headunit.launcher") && it.methodName != "endRoute" && it.methodName != "noteRouteEnd" }
+            .take(2).joinToString(" < ") { it.className.substringAfterLast('.') + "." + it.methodName }.ifBlank { "unknown" }
+        val line = SimpleDateFormat("dd.MM. HH:mm", Locale.UK).format(Date()) + " · " + (if (isCar) "Android Auto" else "phone") + " · " +
+            (if (previewing) "route choice" else "driving") + " · to " + kind + " · by " + by
+        val old = prefs.s(PreferenceKeys.ROUTE_ENDS, "").lines().filter { it.isNotBlank() }
+        prefs.put(PreferenceKeys.ROUTE_ENDS, (old + line).takeLast(5).joinToString("\n"))
+    }
+
     private fun buildReport(note: String): String {
         val dm = ctx.resources.displayMetrics
         val crash = try { java.io.File(ctx.filesDir, "lastcrash.txt").takeIf { it.exists() }?.readText()?.take(2500) } catch (e: Exception) { null }
@@ -1864,6 +1906,9 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
                 val t = mbToken
                 val shape = when { t.isBlank() -> "none"; !MapboxRest.looksValid(t) -> "not a token"; !MapboxRest.looksWhole(t) -> "looks incomplete"; else -> "looks whole" }
                 appendLine("Mapbox token: ${t.take(3)}… $shape" + (if (mbCheckNote.isNotBlank()) " · $mbCheckNote" else "") + (if (mbKeyRefused) " · refused" else "") + (if (mbRefusedWhy.isNotBlank()) " · $mbRefusedWhy" else ""))
+            }
+            prefs.s(PreferenceKeys.ROUTE_ENDS, "").takeIf { it.isNotBlank() }?.let { ends ->
+                appendLine("Last route ends:"); ends.lines().forEach { appendLine("  $it") }
             }
             if (crash != null) { appendLine(); appendLine("Last crash:"); appendLine(crash) }
             val freeze = try { FreezeWatch.file(ctx).takeIf { it.exists() }?.readText()?.take(2500) } catch (e: Exception) { null }
@@ -2997,6 +3042,7 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
     }
 
     fun endRoute() {
+        try { noteRouteEnd() } catch (e: Exception) { }
         stopPause = null
         stopTripShare(quiet = true)
         try { evTripDone() } catch (e: Exception) { }
@@ -4474,7 +4520,7 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
         // on a route the beam comes on once you first move off, and then stays on to the end (even at lights); without one it shows while you move
         val guided = r != null && !previewing
         if (!guided) beamLatched = false else if (gSpeed >= 2.0) beamLatched = true
-        map.setBeam(prefs.b(PreferenceKeys.HEADLIGHT_BEAM, false) && lastDark && (!guided || beamLatched), gSpeed, guided)
+        map.setBeam(prefs.b(PreferenceKeys.HEADLIGHT_BEAM, false) && lastDark && outsideDarkNow && (!guided || beamLatched), gSpeed, guided)
         map.setMe(gp, gHead, 0)
         if (glideOnRoute && r != null && !previewing) {
             if (now - gDoneAt >= (if (following) 350L else 1500L)) { gDoneAt = now; updateDone(r, gProg) }

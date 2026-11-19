@@ -1632,6 +1632,15 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
     @Volatile private var lampsBusy = false
     private val lampExec = java.util.concurrent.Executors.newSingleThreadExecutor { r -> Thread(r, "lamps").apply { isDaemon = true; priority = Thread.MIN_PRIORITY } }
 
+    /** "Always night" by day: the map is dark, but the lamps are only lit once it is really dark outside (NavEngine.darkOutside). */
+    var outsideDark = true
+        private set
+    fun setOutsideDark(on: Boolean) {
+        if (on == outsideDark) return
+        outsideDark = on; lampsCentre = null
+        main0.post { if (style != null && lampsOn) reinstall() }
+    }
+
     fun lampsEnabled(on: Boolean) {
         if (on == lampsOn) return
         lampsOn = on; lampsCentre = null
@@ -1648,7 +1657,7 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
         lampsCentre = null
         if (!lampsOn) { lampStage = "off"; return }
         Furniture.addModels(st)
-        val night = nightStyle
+        val night = nightStyle && outsideDark
         addS(st, GeoJsonSource.Builder("dl-lamps").featureCollection(empty()).build())
         addS(st, GeoJsonSource.Builder("dl-lamp-pools").featureCollection(empty()).build())
         // at night, a soft warm pool of light on the road under each lamp (about 9 m across, growing with the map as you zoom)
@@ -1677,7 +1686,7 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
         val again = force || lampRoadsNew || last == null || Geo.dist(last, c) > 120.0
         if (!again || now - lampsAt < 1200L) return
         lampsBusy = true; lampsAt = now; lampsCentre = c; lampRoadsNew = false
-        val roads = lampRoads; val gap = lampGap; val night = nightStyle
+        val roads = lampRoads; val gap = lampGap; val night = nightStyle && outsideDark
         try {
             lampExec.execute {
                 try {

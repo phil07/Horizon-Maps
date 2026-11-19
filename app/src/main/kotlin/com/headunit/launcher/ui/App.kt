@@ -268,7 +268,7 @@ fun App(prefs: Prefs, engine: NavEngine, map: MapBinding) {
                 if (mapLayer) {
                     MapHost(map, Modifier.fillMaxSize())
                     // at night in 3D, stars and the real moon phase in the sky above the horizon
-                    if (c.dark && engine.tilt3d && !sat && prefs.b(PreferenceKeys.NIGHTSKY, true)) NightSky(Modifier.fillMaxWidth().fillMaxHeight(0.2f))
+                    if (c.dark && engine.outsideDarkNow && engine.tilt3d && !sat && prefs.b(PreferenceKeys.NIGHTSKY, true)) NightSky(Modifier.fillMaxWidth().fillMaxHeight(0.2f))
                     // in a tunnel (no GPS) the map is dimmed a little, as the car's own screen would be
                     if (engine.deadReckoning && !c.dark && prefs.b(PreferenceKeys.TUNNELDIM, true)) Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.35f)))
                     val wxCode = engine.weather?.code

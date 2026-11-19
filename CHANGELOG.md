@@ -1,8 +1,14 @@
 ## Unreleased
 
+### Improved
+- Fehlerberichte enthalten jetzt, was die letzten fünf Routen beendet hat: welcher Bildschirm, ob die Fahrt nach Hause, zur Arbeit oder woandershin ging (nie der Ort selbst) und welcher Teil der App sie beendet hat. Damit lässt sich eine Route finden, die sich von selbst abbricht. Danke an carlb051.
+  EN: Problem reports now include what ended the last five routes: which screen, whether it went to Home, Work or elsewhere (never the place itself) and which part of the app ended it, to track down a route that cancels itself. Thanks to carlb051.
+- Immer Nacht bei Tageslicht: Die Karte bleibt dunkel, aber Sterne, leuchtende Straßenlaternen und der Scheinwerferkegel kommen erst, wenn es draußen wirklich dunkel ist. Danke an bijindas.
+  EN: Always night in daylight: the map stays dark, but the stars, lit street lamps and headlight beam only come on once it's actually dark outside. Thanks to bijindas.
+
 ### Fixed
-- Android Auto: Die runden Knöpfe links liegen nicht mehr unter dem Zahnrad oben, sondern beginnen darunter. Sie sind so groß wie das Zahnrad (auf kleinen Bildschirmen etwas kleiner). Abbiegekarte und Fortschrittsbalken rücken näher an die Knöpfe heran.
-  EN: Android Auto: the round buttons on the left no longer lie under the gear at the top but start below it. They are as big as the gear (a little smaller on small screens). The turn card and the progress bar sit closer to the buttons.
+- Absturz beim Antippen eines Suchtreffers, während oben in der Liste „Alle Standorte anzeigen“ stand. Danke an DJSatan.
+  EN: Crash when tapping a search result while "See all locations" was showing at the top of the list. Thanks to DJSatan.
 
 ## 1.0.246 — 2026-10-28
 
