@@ -226,15 +226,18 @@ private fun SettingsBody(prefs: Prefs, engine: NavEngine, onClose: () -> Unit) {
             label = "section",
         ) { cat ->
           CompositionLocalProvider(LocalSettingHighlight provides highlight) {
-            Column(Modifier.fillMaxSize().imePadding().verticalScroll(rememberScrollState()).padding(horizontal = 4.dp, vertical = 4.dp)) {
-                if (narrowS) Row(Modifier.padding(bottom = 6.dp).clip(RoundedCornerShape(50)).clickable { showList = true }.padding(end = 12.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Box(Modifier.size(42.dp).clip(CircleShape).background(c.tile), contentAlignment = Alignment.Center) {
+            Column(Modifier.fillMaxSize().imePadding()) {
+                // on a phone held upright, the back arrow and the page name stay in a bar at the top while the page scrolls
+                if (narrowS) Row(Modifier.fillMaxWidth().background(c.bg).padding(horizontal = 4.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Box(Modifier.size(42.dp).clip(CircleShape).background(c.tile).clickable { showList = true }, contentAlignment = Alignment.Center) {
                         Icon(Icons.Rounded.ArrowBack, "Alle Einstellungen", tint = c.text, modifier = Modifier.size(22.dp))
                     }
-                    Text(stringResource(R.string.ui_048), color = c.sub, fontSize = 15.sp, modifier = Modifier.padding(start = 10.dp))
+                    Text(tr(sections[cat].title), color = c.text, fontSize = 20.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(start = 12.dp).weight(1f))
                 }
-                Text(tr(sections[cat].title), color = c.text, fontSize = 28.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(start = 6.dp, top = 6.dp))
-                Text(tr(sections[cat].sub), color = c.sub, fontSize = 13.sp, modifier = Modifier.padding(start = 6.dp, bottom = 16.dp))
+                Box(Modifier.weight(1f).fillMaxWidth()) {
+            Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 4.dp, vertical = 4.dp)) {
+                if (!narrowS) Text(tr(sections[cat].title), color = c.text, fontSize = 28.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(start = 6.dp, top = 6.dp))
+                Text(tr(sections[cat].sub), color = c.sub, fontSize = 13.sp, modifier = Modifier.padding(start = 6.dp, top = if (narrowS) 4.dp else 0.dp, bottom = 16.dp))
                 Column(Modifier.widthIn(max = 820.dp)) {
                     when (cat) {
                         0 -> MapLookSection(prefs, engine)
@@ -256,6 +259,14 @@ private fun SettingsBody(prefs: Prefs, engine: NavEngine, onClose: () -> Unit) {
                     }
                 }
             }
+            // on a phone the settings fade softly at the top and bottom edges, under the bar and above the last row
+            if (narrowS) {
+                Box(Modifier.align(androidx.compose.ui.Alignment.TopCenter).fillMaxWidth().height(14.dp)
+                    .background(androidx.compose.ui.graphics.Brush.verticalGradient(listOf(c.bg, androidx.compose.ui.graphics.Color.Transparent))))
+                Box(Modifier.align(androidx.compose.ui.Alignment.BottomCenter).fillMaxWidth().height(14.dp)
+                    .background(androidx.compose.ui.graphics.Brush.verticalGradient(listOf(androidx.compose.ui.graphics.Color.Transparent, c.bg))))
+            }
+                }
           }
         }
         }

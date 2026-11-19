@@ -1,14 +1,14 @@
 ## Unreleased
 
-### Verbessert
-- Batterie um 1 % statt in Zehnerschritten: Das − und das + an der Batterie auf der Routenkarte gehen 1 % auf und ab und laufen weiter, solange man sie hält. (Dank an Dry-Secretary2456)
-  EN: Battery by 1 %: the − and + by the battery on the route screen go up and down 1 % at a time, and keep going while held, instead of jumping in tens. (thanks to Dry-Secretary2456)
+### Neu
+- Ankunftszeit senden: Ein neuer Knopf auf der Fahrtkarte öffnet das Teilen-Menü deines Handys mit einer fertigen Nachricht („Auf dem Weg nach …, Ankunft etwa 10:42“) und einem Kartenlink, zum Senden per WhatsApp, SMS oder wie du willst. Er erscheint nur, wenn du stehst, damit niemand beim Fahren einen Kontakt wählt. (Dank an Dotancom)
+  EN: Send your arrival time: a new button on the trip card opens your phone's share menu with a message ready ("On my way to …, arriving about 10:42") and a map link, to send by WhatsApp, text or anything else. It shows only while you're stopped, so nobody picks a contact while driving. (thanks to Dotancom)
+- Spritpreise in Spanien: Die Live-Preise jeder Tankstelle aus dem spanischen Ministerium für ökologischen Wandel (kostenlos, ohne Schlüssel) erscheinen in der Kraftstoffliste, bei „Günstigste“ in „Stopp hinzufügen“ und bei den Tankvorschlägen. Sie werden auf dem Gerät gespeichert und etwa alle vier Stunden aktualisiert, sodass Preise auch bei einem Ausfall des Dienstes angezeigt werden. (Dank an franciscoserranoadt)
+  EN: Fuel prices in Spain: every petrol station's live prices from the Spanish Ministry for the Ecological Transition (free, no key), in the fuel list, Cheapest in Add a stop and the fuel stop suggestions. Kept on the device and refreshed every few hours, so prices still show if the service is down for a while. (thanks to franciscoserranoadt)
 
-### Behoben
-- Fährt noch nach dem Parken: Wird das Auto innerhalb von 400 m vor dem Ziel abgestellt, endet die Fahrt jetzt, auf Android Auto und auf dem Telefon. Startet man die App direkt am Ziel neu, wird die Fahrt nicht mehr wieder aufgenommen. (Dank an pc4096)
-  EN: Still navigating after parking: switching the car off within 400 m of the destination now ends the trip, on Android Auto and on the phone. Starting the app again right by the destination no longer picks the trip back up. (thanks to pc4096)
-- Musik oder Radio stoppt nach Ansagen: Kam eine zweite Ansage, während die erste noch lief, wurde die Musik nicht wieder laut gestellt und blieb auf manchen Autoradios stumm. Die Musik wird jetzt immer zurückgegeben, sobald die Stimme fertig ist. (Dank an adernev)
-  EN: Music or radio stopping after directions: when a second direction came while the first was still being spoken, the music was not always handed back, and on some head units it stayed quiet. The music is now always handed back once the voice has finished. (thanks to adernev)
+### Verbessert
+- Die Zurück-Taste in den Einstellungen bleibt stehen: Auf dem Handy im Hochformat sitzen der Zurück-Pfeil und der Seitenname jetzt in einer Leiste oben auf jeder Einstellungsseite statt im Scrollen. Die Einstellungen werden oben und unten sanft ausgeblendet. (Dank an yurividal)
+  EN: Settings back button stays put: on phones held upright, the back arrow and the page name now sit in a bar at the top of each settings page instead of scrolling away, and the settings fade softly at the top and bottom edges. (thanks to yurividal)
 
 ## 1.0.246 — 2026-10-28
 

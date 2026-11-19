@@ -888,6 +888,7 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
         try { migratePack() } catch (e: Exception) { }
         // Italy's daily price list is kept with the app's files (see ItalyFuel)
         ItalyFuel.dir = ctx.filesDir
+        SpainFuel.dir = ctx.filesDir
         // the daily backup to the chosen folder: checked a little after start, then every half hour while the app runs
         scope.launch { delay(20_000L); while (true) { try { withContext(Dispatchers.IO) { AutoBackup.runIfDue(ctx, prefs) } } catch (e: Exception) { }; delay(30 * 60_000L) } }
         // the one-way street warning went off too often on OpenStreetMap's data: off for everyone once (it can be switched back on)
@@ -3285,6 +3286,18 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
      * Makes the link (or reuses the running one) and hands it to the share menu. [fromCar]: Android Auto has no share menu, so a
      * notification on the phone opens it.
      */
+    /** A message with the destination, your arrival time and a map link, for any app (the trip card's button, shown while stopped). */
+    fun shareArrival() {
+        val d = dest ?: run { toast(Lang.t("Erst ein Ziel wählen", "Pick a destination first"), 2500); return }
+        val arrive = eta?.arrive
+        val head = if (arrive != null) Lang.t("Auf dem Weg nach ${d.name}, Ankunft etwa $arrive.", "On my way to ${d.name}, arriving about $arrive.")
+            else Lang.t("Auf dem Weg nach ${d.name}.", "On my way to ${d.name}.")
+        val link = "https://www.openstreetmap.org/?mlat=${d.pos.lat}&mlon=${d.pos.lon}#map=15/${d.pos.lat}/${d.pos.lon}"
+        val send = android.content.Intent(android.content.Intent.ACTION_SEND).setType("text/plain").putExtra(android.content.Intent.EXTRA_TEXT, "$head $link")
+        try { ctx.startActivity(android.content.Intent.createChooser(send, Lang.t("Ankunftszeit senden", "Send arrival time")).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)) }
+        catch (e: Exception) { toast(Lang.t("Teilen-Menü nicht verfügbar", "No share menu"), 3000) }
+    }
+
     fun shareTrip(fromCar: Boolean = false) {
         tripShareUrl?.let { openShare(it, fromCar); return }
         if (route == null || previewing) { toast(Lang.t("Erst eine Route starten", "Start a route first"), 2500); return }

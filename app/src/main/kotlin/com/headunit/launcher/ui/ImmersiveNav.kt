@@ -886,6 +886,8 @@ private fun TripArea(engine: NavEngine, shareEta: () -> Unit, narrow: Boolean = 
                     if (evPct != null) ImmCircle({ engine.loadNearby("charging", false) }, 40.dp) { Icon(Icons.Rounded.EvStation, Lang.t("Ladesäulen voraus", "Chargers ahead"), tint = Good, modifier = Modifier.size(20.dp)) }
                     // add a stop: opens your stops, where one can be added on the way
                     ImmCircle({ engine.stopsEditor = true }, 40.dp) { Icon(Icons.Rounded.Add, Lang.t("Stopp hinzufügen", "Add stop"), tint = c.text, modifier = Modifier.size(21.dp)) }
+                    // the arrival time to someone: only while stopped, so nobody picks a contact while driving
+                    if ((engine.fix?.speed ?: 0.0) < 0.8) ImmCircle({ engine.shareArrival() }, 40.dp) { Icon(Icons.Rounded.Share, Lang.t("Ankunftszeit senden", "Send arrival time"), tint = c.text, modifier = Modifier.size(20.dp)) }
                     // (voice and sound are in Map options › This trip, not on the trip card)
                     Box(Modifier.size(40.dp).shadow(6.dp, CircleShape).clip(CircleShape).background(Bad).pressClick { engine.endRoute() }, contentAlignment = Alignment.Center) {
                         Icon(Icons.Rounded.Close, Lang.t("Route beenden", "End route"), tint = Color.White, modifier = Modifier.size(21.dp))
