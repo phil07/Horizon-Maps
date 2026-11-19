@@ -1685,9 +1685,9 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
                 val hd = if (f.speed > 2.0) f.heading else -1.0
                 val rs = withContext(Dispatchers.IO) {
                     val haveOffline = OfflineRouter.installed(ctx)
-                    if (haveOffline && (!hasOnline || !online())) OfflineRouter.routes(ctx, f.pos, d.pos, vp, hd)
+                    if (haveOffline && (!hasOnline || !online())) typicalOffline(ctx, f.pos, d.pos, vp, hd)
                     else try { netRoutes(f.pos, d.pos, false, 0L, vp, hd, true) }
-                    catch (e: Exception) { if (haveOffline && NavigationFallbackPolicy.shouldUseOffline(e)) OfflineRouter.routes(ctx, f.pos, d.pos, vp, hd) else throw e }
+                    catch (e: Exception) { if (haveOffline && NavigationFallbackPolicy.shouldUseOffline(e)) typicalOffline(ctx, f.pos, d.pos, vp, hd) else throw e }
                 }
                 // ended, or another trip chosen, meanwhile
                 if (dest !== d || previewing || route == null) return@launch
@@ -2607,10 +2607,10 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
                 val rs0 = withContext(Dispatchers.IO) {
                     val haveOffline = OfflineRouter.installed(ctx)
                     val hd = driveHeading(from)
-                    if (haveOffline && (!hasOnline || !online())) { usedOffline = true; OfflineRouter.routes(ctx, from, to.pos, via.map { it.pos }, hd) }
+                    if (haveOffline && (!hasOnline || !online())) { usedOffline = true; typicalOffline(ctx, from, to.pos, via.map { it.pos }, hd) }
                     else try { netRoutes(from, to.pos, true, departMs, via.map { it.pos }, hd, askBoth = true) }
                     catch (e: Exception) {
-                        if (haveOffline && NavigationFallbackPolicy.shouldUseOffline(e)) { usedOffline = true; OfflineRouter.routes(ctx, from, to.pos, via.map { it.pos }, hd) } else throw e
+                        if (haveOffline && NavigationFallbackPolicy.shouldUseOffline(e)) { usedOffline = true; typicalOffline(ctx, from, to.pos, via.map { it.pos }, hd) } else throw e
                     }
                 }
                 if (rs0.isEmpty()) throw IllegalStateException("No route found")
@@ -2724,6 +2724,10 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
     }
 
     /** A name for the map strip of the current route: "Southampton → Bristol" style, from where you are to the destination. */
+    /** Offline routes with the hold-ups that are normal at this time of day (see TypicalTraffic). */
+    private fun typicalOffline(ctx: android.content.Context, from: LL, to: LL, via: List<LL> = emptyList(), headingDeg: Double = -1.0, costing: String = "auto"): List<Route> =
+        OfflineRouter.routes(ctx, from, to, via, headingDeg, costing).map { TypicalTraffic.add(it) }
+
     fun offlineRouteName(): String {
         val to = dest?.name?.takeIf { it.isNotBlank() } ?: Lang.t("Ziel", "destination")
         val from = onRoad.takeIf { it.isNotBlank() } ?: Lang.t("Hier", "here")
@@ -2927,10 +2931,10 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
                         val hd = if (f.speed > 2.0) f.heading else -1.0
                         suspend fun fetchNow(): List<Route> = withContext(Dispatchers.IO) {
                             val haveOffline = OfflineRouter.installed(ctx)
-                            if (haveOffline && (!hasOnline || !online())) OfflineRouter.routes(ctx, f.pos, d.pos, via.map { it.pos }, hd)
+                            if (haveOffline && (!hasOnline || !online())) typicalOffline(ctx, f.pos, d.pos, via.map { it.pos }, hd)
                             else try { netRoutes(f.pos, d.pos, false, 0L, via.map { it.pos }, hd, true, askBoth = true) }
                             catch (e: Exception) {
-                                if (haveOffline && NavigationFallbackPolicy.shouldUseOffline(e)) OfflineRouter.routes(ctx, f.pos, d.pos, via.map { it.pos }, hd) else throw e
+                                if (haveOffline && NavigationFallbackPolicy.shouldUseOffline(e)) typicalOffline(ctx, f.pos, d.pos, via.map { it.pos }, hd) else throw e
                             }
                         }
                         // two requests at once (the early one and a fresh one from here): whichever answers first with a route is used

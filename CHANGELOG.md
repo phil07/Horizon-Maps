@@ -1,8 +1,8 @@
 ## Unreleased
 
-### Verbessert
-- Kostenlose Suche verlässlicher: Ohne eigene Schlüssel sucht die Suche zuerst in deinen gespeicherten Orten und im heruntergeladenen Paket. OpenStreetMap wird nur gefragt, wenn das zu wenig ergibt, und nicht bei jedem Buchstaben.
-  EN: Free search, more reliable: without keys of your own, search looks in your saved places and downloaded pack first, and only asks OpenStreetMap when they don't have enough, and not on every letter you type.
+### Neu
+- Ankunftszeiten mit dem üblichen Verkehr: Routen aus der heruntergeladenen Karte (Gratisversion oder ohne Empfang) rechnen jetzt die Staus ein, die zu dieser Tageszeit üblich sind, mehr zu den Stoßzeiten werktags und in Städten als auf der Autobahn. Die Berechnung läuft auf dem Telefon, nichts wird gesendet.
+  EN: Arrival times that know the usual traffic: routes planned from your downloaded map (the free version, or anywhere without signal) now allow for the hold-ups that are normal at that time of day, more in the weekday rush hours and in towns than on motorways. Worked out on your phone, with nothing sent anywhere.
 
 ## 1.0.246 — 2026-10-28
 
