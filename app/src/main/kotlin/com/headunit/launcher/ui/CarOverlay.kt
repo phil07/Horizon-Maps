@@ -953,13 +953,16 @@ private fun CarChips(engine: NavEngine, actions: CarActions, rows: Int) {
             val customsC = engine.places.customs()
             val favsC = engine.places.favourites().filter { f -> customsC.none { Geo.dist(it.place.pos, f.pos) < 60 } }
             val tracksC = com.headunit.launcher.Gpx.list(ctxC)
+            // as many favourites as fit the row (six here); the rest sit behind "Alle"
+            val shownFavs = favsC.take(6)
             if (customsC.isNotEmpty() || favsC.isNotEmpty() || tracksC.isNotEmpty() || engine.prefs.b(PreferenceKeys.SC_PLACES, false) || engine.prefs.b(PreferenceKeys.SC_TRACKS, false)) {
                 Row(Modifier.fillMaxWidth().horizontalScroll(androidx.compose.foundation.rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     for (cu in customsC.filter { engine.prefs.b(PreferenceKeys.STARRED_ROW, true) && it.starred }) CarChip(androidx.compose.material.icons.Icons.Rounded.Place, Color(0xFF4C8DFF), cu.label, "car-own-${cu.label}") { engine.startRoute(cu.place) }
-                    for (f in favsC) CarChip(androidx.compose.material.icons.Icons.Rounded.Star, Color(0xFFF29900), f.name, "car-fav-${f.name}") { engine.startRoute(f) }
+                    for (f in shownFavs) CarChip(androidx.compose.material.icons.Icons.Rounded.Star, Color(0xFFF29900), f.name, "car-fav-${f.name}") { engine.startRoute(f) }
                     for (t in tracksC) CarChip(androidx.compose.material.icons.Icons.Rounded.Route, Color(0xFF2E7D32), t.name, "car-trk-${t.id}") { engine.driveTrack(t.name, com.headunit.launcher.Gpx.load(ctxC, t.id)) }
                     if (engine.prefs.b(PreferenceKeys.SC_PLACES, false)) CarChip(androidx.compose.material.icons.Icons.Rounded.Place, Color(0xFF4C8DFF), Lang.t("Meine Orte", "My places"), "car-sc-places") { engine.carListKind = "places" }
                     if (engine.prefs.b(PreferenceKeys.SC_TRACKS, false)) CarChip(androidx.compose.material.icons.Icons.Rounded.Route, Color(0xFF2E7D32), Lang.t("Meine Tracks", "My tracks"), "car-sc-tracks") { engine.carListKind = "tracks" }
+                    if (favsC.size > shownFavs.size) CarChip(androidx.compose.material.icons.Icons.Rounded.Place, Color(0xFF4C8DFF), Lang.t("Alle", "All"), "car-all-places") { engine.carListKind = "places" }
                 }
             }
         }
@@ -969,7 +972,8 @@ private fun CarChips(engine: NavEngine, actions: CarActions, rows: Int) {
             val mine = engine.places.customs()
             val favs = engine.places.favourites().filter { f -> mine.none { Geo.dist(it.place.pos, f.pos) < 60 } }
             val recents = engine.places.recents().filter { r -> favs.none { Geo.dist(it.pos, r.pos) < 60 } && mine.none { Geo.dist(it.place.pos, r.pos) < 60 } }
-            mine.map { Triple(it.place, true, it.label) } + favs.map { Triple(it, true, it.name) } + recents.take(4).map { Triple(it, false, it.name) }
+            // only the recent places here: your places and favourites are in the row above, so nothing appears twice
+            recents.take(4).map { Triple(it, false, it.name) }
         }
         // Saved & recent: folded when the car screen comes up; its own header folds it open and shut (the Settings switch hides it altogether)
         if (engine.prefs.b(PreferenceKeys.QUICKLIST, true)) Column(Modifier.fillMaxWidth().panel(10.dp, RoundedCornerShape(24.dp), c.surface).padding(vertical = 2.dp)) {

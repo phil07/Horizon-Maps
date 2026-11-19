@@ -1,10 +1,8 @@
 ## Unreleased
 
 ### Neu
-- Android Auto: die Ortskarte zeigt den Spritpreis einer Tankstelle oder die Ladepunkte einer Ladesäule, wenn die App sie schon kennt. Wie auf dem Telefon.
-  EN: Android Auto: the place card shows a petrol station's price or a charger's plugs when the app already knows them, as on the phone.
-- Ortskarte auf dem Telefon: Spritpreis oder Ladepunkte erscheinen auf der Karte, wenn die App sie kennt.
-  EN: Phone place card: the petrol price or the charge points show on the card when the app knows them.
+- Android Auto: deine gespeicherten Orte unter der Suchleiste: Zuhause und Arbeit kommen Favoriten und Sternorte dazu, so viele wie passen, mit Alle für den Rest. Die Liste darunter zeigt jetzt nur noch zuletzt besuchte Orte, damit nichts doppelt erscheint.
+  EN: Android Auto: your saved places under the search bar: Home and Work are joined by your starred places and favourites, as many as fit, with All for the rest. The list below now shows recent places only, so nothing appears twice.
 
 ## 1.0.246 — 2026-10-28
 
