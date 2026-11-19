@@ -1,8 +1,8 @@
 ## Unreleased
 
 ### Neu
-- Vorschlagskarte: Wohin du wahrscheinlich fährst, etwa Arbeit am Morgen, mit der Fahrzeit und einem Knopf Los. Sie steht unter der Suchleiste, auf dem Telefon und auf Android Auto, und verschwindet, sobald eine Route läuft.
-  EN: Suggested destination card: where you're probably heading, such as work in the morning, with its drive time and a Go button. It shows under the search bar, on the phone and on Android Auto, and goes once a route runs.
+- Android Auto: in der Liste „Stopp hinzufügen“ und bei den Tankstellen zeigt jede Zeile den Preis deines Kraftstoffs. Oben steht der Knopf Günstigste, der nach Preis sortiert und zurück nach Entfernung.
+  EN: Android Auto: in the Add a stop list, each petrol station shows the price of your fuel, with a Cheapest button at the top to sort by price, and back to distance.
 
 ## 1.0.246 — 2026-10-28
 

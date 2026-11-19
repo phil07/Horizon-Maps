@@ -1416,6 +1416,14 @@ class NearbyScreen(carContext: CarContext, private val holder: CarHolder, privat
             }
             list.addItem(r.build())
         }
+        // "Günstigste" at the top: the list by price, and back by distance (only when the stations have prices)
+        if (items.any { it.price != null }) {
+            val cheap = e?.nearbySort == "cheap"
+            b.setActionStrip(ActionStrip.Builder().addAction(Action.Builder()
+                .setTitle(if (cheap) Lang.t("Nach Entfernung", "By distance") else Lang.t("Günstigste", "Cheapest"))
+                .setOnClickListener { holder.engine?.changeNearbySort(if (cheap) "near" else "cheap"); invalidate() }
+                .build()).build())
+        }
         return b.setSingleList(list.build()).build()
     }
 }
