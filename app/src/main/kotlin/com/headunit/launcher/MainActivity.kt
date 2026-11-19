@@ -76,7 +76,8 @@ class MainActivity : ComponentActivity() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
             window.attributes.layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
         }
-        WindowInsetsControllerCompat(window, window.decorView).let { controller ->
+        // (not in a floating or split-screen window: there the bars, and the window's own title bar, stay, see hideBars)
+        if (!windowed()) WindowInsetsControllerCompat(window, window.decorView).let { controller ->
             controller.hide(WindowInsetsCompat.Type.systemBars())
             controller.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
         }
@@ -152,7 +153,29 @@ class MainActivity : ComponentActivity() {
     }
 
     /** Hides the status and navigation bars: the newer way, plus the older flags that Android 10 and older head units go by. */
+    /** In a freeform (floating) or split-screen window, e.g. from Taskbar, rather than on the whole screen. */
+    private fun windowed(): Boolean = Build.VERSION.SDK_INT >= 24 && isInMultiWindowMode
+
+    /**
+     * A floating or split-screen window keeps its bars: hiding them also hid the window's own title bar, so it couldn't be dragged,
+     * resized or made full screen. Full screen comes back when the app has the whole screen again.
+     */
+    private fun showBars() {
+        try {
+            window.clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN)
+            WindowInsetsControllerCompat(window, window.decorView).show(WindowInsetsCompat.Type.systemBars())
+            @Suppress("DEPRECATION")
+            if (Build.VERSION.SDK_INT < 30) window.decorView.systemUiVisibility = android.view.View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+        } catch (e: Exception) { }
+    }
+
+    override fun onMultiWindowModeChanged(isInMultiWindowMode: Boolean, newConfig: android.content.res.Configuration) {
+        super.onMultiWindowModeChanged(isInMultiWindowMode, newConfig)
+        if (isInMultiWindowMode) showBars() else hideBars()
+    }
+
     private fun hideBars() {
+        if (windowed()) { showBars(); return }
         try {
             window.addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN)
             WindowCompat.setDecorFitsSystemWindows(window, false)

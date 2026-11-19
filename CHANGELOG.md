@@ -1,12 +1,8 @@
 ## Unreleased
 
-### Neu
-- Android Auto: Suchleiste und Orte auf der Karte ausblenden. Ein neuer Schalter unter Einstellungen › Android Auto (und in den Einstellungen im Auto) lässt Suchleiste, Zuhause und Arbeit, die Schnellwahl und den Fahrtvorschlag weg, wenn du nicht navigierst. Gedacht für Autos mit Drehknopf ohne Touchscreen: Die Karte bekommt den ganzen Bildschirm, und Orte (★) in den Knöpfen von Android Auto hat weiter Suche, Zuhause, Arbeit und deine gespeicherten Orte. Danke an wass0035.
-  EN: Android Auto: leave the search bar and places off the map. A new switch in Settings › Android Auto (and in the car's own settings) leaves out the search bar, Home and Work, the shortcuts and the trip suggestion when you're not navigating. For cars with a rotary knob and no touchscreen: the map gets the whole screen, and Places (★) in Android Auto's own buttons still has Search, Home, Work and your saved places. Thanks to wass0035.
-
-### Improved
-- Gefahrenradar ohne Zebrastreifen: Wer die Zebrastreifen unter Einstellungen › Auf der Karte ausschaltet, sieht auch keine Fußgängerüberwege mehr im Gefahrenradar. Danke an joel941703.
-  EN: Hazard radar without crossings: switching off Zebra crossings in Settings › On the map now takes pedestrian crossings off the hazard radar too. Thanks to joel941703.
+### Fixed
+- Schwebende Fenster: In einem freien oder geteilten Fenster (Taskbar und ähnliche) blendet die App die Leisten nicht mehr aus. Das hatte auch die Titelleiste des Fensters versteckt, sodass es sich nicht verschieben, in der Größe ändern oder auf Vollbild schalten ließ. Hat die App den ganzen Bildschirm, bleibt sie im Vollbild. Danke an Grouchy_Promotion.
+  EN: Floating windows: in a freeform or split-screen window (Taskbar and similar), the app no longer hides the bars, which also hid the window's own title bar, so the window couldn't be dragged, resized or made full screen. Full screen still applies when the app has the whole screen. Thanks to Grouchy_Promotion.
 
 ## 1.0.246 — 2026-10-28
 
