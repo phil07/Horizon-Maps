@@ -1,8 +1,8 @@
 ## Unreleased
 
-### Neu
-- Android Auto: bei der Routenwahl warnt eine Zeile, wenn eine Route in eine Umweltzone oder Low-Emission-Zone fährt, mit Zonen meiden. Auf größeren Bildschirmen steht das Wetter entlang der Route dabei.
-  EN: Android Auto: on the route choice, a line warns when a route goes into a clean air or low emission zone, with Avoid zones. On larger screens the weather along the way shows too.
+### Verbessert
+- Android Auto: die Routenwahl zeigt bei jeder Route ungefähr, was sie an Sprit oder Laden kostet, wie auf dem Telefon. (Dank an pc4096)
+  EN: Fuel estimate on Android Auto: the route choice on the car screen now shows roughly what each route costs in fuel or charging, as on the phone. (thanks to pc4096)
 
 ## 1.0.246 — 2026-10-28
 

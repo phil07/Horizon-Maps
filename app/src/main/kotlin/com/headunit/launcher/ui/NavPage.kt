@@ -805,3 +805,22 @@ private fun StepPill(text: String, onStep: () -> Unit) {
         contentAlignment = Alignment.Center,
     ) { Text(text, color = c.text, fontSize = 15.sp, fontWeight = FontWeight.Medium) }
 }
+
+/** What a route costs in fuel (or charging), with the car's own settings, as its text ("Sprit etwa 12,30 €"); null when not set. */
+fun routeCostText(engine: NavEngine, len: Double): String? {
+    val prefs = engine.prefs
+    val ev = prefs.s(PreferenceKeys.FUEL_TYPE, "E10") == "EV"
+    fun num(k: String) = prefs.s(k, "").replace(',', '.').toDoubleOrNull()?.takeIf { it > 0 }
+    val cc = engine.countryCode()
+    fun priceCents(k: String): Double? {
+        val s = prefs.s(k, "").trim().replace(',', '.')
+        val v = s.toDoubleOrNull()?.takeIf { it > 0 } ?: return null
+        if (!com.headunit.launcher.centsStyle(cc)) return v * 100.0
+        return if ((s.contains('.') || s.contains(',')) && v < 10.0) v * 100.0 else v
+    }
+    val use = num(if (ev) PreferenceKeys.EVMPK else PreferenceKeys.FUELMPG) ?: return null
+    val cents = priceCents(if (ev) PreferenceKeys.EVPPK else PreferenceKeys.FUELPPL) ?: return null
+    val km = len / 1000.0
+    val amount = if (ev) km / use * cents / 100.0 else km * use / 100.0 * cents / 100.0
+    return (if (ev) Lang.t("Laden etwa ", "Charging about ") else Lang.t("Sprit etwa ", "Fuel about ")) + com.headunit.launcher.moneyText(amount, cc)
+}
