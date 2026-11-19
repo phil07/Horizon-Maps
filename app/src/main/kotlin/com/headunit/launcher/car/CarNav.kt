@@ -143,10 +143,10 @@ class CarNavSession : Session() {
                 }
                 val fav = if (q.isNotEmpty()) e.places.favourites().firstOrNull { it.name.trim().equals(q, true) } else null
                 when {
-                    p != null -> e.startRoute(Place(t?.name ?: Lang.t("Ziel", "Destination"), Lang.t("Ziel aus Google Assistant", "From Google Assistant"), p))
-                    slot != null && e.places.slot(slot) != null -> e.startRoute(e.places.slot(slot)!!)
+                    p != null -> e.askNewDest(Place(t?.name ?: Lang.t("Ziel", "Destination"), Lang.t("Ziel aus Google Assistant", "From Google Assistant"), p))
+                    slot != null && e.places.slot(slot) != null -> e.askNewDest(e.places.slot(slot)!!)
                     slot != null -> try { androidx.car.app.CarToast.makeText(carContext, if (slot == "home") Lang.t("Noch kein Zuhause gespeichert", "No home saved yet") else Lang.t("Noch keine Arbeit gespeichert", "No work place saved yet"), androidx.car.app.CarToast.LENGTH_LONG).show() } catch (x: Exception) { }
-                    fav != null -> e.startRoute(fav)
+                    fav != null -> e.askNewDest(fav)
                     // a name or address: searched, and a single clear match is started straight away
                     q.isNotEmpty() -> ms.screenManager.push(SearchScreen(carContext, holder, q, voice = true))
                     else -> try { androidx.car.app.CarToast.makeText(carContext, Lang.t("Konnte keinen Ort erkennen", "Couldn't read a place from that"), androidx.car.app.CarToast.LENGTH_LONG).show() } catch (x: Exception) { }
@@ -1238,8 +1238,7 @@ class SearchScreen(carContext: CarContext, private val holder: CarHolder, initia
                     val pick = if (r.size == 1) r[0] else if (exact.size == 1 && r[0] === exact[0]) r[0] else null
                     if (pick != null) {
                         // driving: the place is asked about (as a stop, or as the new destination), not taken over at once
-                        if (holder.engine?.route != null) screenManager.push(AskStopScreen(carContext, holder, pick))
-                        else holder.engine?.startRoute(pick)
+                        holder.engine?.askNewDest(pick)
                         screenManager.popToRoot(); return
                     }
                 }
@@ -1288,7 +1287,7 @@ class SearchScreen(carContext: CarContext, private val holder: CarHolder, initia
                 if (line.isNotBlank()) r.addText(line)
                 p.hours?.let { r.addText(it) }
                 r.setOnClickListener {
-                    if (e?.route != null) screenManager.push(AskStopScreen(carContext, holder, p)) else e?.startRoute(p)
+                    e?.askNewDest(p)
                     screenManager.popToRoot()
                 }
                 list.addItem(r.build())
@@ -1551,14 +1550,3 @@ class AlongScreen(carContext: CarContext, private val holder: CarHolder, private
 }
 
 
-/** A place picked while driving: it is added as a stop, or it becomes the destination (the route stays as it is until you choose). */
-class AskStopScreen(carContext: CarContext, private val holder: CarHolder, private val p: Place) : Screen(carContext) {
-    override fun onGetTemplate(): Template {
-        val e = holder.engine
-        return MessageTemplate.Builder(p.name + "\n" + Lang.t("Was soll mit diesem Ort passieren?", "What should happen with this place?"))
-            .setHeaderAction(Action.BACK)
-            .addAction(Action.Builder().setTitle(Lang.t("Als Stopp", "Add as a stop")).setOnClickListener { e?.addStop(p); screenManager.popToRoot() }.build())
-            .addAction(Action.Builder().setTitle(Lang.t("Hierhin", "Go here")).setOnClickListener { e?.startRoute(p); screenManager.popToRoot() }.build())
-            .build()
-    }
-}

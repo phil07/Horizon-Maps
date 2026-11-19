@@ -256,6 +256,32 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
     /** The picked spot becomes the destination (the phone's "Los"). */
     fun routePick() { val p = mapPick ?: return; clearPick(); startRoute(p) }
 
+    /** A place picked from the search while a trip is being driven: the app asks whether it is a stop or the new destination. */
+    var newDestAsk by mutableStateOf<Place?>(null)
+
+    /**
+     * A place chosen while driving (from the search, by voice or in Android Auto): asked about, as a stop or as the new destination.
+     * Not driving: it is started. A stop asked for by voice ("Zwischenziel …") is added at once.
+     */
+    fun askNewDest(p: Place) {
+        if (route == null || previewing || dest == null) { startRoute(p); return }
+        if (stopMode) { addStop(p); return }
+        clearPick()
+        newDestAsk = p
+    }
+
+    /** A search result tapped: while driving it is asked about (see [askNewDest]), otherwise its card shows as before. */
+    fun pickResult(p: Place) {
+        if (route != null && !previewing && dest != null) { results = emptyList(); askNewDest(p) } else showResultCard(p)
+    }
+
+    /** The answer: [asStop] adds the place as a stop; otherwise it becomes the new destination. The old destination is replaced then. */
+    fun answerNewDest(asStop: Boolean) {
+        val p = newDestAsk ?: return
+        newDestAsk = null
+        if (asStop) addStop(p) else startRoute(p)
+    }
+
     /** Goes to the picked spot, or adds it as a stop while a route is being driven. */
     fun goPick() {
         val p = mapPick ?: return

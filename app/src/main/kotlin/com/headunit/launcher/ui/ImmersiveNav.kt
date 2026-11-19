@@ -298,6 +298,11 @@ private fun MapScreen(engine: NavEngine, onSettings: () -> Unit) {
             val landscape = boxW > boxH
             Box(Modifier.align(if (landscape) side(Alignment.CenterStart) else Alignment.BottomCenter).padding(16.dp).zIndex(30f)) { PhonePickCard(engine) }
         }
+        // a place picked while driving: stop or new destination? (it waits 15 s, then the trip keeps its destination)
+        if (engine.newDestAsk != null) {
+            val landscape = boxW > boxH
+            Box(Modifier.align(if (landscape) side(Alignment.CenterStart) else Alignment.BottomCenter).padding(16.dp).zIndex(31f)) { NewDestCard(engine) }
+        }
         // the media bar: back, play / pause and next while music plays (see MediaHub)
         if (engine.prefs.b(PreferenceKeys.MEDIA_CONTROLS, false)) Box(Modifier.align(Alignment.BottomCenter).padding(bottom = 12.dp).zIndex(1f)) { MediaBar(engine) }
         if (foldSearch) Box(Modifier.align(side(Alignment.TopStart)).padding(16.dp).zIndex(1f)) {
@@ -1326,6 +1331,24 @@ private fun ImmSearch(engine: NavEngine, q: String, onQ: (String) -> Unit, locke
     }
 }
 
+/** A place picked while driving: "Als Zwischenziel" or "Neues Ziel". Left alone for 15 s, the trip keeps its destination. */
+@Composable
+private fun NewDestCard(engine: NavEngine) {
+    val p = engine.newDestAsk ?: return
+    val c = LocalVw.current
+    LaunchedEffect(p) { delay(15_000); if (engine.newDestAsk === p) engine.newDestAsk = null }
+    Column(Modifier.widthIn(max = 420.dp).panel(10.dp, RoundedCornerShape(24.dp), c.surface).padding(horizontal = 18.dp, vertical = 14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Text(Lang.t("Zwischenziel oder neues Ziel?", "Stop or new destination?"), color = c.sub, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+        Text(p.name, color = c.text, fontSize = 18.sp, fontWeight = FontWeight.Bold, maxLines = 2, overflow = TextOverflow.Ellipsis)
+        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            Text(Lang.t("Als Zwischenziel", "As a stop"), color = c.accent, fontSize = 15.sp, fontWeight = FontWeight.Bold, textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                modifier = Modifier.weight(1f).clip(RoundedCornerShape(50)).border(1.dp, c.accent, RoundedCornerShape(50)).clickable { engine.answerNewDest(true) }.padding(vertical = 11.dp))
+            Text(Lang.t("Neues Ziel", "New destination"), color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.Bold, textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                modifier = Modifier.weight(1f).clip(RoundedCornerShape(50)).background(c.accent).clickable { engine.answerNewDest(false) }.padding(vertical = 11.dp))
+        }
+    }
+}
+
 /** The card for a place tapped on the phone's map: its name and address, "Los", and "Als Stopp" when there is a trip to add it to. */
 @Composable
 private fun PhonePickCard(engine: NavEngine) {
@@ -1405,7 +1428,7 @@ private fun ImmResults(engine: NavEngine, onPicked: () -> Unit) {
     }
     LazyColumn(Modifier.fillMaxWidth().heightIn(max = 420.dp).panel(10.dp, shape, c.surface).padding(vertical = 6.dp)) {
         items(engine.results) { p ->
-            Row(Modifier.fillMaxWidth().clickable { onPicked(); engine.showResultCard(p) }.padding(horizontal = 16.dp, vertical = 11.dp), verticalAlignment = Alignment.CenterVertically) {
+            Row(Modifier.fillMaxWidth().clickable { onPicked(); engine.pickResult(p) }.padding(horizontal = 16.dp, vertical = 11.dp), verticalAlignment = Alignment.CenterVertically) {
                 PlaceLogo(engine, p)
                 Column(Modifier.padding(start = 14.dp).weight(1f)) {
                     Text(p.name, color = c.text, fontSize = 17.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)

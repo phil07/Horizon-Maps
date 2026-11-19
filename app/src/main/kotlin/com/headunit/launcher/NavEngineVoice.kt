@@ -86,12 +86,15 @@ fun NavEngine.handleVoice(raw: String): String? {
     // places you have saved
     if (Regex("^(go|take me|navigate|drive|directions|head)( back)?( to)? ?home$").matches(t) || t == "home" ||
         Regex("^(?:$deGo )?(?:nach hause|heim|zu hause|nachhause)(?: fahren| bitte)?$").matches(t) || t == "zuhause") {
-        val h = places.slot("home"); if (h != null) { say(Lang.t("Fahre nach Hause", "Going home")); startRoute(h) } else say(Lang.t("Zuhause ist noch nicht festgelegt", "Home isn't set yet")); return ""
+        val h = places.slot("home"); if (h != null) { say(Lang.t("Fahre nach Hause", "Going home")); askNewDest(h) } else say(Lang.t("Zuhause ist noch nicht festgelegt", "Home isn't set yet")); return ""
     }
     if (Regex("^(go|take me|navigate|drive|directions|head)( to)? ?work$").matches(t) || t == "work" ||
         Regex("^(?:$deGo )?(?:zur arbeit|in die arbeit|ins büro|zum büro|zur firma|in die firma)(?: fahren| bitte)?$").matches(t) || t == "arbeit") {
-        val w = places.slot("work"); if (w != null) { say(Lang.t("Fahre zur Arbeit", "Going to work")); startRoute(w) } else say(Lang.t("Arbeit ist noch nicht festgelegt", "Work isn't set yet")); return ""
+        val w = places.slot("work"); if (w != null) { say(Lang.t("Fahre zur Arbeit", "Going to work")); askNewDest(w) } else say(Lang.t("Arbeit ist noch nicht festgelegt", "Work isn't set yet")); return ""
     }
+    // "Zwischenziel … " / "fahre zusätzlich nach …": a stop on the way, the destination stays
+    Regex("^(?:zwischenziel|zwischenstopp|zwischenhalt)\\s+(?:bei|in|nach|zu|zum|zur|an|am)?\\s*(.+)$").find(t)?.let { return "stop:" + it.groupValues[1] }
+    Regex("^(?:fahr(?:e)?|navigier(?:e)?|bring(?:e)?|führ(?:e)?)?\\s*(?:mich\\s+)?(?:zusätzlich|auch noch|noch|auch)\\s+(?:nach|zu|zum|zur|in|an)\\s+(.+)$").find(t)?.let { return "stop:" + it.groupValues[1] }
     // reports
     if (t.startsWith("report") || t.startsWith("melde") || t.startsWith("meldung")) {
         val k = when {

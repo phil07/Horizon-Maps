@@ -15,6 +15,7 @@ import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.border
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -414,6 +415,10 @@ private fun CarScreen(engine: NavEngine, a: android.graphics.Rect?, actions: Car
         if (guiding && engine.stopPause != null) Box(Modifier.align(Alignment.TopCenter).padding(top = top + below, start = left, end = rightTop)) {
             CompositionLocalProvider(LocalDensity provides Density(dens.density * cardScale, dens.fontScale)) { StopCard(engine, Modifier.widthIn(max = 560.dp)) }
         }
+        // a place picked while driving: as a stop or as the new destination (it stays until you choose)
+        if (guiding && engine.newDestAsk != null) Box(Modifier.align(Alignment.TopCenter).padding(top = top + below, start = left, end = rightTop)) {
+            CompositionLocalProvider(LocalDensity provides Density(dens.density * cardScale, dens.fontScale)) { CarNewDest(engine, Modifier.widthIn(max = 560.dp)) }
+        }
         if (guiding && engine.faster != null) Box(Modifier.align(Alignment.TopCenter).padding(top = top + below, start = left, end = rightTop)) {
             CompositionLocalProvider(LocalDensity provides Density(dens.density * cardScale, dens.fontScale)) { FasterCard(engine, Modifier.widthIn(max = 560.dp)) }
         }
@@ -596,6 +601,25 @@ private fun StopCard(engine: NavEngine, modifier: Modifier) {
             Text(name, color = c.sub, fontSize = 14.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
         Box(Modifier.carTap("stop-go") { engine.resumeAfterStop() }) { ImmPill("Fahrt weitermachen", {}, filled = true) }
+    }
+}
+
+/** A place picked while driving, on the car's screen: two big buttons, "Als Zwischenziel" or "Neues Ziel". It stays until you choose. */
+@Composable
+private fun CarNewDest(engine: NavEngine, modifier: Modifier) {
+    val p = engine.newDestAsk ?: return
+    val c = LocalVw.current
+    Column(modifier.panel(10.dp, RoundedCornerShape(24.dp), c.surface).padding(horizontal = 18.dp, vertical = 14.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Text(p.name, color = c.text, fontSize = 20.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        Text(Lang.t("Zwischenziel oder neues Ziel?", "Stop or new destination?"), color = c.sub, fontSize = 15.sp)
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Box(Modifier.weight(1f).height(64.dp).clip(RoundedCornerShape(50)).border(2.dp, c.accent, RoundedCornerShape(50)).carTap("newdest-stop") { engine.answerNewDest(true) }, contentAlignment = Alignment.Center) {
+                Text(Lang.t("Als Zwischenziel", "As a stop"), color = c.accent, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+            }
+            Box(Modifier.weight(1f).height(64.dp).clip(RoundedCornerShape(50)).background(c.accent).carTap("newdest-new") { engine.answerNewDest(false) }, contentAlignment = Alignment.Center) {
+                Text(Lang.t("Neues Ziel", "New destination"), color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+            }
+        }
     }
 }
 
