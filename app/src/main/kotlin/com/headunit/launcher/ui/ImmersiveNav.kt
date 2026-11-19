@@ -982,7 +982,9 @@ internal fun NavEngine.speedLeft(): Boolean = if (isCar) carSpeedLeft else when 
 @Composable
 internal fun ImmSpeed(engine: NavEngine) {
     // the car screen can show the compact pill instead: a small dark pill with the limit sign and speed side by side
-    if (engine.isCar && engine.prefs.s(PreferenceKeys.CAR_SPEED_STYLE, "normal") == "compact") { CompactSpeed(engine); return }
+    // (the big limit sign works with the compact pill too: with a limit to show, the big layout takes over)
+    val bigSign = engine.prefs.b(PreferenceKeys.SPEED_SIGN_BIG, false) && (engine.speedLimit != null || engine.noLimit)
+    if (engine.isCar && engine.prefs.s(PreferenceKeys.CAR_SPEED_STYLE, "normal") == "compact" && !bigSign) { CompactSpeed(engine); return }
     // the size from Settings (100% = the standard size): it's laid out at that size, so it keeps clear of the edges and other cards
     val pct = engine.prefs.i(PreferenceKeys.SPEED_SIZE, 100).coerceIn(50, 200)
     if (pct == 100) { SpeedBlock(engine); return }

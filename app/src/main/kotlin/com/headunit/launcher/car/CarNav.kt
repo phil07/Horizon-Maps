@@ -1520,6 +1520,8 @@ class CarSettingsScreen(carContext: CarContext, private val holder: CarHolder, p
         }
         rows += toggleRow(Lang.t("Ampeln", "Traffic lights"), "signals", true, Lang.t("Auf deiner Route", "On your route")) { on -> try { holder.map?.signalsEnabled(on) } catch (x: Exception) { } }
         rows += toggleRow(Lang.t("Fähren meiden", "Avoid ferries"), "avoid_ferry", false, null, reroute)
+        // the same switch as on the phone: the limit sign big where the speedometer was, your speed small beside it
+        rows += toggleRow(Lang.t("Großes Limit-Schild", "Big limit sign"), PreferenceKeys.SPEED_SIGN_BIG, false, Lang.t("Am Tacho, Tempo klein daneben", "Where the speedometer was, speed small beside it"))
         val list = ItemList.Builder()
         for (r in rows.take(limit.coerceIn(1, 12))) list.addItem(r)
         return ListTemplate.Builder().setTitle(Lang.t("Einstellungen", "Settings")).setHeaderAction(Action.BACK).setSingleList(list.build()).build()

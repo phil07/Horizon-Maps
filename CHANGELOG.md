@@ -1,8 +1,8 @@
 ## Unreleased
 
 ### Neu
-- Android Auto: in der Liste „Stopp hinzufügen“ und bei den Tankstellen zeigt jede Zeile den Preis deines Kraftstoffs. Oben steht der Knopf Günstigste, der nach Preis sortiert und zurück nach Entfernung.
-  EN: Android Auto: in the Add a stop list, each petrol station shows the price of your fuel, with a Cheapest button at the top to sort by price, and back to distance.
+- Android Auto: Großes Tempolimit-Schild: Der Schalter steht jetzt auch in den Einstellungen des Autos und wirkt mit der kompakten Tachoanzeige.
+  EN: Android Auto: Big speed limit sign: the switch is now in the car's own settings too, and works with the compact speedometer.
 
 ## 1.0.246 — 2026-10-28
 
