@@ -350,6 +350,7 @@ private fun MapLookSection(prefs: Prefs, engine: NavEngine) {
                 "Lite: flache Gebäude. Einfachst: 2D-Karte.") { prefs.put(PreferenceKeys.MAP_DETAIL, it) }
             MapColoursPicker(prefs.s(PreferenceKeys.MAP_COLOURS, "mapbox")) { prefs.put(PreferenceKeys.MAP_COLOURS, it) }
         }
+        SToggle(prefs, "Hinweis zu HD-Spuren", PreferenceKeys.HD_DIAG, false, "Nur im Demo-Modus: zeigt, ob die Spurdaten für die Abbiegung gefunden wurden. Die Spurführung selbst bleibt unverändert")
         if (prefs.mapSource() == "mapbox" && prefs.mapDetail() == "full") SChoice("HD-Straßen", listOf("auto" to "Auto", "on" to "An", "off" to "Aus"), prefs.s(PreferenceKeys.HD_ROADS2, "auto"),
             "Fahrspuren, Abbiegepfeile und 3D-Brücken. Auto: nur in UK an, sonst zeigt die Karte in manchen Ländern nur die Hauptstraßen.") { prefs.put(PreferenceKeys.HD_ROADS2, it) }
         DefaultZoomRow(prefs)

@@ -1,8 +1,12 @@
 ## Unreleased
 
+### Added
+- Einstellungen › Karte: Ein optionaler Hinweis zu den HD-Spurdaten. Er ist aus und erscheint nur im Demo-Modus. Die Spurführung selbst bleibt unverändert.
+  EN: Settings › Map: an optional HD lane data note. It is off and only shows in Demo mode. The lane guidance itself is unchanged.
+
 ### Improved
-- Verkehrsmeldungen in der Sprache der App: TomTom liefert die Beschreibungen auf Deutsch, wo es sie gibt. Mapbox-Meldungen (nur auf Englisch) werden für die Sprache Deutsch übersetzt, z. B. „Police directing traffic“ als „Polizei regelt den Verkehr“.
-  EN: Traffic incidents in the app's language: TomTom sends its descriptions in German where it has them. Mapbox's (only ever in English) are named in German for the German app, e.g. "Police directing traffic" as "Polizei regelt den Verkehr".
+- TomTom-Karte: Übersetzte Orts- und Straßennamen in der gewählten Sprache der App. Wo es keine Übersetzung gibt, bleibt der Originalname.
+  EN: TomTom map labels: translated place and road names in the app's selected language. Where there is no translation, the original name stays.
 
 ## 1.0.246 — 2026-10-28
 

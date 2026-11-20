@@ -477,7 +477,9 @@ object TomTomRest {
         val d = if (dark) "dark" else "light"
         val k = URLEncoder.encode(key, "UTF-8")
         return "$API/assets/styles/0.*/style.json?key=$k&apiVersion=1&map=basic_street-$d-driving" +
-            (if (traffic) "&trafficFlow=flow_relative-$d" else "")
+            (if (traffic) "&trafficFlow=flow_relative-$d" else "") +
+            // place and road names in the app's language; TomTom keeps the original name where it has no translation
+            "&language=" + (if (Lang.de) "de-DE" else "en-GB")
     }
 
     /** A failed request, explained in plain words for the common cases (a missing or wrong key, the daily limit). */

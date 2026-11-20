@@ -147,7 +147,7 @@ internal fun NavEngine.updateLaneMarks(r: Route, cur: Step, sec: LaneSec?, d: Do
                     prof.isEmpty() -> "Lane data: HD lanes found ($lines lines) but they didn't match the $nLanes lanes listed (found " + res.joinToString(", ") { it.size.toString() } + " across the road)"
                     else -> "Lane data: HD lanes lined up at ${prof.size} of ${backs.size} points along the approach"
                 }
-                if (res != null && (prof.size >= 3 || hdTries >= 8) && laneDiagFor != askOff && prefs.b(PreferenceKeys.DEMO, false)) { laneDiagFor = askOff; toast(laneDiag, 5000) }
+                if (res != null && (prof.size >= 3 || hdTries >= 8) && laneDiagFor != askOff && prefs.b(PreferenceKeys.DEMO, false) && prefs.b(PreferenceKeys.HD_DIAG, false)) { laneDiagFor = askOff; toast(laneDiag, 5000) }
                 // a better read (more places matched) replaces the last; it keeps looking until at least 3 places match
                 if (prof.isNotEmpty() && (hdProfileFor != askOff || prof.size > hdProfile.size)) { hdProfile = prof.sortedBy { it.first }; hdProfileFor = askOff; laneKey = null }
                 if (prof.size >= 3) hdLanesFor = askOff

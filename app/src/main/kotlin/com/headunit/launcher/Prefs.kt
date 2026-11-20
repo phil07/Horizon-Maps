@@ -46,6 +46,8 @@ internal object PreferenceKeys {
     const val PATHS = "paths"
     const val RAIN_RADAR = "radar"
     const val RAIN_EFFECTS = "rainfx"
+    /** Shows the HD lane data diagnostic message (only in Demo mode). Off by default. */
+    const val HD_DIAG = "hddiag"
     /** Favourites on the map as yellow stars with their names (names only when not navigating). */
     const val FAV_ON_MAP = "favmap"
     /** Rain, snow and fog on the map, each on its own (all on by default; the master switch is RAIN_EFFECTS). */
