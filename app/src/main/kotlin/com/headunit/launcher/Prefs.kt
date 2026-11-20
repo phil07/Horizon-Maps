@@ -29,6 +29,8 @@ internal object PreferenceKeys {
     const val ROUTE_COLOUR = "routecolour"
     const val ACCENT_COLOUR = "accentcolour"
     const val MAP_LIGHT = "maplight"
+    /** The map's brightness by day (-50 … 50, 0 = as it is). The night one is MAP_LIGHT (Settings › Map › Karte heller/dunkler). */
+    const val MAP_LIGHT_DAY = "maplightday"
     const val TRAFFIC = "traffic"
     const val SATELLITE = "satellite"
     const val BUILDINGS_3D = "buildings3d"

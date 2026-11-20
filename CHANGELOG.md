@@ -1,12 +1,12 @@
 ## Unreleased
 
-### Added
-- Verkehrsmeldungen in den Niederlanden: Unfälle, Pannen, Sperrungen und Baustellen vom NDW, auf der Karte und auf der Strecke, wie in Spanien (DGT). Im Schalter „Baustellen und Ereignisse“ enthalten.
-  EN: Traffic events in the Netherlands: accidents, breakdowns, closures and roadworks from NDW, on the map and on the route, as in Spain (DGT). Included in the "Roadworks and events" switch.
-- Unwetterwarnungen in weiteren Ländern (Meteoalarm): auf der Strecke durch Frankreich, Österreich, Italien, Spanien, die Niederlande und weitere Länder mit Warngebieten, gezeigt wie die DWD-Warnungen. Deutschland bleibt beim DWD.
-  EN: Severe weather warnings in more countries (Meteoalarm): on the route through France, Austria, Italy, Spain, the Netherlands and other countries with warning areas, shown like the DWD warnings. Germany stays with the DWD.
-- Feiertagshinweis: Beim Start einer Route ein kurzer Hinweis, wenn heute oder morgen ein Feiertag ist (mehr Verkehr). Ein Schalter in den Einstellungen.
-  EN: Public holiday note: when a route starts, a short note if today or tomorrow is a public holiday (more traffic). A switch in the settings.
+### New
+- Helligkeit der Karte in den Kartenoptionen: ein Regler unter Tag und Nacht, für den Modus, der gerade gezeigt wird. Die Nachthelligkeit ist die aus den Einstellungen (Karte heller/dunkler), die Tageshelligkeit ist neu.
+  EN: Map brightness in Map options: a slider under Day and Night, for whichever is showing. The night brightness is the one in Settings (Karte heller/dunkler), the day brightness is new.
+
+### Improved
+- Fortschrittsbalken der Abbiegekarte: Er erscheint jetzt erst etwa 800 m vor der Abbiegung und füllt sich bis dahin, statt kilometerweit leer zu stehen.
+  EN: Turn card progress bar: it now appears about 800 m before the turn and fills up to it, instead of sitting empty for kilometres.
 
 ## 1.0.246 — 2026-10-28
 

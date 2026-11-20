@@ -20,10 +20,12 @@ object CustomLook {
 
     fun parse(hex: String): Color? = if (hex.isBlank()) null else try { Color(android.graphics.Color.parseColor(hex)) } catch (_: Exception) { null }
 
-    fun sync(prefs: Prefs) {
+    fun sync(prefs: Prefs, dark: Boolean) {
         val a = parse(prefs.s(PreferenceKeys.ACCENT_COLOUR, ""))
         if (a != accent) accent = a
-        val l = (prefs.s(PreferenceKeys.MAP_LIGHT, "0").toFloatOrNull() ?: 0f).toInt().coerceIn(-50, 50)
+        // the brightness of whichever of day and night is showing
+        val key = if (dark) PreferenceKeys.MAP_LIGHT else PreferenceKeys.MAP_LIGHT_DAY
+        val l = (prefs.s(key, "0").toFloatOrNull() ?: 0f).toInt().coerceIn(-50, 50)
         if (l != mapLight) mapLight = l
     }
 

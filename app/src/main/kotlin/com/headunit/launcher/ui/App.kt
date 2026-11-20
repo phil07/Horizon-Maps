@@ -111,9 +111,9 @@ fun App(prefs: Prefs, engine: NavEngine, map: MapBinding) {
     LaunchedEffect(Unit) { while (true) { lamps = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { VendorLight.poll(appCtx, prefs) }; delay(1500L) } }
     // the neon look (Settings > Map > Design) is always a night look
     Neon.sync(prefs)
-    CustomLook.sync(prefs)
     val dark = Neon.on || resolveDark(prefs.s(PreferenceKeys.THEME, "auto"), prefs.s(PreferenceKeys.LASTLAT, "").toDoubleOrNull(), prefs.s(PreferenceKeys.LASTLON, "").toDoubleOrNull(), nowMs, prefs.b(PreferenceKeys.SYSDARKSEEN, false), sysDark,
         prefs.s(PreferenceKeys.NIGHT_FROM, "19:00"), prefs.s(PreferenceKeys.DAY_FROM, "07:00"), lamps)
+    CustomLook.sync(prefs, dark)
     val hostCtx = androidx.compose.ui.platform.LocalContext.current
 
     // screen brightness (per window, no permission needed) incl. dimming at night, and keeping the screen on

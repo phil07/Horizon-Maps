@@ -689,6 +689,15 @@ private fun OptionsSheet(engine: NavEngine, shareEta: () -> Unit, voice: () -> U
                 val theme = p.s(PreferenceKeys.THEME, "auto")
                 val seg = when (theme) { "day" -> 1; "night" -> 2; else -> 0 }
                 Segments(listOf("Auto", Lang.t("Tag", "Day"), Lang.t("Nacht", "Night")), seg) { i -> if (i != seg) p.put(PreferenceKeys.THEME, listOf("auto", "day", "night")[i]) }
+                // the brightness of the map as it is showing now: day or night (the night one is the same as in Settings)
+                run {
+                    val key = if (c.dark) PreferenceKeys.MAP_LIGHT else PreferenceKeys.MAP_LIGHT_DAY
+                    val v = (p.s(key, "0").toFloatOrNull() ?: 0f).coerceIn(-50f, 50f)
+                    Row(Modifier.fillMaxWidth().padding(top = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Text(if (c.dark) Lang.t("Helligkeit Nacht", "Brightness night") else Lang.t("Helligkeit Tag", "Brightness day"), color = c.text, fontSize = 13.sp, modifier = Modifier.width(128.dp))
+                        androidx.compose.material3.Slider(value = v, onValueChange = { p.put(key, it.toInt().toString()) }, valueRange = -50f..50f, modifier = Modifier.weight(1f))
+                    }
+                }
                 SheetHeading(Lang.t("Auf der Karte", "On the map"))
                 fun tog(key: String, def: Boolean): Pair<Boolean, () -> Unit> { val on = p.b(key, def); return on to { p.put(key, !on) } }
                 val layers = listOf(
@@ -1249,9 +1258,13 @@ internal fun ImmTurnCard(
         }
         } // (end of the full card)
         footer?.invoke()
+        // the bar appears about 800 m before the turn and fills up to it (it used to sit empty for kilometres)
         // the bar sits a little way in from the edges, so the card's rounded corners don't hide its end
-        Box(Modifier.fillMaxWidth().padding(start = 8.dp, end = 8.dp, bottom = 6.dp).height(4.dp).clip(RoundedCornerShape(2.dp)).background(Color.Black.copy(alpha = 0.18f))) {
-            Box(Modifier.fillMaxWidth(frac).fillMaxHeight().background(Color.White.copy(alpha = 0.9f)))
+        if (t.dist < 800.0) {
+            val barFrac = ((800.0 - t.dist) / 800.0).coerceIn(0.0, 1.0).toFloat()
+            Box(Modifier.fillMaxWidth().padding(start = 8.dp, end = 8.dp, bottom = 6.dp).height(4.dp).clip(RoundedCornerShape(2.dp)).background(Color.Black.copy(alpha = 0.18f))) {
+                Box(Modifier.fillMaxWidth(barFrac).fillMaxHeight().background(Color.White.copy(alpha = 0.9f)))
+            }
         }
     }
 }
