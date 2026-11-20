@@ -1541,7 +1541,7 @@ private fun ImmChips(engine: NavEngine, focusSearch: () -> Unit) {
     val showStarred = engine.prefs.b(PreferenceKeys.STARRED_ROW, true)
     val mine: List<Triple<com.headunit.launcher.Place, String, Boolean>> = remember(rawCustom, rawFav, showStarred) {
         val custom = engine.places.customs()
-        val favs = engine.places.favourites().filter { f -> custom.none { Geo.dist(it.place.pos, f.pos) < 60 } }
+        val favs = engine.places.favouritesNotIn(custom)
         (if (showStarred) custom.filter { it.starred }.map { Triple(it.place, it.label, true) } else emptyList()) + favs.map { Triple(it, it.name, false) }
     }
     // the GPX tracks (saved routes) and the "Add a place" tile close the same row: all of it scrolls sideways
@@ -1768,7 +1768,7 @@ private fun ImmQuick(engine: NavEngine, showSaved: Boolean = true) {
     // only the recent places are listed here: your own places, favourites and tracks are in the row above the list
     val saved: List<Triple<com.headunit.launcher.Place, Int, String>> = remember(rawCustom, rawFav, rawRecent) {
         val mine = engine.places.customs()
-        val favs = engine.places.favourites().filter { f -> mine.none { Geo.dist(it.place.pos, f.pos) < 60 } }
+        val favs = engine.places.favouritesNotIn(mine)
         val recents = engine.places.recents().filter { r -> favs.none { Geo.dist(it.pos, r.pos) < 60 } && mine.none { Geo.dist(it.place.pos, r.pos) < 60 } }
         recents.map { Triple(it, 2, it.name) }
     }

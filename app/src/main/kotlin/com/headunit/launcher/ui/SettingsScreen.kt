@@ -354,30 +354,30 @@ private fun MapLookSection(prefs: Prefs, engine: NavEngine) {
         if (prefs.mapSource() == "mapbox" && prefs.mapDetail() == "full") SChoice("HD-Straßen", listOf("auto" to "Auto", "on" to "An", "off" to "Aus"), prefs.s(PreferenceKeys.HD_ROADS2, "auto"),
             "Fahrspuren, Abbiegepfeile und 3D-Brücken. Auto: nur in UK an, sonst zeigt die Karte in manchen Ländern nur die Hauptstraßen.") { prefs.put(PreferenceKeys.HD_ROADS2, it) }
         DefaultZoomRow(prefs)
-        SToggle(prefs, "Fußwege und Pfade", "paths", true, "Ausschalten für eine übersichtlichere Fahrkarte")
-        SToggle(prefs, "Favoriten auf der Karte", "favmap", true, "Gelbe Sterne mit Namen. Beim Fahren ohne Namen")
-        SToggle(prefs, "Glaskarten", "glass", true, "Halbtransparente Karten")
+        SToggle(prefs, "Fußwege und Pfade", PreferenceKeys.PATHS, true, "Ausschalten für eine übersichtlichere Fahrkarte")
+        SToggle(prefs, "Favoriten auf der Karte", PreferenceKeys.FAV_ON_MAP, true, "Gelbe Sterne mit Namen. Beim Fahren ohne Namen")
+        SToggle(prefs, "Glaskarten", PreferenceKeys.GLASS, true, "Halbtransparente Karten")
         SChoice("Mapbox-Logo-Position", listOf("tl" to "Oben links", "tr" to "Oben rechts", "bl" to "Unten links", "br" to "Unten rechts"), prefs.s(PreferenceKeys.MAPBOX_LOGO, "tr"),
             "Ecke für das geforderte Mapbox-Logo wählen") { prefs.put(PreferenceKeys.MAPBOX_LOGO, it) }
     }
     SGroup("Wetter") {
-        SToggle(prefs, "Wettereffekte auf der Karte", "rainfx", false, "Regen, Schnee und Nebel passend zum Wetter")
-        SToggle(prefs, "Regen auf der Karte", "fxrain", true, "Nur wenn die Wettereffekte an sind")
-        SToggle(prefs, "Schnee auf der Karte", "fxsnow", true, "Nur wenn die Wettereffekte an sind")
-        SToggle(prefs, "Nebel auf der Karte", "fxfog", true, "Nur wenn die Wettereffekte an sind")
-        SToggle(prefs, "Regenradar-Ebene", "radar", false, "Live-Radar von RainViewer unter der Route")
+        SToggle(prefs, "Wettereffekte auf der Karte", PreferenceKeys.RAIN_EFFECTS, false, "Regen, Schnee und Nebel passend zum Wetter")
+        SToggle(prefs, "Regen auf der Karte", PreferenceKeys.FX_RAIN, true, "Nur wenn die Wettereffekte an sind")
+        SToggle(prefs, "Schnee auf der Karte", PreferenceKeys.FX_SNOW, true, "Nur wenn die Wettereffekte an sind")
+        SToggle(prefs, "Nebel auf der Karte", PreferenceKeys.FX_FOG, true, "Nur wenn die Wettereffekte an sind")
+        SToggle(prefs, "Regenradar-Ebene", PreferenceKeys.RAIN_RADAR, false, "Live-Radar von RainViewer unter der Route")
     }
     SGroup("3D und Satellit") {
-        SToggle(prefs, "Satellit", "satellite", false)
-        SToggle(prefs, "3D-Gebäude", "buildings3d", true)
-        SToggle(prefs, "Detaillierte Fassaden", "facades", true, "Fenster, Türen und Schaufenster an Gebäuden")
-        SToggle(prefs, "3D-Sehenswürdigkeiten", "landmarks3d", true, "Detaillierte Modelle bekannter Gebäude und Stadien")
-        SToggle(prefs, "3D-Berge und Täler", "terrain", false, "Echtes Gelände")
-        SToggle(prefs, "Nebel und Himmel", "skyweather", true, "Dunst am Horizont passend zum Wetter")
-        SToggle(prefs, "Nachtsternenhimmel in 3D", "nightsky", true, "Sterne über dem Horizont bei Nacht")
-        SToggle(prefs, "Bäume in Parks", "trees", true, "3D-Bäume in Parks und an Straßen")
-        SToggle(prefs, "Freie Sicht auf die Straße voraus", "clearview", true, "Bäume und Gebäude verdecken die Straße nicht")
-        SToggle(prefs, "Tippen zum Hervorheben", "tapselect", true, "Tippe auf ein Gebäude oder einen Ort zum Auswählen")
+        SToggle(prefs, "Satellit", PreferenceKeys.SATELLITE, false)
+        SToggle(prefs, "3D-Gebäude", PreferenceKeys.BUILDINGS_3D, true)
+        SToggle(prefs, "Detaillierte Fassaden", PreferenceKeys.FACADES, true, "Fenster, Türen und Schaufenster an Gebäuden")
+        SToggle(prefs, "3D-Sehenswürdigkeiten", PreferenceKeys.LANDMARKS3D, true, "Detaillierte Modelle bekannter Gebäude und Stadien")
+        SToggle(prefs, "3D-Berge und Täler", PreferenceKeys.TERRAIN, false, "Echtes Gelände")
+        SToggle(prefs, "Nebel und Himmel", PreferenceKeys.SKYWEATHER, true, "Dunst am Horizont passend zum Wetter")
+        SToggle(prefs, "Nachtsternenhimmel in 3D", PreferenceKeys.NIGHTSKY, true, "Sterne über dem Horizont bei Nacht")
+        SToggle(prefs, "Bäume in Parks", PreferenceKeys.TREES, true, "3D-Bäume in Parks und an Straßen")
+        SToggle(prefs, "Freie Sicht auf die Straße voraus", PreferenceKeys.CLEARVIEW, true, "Bäume und Gebäude verdecken die Straße nicht")
+        SToggle(prefs, "Tippen zum Hervorheben", PreferenceKeys.TAPSELECT, true, "Tippe auf ein Gebäude oder einen Ort zum Auswählen")
     }
 }
 
@@ -386,21 +386,21 @@ private fun MapLookSection(prefs: Prefs, engine: NavEngine) {
 @Composable
 private fun OnTheMapSection(prefs: Prefs, engine: NavEngine) {
     SGroup("Verkehr") {
-        SToggle(prefs, "Live-Verkehr", "traffic", true)
+        SToggle(prefs, "Live-Verkehr", PreferenceKeys.TRAFFIC, true)
         SToggle(prefs, "Verkehrsübersicht beim Halt", PreferenceKeys.STOPPED_OVERVIEW, true, "Zoomt nach 30 s Stillstand heraus")
-        SToggle(prefs, "Verkehr nur auf der Route anzeigen", "routetrafficonly", false, "Aus zeigt auch Verkehr auf umliegenden Straßen")
+        SToggle(prefs, "Verkehr nur auf der Route anzeigen", PreferenceKeys.ROUTETRAFFICONLY, false, "Aus zeigt auch Verkehr auf umliegenden Straßen")
         SToggle(prefs, "Grüner Verkehr bei freier Fahrt", PreferenceKeys.TRAFFIC_GREEN, false, "Frei fließende Hauptstraßen grün anzeigen")
     }
     SGroup("Auf der Route") {
-        SToggle(prefs, "Ampeln", "signals", true, if (prefs.b(PreferenceKeys.SIGNALS, true)) "Nur Ampeln auf deiner Route. Aktuell: " + engine.map.signalInfo() else null)
-        SToggle(prefs, "Blitzer und Baustellen", "hazardicons", true)
-        SToggle(prefs, "Zebrastreifen", "zebras", true, "Auf der Straße gezeichnet")
+        SToggle(prefs, "Ampeln", PreferenceKeys.SIGNALS, true, if (prefs.b(PreferenceKeys.SIGNALS, true)) "Nur Ampeln auf deiner Route. Aktuell: " + engine.map.signalInfo() else null)
+        SToggle(prefs, "Blitzer und Baustellen", PreferenceKeys.HAZARD_ICONS, true)
+        SToggle(prefs, "Zebrastreifen", PreferenceKeys.ZEBRAS, true, "Auf der Straße gezeichnet")
         SToggle(prefs, "Stoppschilder", PreferenceKeys.STOP_SIGNS, false, "Mit kurzem Ton")
         SToggle(prefs, "Hinweis „Vorfahrt gewähren“", PreferenceKeys.GIVE_WAY, false, "Standardmäßig aus")
     }
     SGroup("3D-Straßenausstattung") {
-        SToggle(prefs, "3D-Straßenlaternen, Ampeln und Kameras", "furniture3d", true, "3D-Modelle in echter Größe")
-        SToggle(prefs, "Straßenlaternen", "lamps", false, if (prefs.b(PreferenceKeys.LAMPS, false)) "Aktuell: " + engine.map.lampInfo() else null)
+        SToggle(prefs, "3D-Straßenlaternen, Ampeln und Kameras", PreferenceKeys.FURNITURE3D, true, "3D-Modelle in echter Größe")
+        SToggle(prefs, "Straßenlaternen", PreferenceKeys.LAMPS, false, if (prefs.b(PreferenceKeys.LAMPS, false)) "Aktuell: " + engine.map.lampInfo() else null)
         if (prefs.b(PreferenceKeys.LAMPS, false)) SToggle(prefs, "Laternen aus OpenStreetMap", PreferenceKeys.LAMPS_ONLINE, true, "Echte Laternenstandorte, wo Leute sie eingetragen haben. Einmal pro Gebiet geladen, einen Monat gespeichert")
         if (prefs.b(PreferenceKeys.LAMPS, false)) SSlider("Laternenabstand", prefs.s(PreferenceKeys.LAMPGAP, "40").toFloatOrNull() ?: 40f, 15f..120f, " m", reset = 40f) { prefs.put(PreferenceKeys.LAMPGAP, it.toString()) }
     }
@@ -491,12 +491,12 @@ private fun ArrowSection(prefs: Prefs, engine: NavEngine) {
         SSlider(if (shapeCar) "Fahrzeuggröße" else if (loc == "custom") "Bildgröße" else "Pfeilgröße", prefs.s(PreferenceKeys.ARROW_PERCENT, "150").toFloatOrNull() ?: 150f, 100f..500f, "%", reset = 150f) { prefs.put(PreferenceKeys.ARROW_PERCENT, it.toString()) }
     }
     SGroup("Routenlinie") {
-        SToggle(prefs, "Abbiegepfeil auf der Route", "turnarrows", true, "Ein weißer Pfeil durch die nächste Kreuzung")
-        SToggle(prefs, "Pfeile entlang der Route", "routechevrons", true, "Kleine Pfeile entlang der Routenlinie beim Zoomen")
-        SToggle(prefs, "Routenschattenband", "ribbon", true, "Ein weicher Schatten unter der Route")
-        SToggle(prefs, "3D-Fahnen", "flags3d", true, "Fahnen an Ziel und Stopps")
+        SToggle(prefs, "Abbiegepfeil auf der Route", PreferenceKeys.TURNARROWS, true, "Ein weißer Pfeil durch die nächste Kreuzung")
+        SToggle(prefs, "Pfeile entlang der Route", PreferenceKeys.ROUTECHEVRONS, true, "Kleine Pfeile entlang der Routenlinie beim Zoomen")
+        SToggle(prefs, "Routenschattenband", PreferenceKeys.RIBBON, true, "Ein weicher Schatten unter der Route")
+        SToggle(prefs, "3D-Fahnen", PreferenceKeys.FLAGS_3D, true, "Fahnen an Ziel und Stopps")
         if (prefs.b(PreferenceKeys.FLAGS_3D, true)) SToggle(prefs, "Fahnen wehen", PreferenceKeys.FLAGS_WAVE, true, "Fahnen bewegen sich im Wind")
-        SToggle(prefs, "Fließendes Licht auf der Route", "routeflow", true)
+        SToggle(prefs, "Fließendes Licht auf der Route", PreferenceKeys.ROUTEFLOW, true)
         SColours("Farbe alternativer Routen", listOf(
             "#C4D9E6" to "Hellblau-Grau (Standard)", "#A9D4F0" to "Hellblau", "#5AB7F5" to "Blau", "#315CBA" to "Dunkelblau",
             "#A9B4C2" to "Silbergrau", "#FFFFFF" to "Weiß", "#42CFA5" to "Minze", "#F4C542" to "Gelb",
@@ -511,7 +511,7 @@ private fun ArrowSection(prefs: Prefs, engine: NavEngine) {
 private fun RoutesSection(prefs: Prefs) {
     VehicleGroup(prefs)
     SGroup("Vermeiden", footer = "Änderungen gelten für die nächste geplante Route.") {
-        SToggle(prefs, "Mautstraßen vermeiden", "avoid_toll", false, if (prefs.b(PreferenceKeys.AVOID_TOLL, false)) "Überall" else null)
+        SToggle(prefs, "Mautstraßen vermeiden", PreferenceKeys.AVOID_TOLL, false, if (prefs.b(PreferenceKeys.AVOID_TOLL, false)) "Überall" else null)
         if (!prefs.b(PreferenceKeys.AVOID_TOLL, false)) {
             val chosen = prefs.s(PreferenceKeys.AVOID_TOLL_COUNTRIES, "").split(',').filter { it.isNotBlank() }.toSet()
             SItem("Maut vermeiden nur in", if (chosen.isEmpty()) "Maut nur in diesen Ländern vermeiden" else "In diesen Ländern ohne Maut planen")
@@ -524,20 +524,20 @@ private fun RoutesSection(prefs: Prefs) {
             }
         }
         if (!prefs.b(PreferenceKeys.AVOID_TOLL, false)) SToggle(prefs, "Vignettenpflichtige Straßen meiden", PreferenceKeys.AVOID_VIGNETTE, false, "Nur bei Durchfahrt (AT, CH, SI, CZ, SK, HU, BG, RO)")
-        SToggle(prefs, "Autobahnen vermeiden", "avoid_motorway", false)
-        SToggle(prefs, "Fähren vermeiden", "avoid_ferry", false)
-        SToggle(prefs, "Autozüge vermeiden", "avoid_cartrain", false, "Z. B. Eurotunnel und die Alpen-Tunnelzüge. Ist ein Autozug der einzige Weg, wird er trotzdem genommen")
-        SToggle(prefs, "Unbefestigte Straßen vermeiden", "avoid_unpaved", true)
-        SToggle(prefs, "Umweltzonen vermeiden", "avoidzones", false, "Eine Start- oder Zielzone kann nicht vermieden werden")
+        SToggle(prefs, "Autobahnen vermeiden", PreferenceKeys.AVOID_MOTORWAY, false)
+        SToggle(prefs, "Fähren vermeiden", PreferenceKeys.AVOID_FERRY, false)
+        SToggle(prefs, "Autozüge vermeiden", PreferenceKeys.AVOID_CARTRAIN, false, "Z. B. Eurotunnel und die Alpen-Tunnelzüge. Ist ein Autozug der einzige Weg, wird er trotzdem genommen")
+        SToggle(prefs, "Unbefestigte Straßen vermeiden", PreferenceKeys.AVOID_UNPAVED, true)
+        SToggle(prefs, "Umweltzonen vermeiden", PreferenceKeys.AVOIDZONES, false, "Eine Start- oder Zielzone kann nicht vermieden werden")
         ZonesItem()
     }
     SGroup("Routenauswahl") {
-        SToggle(prefs, "Öko-Routen", "route_eco", false, "Kraftstoffsparend statt am schnellsten")
-        SToggle(prefs, "Schnellere Routen anbieten", "fasterroute", true)
+        SToggle(prefs, "Öko-Routen", PreferenceKeys.ROUTE_ECO, false, "Kraftstoffsparend statt am schnellsten")
+        SToggle(prefs, "Schnellere Routen anbieten", PreferenceKeys.FASTER_ROUTE, true)
         SToggle(prefs, "Einfachere Routen bevorzugen", PreferenceKeys.SIMPLER_ROUTE, true, "Eine Route, die nur etwa eine Minute langsamer ist, aber viel weniger Abbiegungen hat, wird zuerst gewählt")
-        SToggle(prefs, "Auf der Bordsteinseite ankommen", "curbarrival", true, "Ankunft auf der Straßenseite des Ziels (Mapbox)")
+        SToggle(prefs, "Auf der Bordsteinseite ankommen", PreferenceKeys.CURB_ARRIVAL, true, "Ankunft auf der Straßenseite des Ziels (Mapbox)")
         if (prefs.b(PreferenceKeys.FASTER_ROUTE, true)) {
-            SToggle(prefs, "Automatisch umleiten", "autoreroute", true, "Wechselt mit Ansage auf eine schnellere Route")
+            SToggle(prefs, "Automatisch umleiten", PreferenceKeys.AUTO_REROUTE, true, "Wechselt mit Ansage auf eine schnellere Route")
             if (prefs.b(PreferenceKeys.AUTO_REROUTE, true)) {
                 val m = prefs.i(PreferenceKeys.AUTO_REROUTE_MIN, 5)
                 SItem("Umleiten ab Ersparnis von", "Mindestersparnis der neuen Route")
@@ -547,15 +547,15 @@ private fun RoutesSection(prefs: Prefs) {
                 }
             }
         }
-        if (prefs.b(PreferenceKeys.FASTER_ROUTE, true)) SToggle(prefs, "Andere Routen auf der Karte anzeigen", "livealts", true, "Graue Linien mit +/- Minuten zum Antippen")
-        SToggle(prefs, "Ziele vorschlagen", "predict", true, "Mit Live-Fahrzeit für Zuhause und Arbeitsplatz")
-        SToggle(prefs, "Wetter auf der Route", "routewx", true)
+        if (prefs.b(PreferenceKeys.FASTER_ROUTE, true)) SToggle(prefs, "Andere Routen auf der Karte anzeigen", PreferenceKeys.LIVE_ALTERNATIVES, true, "Graue Linien mit +/- Minuten zum Antippen")
+        SToggle(prefs, "Ziele vorschlagen", PreferenceKeys.PREDICT, true, "Mit Live-Fahrzeit für Zuhause und Arbeitsplatz")
+        SToggle(prefs, "Wetter auf der Route", PreferenceKeys.ROUTEWX, true)
     }
     SGroup("Routenstart") {
         SToggle(prefs, "Auto-Start-Countdown", PreferenceKeys.AUTO_START_ROUTE, true, "Startet die Navigation nach dem Countdown")
         if (prefs.b(PreferenceKeys.AUTO_START_ROUTE, true)) SSlider("Auto-Start-Countdown", prefs.i(PreferenceKeys.AUTO_START_SECONDS, 10).coerceIn(3, 30).toFloat(), 3f..30f, " s", sub = "Dauer bis zum Start der Navigation", steps = 26, reset = 10f) { prefs.put(PreferenceKeys.AUTO_START_SECONDS, it.coerceIn(3, 30)) }
-        SToggle(prefs, "3D-Flug entlang neuer Route", "cinematic", true, "Ein 3-Sekunden-3D-Flug vor der Übersicht")
-        SToggle(prefs, "Routenflug-Button", "flyover", true, "3D-Flug über die gesamte Strecke vor der Abfahrt")
+        SToggle(prefs, "3D-Flug entlang neuer Route", PreferenceKeys.CINEMATIC, true, "Ein 3-Sekunden-3D-Flug vor der Übersicht")
+        SToggle(prefs, "Routenflug-Button", PreferenceKeys.FLYOVER, true, "3D-Flug über die gesamte Strecke vor der Abfahrt")
     }
 }
 
@@ -564,9 +564,9 @@ private fun RoutesSection(prefs: Prefs) {
 @Composable
 private fun GuidanceSection(prefs: Prefs) {
     SGroup("Abbiegekarte") {
-        SToggle(prefs, "Straßenschilder auf der Abbiegekarte", "uksigns", true)
-        SToggle(prefs, "Lebendige Abbiegekarte", "livecard", true, "Wächst und leuchtet bei Annäherung an das Abbiegen")
-        SToggle(prefs, "Spurführung auf der Abbiegekarte", "lanestrip", true)
+        SToggle(prefs, "Straßenschilder auf der Abbiegekarte", PreferenceKeys.UKSIGNS, true)
+        SToggle(prefs, "Lebendige Abbiegekarte", PreferenceKeys.LIVECARD, true, "Wächst und leuchtet bei Annäherung an das Abbiegen")
+        SToggle(prefs, "Spurführung auf der Abbiegekarte", PreferenceKeys.LANE_STRIP, true)
         if (prefs.b(PreferenceKeys.LANE_STRIP, true)) SChoice("Spurführungsstil", listOf("hero" to "Große Spurenanzeige", "classic" to "Klassischer Streifen"), prefs.s(PreferenceKeys.LANE_STYLE, "hero"),
             if (prefs.s(PreferenceKeys.LANE_STYLE, "hero") == "hero") "Großes Spurfoto vor Kreuzungen" else "Kleine Spurenleiste bei jeder Kreuzung") { prefs.put(PreferenceKeys.LANE_STYLE, it) }
         SChoice("Nächstes Abbiegen auf der Karte", listOf("close" to "Wenn nah", "always" to "Immer", "off" to "Aus"), prefs.s(PreferenceKeys.THEN_MODE, "close"),
@@ -574,26 +574,26 @@ private fun GuidanceSection(prefs: Prefs) {
         if (prefs.s(PreferenceKeys.THEN_MODE, "close") != "off") SChoice("Anzeigen als", listOf("row" to "Zeile unter der Karte", "icon" to "Kleiner Pfeil"), prefs.s(PreferenceKeys.THEN_STYLE, "row")) { prefs.put(PreferenceKeys.THEN_STYLE, it) }
     }
     SGroup("Spuren und Kreuzungen") {
-        SToggle(prefs, "Spuren auf der Karte gezeichnet", "lanemap", true)
+        SToggle(prefs, "Spuren auf der Karte gezeichnet", PreferenceKeys.LANEMAP, true)
         SToggle(prefs, "Mapbox-Spurdaten auf TomTom-Routen nutzen", PreferenceKeys.LANES_MAPBOX, true)
-        SToggle(prefs, "Heranzoomen an Spuren vor einer Kreuzung", "laneview", true)
-        SToggle(prefs, "Kreuzungs-Nahansicht", "junctionview", true, "Nähere, flachere Ansicht bei Ausfahrten und Gabelungen")
-        SToggle(prefs, "Karte beim Abbiegen auf 2D flachlegen", "turn2d", true)
-        SToggle(prefs, "Neigung nach Geschwindigkeit", "speedtilt", true, "Flacher bei langsamer Fahrt, weitblickender bei Tempo")
+        SToggle(prefs, "Heranzoomen an Spuren vor einer Kreuzung", PreferenceKeys.LANE_VIEW, true)
+        SToggle(prefs, "Kreuzungs-Nahansicht", PreferenceKeys.JUNCTION_VIEW, true, "Nähere, flachere Ansicht bei Ausfahrten und Gabelungen")
+        SToggle(prefs, "Karte beim Abbiegen auf 2D flachlegen", PreferenceKeys.TURN2D, true)
+        SToggle(prefs, "Neigung nach Geschwindigkeit", PreferenceKeys.SPEEDTILT, true, "Flacher bei langsamer Fahrt, weitblickender bei Tempo")
         TiltSetting(prefs, "3D-Neigung, breiter Bildschirm", PreferenceKeys.TILT_WIDE)
         TiltSetting(prefs, "3D-Neigung, hoher Bildschirm", PreferenceKeys.TILT_TALL)
     }
     SGroup("Fahrtenkarte") {
-        SToggle(prefs, "Routenleiste auf der Fahrtenkarte", "routebar", true, "Verkehr, Kameras, Raststätten und Fortschritt")
-        SToggle(prefs, "Nächste Raststätten-Karte", "servicescard", true)
-        SToggle(prefs, "Gefahrenradar", "hazardradar", false, "Kurven, Schulen, Schwellen, Blitzer (2 km)")
+        SToggle(prefs, "Routenleiste auf der Fahrtenkarte", PreferenceKeys.ROUTEBAR, true, "Verkehr, Kameras, Raststätten und Fortschritt")
+        SToggle(prefs, "Nächste Raststätten-Karte", PreferenceKeys.SERVICESCARD, true)
+        SToggle(prefs, "Gefahrenradar", PreferenceKeys.HAZARDRADAR, false, "Kurven, Schulen, Schwellen, Blitzer (2 km)")
     }
     SGroup("Ankunft") {
-        SToggle(prefs, "Ankunftsmoment", "arrivalfx", true, "Kamera schwenkt zum Ziel und zeigt Parkplätze")
+        SToggle(prefs, "Ankunftsmoment", PreferenceKeys.ARRIVALFX, true, "Kamera schwenkt zum Ziel und zeigt Parkplätze")
         SToggle(prefs, "Parkplätze nahe dem Ziel", PreferenceKeys.PARKPROMPT, false, "Parkplatzvorschläge vor der Ankunft")
         SToggle(prefs, "Ziel beleuchten", PreferenceKeys.LIGHT_DEST, true, "Das Gebäude bleibt bei der Ankunft beleuchtet, der Eingang bekommt eine Markierung, eine gepunktete Linie zeigt den Fußweg vom Parkplatz")
-        SToggle(prefs, "Rückroute", "routeback", true, "Ein Tipp für den Weg zurück zum Startort")
-        SToggle(prefs, "Parkplatz über Bluetooth merken", "parkbt", true, "Speichert den Standort beim Trennen vom Auto-Bluetooth")
+        SToggle(prefs, "Rückroute", PreferenceKeys.ROUTEBACK, true, "Ein Tipp für den Weg zurück zum Startort")
+        SToggle(prefs, "Parkplatz über Bluetooth merken", PreferenceKeys.PARK_BLUETOOTH, true, "Speichert den Standort beim Trennen vom Auto-Bluetooth")
     }
 }
 
@@ -636,37 +636,37 @@ private fun ZonesItem() {
 @Composable
 private fun AlertsSection(prefs: Prefs, engine: NavEngine) {
     SGroup("Geschwindigkeit") {
-        SToggle(prefs, "Warnen bei Überschreitung", "speedwarn", false)
+        SToggle(prefs, "Warnen bei Überschreitung", PreferenceKeys.SPEEDWARN, false)
         if (prefs.b(PreferenceKeys.SPEEDWARN, false)) SChoice("Warnen ab Überschreitung um", listOf("0", "5", "10").map { it to it + if (engine.imperial) " mph" else " km/h" }, prefs.s(PreferenceKeys.TRAFFIC_WARNING, "5")) { prefs.put(PreferenceKeys.TRAFFIC_WARNING, it) }
-        SToggle(prefs, "Limitänderung ansagen", "limitchange", false)
+        SToggle(prefs, "Limitänderung ansagen", PreferenceKeys.LIMITCHANGE, false)
         if (prefs.b(PreferenceKeys.LIMITCHANGE, false)) SChoice("Wie", listOf("both" to "Gong und Stimme", "voice" to "Nur Stimme", "chime" to "Nur Gong"), prefs.s(PreferenceKeys.LIMIT_HOW, "both"),
             "Mit Gong kommt die Stimme erst, wenn der Gong vorbei ist") { prefs.put(PreferenceKeys.LIMIT_HOW, it) }
-        SToggle(prefs, "Geschätzte Limits anzeigen", "limitest", false, "Übliches Limit anzeigen, wo keins kartiert ist")
+        SToggle(prefs, "Geschätzte Limits anzeigen", PreferenceKeys.LIMITEST, false, "Übliches Limit anzeigen, wo keins kartiert ist")
         // where you are bans camera warnings and "Off where banned" is on: say so here, or it looks as if the switch doesn't work
         val banned = com.headunit.launcher.CAMERA_BANNED[engine.detectedCountry]
         val camOff = banned != null && prefs.b(PreferenceKeys.CAMERA_WARNINGS, false) && prefs.b(PreferenceKeys.CAMBANOBEY, true)
-        SToggle(prefs, "Blitzer", "cameras", false, if (camOff) Lang.t("Aus: in $banned nicht erlaubt", "Off: not allowed in $banned")
+        SToggle(prefs, "Blitzer", PreferenceKeys.CAMERA_WARNINGS, false, if (camOff) Lang.t("Aus: in $banned nicht erlaubt", "Off: not allowed in $banned")
             else if (prefs.b(PreferenceKeys.CAMERA_WARNINGS, false)) engine.camNote.ifBlank { "Suche startet mit dem nächsten GPS-Signal" } else null)
-        if (prefs.b(PreferenceKeys.CAMERA_WARNINGS, false)) SToggle(prefs, "Aus, wo verboten", "cambanobey", true, "Automatisch aus z. B. in DE, FR und CH")
-        SToggle(prefs, "Blitzer auf der Karte zeigen", "cameramap", true, "Nur Anzeige; Warnungen dort nur mit „Blitzer“ an")
-        SToggle(prefs, "Parkhäuser auf der Karte", "garagesmap", true, "Freie Plätze live, wo verfügbar. Daten: MobiData BW, ParkenDD")
-        SToggle(prefs, "Sektionskontrollen (Abschnittskontrolle)", "avgzones", true, "Durchschnittstempo im Vergleich zum Limit")
+        if (prefs.b(PreferenceKeys.CAMERA_WARNINGS, false)) SToggle(prefs, "Aus, wo verboten", PreferenceKeys.CAMBANOBEY, true, "Automatisch aus z. B. in DE, FR und CH")
+        SToggle(prefs, "Blitzer auf der Karte zeigen", PreferenceKeys.CAMERA_MAP, true, "Nur Anzeige; Warnungen dort nur mit „Blitzer“ an")
+        SToggle(prefs, "Parkhäuser auf der Karte", PreferenceKeys.GARAGES_MAP, true, "Freie Plätze live, wo verfügbar. Daten: MobiData BW, ParkenDD")
+        SToggle(prefs, "Sektionskontrollen (Abschnittskontrolle)", PreferenceKeys.AVGZONES, true, "Durchschnittstempo im Vergleich zum Limit")
     }
     SGroup("Unterwegs", footer = "Informationen stammen aus OpenStreetMap.") {
-        SToggle(prefs, "Baustellen und Ereignisse", "incidents", true, "Baustellen und Sperrungen auf Autobahnen. Daten: Autobahn GmbH. In Spanien: Unfälle, Baustellen, Sperrungen, Gefahren und V16-Pannenbaken der DGT (nap.dgt.es)")
-        SToggle(prefs, "Einbahnstraßen-Warnung", "wrongway", false, "Bei falscher Fahrtrichtung; Fehlalarme möglich")
-        SToggle(prefs, "Bremsschwellen", "bumps", false)
-        SToggle(prefs, "Schulen zu Schulzeiten", "schools", false)
-        SToggle(prefs, "Umweltzonen", "zonewarn", true)
-        SToggle(prefs, "Pausenerinnerung nach 2 Stunden", "breakremind", false)
-        SToggle(prefs, "Bahnübergänge und Furten", "railford", false, "Warnschild und Sprachwarnung")
-        SToggle(prefs, "Scharfe Kurven", "sharpbends", false, "Gelb gestreift auf der Route, Warnschild und Gong kurz davor (nur wenn du zu schnell bist)")
-        SToggle(prefs, "Wetterhinweise", "wxadvice", true, "Hinweis bei Regen, Schnee, Nebel oder Glätte")
-        SToggle(prefs, "Unwetterwarnungen (DWD)", "dwdwarn", true, "Amtliche Warnungen auf der Strecke: DWD in Deutschland, Meteoalarm in Frankreich, Österreich, Italien, Spanien, den Niederlanden und weiteren Ländern mit Warngebieten")
-        SToggle(prefs, "Feiertagshinweis", "holidayhint", true, "Beim Start einer Route ein Hinweis, wenn heute oder morgen ein Feiertag ist (mehr Verkehr). Daten: date.nager.at")
+        SToggle(prefs, "Baustellen und Ereignisse", PreferenceKeys.INCIDENTS, true, "Baustellen und Sperrungen auf Autobahnen. Daten: Autobahn GmbH. In Spanien: Unfälle, Baustellen, Sperrungen, Gefahren und V16-Pannenbaken der DGT (nap.dgt.es)")
+        SToggle(prefs, "Einbahnstraßen-Warnung", PreferenceKeys.WRONGWAY, false, "Bei falscher Fahrtrichtung; Fehlalarme möglich")
+        SToggle(prefs, "Bremsschwellen", PreferenceKeys.BUMPS, false)
+        SToggle(prefs, "Schulen zu Schulzeiten", PreferenceKeys.SCHOOLS, false)
+        SToggle(prefs, "Umweltzonen", PreferenceKeys.ZONEWARN, true)
+        SToggle(prefs, "Pausenerinnerung nach 2 Stunden", PreferenceKeys.BREAKREMIND, false)
+        SToggle(prefs, "Bahnübergänge und Furten", PreferenceKeys.RAILFORD, false, "Warnschild und Sprachwarnung")
+        SToggle(prefs, "Scharfe Kurven", PreferenceKeys.SHARPBENDS, false, "Gelb gestreift auf der Route, Warnschild und Gong kurz davor (nur wenn du zu schnell bist)")
+        SToggle(prefs, "Wetterhinweise", PreferenceKeys.WXADVICE, true, "Hinweis bei Regen, Schnee, Nebel oder Glätte")
+        SToggle(prefs, "Unwetterwarnungen (DWD)", PreferenceKeys.DWD_WARN, true, "Amtliche Warnungen auf der Strecke: DWD in Deutschland, Meteoalarm in Frankreich, Österreich, Italien, Spanien, den Niederlanden und weiteren Ländern mit Warngebieten")
+        SToggle(prefs, "Feiertagshinweis", PreferenceKeys.HOLIDAY_HINT, true, "Beim Start einer Route ein Hinweis, wenn heute oder morgen ein Feiertag ist (mehr Verkehr). Daten: date.nager.at")
         SToggle(prefs, "Falschfahrer-Meldungen", PreferenceKeys.WRONGWAY_REPORTS, true, "Alarm bei Meldung bis 30 km voraus")
         SToggle(prefs, "Vignetten-Hinweis", PreferenceKeys.VIGNETTE_WARN, true, "Ansage ca. 30 km vor Vignetten- oder Mautland")
-        SToggle(prefs, "Rettungsgasse", "rescuelane", true, "Hinweis im Autobahnstau")
+        SToggle(prefs, "Rettungsgasse", PreferenceKeys.RESCUE_LANE, true, "Hinweis im Autobahnstau")
     }
     SGroup(Lang.t("Meldungen", "Your reports"), footer = Lang.t("Meldungen über „Optionen“ auf der Karte erstellen.", "Create reports with the options button on the map.")) {
         SToggle(prefs, Lang.t("Vor Meldungen voraus warnen", "Warn before reports ahead"), "policealerts", true)
@@ -711,7 +711,7 @@ private fun SoundSection(prefs: Prefs, engine: NavEngine) {
             "„Nur Warnungen“: ohne Abbiegehinweise") { prefs.put(PreferenceKeys.SOUND_MODE, it.toInt()) }
         SToggle(prefs, "Straßennamen ansagen", PreferenceKeys.VOICE_ROADS, true, "Aus gibt nur die Richtung an")
         SToggle(prefs, "Landmarken in Anweisungen", PreferenceKeys.LANDMARKS, true, "Abbiegen an Ampeln: „An der Ampel rechts abbiegen“")
-        SToggle(prefs, "Intelligente Anweisungen", "smartvoice", true, "Anweisungen mit Ausfahrtsnummern und Schildern")
+        SToggle(prefs, "Intelligente Anweisungen", PreferenceKeys.SMARTVOICE, true, "Anweisungen mit Ausfahrtsnummern und Schildern")
         SChoice("Sprachkanal", listOf("nav" to "Navigation", "media" to "Medien"), prefs.s(PreferenceKeys.VOICE_CHANNEL, "nav"),
             "Medien wählen, falls keine Sprache zu hören ist") { prefs.put(PreferenceKeys.VOICE_CHANNEL, it) }
         SSlider("Gong-Lautstärke", prefs.i(PreferenceKeys.CHIME_VOL, 100).toFloat(), 0f..100f, "%", sub = "Gong bei Tempo, Tempolimit und Blitzern, zur Stimme eingestellt", steps = 19, reset = 100f) { prefs.put(PreferenceKeys.CHIME_VOL, it) }
@@ -870,7 +870,7 @@ private fun PlacesSection(engine: NavEngine) {
         if (favs.size > 1) SItem("Alle Favoriten entfernen") { SButton("Alle löschen", danger = true) { pl.clearFavourites() } }
     }
     SGroup("Verlauf", footer = "Zum Entfernen zur Seite wischen.") {
-        SToggle(engine.prefs, "Gespeichert & Zuletzt unter der Suchleiste", "quicklist", true, "Die Liste der Favoriten und letzten Orte auf der Karte")
+        SToggle(engine.prefs, "Gespeichert & Zuletzt unter der Suchleiste", PreferenceKeys.QUICKLIST, true, "Die Liste der Favoriten und letzten Orte auf der Karte")
         SItem("Letzte Ziele", "${pl.recents().size} letzte Ziele") {
             SButton("Löschen", danger = true) { pl.clearHistory(); engine.toast(engine.str(R.string.rest_1437), 2000) }
         }
@@ -1061,7 +1061,7 @@ private fun FuelSection(prefs: Prefs, engine: NavEngine) {
     SGroup("Kraftstoffpreise") {
         SChoice("Kraftstoff", listOf("E10" to "Super E10", "E5" to "Super E5", "B7" to "Diesel", "E85" to "Bioethanol (E85)", "EV" to "Elektro", "LPG" to "Autogas (LPG)"), prefs.s(PreferenceKeys.FUEL_TYPE, "E10")) { prefs.put(PreferenceKeys.FUEL_TYPE, it) }
         // only an electric car gets stops planned on the route: for a combustion car the switch would do nothing, so it is not shown
-        if (prefs.s(PreferenceKeys.FUEL_TYPE, "E10") == "EV") SToggle(prefs, "Ladestopps auf langen Fahrten planen", "smartfuel", true, "Wenn der Akku nicht bis zum Ziel reicht")
+        if (prefs.s(PreferenceKeys.FUEL_TYPE, "E10") == "EV") SToggle(prefs, "Ladestopps auf langen Fahrten planen", PreferenceKeys.SMARTFUEL, true, "Wenn der Akku nicht bis zum Ziel reicht")
         // the UK government's Fuel Finder (pump prices): only in Great Britain and only for a combustion car
         val ukFuel = engine.countryCode().uppercase() in setOf("GB", "UK") && prefs.s(PreferenceKeys.FUEL_TYPE, "E10") != "EV"
         if (ukFuel) {
@@ -1153,8 +1153,8 @@ private fun OfflinePlacesGroup(engine: NavEngine) {
 private fun ScreenSection(prefs: Prefs, engine: NavEngine) {
     SGroup("Bildschirm") {
         SSlider("Helligkeit", prefs.i(PreferenceKeys.BRIGHT, 100).toFloat(), 10f..100f, "%", sub = "100% überlässt die Steuerung dem System", live = true) { prefs.put(PreferenceKeys.BRIGHT, it) }
-        SToggle(prefs, "Bildschirm nachts dimmen", "dimnight", false)
-        SToggle(prefs, "Bildschirm eingeschaltet lassen", "keepon", true)
+        SToggle(prefs, "Bildschirm nachts dimmen", PreferenceKeys.DIMNIGHT, false)
+        SToggle(prefs, "Bildschirm eingeschaltet lassen", PreferenceKeys.KEEPON, true)
         val screenConfig = androidx.compose.ui.platform.LocalConfiguration.current
         val autoPercent = recommendedMainUiScale(screenConfig.screenWidthDp, screenConfig.screenHeightDp)
         val autoScale = prefs.b(PreferenceKeys.UI_AUTO_SCALE, prefs.s(PreferenceKeys.UI_SCALE, "").isBlank())
@@ -1217,20 +1217,20 @@ private fun WhileDrivingSection(prefs: Prefs, engine: NavEngine) {
     }
     SGroup("Beim Fahren") {
         SToggle(prefs, "Himmelsrichtung hinter dem Straßennamen", PreferenceKeys.HEADING_WORD, true, "„Richtung E“ hinter der Straße, wenn du ohne Route fährst. Aus: nur der Straßenname")
-        SToggle(prefs, "Geschwindigkeit neben dem Limit", "mapspeed", true)
-        SToggle(prefs, "Tachoring", "speedring", true, "Füllt sich bis zum Tempolimit, färbt sich gelb dann rot")
+        SToggle(prefs, "Geschwindigkeit neben dem Limit", PreferenceKeys.MAPSPEED, true)
+        SToggle(prefs, "Tachoring", PreferenceKeys.SPEEDRING, true, "Füllt sich bis zum Tempolimit, färbt sich gelb dann rot")
         SSlider("Tempolimit- und Tachogröße", prefs.i(PreferenceKeys.SPEED_SIZE, 100).toFloat(), 50f..200f, "%", sub = "Auf Smartphone und Autodisplay", steps = 29, reset = 100f) { prefs.put(PreferenceKeys.SPEED_SIZE, it) }
         SToggle(prefs, "Sonnenzeiten auf Android Auto", PreferenceKeys.CARSUN, false, "Tag und Nacht auf dem Autodisplay folgen Sonnenauf- und -untergang, auch wenn das Auto bei Licht dunkel wird")
         SToggle(prefs, "Großes Limit-Schild", PreferenceKeys.SPEED_SIGN_BIG, false, "Das Tempolimit-Schild groß an der Stelle des Tachos, dein Tempo klein daneben")
         SChoice("Tacho-Seite", listOf("right" to "Rechts", "left" to "Links", "auto" to "Automatisch"), prefs.s(PreferenceKeys.MAIN_SPEED_SIDE, "right"),
             "Auf Smartphone, Head-Unit und Android Auto (untere Ecke). Automatisch: wie früher. Das Limit-Schild steht immer zur Bildschirmmitte hin") { prefs.put(PreferenceKeys.MAIN_SPEED_SIDE, it) }
-        SToggle(prefs, "Straße und Richtung beim Fahren ohne Route", "cruise", true)
-        SToggle(prefs, "Pfeil ohne Route auf der Straße halten", "snaproad", true)
+        SToggle(prefs, "Straße und Richtung beim Fahren ohne Route", PreferenceKeys.CRUISE, true)
+        SToggle(prefs, "Pfeil ohne Route auf der Straße halten", PreferenceKeys.SNAPROAD, true)
         SToggle(prefs, "Pfeil seitlich lassen", PreferenceKeys.KEEP_ARROW_SIDE, false, "Auf breitem Bildschirm bleibt der Pfeil seitlich, wenn die Karten einklappen, statt in die Mitte zu gleiten")
-        SToggle(prefs, "Karte in Tunnels dimmen", "tunneldim", true)
+        SToggle(prefs, "Karte in Tunnels dimmen", PreferenceKeys.TUNNELDIM, true)
         SToggle(prefs, "Uhr auf der Karte", PreferenceKeys.CLOCK_ON_MAP, false, "Eine kleine Uhr unter dem Tacho, wenn die Statusleiste des Geräts verdeckt ist")
-        SToggle(prefs, "Weniger Buttons beim Fahren", "drivesimple", true)
-        SToggle(prefs, "Tastatur beim Fahren sperren", "drivelock", false, "Sprachsuche funktioniert weiterhin")
+        SToggle(prefs, "Weniger Buttons beim Fahren", PreferenceKeys.DRIVESIMPLE, true)
+        SToggle(prefs, "Tastatur beim Fahren sperren", PreferenceKeys.DRIVELOCK, false, "Sprachsuche funktioniert weiterhin")
     }
 }
 
@@ -1308,11 +1308,11 @@ private fun PerformanceSection(prefs: Prefs) {
         SChoice("Karten-Schärfe", listOf("100" to "Voll", "80" to "Ausgewogen", "65" to "Leicht", "50" to "Niedrigst"), prefs.s(PreferenceKeys.MAP_RESOLUTION, "80")) { prefs.put(PreferenceKeys.MAP_RESOLUTION, it) }
         SChoice("Bildrate", listOf("auto" to "Auto", "20" to "20", "30" to "30", "45" to "45", "60" to "60"), prefs.s(PreferenceKeys.MAP_FPS, "auto"),
             if (prefs.s(PreferenceKeys.MAP_FPS, "auto") == "auto") "Startet bei 30 FPS und passt sich an" else "Niedriger entlastet das Gerät") { prefs.put(PreferenceKeys.MAP_FPS, it) }
-        SToggle(prefs, "Schneller Kartenaufbau", "mapfast", true)
-        SToggle(prefs, "Leistungsanzeige", "perfmeter", false, "Anzeige von FPS und Renderschritten")
+        SToggle(prefs, "Schneller Kartenaufbau", PreferenceKeys.MAPFAST, true)
+        SToggle(prefs, "Leistungsanzeige", PreferenceKeys.PERFORMANCE_METER, false, "Anzeige von FPS und Renderschritten")
     }
     SGroup("Demo") {
-        SToggle(prefs, "Demofahrt-Button", "demo", false, "Spielt eine Route ab zum Testen beim Parken")
+        SToggle(prefs, "Demofahrt-Button", PreferenceKeys.DEMO, false, "Spielt eine Route ab zum Testen beim Parken")
     }
 }
 
@@ -1426,7 +1426,7 @@ private fun AboutSection(prefs: Prefs, engine: NavEngine) {
                 if (u != null && !engine.updateBusy) SButton("Aktualisieren auf ${u.version}", primary = true) { engine.installAppUpdate() }
                 else SButton(if (engine.updateBusy) "Sucht…" else "Jetzt prüfen") { engine.checkForUpdate(manual = true) }
             }
-            SToggle(prefs, "Automatisch nach Updates suchen", "updcheck", true, "Beim Öffnen der App mit Verbindung")
+            SToggle(prefs, "Automatisch nach Updates suchen", PreferenceKeys.UPDCHECK, true, "Beim Öffnen der App mit Verbindung")
         }
         SItem("Einrichtung", "Ersteinrichtung erneut durchführen") { SButton("Einrichtung starten") { prefs.put(PreferenceKeys.SETUP_DONE, false); prefs.put(PreferenceKeys.FORCESETUP, true) } }
         var feedback by remember { mutableStateOf(false) }

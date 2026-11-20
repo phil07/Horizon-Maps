@@ -94,6 +94,9 @@ class PlaceStore(private val prefs: Prefs) {
     fun favouriteNear(p: Place, r: Double = 150.0): Place? =
         savedFavourites().filter { Geo.dist(it.pos, p.pos) < r }.minByOrNull { Geo.dist(it.pos, p.pos) }
     fun isFavourite(p: Place) = favouriteNear(p) != null
+    /** The favourites that aren't already in Your places ([customs]), so a place shows once. */
+    fun favouritesNotIn(customs: List<LabeledPlace>): List<Place> =
+        favourites().filter { f -> customs.none { Geo.dist(it.place.pos, f.pos) < 60 } }
     /** Called when the favourites change (the map's stars follow it). */
     var onFavChanged: (() -> Unit)? = null
 

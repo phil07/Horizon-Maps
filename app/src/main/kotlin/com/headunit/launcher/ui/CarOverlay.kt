@@ -1085,7 +1085,7 @@ private fun CarChips(engine: NavEngine, actions: CarActions, rows: Int) {
         run {
             val ctxC = LocalContext.current
             val customsC = engine.places.customs()
-            val favsC = engine.places.favourites().filter { f -> customsC.none { Geo.dist(it.place.pos, f.pos) < 60 } }
+            val favsC = engine.places.favouritesNotIn(customsC)
             val tracksC = com.headunit.launcher.Gpx.list(ctxC)
             // as many favourites as fit the row (six here); the rest sit behind "Alle"
             val shownFavs = favsC.take(6)
@@ -1104,7 +1104,7 @@ private fun CarChips(engine: NavEngine, actions: CarActions, rows: Int) {
         val rawC = engine.prefs.s(PreferenceKeys.PLACES_CUSTOM, ""); val rawF = engine.prefs.s(PreferenceKeys.PLACES_FAVOURITES, ""); val rawR = engine.prefs.s(PreferenceKeys.PLACES_RECENT, "")
         val saved = remember(rawC, rawF, rawR) {
             val mine = engine.places.customs()
-            val favs = engine.places.favourites().filter { f -> mine.none { Geo.dist(it.place.pos, f.pos) < 60 } }
+            val favs = engine.places.favouritesNotIn(mine)
             val recents = engine.places.recents().filter { r -> favs.none { Geo.dist(it.pos, r.pos) < 60 } && mine.none { Geo.dist(it.place.pos, r.pos) < 60 } }
             // only the recent places here: your places and favourites are in the row above, so nothing appears twice
             recents.take(4).map { Triple(it, false, it.name) }
