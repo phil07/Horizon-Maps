@@ -122,7 +122,7 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
     private var me: LL? = null
     private var meHeading = 0.0
 
-    var onLongPress: ((LL, String?) -> Unit)? = null
+    var onLongPress: ((LL) -> Unit)? = null
     var onUserGesture: (() -> Unit)? = null
     /** The map has settled: the view as [minLat, minLon, maxLat, maxLon, zoom] (for the charger markers). */
     var onMapIdle: ((DoubleArray) -> Unit)? = null
@@ -239,19 +239,14 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
             // a piece of Mapbox's map itself (not one of the app's extras, like traffic) couldn't be loaded
             else if ((e.type == MapLoadingErrorType.TILE || e.type == MapLoadingErrorType.SOURCE) && !(e.sourceId ?: "").startsWith("dl-")) onTileMissing?.invoke()
         }
-        // a long press on the map opens the card of the spot (or of the place under it); a simple tap does nothing here
-        mapView.gestures.addOnMapLongClickListener { p ->
-            try {
-                val s = mbMap.pixelForCoordinate(p)
-                pickAt(android.graphics.PointF(s.x.toFloat(), s.y.toFloat())) { pp, name -> onLongPress?.invoke(pp, name) }
-            } catch (e: Throwable) { android.util.Log.w("MapBinding", "map long press: ${e.message}") }
-            true
-        }
+        mapView.gestures.addOnMapLongClickListener { p -> onLongPress?.invoke(LL(p.latitude(), p.longitude())); true }
         mapView.gestures.addOnMapClickListener { p ->
             // (whatever goes wrong in a tap is logged, never allowed to close the app)
             try {
                 main0.postDelayed({ tapClears() }, 150L)
                 val used = try { val s = mbMap.pixelForCoordinate(p); tapAt(android.graphics.PointF(s.x.toFloat(), s.y.toFloat())) } catch (e: Throwable) { false }
+                // nothing of the app's under the tap, and (a moment later) no place of the map's either: a tap on a free spot
+                if (!used) { val at = android.os.SystemClock.uptimeMillis(); main0.postDelayed({ if (poiTapAt < at) try { onFreeTap?.invoke(LL(p.latitude(), p.longitude())) } catch (e: Throwable) { android.util.Log.w("MapBinding", "free tap: ${e.message}") } }, 300L) }
                 used
             } catch (e: Throwable) { android.util.Log.w("MapBinding", "map tap: ${e.message}"); false }
         }
@@ -1071,6 +1066,7 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
     /** Told the traffic lights on the route each time they change (the engine zooms in as you come up to one). */
     var onRouteSignals: ((List<LL>) -> Unit)? = null
     /** A place on Mapbox's map you tapped (its name and spot): holding on it then routes there by name. */
+    var onPoiTap: ((String, LL) -> Unit)? = null
 
     fun setExtras(facades: Boolean, landmarks: Boolean, paths: Boolean, terrain: Boolean, tapSelect: Boolean, furniture: Boolean, clear: Boolean) {
         val rebuild = terrain != terrainOn || furniture != furnitureOn || clear != clearOn
@@ -1464,8 +1460,7 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
                 try {
                     val n = f.name
                     val g = f.geometry
-                    // (a tap on a place only highlights nothing now: its card opens on a long press)
-                    if (!n.isNullOrBlank() && g != null) Unit
+                    if (!n.isNullOrBlank() && g != null) { poiTapAt = android.os.SystemClock.uptimeMillis(); onPoiTap?.invoke(n, LL(g.latitude(), g.longitude())) }
                 } catch (e: Throwable) { android.util.Log.w("MapBinding", "place tap: ${e.message}") }
                 false
             })
@@ -2809,6 +2804,8 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
     // ---- every branch of a chain ----
     class ChainPin(val pos: LL, val label: String, val logo: Bitmap?, val selected: Boolean)
     /** Tapped the map where there is nothing to tap (no place, charger, car park or route). */
+    var onFreeTap: ((LL) -> Unit)? = null
+    private var poiTapAt = 0L
     /** Tapped a branch on the map (its index in the list given to [setChainPins]). */
     var onChainTap: ((Int) -> Unit)? = null
     private var chainPins: List<ChainPin> = emptyList()
