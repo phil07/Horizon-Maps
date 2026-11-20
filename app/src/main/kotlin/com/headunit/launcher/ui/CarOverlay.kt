@@ -17,6 +17,8 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.border
 import androidx.compose.foundation.background
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -977,8 +979,9 @@ private fun CarRoutePreview(engine: NavEngine) {
             start(Modifier.width(220.dp))
             cancel()
         } else Column(
-            // narrow: the destination and close button, the routes side by side, then Start across the width
-            Modifier.fillMaxWidth().floating(28.dp).padding(12.dp), verticalArrangement = Arrangement.spacedBy(10.dp),
+            // narrow: the destination and close button, the routes side by side, then Start across the width.
+            // On a short screen the panel scrolls instead of shrinking its text.
+            Modifier.fillMaxWidth().floating(28.dp).padding(12.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) { dest(Modifier.weight(1f).padding(start = 6.dp)); cancel() }
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) { cards() }

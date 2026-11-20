@@ -1,14 +1,8 @@
 ## Unreleased
 
 ### Improved
-- Ortsnamen und Straßennamen auf der Karte folgen der Sprache der App statt der des Telefons.
-  EN: Place and road names on the map follow the app's language instead of the phone's.
-- Die Musik wird beim Ansagen höchstens 90 Sekunden leiser gehalten, auch wenn eine Ansage nicht fertig gemeldet wird.
-  EN: Music is held down during announcements for at most 90 seconds, even when an announcement never reports that it has finished.
-
-### Fixed
-- Falsche Einfrier-Meldungen: Wenn das Telefon schlief oder die App im Hintergrund pausiert war, konnte der Problembericht ein „Einfrieren“ melden, das nie war. Das wird jetzt ignoriert.
-  EN: False freeze reports: when the phone slept or the app was paused in the background, the problem report could record a freeze that never happened. These are now ignored.
+- Android Auto, Routenwahl auf kurzen Bildschirmen: Die Schrift der Routen bleibt lesbar, und die Liste lässt sich scrollen, statt das ganze Feld zu verkleinern.
+  EN: Android Auto, route choice on short screens: the route text stays readable, and the panel scrolls instead of shrinking the whole panel.
 
 ## 1.0.246 — 2026-10-28
 
