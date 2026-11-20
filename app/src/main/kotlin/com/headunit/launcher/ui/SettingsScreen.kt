@@ -1218,6 +1218,7 @@ private fun WhileDrivingSection(prefs: Prefs, engine: NavEngine) {
 private fun AndroidAutoSection(prefs: Prefs) {
     val ctx = LocalContext.current
     SGroup("Auf der Karte") {
+        SToggle(prefs, "Sound-Knopf auf der Karte, wenn nicht navigiert", PreferenceKeys.CAR_SOUND_IDLE, true, "Aus: der Sound-Knopf erscheint nur während der Navigation, für mehr Platz")
         SToggle(prefs, "Suchleiste und Orte auf der Karte ausblenden", PreferenceKeys.CAR_HIDE_SEARCH, false, "Für Autos mit Drehknopf ohne Touchscreen: Suchleiste, Zuhause, Arbeit, Schnellwahl und Vorschlag verschwinden, wenn du nicht navigierst. Suche, Zuhause, Arbeit und gespeicherte Orte bleiben unter Orte (★)")
     }
     SGroup("Autodisplay") {

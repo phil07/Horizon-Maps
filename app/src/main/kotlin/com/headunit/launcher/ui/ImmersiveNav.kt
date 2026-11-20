@@ -1254,7 +1254,8 @@ internal fun ImmTurnCard(
                 // UK road numbers in the sentence show as their road signs (Settings › UK road signs)
                 if (engine.prefs.b(PreferenceKeys.UKSIGNS, true) && !com.headunit.launcher.RoadRefs.country.equals("DE", true))
                     RoadTextLine(t.thenText, Color.White.copy(alpha = 0.92f), 14.sp, Modifier.padding(start = 10.dp))
-                else Text(t.thenText, color = Color.White.copy(alpha = 0.92f), fontSize = 14.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(start = 10.dp))
+                // (a long street name goes onto a second line before it is cut short; the car's line too)
+                else Text(t.thenText, color = Color.White.copy(alpha = 0.92f), fontSize = 14.sp, maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(start = 10.dp))
             }
         }
         } // (end of the full card)

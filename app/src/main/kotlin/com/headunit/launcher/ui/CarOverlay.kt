@@ -505,7 +505,7 @@ private fun CarScreen(engine: NavEngine, a: android.graphics.Rect?, actions: Car
                 // (while guiding, the sound button is on the trip card)
                 // (the sound button is on the left: the driver sits on the left in a car with Android Auto, and it's not on the trip card)
                 CompositionLocalProvider(LocalDensity provides Density(dens.density * buttonScale, dens.fontScale)) {
-                    ImmRound(engine.soundIcon(), "sound", { engine.cycleSound() }, Modifier.align(Alignment.TopStart).padding(start = left, top = top + below))
+                    if (guiding || engine.prefs.b(PreferenceKeys.CAR_SOUND_IDLE, true)) ImmRound(engine.soundIcon(), "sound", { engine.cycleSound() }, Modifier.align(Alignment.TopStart).padding(start = left, top = top + below))
                 }
                 Column(
                     Modifier.align(Alignment.BottomStart).padding(start = left, bottom = bottom)
@@ -531,7 +531,7 @@ private fun CarScreen(engine: NavEngine, a: android.graphics.Rect?, actions: Car
                     verticalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
                     // (while guiding, the sound button is on the trip card instead of a pill of its own)
-                    if (!guiding && !tile) CompositionLocalProvider(LocalDensity provides Density(dens.density * buttonScale, dens.fontScale)) { SoundPill(engine) }
+                    if (!guiding && !tile && engine.prefs.b(PreferenceKeys.CAR_SOUND_IDLE, true)) CompositionLocalProvider(LocalDensity provides Density(dens.density * buttonScale, dens.fontScale)) { SoundPill(engine) }
                     if (!tile) hazards()
                     // a short screen: the speed stays here in the bottom-left corner, with the one-line trip strip beside it (not in the
                     // bottom right, where it slid with Android Auto's zoom buttons, covered the Mapbox logo and climbed the side)

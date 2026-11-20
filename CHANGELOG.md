@@ -1,10 +1,16 @@
 ## Unreleased
 
 ### New
-- Favoriten auf der Karte: Deine gespeicherten Orte erscheinen als gelbe Sterne mit ihrem Namen. Ein Tipp auf einen Stern zeigt seine Karte mit „Los“. Beim Fahren ohne Namen. Ausschalten unter Einstellungen › Karte › Favoriten auf der Karte.
-  EN: Favourites on the map: your saved places show as yellow stars with their names. A tap on a star shows its card with "Go". While driving, without names. Switch it off under Settings › Map › Favourites on the map.
-- Beim Speichern eines Favoriten erscheint ein Feld mit dem Namen, den du ihm selbst geben kannst.
-  EN: When you save a favourite, a box with its name appears, so you can call it something of your own.
+- Android Auto: Sound-Knopf auf der Karte, wenn nicht navigiert, lässt sich unter Einstellungen › Android Auto › Auf der Karte ausschalten. Dann erscheint er nur während der Navigation, für mehr Platz.
+  EN: Android Auto: the sound button on the map, when not navigating, can be switched off under Settings › Android Auto › On the map. Then it shows only while navigating, for more room.
+
+### Improved
+- Android Auto: Die Zeile „Dann …“ bricht bei einem langen Straßennamen auf eine zweite Zeile um, bevor sie abgeschnitten wird.
+  EN: Android Auto: the "Then …" line wraps a long street name onto a second line before it is cut short.
+- Android Auto: Sterne und Straßenlaternen bei Tag warten im Auto mit dunklem Bildschirm auf den Sonnenuntergang, wie auf dem Handy.
+  EN: Android Auto: stars and street lamps by day wait for sunset with a car whose screen stays dark, as on the phone.
+- Android Auto: Der Abbiegepfeil für das Armaturenbrett ist wieder der einfache Pfeil für jede Art von Abbiegung. Das Bild davon ließ die Abbiegung auf manchen Displays verschwinden.
+  EN: Android Auto: the turn arrow for the dashboard is the plain arrow for each kind of turn again. The picture of it made the turn disappear on some displays.
 
 ## 1.0.246 — 2026-10-28
 

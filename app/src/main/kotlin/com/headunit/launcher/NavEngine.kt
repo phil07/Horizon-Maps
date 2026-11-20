@@ -1463,7 +1463,8 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
     fun darkOutside(now: Long = System.currentTimeMillis()): Boolean {
         val phoneTheme = prefs.s(PreferenceKeys.THEME, "auto")
         val th = if (isCar) prefs.s(PreferenceKeys.CARTHEME, "car").let { if (it == "phone") phoneTheme else it } else phoneTheme
-        if (th != "night") return true
+        // (on Android Auto the car's own screen is dark all day in its dark setting: the same wait for the sun as "Always night")
+        if (th != "night" && !(isCar && th == "car")) return true
         val p = fix?.pos ?: return true
         return !Sun.isDay(p.lat, p.lon, now)
     }

@@ -181,6 +181,8 @@ internal object SettingsEn {
         "Regen auf der Karte" to "Rain on the map",
         "Schnee auf der Karte" to "Snow on the map",
         "Nebel auf der Karte" to "Fog on the map",
+        "Sound-Knopf auf der Karte, wenn nicht navigiert" to "Sound button on the map when not navigating",
+        "Aus: der Sound-Knopf erscheint nur während der Navigation, für mehr Platz" to "Off: the sound button shows only while navigating, for more room",
         "Nur wenn die Wettereffekte an sind" to "Only when weather effects are on",
         "Regen, Schnee und Nebel passend zum Wetter" to "Rain, snow and fog to match the weather",
         "Regenradar-Ebene" to "Rain radar layer",
