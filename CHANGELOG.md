@@ -1,16 +1,8 @@
 ## Unreleased
 
-### New
-- Android Auto: Sound-Knopf auf der Karte, wenn nicht navigiert, lässt sich unter Einstellungen › Android Auto › Auf der Karte ausschalten. Dann erscheint er nur während der Navigation, für mehr Platz.
-  EN: Android Auto: the sound button on the map, when not navigating, can be switched off under Settings › Android Auto › On the map. Then it shows only while navigating, for more room.
-
 ### Improved
-- Android Auto: Die Zeile „Dann …“ bricht bei einem langen Straßennamen auf eine zweite Zeile um, bevor sie abgeschnitten wird.
-  EN: Android Auto: the "Then …" line wraps a long street name onto a second line before it is cut short.
-- Android Auto: Sterne und Straßenlaternen bei Tag warten im Auto mit dunklem Bildschirm auf den Sonnenuntergang, wie auf dem Handy.
-  EN: Android Auto: stars and street lamps by day wait for sunset with a car whose screen stays dark, as on the phone.
-- Android Auto: Der Abbiegepfeil für das Armaturenbrett ist wieder der einfache Pfeil für jede Art von Abbiegung. Das Bild davon ließ die Abbiegung auf manchen Displays verschwinden.
-  EN: Android Auto: the turn arrow for the dashboard is the plain arrow for each kind of turn again. The picture of it made the turn disappear on some displays.
+- Verkehrsmeldungen in der Sprache der App: TomTom liefert die Beschreibungen auf Deutsch, wo es sie gibt. Mapbox-Meldungen (nur auf Englisch) werden für die Sprache Deutsch übersetzt, z. B. „Police directing traffic“ als „Polizei regelt den Verkehr“.
+  EN: Traffic incidents in the app's language: TomTom sends its descriptions in German where it has them. Mapbox's (only ever in English) are named in German for the German app, e.g. "Police directing traffic" as "Polizei regelt den Verkehr".
 
 ## 1.0.246 — 2026-10-28
 

@@ -405,6 +405,32 @@ object MapboxRest {
         else -> "STRAIGHT"
     }
 
+    /** Mapbox's incident texts are only ever in English: for a German app the usual kinds are named in German. */
+    internal fun germanIncident(text: String): String {
+        if (!Lang.de) return text
+        val pairs = listOf(
+            "police directing traffic" to "Polizei regelt den Verkehr",
+            "police activity" to "Polizeieinsatz",
+            "police" to "Polizei",
+            "accident" to "Unfall",
+            "road works" to "Straßenarbeiten",
+            "roadworks" to "Straßenarbeiten",
+            "lane closed" to "Spur gesperrt",
+            "lanes closed" to "Spuren gesperrt",
+            "road closed" to "Straße gesperrt",
+            "closed" to "gesperrt",
+            "broken down vehicle" to "Panne",
+            "breakdown" to "Panne",
+            "congestion" to "Stau",
+            "traffic jam" to "Stau",
+            "slow traffic" to "langsamer Verkehr",
+            "hazard" to "Gefahr",
+        )
+        var out = text
+        for ((en, de) in pairs) out = out.replace(en, de, ignoreCase = true)
+        return out
+    }
+
     private fun incidentCat(type: String): String = when (type) {
         "accident" -> "accident"; "construction" -> "roadWorks"; "road_closure" -> "roadClosed"; "congestion" -> "jam"
         "lane_restriction" -> "laneClosed"; "disabled_vehicle", "road_hazard", "weather" -> "danger"; else -> "other"
@@ -583,7 +609,7 @@ object MapboxRest {
                 val x = inc.getJSONObject(i)
                 val a = (legPtStart + x.optInt("geometry_index_start", 0)).coerceIn(0, max(0, pts.size - 1))
                 val b = (legPtStart + x.optInt("geometry_index_end", x.optInt("geometry_index_start", 0))).coerceIn(a, max(0, pts.size - 1))
-                val text = x.optString("description").ifBlank { x.optString("long_description") }
+                val text = germanIncident(x.optString("description").ifBlank { x.optString("long_description") })
                 // fires along the road are not traffic information: left out
                 if (Regex("\\bfire\\b", RegexOption.IGNORE_CASE).containsMatchIn(text)) continue
                 incidents += Incident("mb-" + x.optString("id", "$a"), incidentCat(x.optString("type")), text, 0, pts.subList(a, b + 1).toList())
