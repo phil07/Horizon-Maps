@@ -191,7 +191,19 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
         private set
     private var pickJob: kotlinx.coroutines.Job? = null
 
-    fun carMapTap(sp: android.graphics.PointF) { map.pickAt(sp) { p, name -> showPick(p, name) } }
+    /** "Auf der Karte wählen" (phone and Android Auto): a crosshair in the middle of the map; the card follows the map and goes as destination or stop. */
+    var aimOn by mutableStateOf(false)
+        private set
+
+    fun startAim() {
+        val c = map.center() ?: return
+        aimOn = true
+        following = false
+        showPick(c, null)
+    }
+
+    /** The map was moved by hand while aiming: the card moves to the new middle. */
+    private fun aimAt(c: LL) { if (aimOn) showPick(c, null) }
 
     /** Shows the card for the spot [p] (a place called [name], or just a point): on the car screen, and for a place tapped on the phone. */
     fun showPick(p: LL, name: String?) {
@@ -231,7 +243,7 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
     var pickOffer by mutableStateOf<String?>(null)
         private set
 
-    fun clearPick() { pickJob?.cancel(); pickJob = null; mapPick = null; pickOffer = null; map.setPick(null) }
+    fun clearPick() { pickJob?.cancel(); pickJob = null; mapPick = null; pickOffer = null; aimOn = false; map.setPick(null) }
 
     /** The fuel price or the charge points of the spot at [p], from the data the app already holds (nothing new is fetched for it). */
     private fun pickOfferFor(p: LL): String? {
@@ -1051,9 +1063,6 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
         }
         // holding on a place you've just tapped on the map goes there by its name (a shop, a station...), anywhere else to a dropped pin
         // (while you're driving a route, holding adds the place as a stop on the way instead of replacing where you're going)
-        // a long press on the map (or on a place in it) shows the card with its name or address, "Los" and "Als Stopp";
-        // a simple tap does nothing, so a touch by accident doesn't start anything
-        map.onLongPress = { p, name -> showPick(p, name) }
         map.onUserGesture = { if (following) { following = false }; if (route == null && !previewing && !walking) searchTucked = true; scheduleRecentre(12_000) }
         map.onMapIdle = { box -> refreshChargerLayer(box) }
         map.onAltTap = { i -> switchToAlt(i) }
@@ -5089,7 +5098,7 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
     private var camsCount = -1
     init {
         map.onRouteCameras = { c -> knownCams = c; if (camerasOnMap()) mergeCams() }
-        map.onViewMoved = { c -> viewMoved(c); garagesAt(c, false) }
+        map.onViewMoved = { c -> viewMoved(c); garagesAt(c, false); aimAt(c) }
         map.onGarageTap = { g -> showGarage(g) }
         map.onChainTap = { i ->
             val ch = chain

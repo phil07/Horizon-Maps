@@ -193,6 +193,16 @@ private fun ImmIcon(icon: ImageVector, onClick: () -> Unit, active: Boolean = fa
     ImmCircle(onClick, size, active) { Icon(icon, desc, tint = if (active) Color.White else c.text, modifier = Modifier.size(size * 0.46f)) }
 }
 
+/** The crosshair of "Auf der Karte wählen": a ring with a cross through it, in the middle of the map (it doesn't take touches). */
+@Composable
+internal fun AimCross() {
+    val c = LocalVw.current
+    Box(Modifier.size(44.dp).border(3.dp, c.accent, CircleShape)) {
+        Box(Modifier.align(Alignment.Center).size(width = 3.dp, height = 70.dp).background(c.accent))
+        Box(Modifier.align(Alignment.Center).size(width = 70.dp, height = 3.dp).background(c.accent))
+    }
+}
+
 @Composable
 internal fun ImmPill(text: String, onClick: () -> Unit, icon: ImageVector? = null, filled: Boolean = false) {
     val c = LocalVw.current
@@ -294,6 +304,8 @@ private fun MapScreen(engine: NavEngine, onSettings: () -> Unit) {
         fun report(i: Int, r: androidx.compose.ui.geometry.Rect) { engine.setPanel(i, r.left / boxW, r.top / boxH, r.right / boxW, r.bottom / boxH) }
         // a place tapped on the map: its card floats over everything else (also over the route options while choosing a route)
         // docked like Add a stop: along the bottom, or down the driver's side when the screen is held sideways (a head unit too)
+        // "Auf der Karte wählen": the crosshair in the middle of the map (the card docked below follows it)
+        if (engine.aimOn) Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { AimCross() }
         if (engine.mapPick != null) {
             val landscape = boxW > boxH
             Box(Modifier.align(if (landscape) side(Alignment.CenterStart) else Alignment.BottomCenter).padding(16.dp).zIndex(30f)) { PhonePickCard(engine) }
@@ -320,6 +332,8 @@ private fun MapScreen(engine: NavEngine, onSettings: () -> Unit) {
                 // on foot to the parked car: the next instruction and what is left, over the search bar
                 if (engine.walking) WalkCard(engine)
                 ImmSearch(engine, q, { q = it }, typingLocked, focus, voice)
+                // a spot on the map: a crosshair in the middle of the map, and the card goes as destination or stop
+                if (q.trim().length < 2 && engine.results.isEmpty() && engine.chain == null && !engine.chainBusy) ImmPill(Lang.t("Auf der Karte wählen", "Pick on the map"), { searchOpen = false; engine.startAim() })
                 // adding a stop: the matches along the rest of the route (the keyboard's search key does the same)
                 if (engine.stopMode && q.trim().length >= 2 && !engine.alongOpen) ImmPill(Lang.t("Entlang der Route suchen", "See them along your route"), { engine.searchAlong(q) }, icon = Icons.Rounded.Route, filled = true)
                 if (engine.alongOpen) AlongPanel(engine)

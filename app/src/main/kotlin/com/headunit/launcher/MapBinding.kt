@@ -122,7 +122,6 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
     private var me: LL? = null
     private var meHeading = 0.0
 
-    var onLongPress: ((LL, String?) -> Unit)? = null
     var onUserGesture: (() -> Unit)? = null
     /** The map has settled: the view as [minLat, minLon, maxLat, maxLon, zoom] (for the charger markers). */
     var onMapIdle: ((DoubleArray) -> Unit)? = null
@@ -239,14 +238,7 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
             // a piece of Mapbox's map itself (not one of the app's extras, like traffic) couldn't be loaded
             else if ((e.type == MapLoadingErrorType.TILE || e.type == MapLoadingErrorType.SOURCE) && !(e.sourceId ?: "").startsWith("dl-")) onTileMissing?.invoke()
         }
-        // a long press on the map opens the card of the spot (or of the place under it); a simple tap does nothing here
-        mapView.gestures.addOnMapLongClickListener { p ->
-            try {
-                val s = mbMap.pixelForCoordinate(p)
-                pickAt(android.graphics.PointF(s.x.toFloat(), s.y.toFloat())) { pp, name -> onLongPress?.invoke(pp, name) }
-            } catch (e: Throwable) { android.util.Log.w("MapBinding", "map long press: ${e.message}") }
-            true
-        }
+        // a tap or a long press on the map does nothing; spots are picked with "Auf der Karte wählen" (a crosshair in the middle)
         mapView.gestures.addOnMapClickListener { p ->
             // (whatever goes wrong in a tap is logged, never allowed to close the app)
             try {
