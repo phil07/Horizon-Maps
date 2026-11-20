@@ -159,8 +159,6 @@ fun FogOverlay(modifier: Modifier = Modifier) {
     }
 }
 
-/** The weather effect for an Open-Meteo weather code: rain (heavier in a downpour or storm), snow or fog. */
-@Composable
 /** The weather code as the map's rain, snow and fog may use it: null when that kind is switched off in Settings › Weather. */
 fun weatherKindOn(prefs: Prefs, code: Int?): Int? {
     if (code == null) return null
@@ -173,6 +171,8 @@ fun weatherKindOn(prefs: Prefs, code: Int?): Int? {
     return if (on) code else null
 }
 
+/** The weather effect for an Open-Meteo weather code: rain (heavier in a downpour or storm), snow or fog. */
+@Composable
 fun WeatherFx(code: Int, modifier: Modifier = Modifier) {
     when (code) {
         45, 48 -> FogOverlay(modifier)
