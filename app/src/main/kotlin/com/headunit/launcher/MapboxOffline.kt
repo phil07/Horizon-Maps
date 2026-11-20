@@ -74,7 +74,7 @@ object MapboxOffline {
                 }.sortedBy { if (it.id == "home") "" else it.name }
                 main.post { saved = out }
             }
-        } catch (e: Throwable) { }
+        } catch (e: Throwable) { softFail(e) }
     }
 
     /** The map within [km] of [home]. */
@@ -205,12 +205,12 @@ object MapboxOffline {
     }
 
     /** Stops the save that's running (what's been saved so far is kept). */
-    fun stop() { try { running?.cancel() } catch (e: Throwable) { } }
+    fun stop() { try { running?.cancel() } catch (e: Throwable) { softFail(e) } }
 
     /** Deletes a saved area (its map is then only kept while there's room, like any recently seen area). */
     fun delete(ctx: Context, id: String) {
         val app = ctx.applicationContext
-        try { tileStore().removeTileRegion(id) } catch (e: Throwable) { }
+        try { tileStore().removeTileRegion(id) } catch (e: Throwable) { softFail(e) }
         val j = names(app); j.remove(id); saveNames(app, j)
         main.postDelayed({ refresh(app) }, 300L)
     }

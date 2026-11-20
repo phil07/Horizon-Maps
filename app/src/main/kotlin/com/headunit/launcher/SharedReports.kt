@@ -163,6 +163,6 @@ object SharedReports {
             if (code == 429) throw IOException(Lang.t("Zu viele Meldungen, bitte später", "Too many reports, try later"))
             if (code !in 200..299) throw IOException("HTTP $code")
             return text
-        } finally { try { c.disconnect() } catch (e: Exception) { } }
+        } finally { try { c.disconnect() } catch (e: Exception) { softFail(e) } }
     }
 }

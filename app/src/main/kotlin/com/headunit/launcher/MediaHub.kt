@@ -51,7 +51,7 @@ object MediaHub {
                 art = md?.getBitmap(MediaMetadata.METADATA_KEY_ALBUM_ART) ?: md?.getBitmap(MediaMetadata.METADATA_KEY_ART)
                 if (s.playbackState?.state == PlaybackState.STATE_PLAYING) playing = true
             }
-        } catch (e: SecurityException) { } catch (e: Exception) { }
+        } catch (e: SecurityException) { } catch (e: Exception) { softFail(e) }
         now = Now(playing, title, artist, art)
     }
 
@@ -71,13 +71,13 @@ object MediaHub {
                 }
                 return
             }
-        } catch (e: SecurityException) { } catch (e: Exception) { }
+        } catch (e: SecurityException) { } catch (e: Exception) { softFail(e) }
         // no access (or no session): the media keys, which the head unit's current player takes
         val code = when (action) { "prev" -> KeyEvent.KEYCODE_MEDIA_PREVIOUS; "next" -> KeyEvent.KEYCODE_MEDIA_NEXT; else -> KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE }
         val am = ctx.getSystemService(Context.AUDIO_SERVICE) as? AudioManager ?: return
         try {
             am.dispatchMediaKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, code))
             am.dispatchMediaKeyEvent(KeyEvent(KeyEvent.ACTION_UP, code))
-        } catch (e: Exception) { }
+        } catch (e: Exception) { softFail(e) }
     }
 }

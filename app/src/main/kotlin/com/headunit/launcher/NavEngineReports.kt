@@ -178,7 +178,7 @@ private fun NavEngine.reportSources(r: Report, list: List<Report>): Int {
 
 /** Refreshes the map icons when reports change or expire, and warns when one is just ahead. */
 internal fun NavEngine.checkPolice(p: Fix) {
-    try { refreshShared(p) } catch (e: Exception) { }
+    try { refreshShared(p) } catch (e: Exception) { softFail(e) }
     val list = allReports()
     var sig = list.size
     for (r in list) sig = sig * 31 + (r.t % 100000).toInt() + (r.sid % 100000).toInt()

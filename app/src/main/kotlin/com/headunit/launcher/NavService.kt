@@ -67,7 +67,7 @@ class NavService : Service() {
         }
 
         fun stop(ctx: Context) {
-            try { ctx.stopService(Intent(ctx, NavService::class.java)) } catch (e: Exception) { }
+            try { ctx.stopService(Intent(ctx, NavService::class.java)) } catch (e: Exception) { softFail(e) }
         }
     }
 }

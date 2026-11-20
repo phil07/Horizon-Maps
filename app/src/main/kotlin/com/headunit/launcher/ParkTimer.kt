@@ -63,12 +63,12 @@ object ParkTimer {
             if (android.os.Build.VERSION.SDK_INT < 31 || am.canScheduleExactAlarms()) am.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, at, pi)
             // without the exact alarm permission Android may hold it back a few minutes: asked a little earlier
             else am.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, at - 3 * 60_000L, pi)
-        } catch (e: Exception) { try { am.set(AlarmManager.RTC_WAKEUP, at, pi) } catch (e2: Exception) { } }
+        } catch (e: Exception) { try { am.set(AlarmManager.RTC_WAKEUP, at, pi) } catch (e2: Exception) { softFail(e2) } }
     }
 
     fun cancel(ctx: Context, p: Prefs) {
         p.put(PreferenceKeys.PARK_UNTIL, "")
-        try { ctx.getSystemService(AlarmManager::class.java).cancel(pending(ctx, ACTION_REMIND)) } catch (e: Exception) { }
+        try { ctx.getSystemService(AlarmManager::class.java).cancel(pending(ctx, ACTION_REMIND)) } catch (e: Exception) { softFail(e) }
         val nm = ctx.getSystemService(NotificationManager::class.java)
         nm.cancel(ID_RUN); nm.cancel(ID_ALERT)
     }
@@ -105,7 +105,7 @@ object ParkTimer {
             .addAction(Notification.Action.Builder(null, Lang.t("Aufheben", "Cancel"), pending(ctx, ACTION_CANCEL)).build())
         if (android.os.Build.VERSION.SDK_INT >= 24) b.setChronometerCountDown(true)
         openApp(ctx)?.let { b.setContentIntent(it) }
-        try { ctx.getSystemService(NotificationManager::class.java).notify(ID_RUN, b.build()) } catch (e: Exception) { }
+        try { ctx.getSystemService(NotificationManager::class.java).notify(ID_RUN, b.build()) } catch (e: Exception) { softFail(e) }
     }
 
     /** The reminder: how long is left and how long the walk back to the car takes (from where the phone last knew it was). */
@@ -125,7 +125,7 @@ object ParkTimer {
         openApp(ctx)?.let { b.setContentIntent(it) }
         // "Zum Auto": opens the app with the way on foot to the car
         if (car != null) walkToCar(ctx)?.let { b.addAction(Notification.Action.Builder(null, Lang.t("Zum Auto", "To the car"), it).build()) }
-        try { ctx.getSystemService(NotificationManager::class.java).notify(ID_ALERT, b.build()) } catch (e: Exception) { }
+        try { ctx.getSystemService(NotificationManager::class.java).notify(ID_ALERT, b.build()) } catch (e: Exception) { softFail(e) }
     }
 
     private fun lastKnown(ctx: Context): LL? = try {

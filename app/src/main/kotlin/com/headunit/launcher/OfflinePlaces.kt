@@ -34,7 +34,7 @@ object OfflinePlaces {
                     if (la != null && lo != null) out += Entry(p[0], p[0].lowercase(), LL(la, lo), p[3].toIntOrNull() ?: 0, p[4])
                 }
             }
-        } catch (e: Exception) { }
+        } catch (e: Exception) { softFail(e) }
         cache = out
         return out
     }

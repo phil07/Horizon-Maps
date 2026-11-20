@@ -85,6 +85,6 @@ object CarBluetooth {
 /** Tells [CarBluetooth] when a Bluetooth device connects to or leaves the phone. */
 class CarBluetoothReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
-        try { CarBluetooth.onBluetooth(context, intent) } catch (e: Exception) { }
+        try { CarBluetooth.onBluetooth(context, intent) } catch (e: Exception) { softFail(e) }
     }
 }

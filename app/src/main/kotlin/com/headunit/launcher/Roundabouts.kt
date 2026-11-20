@@ -57,7 +57,7 @@ object Roundabouts {
                         rings[o.getLong("id")] = Ring(o.getLong("id"), LL(o.getDouble("la"), o.getDouble("lo")), pieces, o.optBoolean("m", false), arms)
                     }
                 }
-            } catch (e: Exception) { }
+            } catch (e: Exception) { softFail(e) }
             loaded = true
         }
     }
@@ -77,7 +77,7 @@ object Roundabouts {
             val tmp = java.io.File(ctx.filesDir, "$FILE.tmp")
             tmp.writeText(a.toString())
             tmp.renameTo(f)
-        } catch (e: Exception) { }
+        } catch (e: Exception) { softFail(e) }
     }
 
     /**

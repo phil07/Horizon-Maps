@@ -165,7 +165,7 @@ object ParkingLive {
         // only a city whose centre is within 25 km (a city's car parks are all within that)
         val near = cities.filter { Geo.dist(it.second, p) < 25_000.0 }
         val out = ArrayList<Garage>()
-        for ((id, _) in near) try { out += parseParkendd(id, get("https://api.parkendd.de/$id"), now).filter { Geo.dist(p, it.pos) <= radius } } catch (e: Exception) { }
+        for ((id, _) in near) try { out += parseParkendd(id, get("https://api.parkendd.de/$id"), now).filter { Geo.dist(p, it.pos) <= radius } } catch (e: Exception) { softFail(e) }
         return out
     }
 

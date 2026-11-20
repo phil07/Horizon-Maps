@@ -91,7 +91,7 @@ object EvWidget {
     /** Saves the bound widget [id] (dropping any earlier one) and starts reading it. */
     fun finishBind(ctx: Context, p: Prefs, id: Int) {
         val old = widgetId(p)
-        if (old >= 0 && old != id) try { host(ctx).deleteAppWidgetId(old) } catch (e: Exception) { }
+        if (old >= 0 && old != id) try { host(ctx).deleteAppWidgetId(old) } catch (e: Exception) { softFail(e) }
         val info = try { AppWidgetManager.getInstance(ctx).getAppWidgetInfo(id) } catch (e: Exception) { null }
         // a different widget: the reading of the old one doesn't apply to it
         if (old != id) { p.put(PreferenceKeys.EV_NOW_PCT, ""); p.put(PreferenceKeys.EV_NOW_KM, ""); p.put(TAG_AT, "") }
@@ -99,13 +99,13 @@ object EvWidget {
         stop(); start(ctx, p)
     }
 
-    fun cancelBind(ctx: Context, id: Int) { try { host(ctx).deleteAppWidgetId(id) } catch (e: Exception) { } }
+    fun cancelBind(ctx: Context, id: Int) { try { host(ctx).deleteAppWidgetId(id) } catch (e: Exception) { softFail(e) } }
 
     /** Stops reading and forgets the widget. */
     fun remove(ctx: Context, p: Prefs) {
         val id = widgetId(p)
         stop()
-        if (id >= 0) try { host(ctx).deleteAppWidgetId(id) } catch (e: Exception) { }
+        if (id >= 0) try { host(ctx).deleteAppWidgetId(id) } catch (e: Exception) { softFail(e) }
         p.put(TAG_ID, -1); p.put(TAG_AT, ""); p.put(PreferenceKeys.EV_NOW_KM, ""); lastPct = null; lastAt = 0L
     }
 
@@ -122,7 +122,7 @@ object EvWidget {
                 firstAfterStart = true
                 view = v
                 h.startListening()
-            } catch (e: Exception) { }
+            } catch (e: Exception) { softFail(e) }
         }
     }
 
@@ -140,7 +140,7 @@ object EvWidget {
 
     fun stop() {
         main.post {
-            try { host?.stopListening() } catch (e: Exception) { }
+            try { host?.stopListening() } catch (e: Exception) { softFail(e) }
             view = null
         }
     }
@@ -165,7 +165,7 @@ object EvWidget {
             val now = System.currentTimeMillis()
             if (p.b(PreferenceKeys.EV_AUTOREFRESH, true) && now - lastTapAt >= 55_000L) { lastTapAt = now; tapRefresh() }
             main.postDelayed(this, 60_000L)
-            if (view == null) try { appCtx?.let { start(it, p) } } catch (e: Exception) { }
+            if (view == null) try { appCtx?.let { start(it, p) } } catch (e: Exception) { softFail(e) }
         }
     }
     private var appCtx: Context? = null
@@ -205,7 +205,7 @@ object EvWidget {
                     val words = buildList {
                         x.contentDescription?.toString()?.let { add(it) }
                         (x as? TextView)?.text?.toString()?.let { add(it) }
-                        if (x.id != View.NO_ID) try { add(x.resources.getResourceEntryName(x.id)) } catch (e: Exception) { }
+                        if (x.id != View.NO_ID) try { add(x.resources.getResourceEntryName(x.id)) } catch (e: Exception) { softFail(e) }
                     }.joinToString(" ")
                     found += x to words
                 }
@@ -331,7 +331,7 @@ object EvWidget {
                     lastTexts = texts.map { it.take(80) }.take(30)
                     val pct = findPct(texts); val km = findKm(texts)
                     if (pct != null) onRead?.invoke(pct, km)
-                } catch (e: Exception) { }
+                } catch (e: Exception) { softFail(e) }
             }
         }
 

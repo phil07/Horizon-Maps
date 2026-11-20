@@ -103,7 +103,7 @@ object AvgZones {
             val tmp = File(ctx.filesDir, "$FILE.tmp")
             tmp.writeText(a.toString())
             tmp.renameTo(File(ctx.filesDir, FILE))
-        } catch (e: Exception) { }
+        } catch (e: Exception) { softFail(e) }
     }
 
     private fun same(a: List<AvgDef>, b: List<AvgDef>): Boolean =

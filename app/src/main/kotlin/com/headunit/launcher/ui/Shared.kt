@@ -87,7 +87,7 @@ internal fun openSystemSettings(ctx: android.content.Context, action: String, ur
         if (uri != null) i.data = uri
         ctx.startActivity(i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
     } catch (e: Exception) {
-        try { ctx.startActivity(Intent(android.provider.Settings.ACTION_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) } catch (_: Exception) { }
+        try { ctx.startActivity(Intent(android.provider.Settings.ACTION_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) } catch (_: Exception) { softFail(_) }
     }
 }
 
@@ -194,10 +194,10 @@ fun rememberPhonePicker(onPicked: (String, String) -> Unit): () -> Unit {
             ctx.contentResolver.query(uri, arrayOf(ContactsContract.CommonDataKinds.Phone.NUMBER, ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME), null, null, null)?.use {
                 if (it.moveToFirst()) onPicked(it.getString(0) ?: "", it.getString(1) ?: "")
             }
-        } catch (e: Exception) { }
+        } catch (e: Exception) { softFail(e) }
     }
     return {
-        try { pick.launch(Intent(Intent.ACTION_PICK, ContactsContract.CommonDataKinds.Phone.CONTENT_URI)) } catch (e: Exception) { }
+        try { pick.launch(Intent(Intent.ACTION_PICK, ContactsContract.CommonDataKinds.Phone.CONTENT_URI)) } catch (e: Exception) { softFail(e) }
     }
 }
 
@@ -242,7 +242,7 @@ fun rememberLocatorImagePicker(onDone: (Boolean) -> Unit): () -> Boolean {
         var started = false
         for (i in tries) {
             if (started) break
-            try { pick.launch(i); started = true } catch (e: Exception) { }
+            try { pick.launch(i); started = true } catch (e: Exception) { softFail(e) }
         }
         started
     }
@@ -268,7 +268,7 @@ fun rememberOwnModelPicker(onDone: (Boolean, String) -> Unit): () -> Boolean {
             Intent(Intent.ACTION_GET_CONTENT).setType("*/*").addCategory(Intent.CATEGORY_OPENABLE),
         )) {
             if (started) break
-            try { pick.launch(i); started = true } catch (e: Exception) { }
+            try { pick.launch(i); started = true } catch (e: Exception) { softFail(e) }
         }
         started
     }

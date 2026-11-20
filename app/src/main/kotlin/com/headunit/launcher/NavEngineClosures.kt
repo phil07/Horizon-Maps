@@ -49,7 +49,7 @@ internal fun NavEngine.closurePts(from: LL?, to: LL?): List<LL> {
     val now = System.currentTimeMillis()
     val pts = ArrayList<LL>()
     for ((ps, until) in closures.values) if (until >= now) pts.addAll(listOf(ps.first(), ps[ps.size / 2], ps.last()).distinct())
-    try { for (rp in allReports()) if (rp.kind == "closed") pts += rp.pos } catch (e: Exception) { }
+    try { for (rp in allReports()) if (rp.kind == "closed") pts += rp.pos } catch (e: Exception) { softFail(e) }
     // the start or the end of the trip: the only way there or away, so it is not avoided
     val ok = pts.filter { p -> (from == null || Geo.dist(p, from) > 300.0) && (to == null || Geo.dist(p, to) > 300.0) }
     val here = from ?: fix?.pos
@@ -97,8 +97,8 @@ internal fun NavEngine.closureAfterReroute(r: Route) {
 }
 
 internal fun NavEngine.checkIncidents(r: Route, progress: Double) {
-    try { checkWrongWay(r, progress) } catch (e: Exception) { }
-    try { if (camerasOnMap()) updateRouteCams(r, progress); pushHazards(progress) } catch (e: Exception) { }
+    try { checkWrongWay(r, progress) } catch (e: Exception) { softFail(e) }
+    try { if (camerasOnMap()) updateRouteCams(r, progress); pushHazards(progress) } catch (e: Exception) { softFail(e) }
     // TomTom's incident data when there's a key; otherwise the incidents that came with a Mapbox route
     val fromRoute = (!hasKey || ttDown()) && r.incidents.isNotEmpty()
     val ab = autobahnIncidents(r)
@@ -144,7 +144,7 @@ internal fun NavEngine.checkIncidents(r: Route, progress: Double) {
                     }
                 } catch (e: Exception) { null }
             }
-            if (found != null) { incMatches = found; try { applyIncidentSev(r, found) } catch (e: Exception) { }; try { closureAhead(r) } catch (e: Exception) { } }
+            if (found != null) { incMatches = found; try { applyIncidentSev(r, found) } catch (e: Exception) { softFail(e) }; try { closureAhead(r) } catch (e: Exception) { softFail(e) } }
         }
     }
     // (wrong-way drivers have their own, louder warning: checkWrongWay)
@@ -258,7 +258,7 @@ internal fun NavEngine.checkFaster(cur: Route, remainingSecs: Double) {
                 delay(25_000)
                 if (faster === shown) { faster = null; lastFasterCheck = System.currentTimeMillis() + 300_000L }
             }
-        } catch (e: Exception) { }
+        } catch (e: Exception) { softFail(e) }
     }
 }
 
@@ -289,7 +289,7 @@ internal fun NavEngine.checkTraffic(cur: Route) {
                 tt?.let { others += it }
             }
             refreshTraffic(cur, fresh, at, others)
-        } catch (e: Exception) { }
+        } catch (e: Exception) { softFail(e) }
         finally { trafficBusy = false }
     }
 }
@@ -328,7 +328,7 @@ private fun NavEngine.refreshTraffic(cur: Route, fresh: Route, at: Double = curP
     }
     sevBase = base.copyOf(); sevBaseRoute = cur
     System.arraycopy(base, 0, cur.sev, 0, base.size)
-    try { applyIncidentSev(cur, incMatches) } catch (e: Exception) { }
+    try { applyIncidentSev(cur, incMatches) } catch (e: Exception) { softFail(e) }
     lastDraw = 0L
 }
 

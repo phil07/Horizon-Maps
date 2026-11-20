@@ -134,7 +134,7 @@ class CarNavSession : Session() {
                 if (pendingNavWaitToken == token) pendingNavWait = null
                 val ms = mapScreen ?: return@post
                 if (holder.engine !== e) return@post
-                try { ms.screenManager.popToRoot() } catch (x: Exception) { }
+                try { ms.screenManager.popToRoot() } catch (x: Exception) { softFail(x) }
                 val p = t?.pos
                 val q = spoken(t?.query.orEmpty())
                 val slot = when (q.lowercase()) {
@@ -146,11 +146,11 @@ class CarNavSession : Session() {
                 when {
                     p != null -> e.askNewDest(Place(t?.name ?: Lang.t("Ziel", "Destination"), Lang.t("Ziel aus Google Assistant", "From Google Assistant"), p))
                     slot != null && e.places.slot(slot) != null -> e.askNewDest(e.places.slot(slot)!!)
-                    slot != null -> try { androidx.car.app.CarToast.makeText(carContext, if (slot == "home") Lang.t("Noch kein Zuhause gespeichert", "No home saved yet") else Lang.t("Noch keine Arbeit gespeichert", "No work place saved yet"), androidx.car.app.CarToast.LENGTH_LONG).show() } catch (x: Exception) { }
+                    slot != null -> try { androidx.car.app.CarToast.makeText(carContext, if (slot == "home") Lang.t("Noch kein Zuhause gespeichert", "No home saved yet") else Lang.t("Noch keine Arbeit gespeichert", "No work place saved yet"), androidx.car.app.CarToast.LENGTH_LONG).show() } catch (x: Exception) { softFail(x) }
                     fav != null -> e.askNewDest(fav)
                     // a name or address: searched, and a single clear match is started straight away
                     q.isNotEmpty() -> ms.screenManager.push(SearchScreen(carContext, holder, q, voice = true))
-                    else -> try { androidx.car.app.CarToast.makeText(carContext, Lang.t("Konnte keinen Ort erkennen", "Couldn't read a place from that"), androidx.car.app.CarToast.LENGTH_LONG).show() } catch (x: Exception) { }
+                    else -> try { androidx.car.app.CarToast.makeText(carContext, Lang.t("Konnte keinen Ort erkennen", "Couldn't read a place from that"), androidx.car.app.CarToast.LENGTH_LONG).show() } catch (x: Exception) { softFail(x) }
                 }
             }
         }.apply { isDaemon = true; name = "car-nav-intent" }
@@ -197,7 +197,7 @@ class CarNavSession : Session() {
         val key = Pair(code, skyCode)
         if (key == wxShown) return
         wxShown = key
-        try { m.setWeather(code); m.setSky(skyCode) } catch (x: Exception) { }
+        try { m.setWeather(code); m.setSky(skyCode) } catch (x: Exception) { softFail(x) }
     }
 
     private fun themeTick() {
@@ -206,7 +206,7 @@ class CarNavSession : Session() {
         themeAt = now
         try {
             if (Prefs(carContext.applicationContext).s(PreferenceKeys.CARTHEME, "car") == "phone" && carDark() != themeWas) applyTheme()
-        } catch (e: Exception) { }
+        } catch (e: Exception) { softFail(e) }
     }
 
     private fun applyTheme() {
@@ -231,21 +231,21 @@ class CarNavSession : Session() {
         }
         screen.openSettings = { screen.screenManager.push(CarSettingsScreen(carContext, holder) { applyTheme() }) }
         // the battery level from the car itself, when Android Auto shares it (the widget is the fallback)
-        try { CarEnergy.start(carContext, Prefs(carContext.applicationContext)) } catch (e: Exception) { }
+        try { CarEnergy.start(carContext, Prefs(carContext.applicationContext)) } catch (e: Exception) { softFail(e) }
         // and the battery widget's refresh button tapped now and then, so its reading stays fresh with the phone locked
-        try { com.headunit.launcher.EvWidget.autoRefreshStart(carContext, Prefs(carContext.applicationContext)) } catch (e: Exception) { }
-        try { carContext.getCarService(AppManager::class.java).setSurfaceCallback(surface) } catch (e: Exception) { }
+        try { com.headunit.launcher.EvWidget.autoRefreshStart(carContext, Prefs(carContext.applicationContext)) } catch (e: Exception) { softFail(e) }
+        try { carContext.getCarService(AppManager::class.java).setSurfaceCallback(surface) } catch (e: Exception) { softFail(e) }
         lifecycle.addObserver(object : DefaultLifecycleObserver {
             override fun onDestroy(owner: LifecycleOwner) {
                 screen.stop()
-                try { CarEnergy.stop() } catch (e: Exception) { }
-                try { com.headunit.launcher.EvWidget.autoRefreshStop() } catch (e: Exception) { }
+                try { CarEnergy.stop() } catch (e: Exception) { softFail(e) }
+                try { com.headunit.launcher.EvWidget.autoRefreshStop() } catch (e: Exception) { softFail(e) }
                 pendingNavWaitToken++
                 pendingNavWait?.interrupt()
                 pendingNavWait = null
                 // unplugged: the car's engine stops, but a trip the phone is also following carries on there (with its voice back)
-                try { holder.engine?.shutdown() } catch (e: Exception) { }
-                try { if (!com.headunit.launcher.RouteSync.anyGuiding()) NavService.stop(carContext.applicationContext) } catch (e: Exception) { }
+                try { holder.engine?.shutdown() } catch (e: Exception) { softFail(e) }
+                try { if (!com.headunit.launcher.RouteSync.anyGuiding()) NavService.stop(carContext.applicationContext) } catch (e: Exception) { softFail(e) }
                 CarTicks.tick = null
                 surface.release()
                 holder.engine = null; holder.map = null
@@ -284,18 +284,18 @@ class CarNavSession : Session() {
         // the car keeps its own map direction (north up or turning with you)
         engine.northUp = prefs.b(PreferenceKeys.NORTHUP_CAR, false)
         // back in the car: the "Your car" spot on the phone isn't needed any more
-        try { prefs.put(PreferenceKeys.PARKED_SPOT, "") } catch (e: Exception) { }
+        try { prefs.put(PreferenceKeys.PARKED_SPOT, "") } catch (e: Exception) { softFail(e) }
         // the Bluetooth device that just connected is the car (for "where you parked" without Android Auto)
-        try { com.headunit.launcher.CarBluetooth.carStarted(app) } catch (e: Exception) { }
+        try { com.headunit.launcher.CarBluetooth.carStarted(app) } catch (e: Exception) { softFail(e) }
         holder.map = map; holder.engine = engine
         ClusterLink.engine = engine
         surface.engine = engine
         CarTicks.tick = { surface.tick(); themeTick(); weatherTick() }
         applyTheme()
-        try { engine.startLocation() } catch (e: Exception) { }
+        try { engine.startLocation() } catch (e: Exception) { softFail(e) }
         engine.restoreFreeZoomNow()
         // the phone's layer choices (traffic on the route only, rain radar) on the car map too
-        try { engine.applyLayer(PreferenceKeys.ROUTETRAFFICONLY); engine.applyLayer(PreferenceKeys.RAIN_RADAR) } catch (e: Exception) { }
+        try { engine.applyLayer(PreferenceKeys.ROUTETRAFFICONLY); engine.applyLayer(PreferenceKeys.RAIN_RADAR) } catch (e: Exception) { softFail(e) }
         mapScreen?.start()
         // asked for a destination before the map was up (Android Auto opened the app for it)
         pendingNav?.let { pendingNav = null; takeNav(it) }
@@ -403,7 +403,7 @@ class CarSurface(private val carContext: CarContext, private val onReady: (MapBi
             try {
                 val tok = MapboxRest.clean(Prefs(p.context.applicationContext).s(PreferenceKeys.MAPBOX_TOKEN, ""))
                 if (tok.isNotEmpty() && com.mapbox.common.MapboxOptions.accessToken != tok) com.mapbox.common.MapboxOptions.accessToken = tok
-            } catch (e: Throwable) { }
+            } catch (e: Throwable) { softFail(e) }
             // drawn straight to its own surface (no extra copy each frame, which a texture view would cost)
             val m = MapBinding(p.context, true, 1f, ratio)
             // Android Auto follows the Street lamps setting, like the trees and the other 3D details
@@ -414,7 +414,7 @@ class CarSurface(private val carContext: CarContext, private val onReady: (MapBi
             try {
                 val carPrefs = Prefs(p.context.applicationContext)
                 m.setView(carPrefs.b(PreferenceKeys.SATELLITE, false), carPrefs.b(PreferenceKeys.BUILDINGS_3D, true))
-            } catch (e: Throwable) { }
+            } catch (e: Throwable) { softFail(e) }
             val root = FrameLayout(p.context)
             root.addView(m.mapView, FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT))
             root.addView(m.roadView, FrameLayout.LayoutParams(1, 1))
@@ -428,7 +428,7 @@ class CarSurface(private val carContext: CarContext, private val onReady: (MapBi
             root.addView(overlay, FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT))
             p.setContentView(root)
             p.show()
-            try { m.mapView.onStart() } catch (e: Throwable) { }
+            try { m.mapView.onStart() } catch (e: Throwable) { softFail(e) }
             presentation = p; map = m
             area.value?.let { onVisibleAreaChanged(it) }
             onReady(m)
@@ -450,7 +450,7 @@ class CarSurface(private val carContext: CarContext, private val onReady: (MapBi
             visibleArea.left >= 0 && visibleArea.top >= 0 && visibleArea.right <= width + 2 && visibleArea.bottom <= height + 2)
         if (!plausible) {
             area.value = null
-            map?.let { it.viewInset = null; it.maxTopFrac = 1.0; try { it.placeBranding(null) } catch (e: Exception) { } }
+            map?.let { it.viewInset = null; it.maxTopFrac = 1.0; try { it.placeBranding(null) } catch (e: Exception) { softFail(e) } }
             engine?.viewAreaChanged()
             return
         }
@@ -474,7 +474,7 @@ class CarSurface(private val carContext: CarContext, private val onReady: (MapBi
     override fun onScroll(distanceX: Float, distanceY: Float) {
         val m = map ?: return
         m.onUserGesture?.invoke()
-        try { m.panBy(distanceX, distanceY) } catch (e: Exception) { }
+        try { m.panBy(distanceX, distanceY) } catch (e: Exception) { softFail(e) }
     }
 
     override fun onFling(velocityX: Float, velocityY: Float) {}
@@ -490,7 +490,7 @@ class CarSurface(private val carContext: CarContext, private val onReady: (MapBi
                 val pt = android.graphics.PointF(x, y)
                 if (map?.tapAt(pt) != true) engine?.carMapTap(pt)
             }
-        } catch (e: Exception) { }
+        } catch (e: Exception) { softFail(e) }
     }
 
     override fun onScale(focusX: Float, focusY: Float, scaleFactor: Float) {
@@ -498,17 +498,17 @@ class CarSurface(private val carContext: CarContext, private val onReady: (MapBi
         m.onUserGesture?.invoke()
         // a double tap comes as a negative factor: zoom in one step
         val dz = if (scaleFactor <= 0f) 1.0 else Math.log(scaleFactor.toDouble()) / Math.log(2.0)
-        try { m.zoomAround(dz, focusX, focusY) } catch (e: Exception) { }
+        try { m.zoomAround(dz, focusX, focusY) } catch (e: Exception) { softFail(e) }
     }
 
     /** Called about once a second (the cards update themselves). */
     fun tick() {}
 
     fun release() {
-        try { owner.stop() } catch (e: Exception) { }
-        try { map?.destroy() } catch (e: Exception) { }
-        try { presentation?.dismiss() } catch (e: Exception) { }
-        try { display?.release() } catch (e: Exception) { }
+        try { owner.stop() } catch (e: Exception) { softFail(e) }
+        try { map?.destroy() } catch (e: Exception) { softFail(e) }
+        try { presentation?.dismiss() } catch (e: Exception) { softFail(e) }
+        try { display?.release() } catch (e: Exception) { softFail(e) }
         map = null; presentation = null; display = null
     }
 }
@@ -563,7 +563,7 @@ class MapScreen(carContext: CarContext, private val holder: CarHolder) : Screen(
                 // Google's test tool: simulate driving to the chosen destination
                 override fun onAutoDriveEnabled() { autoDrive = true }
             })
-        } catch (e: Exception) { }
+        } catch (e: Exception) { softFail(e) }
     }
 
     private val tick = object : Runnable {
@@ -577,7 +577,7 @@ class MapScreen(carContext: CarContext, private val holder: CarHolder) : Screen(
     fun start() { if (!running) { running = true; handler.post(tick) } }
     fun stop() {
         running = false; handler.removeCallbacks(tick)
-        if (navigating) try { nav?.navigationEnded() } catch (e: Exception) { }
+        if (navigating) try { nav?.navigationEnded() } catch (e: Exception) { softFail(e) }
         navigating = false
     }
 
@@ -591,13 +591,13 @@ class MapScreen(carContext: CarContext, private val holder: CarHolder) : Screen(
             try {
                 if (guiding) {
                     nav?.navigationStarted()
-                    try { NavService.start(holder.carContext.applicationContext, "Navigation nach ${e.dest?.name ?: "deinem Ziel"}") } catch (x: Exception) { }
+                    try { NavService.start(holder.carContext.applicationContext, "Navigation nach ${e.dest?.name ?: "deinem Ziel"}") } catch (x: Exception) { softFail(x) }
                 } else {
                     nav?.navigationEnded()
                     // (the phone may still be guiding a trip of its own: then its background GPS service stays on)
-                    try { if (!com.headunit.launcher.RouteSync.anyGuiding()) NavService.stop(holder.carContext.applicationContext) } catch (x: Exception) { }
+                    try { if (!com.headunit.launcher.RouteSync.anyGuiding()) NavService.stop(holder.carContext.applicationContext) } catch (x: Exception) { softFail(x) }
                 }
-            } catch (x: Exception) { }
+            } catch (x: Exception) { softFail(x) }
         }
         if (autoDrive && guiding && e.simMode == 0) e.cycleSim()
         val t = e.turn; val eta = e.eta
@@ -608,13 +608,13 @@ class MapScreen(carContext: CarContext, private val holder: CarHolder) : Screen(
         val tsig = "${t?.maneuver}|${t?.street}|${t?.exit}|${t?.dist?.let { Math.round(it / 10) }}|${eta?.secs?.let { Math.round(it / 30) }}|${eta?.dist?.let { Math.round(it / 100) }}|${System.identityHashCode(t?.lanes)}"
         if (guiding && t != null && eta != null && tsig != lastTrip) {
             lastTrip = tsig
-            try { nav?.updateTrip(trip(e, t, eta)) } catch (x: Exception) { }
+            try { nav?.updateTrip(trip(e, t, eta)) } catch (x: Exception) { softFail(x) }
         }
         // passing another driver's shared report: ask in the car too (Android Auto's alert with two buttons; car API 5 and newer)
         val vp = e.votePrompt
         if (vp != null && vp.id != lastVoteId) {
             lastVoteId = vp.id
-            if (carContext.carAppApiLevel >= 5) try { showVoteAlert(e, vp) } catch (x: Exception) { }
+            if (carContext.carAppApiLevel >= 5) try { showVoteAlert(e, vp) } catch (x: Exception) { softFail(x) }
         }
         // a faster route found: the same offer as a pop-up with the minutes and the distance saved (Android Auto's alert with two
         // buttons, car API 5 and newer); it goes when the offer is gone
@@ -626,7 +626,7 @@ class MapScreen(carContext: CarContext, private val holder: CarHolder) : Screen(
             if (carContext.carAppApiLevel >= 5) try {
                 if (fr != null) showFasterAlert(e, fr)
                 else if (had) carContext.getCarService(AppManager::class.java).dismissAlert(FASTER_ALERT_ID)
-            } catch (x: Exception) { }
+            } catch (x: Exception) { softFail(x) }
         }
         // a stop on the way reached: the pop-up once, and the trip waits until "Fahrt weitermachen" (on the car and on the phone)
         val sp0 = e.stopPause
@@ -636,7 +636,7 @@ class MapScreen(carContext: CarContext, private val holder: CarHolder) : Screen(
             if (carContext.carAppApiLevel >= 5) try {
                 if (sp0 != null) showStopAlert(e, sp0)
                 else if (had != null) carContext.getCarService(AppManager::class.java).dismissAlert(STOP_ALERT_ID)
-            } catch (x: Exception) { }
+            } catch (x: Exception) { softFail(x) }
         }
         CarTicks.tick?.invoke()
     }
@@ -644,7 +644,7 @@ class MapScreen(carContext: CarContext, private val holder: CarHolder) : Screen(
     private fun showStopAlert(e: NavEngine, name: String) {
         val am = carContext.getCarService(AppManager::class.java)
         val go = Action.Builder().setTitle(Lang.t("Fahrt weitermachen", "Continue trip")).setOnClickListener {
-            e.resumeAfterStop(); try { am.dismissAlert(STOP_ALERT_ID) } catch (x: Exception) { }
+            e.resumeAfterStop(); try { am.dismissAlert(STOP_ALERT_ID) } catch (x: Exception) { softFail(x) }
         }.build()
         val alert = androidx.car.app.model.Alert.Builder(STOP_ALERT_ID, androidx.car.app.model.CarText.create(Lang.t("Zwischenziel erreicht: $name", "Stop reached: $name")), 60_000L)
             .addAction(go)
@@ -664,10 +664,10 @@ class MapScreen(carContext: CarContext, private val holder: CarHolder) : Screen(
         val text = if (diff >= 0) Lang.t("Schnellere Route: spart ${fr.savedMin} Min. · $dist kürzer", "Faster route: saves ${fr.savedMin} min · $dist shorter")
             else Lang.t("Schnellere Route: spart ${fr.savedMin} Min. · $dist länger", "Faster route: saves ${fr.savedMin} min · $dist longer")
         val yes = Action.Builder().setTitle(Lang.t("Wechseln", "Switch")).setOnClickListener {
-            e.acceptFaster(); try { am.dismissAlert(FASTER_ALERT_ID) } catch (x: Exception) { }
+            e.acceptFaster(); try { am.dismissAlert(FASTER_ALERT_ID) } catch (x: Exception) { softFail(x) }
         }.build()
         val no = Action.Builder().setTitle(Lang.t("Beibehalten", "Keep")).setOnClickListener {
-            e.dismissFaster(); try { am.dismissAlert(FASTER_ALERT_ID) } catch (x: Exception) { }
+            e.dismissFaster(); try { am.dismissAlert(FASTER_ALERT_ID) } catch (x: Exception) { softFail(x) }
         }.build()
         val alert = androidx.car.app.model.Alert.Builder(FASTER_ALERT_ID, androidx.car.app.model.CarText.create(text), 20_000L)
             .addAction(yes).addAction(no)
@@ -683,10 +683,10 @@ class MapScreen(carContext: CarContext, private val holder: CarHolder) : Screen(
         val am = carContext.getCarService(AppManager::class.java)
         val alertId = (vp.id % Int.MAX_VALUE).toInt()
         val still = Action.Builder().setTitle(Lang.t("Noch da", "Still there")).setOnClickListener {
-            e.answerVote(true); try { am.dismissAlert(alertId) } catch (x: Exception) { }
+            e.answerVote(true); try { am.dismissAlert(alertId) } catch (x: Exception) { softFail(x) }
         }.build()
         val gone = Action.Builder().setTitle(Lang.t("Weg", "Gone")).setOnClickListener {
-            e.answerVote(false); try { am.dismissAlert(alertId) } catch (x: Exception) { }
+            e.answerVote(false); try { am.dismissAlert(alertId) } catch (x: Exception) { softFail(x) }
         }.build()
         val alert = androidx.car.app.model.Alert.Builder(alertId, androidx.car.app.model.CarText.create(Lang.t("${vp.name} noch da?", "${vp.name} still there?")), 12_000L)
             .addAction(still).addAction(gone)
@@ -1033,7 +1033,7 @@ class MapScreen(carContext: CarContext, private val holder: CarHolder) : Screen(
                         sb.setLanesImage(CarIcon.Builder(IconCompat.createWithBitmap(pic)).build())
                     }
                 }
-            } catch (x: Exception) { }
+            } catch (x: Exception) { softFail(x) }
             return sb.build()
         }
     }
@@ -1149,11 +1149,11 @@ class ReportScreen(carContext: CarContext, private val holder: CarHolder) : Scre
             else -> null
         }
         if (msg != null || e == null) {
-            try { androidx.car.app.CarToast.makeText(carContext, msg ?: "", androidx.car.app.CarToast.LENGTH_SHORT).show() } catch (x: Exception) { }
+            try { androidx.car.app.CarToast.makeText(carContext, msg ?: "", androidx.car.app.CarToast.LENGTH_SHORT).show() } catch (x: Exception) { softFail(x) }
             return
         }
-        try { e.report(kind) } catch (x: Exception) { }
-        try { androidx.car.app.CarToast.makeText(carContext, Lang.t("${e.reportName(kind)}-Meldung hier gespeichert", "${e.reportName(kind)} report saved here"), androidx.car.app.CarToast.LENGTH_SHORT).show() } catch (x: Exception) { }
+        try { e.report(kind) } catch (x: Exception) { softFail(x) }
+        try { androidx.car.app.CarToast.makeText(carContext, Lang.t("${e.reportName(kind)}-Meldung hier gespeichert", "${e.reportName(kind)} report saved here"), androidx.car.app.CarToast.LENGTH_SHORT).show() } catch (x: Exception) { softFail(x) }
         screenManager.pop()
     }
 }
@@ -1201,10 +1201,10 @@ class LimitReportScreen(carContext: CarContext, private val holder: CarHolder) :
                 .setOnClickListener {
                     val en = holder.engine
                     if (en == null || en.fix == null) {
-                        try { androidx.car.app.CarToast.makeText(carContext, Lang.t("Warte auf GPS", "Waiting for GPS"), androidx.car.app.CarToast.LENGTH_SHORT).show() } catch (x: Exception) { }
+                        try { androidx.car.app.CarToast.makeText(carContext, Lang.t("Warte auf GPS", "Waiting for GPS"), androidx.car.app.CarToast.LENGTH_SHORT).show() } catch (x: Exception) { softFail(x) }
                     } else {
-                        try { en.reportLimit(v) } catch (x: Exception) { }
-                        try { androidx.car.app.CarToast.makeText(carContext, Lang.t("Tempolimit gemeldet", "Speed limit reported"), androidx.car.app.CarToast.LENGTH_SHORT).show() } catch (x: Exception) { }
+                        try { en.reportLimit(v) } catch (x: Exception) { softFail(x) }
+                        try { androidx.car.app.CarToast.makeText(carContext, Lang.t("Tempolimit gemeldet", "Speed limit reported"), androidx.car.app.CarToast.LENGTH_SHORT).show() } catch (x: Exception) { softFail(x) }
                         screenManager.popToRoot()
                     }
                 }.build()
@@ -1507,19 +1507,19 @@ class CarSettingsScreen(carContext: CarContext, private val holder: CarHolder, p
             .setOnClickListener {
                 val next = when (arrowScale) { in 0..149 -> 150; in 150..199 -> 200; in 200..249 -> 250; in 250..299 -> 300; else -> 100 }
                 prefs.put(PreferenceKeys.ARROW_PERCENT, next)
-                try { holder.map?.setArrowScale((next / 100f).coerceIn(1f, 5f) * 0.9f * (prefs.i(PreferenceKeys.CAR_ARROW_SIZE, 70).coerceIn(30, 180) / 100f)) } catch (_: Exception) { }
+                try { holder.map?.setArrowScale((next / 100f).coerceIn(1f, 5f) * 0.9f * (prefs.i(PreferenceKeys.CAR_ARROW_SIZE, 70).coerceIn(30, 180) / 100f)) } catch (_: Exception) { softFail(_) }
                 invalidate()
             }.build()
         val reroute: (Boolean) -> Unit = { holder.engine?.rerouteForSettings() }
         rows += toggleRow(Lang.t("Autobahnen meiden", "Avoid motorways"), "avoid_motorway", false, null, reroute)
         rows += toggleRow(Lang.t("Mautstraßen meiden", "Avoid toll roads"), "avoid_toll", false, null, reroute)
-        rows += toggleRow(Lang.t("Andere Routen", "Other routes"), PreferenceKeys.LIVE_ALTERNATIVES, true, Lang.t("Auf der Karte anzeigen", "Show on the map")) { _ -> try { holder.engine?.otherRoutesChanged() } catch (x: Exception) { } }
+        rows += toggleRow(Lang.t("Andere Routen", "Other routes"), PreferenceKeys.LIVE_ALTERNATIVES, true, Lang.t("Auf der Karte anzeigen", "Show on the map")) { _ -> try { holder.engine?.otherRoutesChanged() } catch (x: Exception) { softFail(x) } }
         rows += toggleRow(Lang.t("Blitzer", "Speed cameras"), "cameras", false, Lang.t("Anzeigen und warnen", "Show and warn")) { on ->
             // the sub-line promises both: the cameras on the map go with the warnings (and come back with them)
             prefs.put(PreferenceKeys.CAMERA_MAP, on)
-            try { holder.engine?.applyLayer(PreferenceKeys.CAMERA_MAP) } catch (x: Exception) { }
+            try { holder.engine?.applyLayer(PreferenceKeys.CAMERA_MAP) } catch (x: Exception) { softFail(x) }
         }
-        rows += toggleRow(Lang.t("Ampeln", "Traffic lights"), "signals", true, Lang.t("Auf deiner Route", "On your route")) { on -> try { holder.map?.signalsEnabled(on) } catch (x: Exception) { } }
+        rows += toggleRow(Lang.t("Ampeln", "Traffic lights"), "signals", true, Lang.t("Auf deiner Route", "On your route")) { on -> try { holder.map?.signalsEnabled(on) } catch (x: Exception) { softFail(x) } }
         rows += toggleRow(Lang.t("Fähren meiden", "Avoid ferries"), "avoid_ferry", false, null, reroute)
         // the same switch as on the phone: the limit sign big where the speedometer was, your speed small beside it
         rows += toggleRow(Lang.t("Großes Limit-Schild", "Big limit sign"), PreferenceKeys.SPEED_SIGN_BIG, false, Lang.t("Am Tacho, Tempo klein daneben", "Where the speedometer was, speed small beside it"))

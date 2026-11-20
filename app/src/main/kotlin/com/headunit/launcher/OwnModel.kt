@@ -173,7 +173,7 @@ object OwnModel {
             Thread({
                 while (!s.isClosed) {
                     val c = try { s.accept() } catch (e: Exception) { break }
-                    try { serve(c, file(app)) } catch (e: Exception) { try { c.close() } catch (x: Exception) { } }
+                    try { serve(c, file(app)) } catch (e: Exception) { try { c.close() } catch (x: Exception) { softFail(x) } }
                 }
             }, "own-model").apply { isDaemon = true }.start()
         }

@@ -335,7 +335,7 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
     private val tripRoads = HashSet<String>()
     private val roadFam: HashMap<String, Int> by lazy {
         val m = HashMap<String, Int>()
-        try { val o = org.json.JSONObject(prefs.s(PreferenceKeys.ROADFAM, "{}")); for (k in o.keys()) m[k] = o.optInt(k) } catch (e: Exception) { }
+        try { val o = org.json.JSONObject(prefs.s(PreferenceKeys.ROADFAM, "{}")); for (k in o.keys()) m[k] = o.optInt(k) } catch (e: Exception) { softFail(e) }
         m
     }
     internal var lastFasterCheck = 0L
@@ -590,7 +590,7 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
                     mbRetries++
                     toast(Lang.t("Mapbox hat die Karte kurz verweigert, aber dein Schlüssel ist in Ordnung$acct. Neuer Versuch …", "Mapbox refused the map for a moment, but your token is fine$acct. Trying again…"), 5000)
                     delay(4000L * mbRetries)
-                    if (t == mbToken) try { applyStyle(lastDark) } catch (e: Exception) { }
+                    if (t == mbToken) try { applyStyle(lastDark) } catch (e: Exception) { softFail(e) }
                 } else if (mbRetries == 3) { mbRetries++; toast(Lang.t("Mapbox akzeptiert deinen Schlüssel, verweigert aber weiter die Karte. Melde dich auf account.mapbox.com an und suche dort nach einem Hinweis zu deinem Konto.", "Mapbox accepts your token but keeps refusing the map. Sign in at account.mapbox.com and look for a notice about your account."), 10_000) }
                 return@launch
             }
@@ -642,7 +642,7 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
                 val got = done.poll(20, java.util.concurrent.TimeUnit.SECONDS)?.get() ?: break
                 if (got.second.isNotEmpty()) { won = got; break }
             }
-        } catch (e: Exception) { } finally {
+        } catch (e: Exception) { softFail(e) } finally {
             tasks.forEach { it.cancel(true) }
             pool.shutdownNow()
         }
@@ -883,7 +883,7 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
         } else null
         if (tomtomOk) try { out += TomTomRest.poiNear(apiKey, q, kind?.tomtom, near, radius) } catch (e: Exception) { android.util.Log.w("NavEngine", "nearby search (TomTom) failed", e) }
         if (out.size < 3 && hasMapbox) try { out += MapboxRest.poiNear(mbToken, kind?.label ?: q, near, radius) } catch (e: Exception) { android.util.Log.w("NavEngine", "nearby search (Mapbox) failed", e) }
-        if (kind != null && out.size < 3) try { out += PoiSearch.osmByKind(kind, near, radius) } catch (e: Exception) { }
+        if (kind != null && out.size < 3) try { out += PoiSearch.osmByKind(kind, near, radius) } catch (e: Exception) { softFail(e) }
         if (osm != null) out += try { osm.get(9, java.util.concurrent.TimeUnit.SECONDS) ?: emptyList<Place>() } catch (e: Exception) { emptyList<Place>() }
         return PoiSearch.distinct(out.sortedBy { Geo.dist(near, it.pos) }).take(limit)
     }
@@ -961,14 +961,14 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
 
     init {
         // an older pack on the unit goes into its own area folder (it's the area that was chosen then)
-        try { migratePack() } catch (e: Exception) { }
+        try { migratePack() } catch (e: Exception) { softFail(e) }
         // Italy's daily price list is kept with the app's files (see ItalyFuel)
         ItalyFuel.dir = ctx.filesDir
         SpainFuel.dir = ctx.filesDir
         // the suggested destination (where you're probably heading) is looked at once a minute while idle; the card shows it
-        scope.launch { while (true) { try { refreshPrediction() } catch (e: Exception) { }; try { dgtTick() } catch (e: Exception) { }; try { refreshOutsideDark() } catch (e: Exception) { }; delay(60_000L) } }
+        scope.launch { while (true) { try { refreshPrediction() } catch (e: Exception) { softFail(e) }; try { dgtTick() } catch (e: Exception) { softFail(e) }; try { refreshOutsideDark() } catch (e: Exception) { softFail(e) }; delay(60_000L) } }
         // the daily backup to the chosen folder: checked a little after start, then every half hour while the app runs
-        scope.launch { delay(20_000L); while (true) { try { withContext(Dispatchers.IO) { AutoBackup.runIfDue(ctx, prefs) } } catch (e: Exception) { }; delay(30 * 60_000L) } }
+        scope.launch { delay(20_000L); while (true) { try { withContext(Dispatchers.IO) { AutoBackup.runIfDue(ctx, prefs) } } catch (e: Exception) { softFail(e) }; delay(30 * 60_000L) } }
         // the one-way street warning went off too often on OpenStreetMap's data: off for everyone once (it can be switched back on)
         if (!prefs.b(PreferenceKeys.WRONGWAY_RESET, false)) { prefs.put(PreferenceKeys.WRONGWAY, false); prefs.put(PreferenceKeys.WRONGWAY_RESET, true) }
         // speed limits and the wrong-way warning read the roads from a downloaded area when one covers you (no network needed)
@@ -986,7 +986,7 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
                         val got = withContext(Dispatchers.IO) { try { CarLink.latest(code, last) } catch (e: Exception) { null } }
                         if (got != null && got.id != last) { prefs.put(PreferenceKeys.LINK_LAST, got.id); if (route == null) { phoneStops = got.stops; phoneTrack = got.track; phoneDest = got.place } }
                     }
-                } catch (e: Exception) { }
+                } catch (e: Exception) { softFail(e) }
                 delay(60_000)
             }
         }
@@ -1000,17 +1000,17 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
                 if (PerfStats.on) perfSample() else if (perfLine.isNotEmpty()) perfLine = ""
                 // (the traffic view when stopped shouldn't depend on the GPS still sending positions while you're stationary)
                 if (stoppedSince > 0L && !stoppedOverview && following && android.os.SystemClock.elapsedRealtime() - stoppedSince > 30_500L &&
-                    prefs.b(PreferenceKeys.STOPPED_OVERVIEW, true)) fix?.let { try { onPosition(it, true) } catch (e: Exception) { } }
+                    prefs.b(PreferenceKeys.STOPPED_OVERVIEW, true)) fix?.let { try { onPosition(it, true) } catch (e: Exception) { softFail(e) } }
             }
         }
         // look for a newer app and newer map data straight after starting (the checks are a few small requests)
         scope.launch {
-            if (Updater.enabled) try { withContext(Dispatchers.IO) { Updater.cleanUp(ctx) } } catch (e: Exception) { }
+            if (Updater.enabled) try { withContext(Dispatchers.IO) { Updater.cleanUp(ctx) } } catch (e: Exception) { softFail(e) }
             delay(3_000)
             // (the phone's app does the update checks; the car screen's engine doesn't repeat them)
             if (!isCar) onOpened()
             // electric: the battery level from the car app's widget, if one was chosen
-            try { EvWidget.start(ctx, prefs) } catch (e: Exception) { }
+            try { EvWidget.start(ctx, prefs) } catch (e: Exception) { softFail(e) }
         }
         try {
             val o = org.json.JSONObject(prefs.s(PreferenceKeys.RESUME, "{}"))
@@ -1041,7 +1041,7 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
             } else if (o.has("la") && age < 15 * 60_000L && !o.optBoolean("near", false))
                 // stopped navigating 4 to 15 minutes ago: offer to carry on with the "Resume trip" card
                 resume = Place(o.optString("n"), o.optString("s"), LL(o.getDouble("la"), o.getDouble("lo")))
-        } catch (e: Exception) { }
+        } catch (e: Exception) { softFail(e) }
         tts = TextToSpeech(ctx) { status ->
             if (status != TextToSpeech.SUCCESS) {
                 // no working text-to-speech on this unit: the beeps still sound, but nothing can be said (this used to fail silently)
@@ -1103,12 +1103,12 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
             val o = org.json.JSONObject(prefs.s(PreferenceKeys.PLANNED, "{}"))
             if (o.has("la") && o.optLong("a") > System.currentTimeMillis())
                 planned = PlannedTrip(Place(o.optString("n"), o.optString("s"), LL(o.getDouble("la"), o.getDouble("lo"))), o.getLong("a"), o.getLong("l"))
-        } catch (e: Exception) { }
+        } catch (e: Exception) { softFail(e) }
         if (planned != null) watchPlanned()
         // clean air zones are downloaded once and refreshed monthly
         scope.launch {
             delay(15_000)
-            try { if (Zones.needsRefresh(ctx) && online()) { withContext(Dispatchers.IO) { Zones.fetch(ctx) }; zonesVersion++ } } catch (e: Exception) { }
+            try { if (Zones.needsRefresh(ctx) && online()) { withContext(Dispatchers.IO) { Zones.fetch(ctx) }; zonesVersion++ } } catch (e: Exception) { softFail(e) }
         }
     }
 
@@ -1139,9 +1139,9 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
             // the music is never held for more than 90 s, even when some announcement never reports that it has finished
             scope.launch {
                 delay(90_000L)
-                if (focusReq === req) { spoken = 0; try { audioMgr.abandonAudioFocusRequest(req) } catch (e: Exception) { }; focusReq = null }
+                if (focusReq === req) { spoken = 0; try { audioMgr.abandonAudioFocusRequest(req) } catch (e: Exception) { softFail(e) }; focusReq = null }
             }
-        } catch (e: Exception) { }
+        } catch (e: Exception) { softFail(e) }
     }
 
     /** Puts the music back up once every announcement has finished (not after each one, so it doesn't flicker between them). */
@@ -1150,7 +1150,7 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
         // the focus is held only while something is being said or waits to be said: given back as soon as the queue is empty
         if (spoken > 0 && (playing != null || speechQ.isNotEmpty() || speechSegs.isNotEmpty())) return
         spoken = 0
-        try { focusReq?.let { audioMgr.abandonAudioFocusRequest(it) } } catch (e: Exception) { }
+        try { focusReq?.let { audioMgr.abandonAudioFocusRequest(it) } } catch (e: Exception) { softFail(e) }
         focusReq = null
     }
 
@@ -1173,8 +1173,8 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
         stopLocation(); simJob?.cancel(); tts?.shutdown()
         // everything this engine had running (its timers, lookups and the map glide) stops with it: the car screen makes a new
         // engine each time the phone is plugged in, and the old one must not keep going in the background
-        try { scope.coroutineContext[Job]?.cancel() } catch (e: Exception) { }
-        try { toneGen?.release() } catch (e: Exception) { }; toneGen = null
+        try { scope.coroutineContext[Job]?.cancel() } catch (e: Exception) { softFail(e) }
+        try { toneGen?.release() } catch (e: Exception) { softFail(e) }; toneGen = null
     }
 
     fun str(id: Int, vararg a: Any): String = ctx.getString(id, *a)
@@ -1265,7 +1265,7 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
             map.applyHdRoads(hdRoadsWanted())
             RoadRefs.country = up
             // the low emission zones are the country's own (Germany's Umweltzonen, Britain's clean air zones): fetch them for a new country
-            if (changed) try { if (Zones.needsRefresh(ctx) && online()) { withContext(Dispatchers.IO) { Zones.fetch(ctx) }; zonesVersion++ } } catch (e: Exception) { }
+            if (changed) try { if (Zones.needsRefresh(ctx) && online()) { withContext(Dispatchers.IO) { Zones.fetch(ctx) }; zonesVersion++ } } catch (e: Exception) { softFail(e) }
         }
     }
 
@@ -1304,7 +1304,7 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
                 onDone()
                 // the files are as new as the moment they finished: a long download would otherwise look older than the server's
                 // copy (made earlier) and the same pack would be downloaded again straight away
-                try { OfflineRouter.packDir(ctx, id).listFiles()?.forEach { it.setLastModified(System.currentTimeMillis()) } } catch (e: Exception) { }
+                try { OfflineRouter.packDir(ctx, id).listFiles()?.forEach { it.setLastModified(System.currentTimeMillis()) } } catch (e: Exception) { softFail(e) }
                 packStatus = Lang.t("Paket bereit", "Pack ready")
                 toast(ctx.getString(R.string.toast_028), 3000)
             } catch (e: Throwable) {
@@ -1384,7 +1384,7 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
         if (styleRetry == 1) toast(ctx.getString(R.string.toast_020), 3000)
         // still no signal: the downloaded pack's own map meanwhile
         if (styleRetry == 2 && OfflineMap.installed(ctx) && OfflineMap.hasFonts(ctx) && prefs.s(PreferenceKeys.OFF_MAP, "auto") != "never") {
-            try { map.setStyleUrl(OfflineServer.styleJson(ctx, lastDark)) } catch (e: Exception) { }
+            try { map.setStyleUrl(OfflineServer.styleJson(ctx, lastDark)) } catch (e: Exception) { softFail(e) }
         }
         if (styleRetry > 8) return
         val wait = listOf(2_000L, 4_000L, 8_000L, 15_000L, 30_000L, 30_000L, 60_000L, 60_000L)[(styleRetry - 1).coerceIn(0, 7)]
@@ -1428,7 +1428,7 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
                 override fun onAvailable(network: android.net.Network) { netChangeAt = android.os.SystemClock.elapsedRealtime(); mapboxGaps = false; scope.launch { delay(2000); applyStyle(lastDark); checkForUpdate(); checkDataUpdates() } }
                 override fun onLost(network: android.net.Network) { netChangeAt = android.os.SystemClock.elapsedRealtime(); scope.launch { delay(800); applyStyle(lastDark) } }
             })
-        } catch (e: Exception) { }
+        } catch (e: Exception) { softFail(e) }
     }
 
     private var noTokenToldAt = 0L
@@ -1487,7 +1487,7 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
         map.setTraffic(prefs.b(PreferenceKeys.TRAFFIC, true))
         map.setLightPreset(lightPreset(dark))
         // the light follows the sun (dawn, day, dusk, night) without waiting for the day / night switch
-        if (lightJob == null) lightJob = scope.launch { while (true) { delay(60_000L); try { map.setLightPreset(lightPreset(lastDark)) } catch (e: Throwable) { } } }
+        if (lightJob == null) lightJob = scope.launch { while (true) { delay(60_000L); try { map.setLightPreset(lightPreset(lastDark)) } catch (e: Throwable) { softFail(e) } } }
         if (!hasMapbox) {
             map.setToken("")
             val now = System.currentTimeMillis()
@@ -1615,10 +1615,10 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
             val d = Geo.dist(prev, cur)
             // counted only when the anchor (lastRaw) moves on, that is past 6 m: a step of 3 to 6 m left the anchor where it was, and
             // the next step was measured from it again, so slow driving was counted up to half as much again
-            if (TrackMath.countedStep(d)) { tripDist += d; tripMoving += 1.0; try { evTrack(speed, d) } catch (e: Exception) { } }
+            if (TrackMath.countedStep(d)) { tripDist += d; tripMoving += 1.0; try { evTrack(speed, d) } catch (e: Exception) { softFail(e) } }
             // a gap in the GPS track (a tunnel, a lost signal): the distance along the route between the two fixes
             else if (d > TrackMath.MAX_STEP_M) try { if (!(d < 5000.0 && evGapOnRoute(speed, prev, cur, d))) evGapBad = true } catch (e: Exception) { evGapBad = true }
-        } else if (speed <= 0.8) try { evIdle() } catch (e: Exception) { }
+        } else if (speed <= 0.8) try { evIdle() } catch (e: Exception) { softFail(e) }
         if (speed > tripMax) tripMax = speed
         val firstFix = fix == null
         onPosition(Fix(cur, h, speed, if (l.hasAltitude()) l.altitude else 0.0, if (l.hasAccuracy()) l.accuracy.toDouble() else 0.0), firstFix || first)
@@ -1700,8 +1700,8 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
                 .setBufferSizeInBytes(n * 2).setTransferMode(android.media.AudioTrack.MODE_STATIC).build()
             track.write(buf, 0, n)
             track.play()
-            scope.launch { delay(400); try { track.release() } catch (e: Exception) { } }
-        } catch (e: Exception) { }
+            scope.launch { delay(400); try { track.release() } catch (e: Exception) { softFail(e) } }
+        } catch (e: Exception) { softFail(e) }
     }
 
     /** A short chime at the set volume, for the sample button in Settings. */
@@ -1779,7 +1779,7 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
                 clearLiveAlts(); drawRoutes(); updateRouteZones(); pushVia()
                 try { loadRouteWeather(rs[active]) } catch (e: Exception) { android.util.Log.w("NavEngine", "route weather failed", e) }
                 if (prefs.b(PreferenceKeys.LIVE_ALTERNATIVES, true)) lastFasterCheck = System.currentTimeMillis() - 90_000L
-                if (sync) try { RouteSync.stopsChanged(this@NavEngine, d, newVia) } catch (e: Exception) { }
+                if (sync) try { RouteSync.stopsChanged(this@NavEngine, d, newVia) } catch (e: Exception) { softFail(e) }
                 after?.invoke()
             } catch (e: Exception) {
                 if (e is kotlinx.coroutines.CancellationException) throw e
@@ -1926,7 +1926,7 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
             appendLine("Installed by: ${Updater.installerPackage(ctx) ?: "unknown (from a file)"}")
             appendLine("Frame rate: ${prefs.s(PreferenceKeys.MAP_FPS, "auto")} · map detail: ${prefs.mapDetail()} · driving side: ${if (mirrored) "left-hand" else "right-hand"}")
             if (perfLine.isNotBlank()) appendLine("Performance: $perfLine")
-            try { append(SessionWatch.report(ctx)) } catch (e: Exception) { }
+            try { append(SessionWatch.report(ctx)) } catch (e: Exception) { softFail(e) }
             if (laneDiag.isNotBlank()) appendLine(laneDiag)
             appendLine("Lane list: ${if (laneSource.isNotBlank()) laneSource else "TomTom's / the route's own"}")
             appendLine("Roundabouts: ${Roundabouts.lastFetch.ifBlank { "no lookup yet" }} · last: ${Roundabouts.lastNote.ifBlank { "none measured" }} · used: ${Geo.rbNote.ifBlank { "none" }}")
@@ -2182,7 +2182,7 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
         if (updateBusy) return
         if (!Updater.canInstall(ctx)) {
             toast(ctx.getString(R.string.toast_002), 6000)
-            try { Updater.openInstallSetting(ctx) } catch (e: Exception) { }
+            try { Updater.openInstallSetting(ctx) } catch (e: Exception) { softFail(e) }
             return
         }
         updateBusy = true; updateStatus = Lang.t("Download startet…", "Starting the download…")
@@ -2504,7 +2504,7 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
             }
             val doms = locs.mapNotNull { BrandLogos.domainFor(it.place) }.distinct()
             if (doms.isNotEmpty() && online()) {
-                withContext(Dispatchers.IO) { for (d in doms) try { BrandLogos.load(ctx, d) } catch (e: Exception) { } }
+                withContext(Dispatchers.IO) { for (d in doms) try { BrandLogos.load(ctx, d) } catch (e: Exception) { softFail(e) } }
                 logoRev++
                 showChainOnMap()
             }
@@ -2517,7 +2517,7 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
         val doms = list.mapNotNull { BrandLogos.domainFor(it) }.distinct().filter { BrandLogos.cached(ctx, it) == null }
         if (doms.isEmpty()) return
         scope.launch {
-            withContext(Dispatchers.IO) { for (d in doms.take(10)) try { BrandLogos.load(ctx, d) } catch (e: Exception) { } }
+            withContext(Dispatchers.IO) { for (d in doms.take(10)) try { BrandLogos.load(ctx, d) } catch (e: Exception) { softFail(e) } }
             logoRev++
         }
     }
@@ -2719,7 +2719,7 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
                 if (rs0.isEmpty()) throw IllegalStateException("No route found")
                 var rs = if (usedOffline) rs0 else avoidVignette(rs0, from, to.pos, departMs)
                 // a way off to one side can be quicker than the services' own few choices, which all run close to the direct line
-                if (!usedOffline && via.isEmpty()) try { rs = rs + neighbourDetours(rs, from, to.pos, departMs, driveHeading(from)) } catch (e: Exception) { }
+                if (!usedOffline && via.isEmpty()) try { rs = rs + neighbourDetours(rs, from, to.pos, departMs, driveHeading(from)) } catch (e: Exception) { softFail(e) }
                 if (usedOffline) toast(ctx.getString(R.string.toast_030), 4000)
                 // the fastest route is the one chosen first: everything planned for the trip (rain, weather, charging stops) is for it
                 // except when the charging stops went onto the trip as it started: then the way that follows the route you chose
@@ -2909,7 +2909,7 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
             return
         }
         evStartPending = false
-        try { checkHolidayHint() } catch (e: Exception) { }
+        try { checkHolidayHint() } catch (e: Exception) { softFail(e) }
         // electric: the chosen route's charging stops go onto the trip as it starts (once per destination), and the route is
         // worked out through them; the other routes stayed on offer until now
         val d0 = dest
@@ -2931,7 +2931,7 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
         // where this trip started, for "Route back" when you arrive
         tripFrom = fix?.pos
         // the other screen (phone or car) follows onto the same trip
-        dest?.let { d -> try { RouteSync.started(this, d, via) } catch (e: Exception) { } }
+        dest?.let { d -> try { RouteSync.started(this, d, via) } catch (e: Exception) { softFail(e) } }
         said.clear(); lastIdx = 0; zoomOffset = 0.0
         // a new trip starts its counters; a trip that only got new stops or a new way (stops added, charging planned again) keeps
         // them, so the battery driven down so far and the trip's time and distance are not forgotten
@@ -2945,7 +2945,7 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
         dest?.let { d -> prefs.put(PreferenceKeys.RESUME, org.json.JSONObject().put("n", d.name).put("s", d.sub).put("la", d.pos.lat).put("lo", d.pos.lon).put("t", System.currentTimeMillis()).toString()) }
         following = true
         // Settings > Offline maps > Save every route's map: the Mapbox map along this route, kept for when signal drops
-        try { route?.let { r -> MapboxOffline.autoSaveRoute(ctx, prefs, offlineRouteName(), r.pts, onWifi(), map.isSatellite) } } catch (e: Throwable) { }
+        try { route?.let { r -> MapboxOffline.autoSaveRoute(ctx, prefs, offlineRouteName(), r.pts, onWifi(), map.isSatellite) } } catch (e: Throwable) { softFail(e) }
         // Settings > Satellitenbilder > Luftbilder vorab laden: the satellite photos along this route, kept on the phone
         try {
             val mode = prefs.s(PreferenceKeys.SAT_PREFETCH, "wifi")
@@ -2953,7 +2953,7 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
             if (plan != null && mode != "off" && (mode == "always" || onWifi())) route?.let { r ->
                 SatTileCache.prefetchRoute(ctx, r.pts, plan.first, plan.second) { mode == "always" || onWifi() }
             }
-        } catch (e: Throwable) { }
+        } catch (e: Throwable) { softFail(e) }
         routeWx.firstOrNull { it.code in 51..67 || it.code in 80..82 || it.code in 95..99 || it.code in 71..77 || it.code in 85..86 || it.rain >= 70 }?.let {
             val snow = it.code in 71..77 || it.code in 85..86
             val inT = if (it.minutes >= 60) "${it.minutes / 60} h ${it.minutes % 60} Min." else "${it.minutes} Min."
@@ -3054,7 +3054,7 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
                         if (rs.isNotEmpty()) { val was = route; routes = rs; active = keepChosen(rs, was); said.clear(); offCount = 0; lastIdx = 0; trustProg = -1.0; clearLiveAlts(); drawRoutes(); cardsForStartAlts(); updateRouteZones(); evAfterReroute()
                             // live alternatives looked for again half a minute after a reroute
                             if (prefs.b(PreferenceKeys.LIVE_ALTERNATIVES, true)) lastFasterCheck = System.currentTimeMillis() - 90_000L
-                            try { closureAfterReroute(rs[active]) } catch (e: Exception) { }
+                            try { closureAfterReroute(rs[active]) } catch (e: Exception) { softFail(e) }
                             err = null; break }
                         err = "no route found"
                     } catch (e: Exception) { android.util.Log.w("NavEngine", "reroute failed", e); err = e.message ?: "unknown error" }
@@ -3073,18 +3073,18 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
 
     fun endRoute() {
         scope.launch { pushFavourites() }
-        try { noteRouteEnd() } catch (e: Exception) { }
+        try { noteRouteEnd() } catch (e: Exception) { softFail(e) }
         stopPause = null
         stopTripShare(quiet = true)
-        try { evTripDone() } catch (e: Exception) { }
+        try { evTripDone() } catch (e: Exception) { softFail(e) }
         // (only a trip under way: cancelling a route choice leaves the other screen's trip alone)
-        if (route != null && !previewing) try { RouteSync.ended(this) } catch (e: Exception) { }
+        if (route != null && !previewing) try { RouteSync.ended(this) } catch (e: Exception) { softFail(e) }
         itineraryOpen = false
         cancelWaiting()
         map.stopFly()
         faster = null; resume = null; prefs.put(PreferenceKeys.RESUME, "{}")
         // the map strip that was saved by itself for this trip is only needed during it: gone with the trip
-        try { MapboxOffline.removeAutoRoutes(ctx) } catch (e: Throwable) { }
+        try { MapboxOffline.removeAutoRoutes(ctx) } catch (e: Throwable) { softFail(e) }
         incMatches = emptyList(); incidentAhead = null; incAt = 0L; incAlerted.clear(); abAt = 0L; abRoads = ""; wwItems = emptyList(); wwSaid.clear(); wwAt = 0L
         routeCams = emptyList(); camsRoute = null; camsAt = 0L; camsCount = -1; hazardSig = 0; policeSig = 0; map.setHazards(emptyList())
         via = emptyList(); evPlanned = emptyList(); evAutoDest = null; evStops = emptyList(); evWarning = null; stopMode = false; destRain = null; routeWx = emptyList()
@@ -3193,7 +3193,7 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
     /** Keeps the current + / - zoom for next time; only off a route (a route's zoom is automatic and starts afresh). */
     private fun rememberFreeZoom() {
         if (route != null) return
-        try { prefs.put(freeZoomKey, String.format(Locale.US, "%.2f", zoomOffset)) } catch (e: Exception) { }
+        try { prefs.put(freeZoomKey, String.format(Locale.US, "%.2f", zoomOffset)) } catch (e: Exception) { softFail(e) }
     }
 
 
@@ -3488,7 +3488,7 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
             try {
                 val l = withContext(Dispatchers.IO) { try { TripShare.create(prefs, name, f.pos, f.heading, etaMs(), rem) } catch (e: Exception) { lastTripError = e.message; null } }
                 if (l == null) { toast(Lang.t("Link konnte nicht erstellt werden", "Couldn't make the link") + (lastTripError?.let { " ($it)" } ?: ""), 3500); return@launch }
-                if (route == null) { withContext(Dispatchers.IO) { try { TripShare.end(prefs, l) } catch (e: Exception) { } }; return@launch }
+                if (route == null) { withContext(Dispatchers.IO) { try { TripShare.end(prefs, l) } catch (e: Exception) { softFail(e) } }; return@launch }
                 tripLink = l; tripShareUrl = l.url; tripSentAt = System.currentTimeMillis()
                 openShare(l.url, fromCar)
             } finally { tripBusy = false }
@@ -3502,7 +3502,7 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
             .putExtra(android.content.Intent.EXTRA_TEXT, text)
         val chooser = android.content.Intent.createChooser(send, Lang.t("Ankunftszeit teilen", "Share arrival time")).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
         if (!fromCar) {
-            try { ctx.startActivity(chooser); return } catch (e: Exception) { }
+            try { ctx.startActivity(chooser); return } catch (e: Exception) { softFail(e) }
         }
         // in the car (or when the share menu couldn't open): a notification on the phone that opens it
         try {
@@ -3523,8 +3523,8 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
     fun stopTripShare(quiet: Boolean = false) {
         val l = tripLink ?: return
         tripLink = null; tripShareUrl = null
-        try { ctx.getSystemService(android.app.NotificationManager::class.java).cancel(7301) } catch (e: Exception) { }
-        scope.launch(Dispatchers.IO) { try { TripShare.end(prefs, l) } catch (e: Exception) { } }
+        try { ctx.getSystemService(android.app.NotificationManager::class.java).cancel(7301) } catch (e: Exception) { softFail(e) }
+        scope.launch(Dispatchers.IO) { try { TripShare.end(prefs, l) } catch (e: Exception) { softFail(e) } }
         if (!quiet) toast(Lang.t("Teilen beendet", "Stopped sharing"), 2500)
     }
 
@@ -3540,7 +3540,7 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
         scope.launch(Dispatchers.IO) {
             try { TripShare.update(prefs, l, f.pos, f.heading, at, rem) }
             catch (e: TripShare.Gone) { withContext(Dispatchers.Main) { if (tripLink === l) { tripLink = null; tripShareUrl = null } } }
-            catch (e: Exception) { }
+            catch (e: Exception) { softFail(e) }
         }
     }
 
@@ -3911,9 +3911,9 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
                 } finally { limitBusy = false }
             }
         }
-        try { checkPolice(p) } catch (e: Exception) { }
-        try { maybeRefreshChargers() } catch (e: Exception) { }
-        try { checkWrongWay(p) } catch (e: Exception) { }
+        try { checkPolice(p) } catch (e: Exception) { softFail(e) }
+        try { maybeRefreshChargers() } catch (e: Exception) { softFail(e) }
+        try { checkWrongWay(p) } catch (e: Exception) { softFail(e) }
         noteCameraBan()
         if (!camerasOnMap()) { cameraDist = null; if (cameras.isNotEmpty()) { cameras = emptyList(); map.setCameras(emptyList()) }; camPos = null; return }
         // the cameras on the map follow the route coming and going, and the ones you've passed drop off
@@ -4338,7 +4338,7 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
         if (p != null) {
             val pl = Place(t.name, Lang.t("Aus einer anderen App geteilt", "Shared from another app"), p)
             startRoute(pl)
-            try { RouteSync.offerToCar(this, pl) } catch (e: Exception) { }
+            try { RouteSync.offerToCar(this, pl) } catch (e: Exception) { softFail(e) }
         }
         else if (!t.query.isNullOrBlank()) externalQuery = t.query
     }
@@ -4665,16 +4665,16 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
             lastPosAt = tNow
             // on foot: the walk's directions, and no speed limit or cameras
             if (walking) try { updateWalk(p) } catch (e: Exception) { android.util.Log.w("NavEngine", "walk failed", e) }
-            if (!walking) try { lookCamerasAround(p) } catch (e: Exception) { }
+            if (!walking) try { lookCamerasAround(p) } catch (e: Exception) { softFail(e) }
             // average speed checks while driving without a destination (on a route they are part of the route's extras)
-            if (!walking && route == null && simMode == 0) try { avgFreeTick(p) } catch (e: Exception) { }
+            if (!walking && route == null && simMode == 0) try { avgFreeTick(p) } catch (e: Exception) { softFail(e) }
             try { if (!walking) updateRoadInfo(p); trackParking(p) } catch (e: Exception) { android.util.Log.w("NavEngine", "road info failed", e) }
-            try { checkArea(p.pos) } catch (e: Exception) { }
-            try { checkWeatherWarnings(p) } catch (e: Exception) { }
-            try { checkRescueLane(p) } catch (e: Exception) { }
-            try { checkClearances(p) } catch (e: Exception) { }
-            if (!walking) try { checkCameras(p) } catch (e: Exception) { }
-            try { garagesAt(p.pos, true) } catch (e: Exception) { }
+            try { checkArea(p.pos) } catch (e: Exception) { softFail(e) }
+            try { checkWeatherWarnings(p) } catch (e: Exception) { softFail(e) }
+            try { checkRescueLane(p) } catch (e: Exception) { softFail(e) }
+            try { checkClearances(p) } catch (e: Exception) { softFail(e) }
+            if (!walking) try { checkCameras(p) } catch (e: Exception) { softFail(e) }
+            try { garagesAt(p.pos, true) } catch (e: Exception) { softFail(e) }
         }
         // the first position of this session: the zoom you left the map at last time comes back (not on a route)
         if (!freeZoomRestored) { freeZoomRestored = true; if (route == null) zoomOffset = try { savedFreeZoom() } catch (e: Exception) { 0.0 } }
@@ -4783,8 +4783,8 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
                 if (++offCount >= REROUTE_STRIKES) reroute()
             } else offCount = 0
         } else if (newFix) { offCount = 0; offSince = 0L }
-        try { if (newFix) checkEvRange() } catch (e: Exception) { }
-        try { if (newFix) checkFuelRange() } catch (e: Exception) { }
+        try { if (newFix) checkEvRange() } catch (e: Exception) { softFail(e) }
+        try { if (newFix) checkFuelRange() } catch (e: Exception) { softFail(e) }
         val now = System.currentTimeMillis()
         // while the map follows you, only a window of the route is drawn (cheap to redraw); once you move or zoom the map yourself,
         // the whole rest of the route is drawn, so zooming out shows all of it (it used to stop a few miles ahead)
@@ -4801,7 +4801,7 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
         val guideProg = if (onR) gProg else if (!jump && s.dist <= offLim) s.progress else if (trustProg >= 0.0) trustProg else s.progress
         onRouteNow = onR
         if (onR) curProg = guideProg
-        if (onR && newFix) try { applyRouteLimit(r, guideProg, p) } catch (e: Exception) { }
+        if (onR && newFix) try { applyRouteLimit(r, guideProg, p) } catch (e: Exception) { softFail(e) }
         updateGuidance(guideProg, onR && android.os.SystemClock.elapsedRealtime() - gFullAt < 1500L)
         syncPulse()
     }
@@ -5470,7 +5470,7 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
         if (roads.isNotEmpty() && !wwBusy && now - wwAt > 60_000L) {
             wwAt = now; wwBusy = true
             scope.launch {
-                try { wwItems = withContext(Dispatchers.IO) { AutobahnRest.wrongWay(roads) } } catch (e: Exception) { }
+                try { wwItems = withContext(Dispatchers.IO) { AutobahnRest.wrongWay(roads) } } catch (e: Exception) { softFail(e) }
                 finally { wwBusy = false }
             }
         }
@@ -5587,7 +5587,7 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
                 .put("kw", st.n.kw ?: -1).put("op", st.n.op ?: "").put("a", st.arrPct).put("t", st.toPct).put("m", st.minutes).put("p", st.preferred))
             o.put("e", e)
             prefs.put(PreferenceKeys.RESUME, o.toString())
-        } catch (e: Exception) { }
+        } catch (e: Exception) { softFail(e) }
     }
 
     /** Switches to one of the grey alternatives on the map. */
@@ -5679,8 +5679,8 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
         val rem = max(0.0, r.len - progress)
         val frac = if (r.len > 0) rem / r.len else 0.0
         if (!light) {
-            try { checkIncidents(r, progress) } catch (e: Exception) { }
-            fix?.let { f -> try { checkYieldSigns(f.pos, f.heading) } catch (e: Exception) { } }
+            try { checkIncidents(r, progress) } catch (e: Exception) { softFail(e) }
+            fix?.let { f -> try { checkYieldSigns(f.pos, f.heading) } catch (e: Exception) { softFail(e) } }
             fix?.let { f -> if (via.isNotEmpty() && viaReached(r, progress, f.pos)) { stopPause = via[0].name; val reached = via[0].pos
                 // a charging stop reached: from here the battery counts from the charge planned there (until the car reports a newer level)
                 evPlanned.firstOrNull { Geo.dist(it.n.place.pos, reached) < 30.0 }?.let { st -> evChargeRefPct = st.toPct.toDouble(); evChargeRefAt = System.currentTimeMillis(); evSinceCharge = 0.0; evRefPct = -1; evSave() }
@@ -5709,11 +5709,11 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
             pruneLiveAlts(progress)
             saveResumeBeat()
             checkFaster(r, secs)
-            try { checkTraffic(r) } catch (e: Exception) { }
-            try { tripShareTick() } catch (e: Exception) { }
+            try { checkTraffic(r) } catch (e: Exception) { softFail(e) }
+            try { tripShareTick() } catch (e: Exception) { softFail(e) }
         }
 
-        if (!previewing) try { pushQueues(queuesFor(r, progress, false)) } catch (e: Exception) { }
+        if (!previewing) try { pushQueues(queuesFor(r, progress, false)) } catch (e: Exception) { softFail(e) }
         if (!light && !shadow()) try { routeExtrasTick(r, progress) } catch (e: Exception) { android.util.Log.w("NavEngine", "route extras failed", e) }
         val ins = r.steps
         var k = ins.indexOfFirst { it.off > progress + 4 }
@@ -5783,7 +5783,7 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
                 if (arc != null) { Geo.rbNote = "ring in the route line: round ${Math.round(arc)}" + (if (tomTom) " (TomTom angle ${Math.round(cur.rbOut)})" else ""); 0.0 to norm(eighth(if (leftTraffic) arc - 180.0 else 180.0 - arc)) }
                 else if (tomTom) { Geo.rbNote = "TomTom angle ${Math.round(cur.rbOut)}"; 0.0 to norm(eighth(cur.rbOut)) }
                 else {
-                    if (ringsAskedFor !== r) { ringsAskedFor = r; searchScope.launch { try { Roundabouts.fetchFor(ctx, r) } catch (e: Exception) { } } }
+                    if (ringsAskedFor !== r) { ringsAskedFor = r; searchScope.launch { try { Roundabouts.fetchFor(ctx, r) } catch (e: Exception) { softFail(e) } } }
                     val rbMap = try { Roundabouts.turnAt(ctx, r, cur.off, leftTraffic) } catch (e: Exception) { null }
                     if (rbMap != null) { Geo.rbNote = "OpenStreetMap"; 0.0 to norm(rbMap.turn) }
                     else Geo.roundaboutHeadings(r.pts, r.cum, cur.off, cur.rbEnd, limitAt, leftTraffic)?.let { (i, o) -> 0.0 to norm(eighth(o - i)) }
@@ -6407,7 +6407,7 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
         // never before the saved state is read: that would write over it with empty values
         evEnsureLoaded()
         evSavedAt = System.currentTimeMillis()
-        try { prefs.put(PreferenceKeys.EV_STATE, evState().toString()) } catch (e: Exception) { }
+        try { prefs.put(PreferenceKeys.EV_STATE, evState().toString()) } catch (e: Exception) { softFail(e) }
     }
 
     /** Loaded once, before first use: the state of the last drive (also the older plain list of 21 numbers). */
@@ -6437,7 +6437,7 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
             for (i in 0..2) evRefKm[i] = v[9 + i]
             evReadSeen = v[12].toLong(); evSinceRead = v[13]; evSinceNav = v[14]; evSinceCharge = v[15]
             evDriven = v[16]; evChargeRefPct = v[17]; evChargeRefAt = v[18].toLong(); evGapBad = v[19] > 0.5; evPrevPct = v[20].toInt()
-        } catch (e: Exception) { }
+        } catch (e: Exception) { softFail(e) }
     }
     /** Charging at a charger: the last battery reading seen (its time and level), and whether the level rose while standing there. */
     private var evChargeReadAt = 0L
@@ -7279,14 +7279,14 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
             val fr = dl && FrChargers.inFrance(box)
             val sites = withContext(Dispatchers.IO) {
                 val out = ArrayList<ChargerSite>()
-                if (fr) try { FrChargers.refresh(ctx) } catch (e: Exception) { }
+                if (fr) try { FrChargers.refresh(ctx) } catch (e: Exception) { softFail(e) }
                 // a region's copy is fetched (once a week) when the view is there
-                if (dl && box[0] < 53.6 && box[2] > 50.7 && box[1] < 7.3 && box[3] > 3.3) try { NdwChargers.refresh(ctx) } catch (e: Exception) { }
-                if (dl && box[0] < 50.91 && box[2] > 50.76 && box[1] < 4.47 && box[3] > 4.23) try { BruChargers.refresh(ctx) } catch (e: Exception) { }
-                try { out += NdwChargers.inBox(ctx, box) } catch (e: Exception) { }
-                try { out += BruChargers.inBox(ctx, box) } catch (e: Exception) { }
-                if (fr) try { out += FrChargers.inBox(ctx, box) } catch (e: Exception) { }
-                if (online()) try { out += ChargerInfo.inBox(box, prefs.s(PreferenceKeys.OCM_KEY, "")) } catch (e: Exception) { }
+                if (dl && box[0] < 53.6 && box[2] > 50.7 && box[1] < 7.3 && box[3] > 3.3) try { NdwChargers.refresh(ctx) } catch (e: Exception) { softFail(e) }
+                if (dl && box[0] < 50.91 && box[2] > 50.76 && box[1] < 4.47 && box[3] > 4.23) try { BruChargers.refresh(ctx) } catch (e: Exception) { softFail(e) }
+                try { out += NdwChargers.inBox(ctx, box) } catch (e: Exception) { softFail(e) }
+                try { out += BruChargers.inBox(ctx, box) } catch (e: Exception) { softFail(e) }
+                if (fr) try { out += FrChargers.inBox(ctx, box) } catch (e: Exception) { softFail(e) }
+                if (online()) try { out += ChargerInfo.inBox(box, prefs.s(PreferenceKeys.OCM_KEY, "")) } catch (e: Exception) { softFail(e) }
                 // free points in Baden-Württemberg from the open live feed (no key); the rest keep their register counts
                 val live0 = if (BwLive.inBw(box)) BwLive.apply(out, BwLive.statuses()) else out
                 // free points in France from the national live file, matched by the stored copy's ids
@@ -7336,7 +7336,7 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
                                 val pr = RouteExtras.project(r, n.place.pos, 3000.0) ?: continue
                                 l += n.copy(dist = pr.first, detourMin = if (secs >= 0) Math.round(secs / 60.0).toInt() else detour(pr.second), ahead = true)
                             }
-                        } catch (e: Exception) { }
+                        } catch (e: Exception) { softFail(e) }
                     }
                     l
                 }
@@ -7375,7 +7375,7 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
                     out += n.copy(dist = pr.first, detourMin = detour(pr.second), ahead = true)
                 }
             }
-        } catch (e: Exception) { }
+        } catch (e: Exception) { softFail(e) }
         return out.distinctBy { it.place.pos.lat to it.place.pos.lon }
     }
 
@@ -7392,7 +7392,7 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
                 try {
                     val out = ArrayList<Nearby>()
                     if (FuelFinder.configured(prefs)) {
-                        try { FuelFinder.refresh(ctx, prefs) } catch (e: Exception) { }
+                        try { FuelFinder.refresh(ctx, prefs) } catch (e: Exception) { softFail(e) }
                         var minLat = 90.0; var maxLat = -90.0; var minLon = 180.0; var maxLon = -180.0
                         for (i in r.pts.indices) if (r.cum[i] in a..b) { val q = r.pts[i]; minLat = min(minLat, q.lat); maxLat = max(maxLat, q.lat); minLon = min(minLon, q.lon); maxLon = max(maxLon, q.lon) }
                         for (s0 in FuelFinder.stations(ctx)) {

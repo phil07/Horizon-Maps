@@ -79,7 +79,7 @@ internal fun SItem(title: String, sub: String? = null, onClick: (() -> Unit)? = 
         val glow = remember { androidx.compose.animation.core.Animatable(0f) }
         androidx.compose.runtime.LaunchedEffect(Unit) {
             kotlinx.coroutines.delay(380)   // let the section finish sliding in first
-            try { req.bringIntoView() } catch (e: Exception) { }
+            try { req.bringIntoView() } catch (e: Exception) { softFail(e) }
             glow.animateTo(1f, androidx.compose.animation.core.tween(250))
             kotlinx.coroutines.delay(900)
             glow.animateTo(0f, androidx.compose.animation.core.tween(900))

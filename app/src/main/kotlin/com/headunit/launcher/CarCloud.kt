@@ -230,7 +230,7 @@ object CarCloud {
                 var interval = o.optLong("interval", 5L).coerceAtLeast(3L)
                 val until = System.currentTimeMillis() + o.optLong("expires_in", 300L) * 1000L
                 status = Lang.t("Gib im Browser diesen Code ein: ", "Enter this code in the browser: ") + user
-                try { ctx.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(uri)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) } catch (e: Exception) { }
+                try { ctx.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(uri)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) } catch (e: Exception) { softFail(e) }
                 while (System.currentTimeMillis() < until) {
                     delay(interval * 1000L)
                     val (c2, b2) = http("POST", tokenUrl(p), mapOf("Accept" to "application/json"),

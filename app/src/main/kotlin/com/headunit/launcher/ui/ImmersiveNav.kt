@@ -257,7 +257,7 @@ private fun MapScreen(engine: NavEngine, onSettings: () -> Unit) {
     val foldOn = engine.prefs.b(PreferenceKeys.SEARCH_FOLD, false)
     val foldSearch = (foldOn || engine.searchTucked) && !routing && !engine.previewing && !engine.walking && !searchOpen
     BackHandler(enabled = foldOn && searchOpen && !routing) { searchOpen = false }
-    LaunchedEffect(searchOpen) { if (searchOpen) { engine.searchTucked = false; try { focus.requestFocus() } catch (e: Exception) { } } }
+    LaunchedEffect(searchOpen) { if (searchOpen) { engine.searchTucked = false; try { focus.requestFocus() } catch (e: Exception) { softFail(e) } } }
     LaunchedEffect(routing) { if (routing) searchOpen = false }
     val previewing = engine.previewing
     val simple by remember { derivedStateOf { engine.driving && engine.prefs.b(PreferenceKeys.DRIVESIMPLE, true) } }

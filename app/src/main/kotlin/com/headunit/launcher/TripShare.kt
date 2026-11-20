@@ -48,7 +48,7 @@ object TripShare {
             val code = c.responseCode
             if (code == 404 || code == 409) throw Gone()
             if (code !in 200..299) throw java.io.IOException("HTTP $code")
-        } finally { try { c.disconnect() } catch (e: Exception) { } }
+        } finally { try { c.disconnect() } catch (e: Exception) { softFail(e) } }
     }
 
     /** The message handed to the share menu. */

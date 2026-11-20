@@ -42,7 +42,7 @@ object FreezeWatch {
                         try {
                             val st = Looper.getMainLooper().thread.stackTrace.take(40).joinToString("\n") { "  at $it" }
                             file(app).writeText("Freeze: the screen thread was stuck for 5+ s (${java.util.Date()})\n$st")
-                        } catch (e: Throwable) { }
+                        } catch (e: Throwable) { softFail(e) }
                     }
                 } else { reported = false; stuckSince = 0L }
             }
@@ -64,6 +64,6 @@ object FreezeWatch {
             val i = text.indexOf("\"main\"")
             val mainPart = if (i >= 0) text.substring(i).substringBefore("\n\n") else text
             file(ctx).writeText("Not responding (Android's record, ${java.util.Date(last.timestamp)}): ${last.description ?: ""}\n" + mainPart.take(3500))
-        } catch (e: Throwable) { }
+        } catch (e: Throwable) { softFail(e) }
     }
 }

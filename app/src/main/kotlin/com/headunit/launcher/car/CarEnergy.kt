@@ -40,7 +40,7 @@ object CarEnergy {
                 if (granted2.contains(PERMISSION)) subscribe(carContext, prefs)
                 if (granted2.contains(SPEED_PERMISSION)) subscribeSpeed(carContext)
             }
-        } catch (e: Exception) { }
+        } catch (e: Exception) { softFail(e) }
     }
 
     /** The car's own speed (wheel speed), for the speedometer and for the position in a tunnel. */
@@ -58,7 +58,7 @@ object CarEnergy {
             }
             info.addSpeedListener(carContext.mainExecutor, l)
             carInfo = info; speedListener = l
-        } catch (e: Exception) { }
+        } catch (e: Exception) { softFail(e) }
     }
 
     private fun subscribe(carContext: CarContext, prefs: Prefs) {
@@ -89,13 +89,13 @@ object CarEnergy {
             }
             info.addEnergyLevelListener(carContext.mainExecutor, l)
             carInfo = info; listener = l
-        } catch (e: Exception) { }
+        } catch (e: Exception) { softFail(e) }
     }
 
     fun stop() {
         com.headunit.launcher.CarCloud.carActive = false
-        try { listener?.let { carInfo?.removeEnergyLevelListener(it) } } catch (e: Exception) { }
-        try { speedListener?.let { carInfo?.removeSpeedListener(it) } } catch (e: Exception) { }
+        try { listener?.let { carInfo?.removeEnergyLevelListener(it) } } catch (e: Exception) { softFail(e) }
+        try { speedListener?.let { carInfo?.removeSpeedListener(it) } } catch (e: Exception) { softFail(e) }
         listener = null; speedListener = null; carInfo = null
     }
 }

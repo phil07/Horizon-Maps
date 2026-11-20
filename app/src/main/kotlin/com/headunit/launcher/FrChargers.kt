@@ -182,7 +182,7 @@ object FrLive {
                     if (out.isNotEmpty()) { cache = out; at = now }
                 }
             } finally { c.disconnect() }
-        } catch (e: Exception) { }
+        } catch (e: Exception) { softFail(e) }
         return cache
     }
 

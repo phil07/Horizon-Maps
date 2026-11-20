@@ -32,7 +32,7 @@ object VendorLight {
                         if (words.any { low.contains(it) }) out[name] = value.trim().lowercase()
                     }
                 }
-            } catch (_: Throwable) { }
+            } catch (_: Throwable) { softFail(_) }
         }
         return out
     }

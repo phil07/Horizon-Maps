@@ -58,7 +58,7 @@ object MapboxRest {
                 code == 401 -> "TokenInvalid" to ""
                 else -> null
             }
-        } finally { try { c.disconnect() } catch (e: Exception) { } }
+        } finally { try { c.disconnect() } catch (e: Exception) { softFail(e) } }
     } catch (e: Exception) { null }
 
     private fun enc(s: String) = URLEncoder.encode(s, "UTF-8").replace("+", "%20")
@@ -121,7 +121,7 @@ object MapboxRest {
         synchronized(styleCache) { styleCache[key]?.let { return it } }
         val file = java.io.File(ctx.cacheDir, "mapbox-$id.json")
         val raw = try {
-            get("$API/styles/v1/mapbox/$id?access_token=${enc(token)}").also { try { file.writeText(it) } catch (e: Exception) { } }
+            get("$API/styles/v1/mapbox/$id?access_token=${enc(token)}").also { try { file.writeText(it) } catch (e: Exception) { softFail(e) } }
         } catch (e: IOException) {
             // no signal: the copy from last time, if there is one (the token check still happens on the map's own requests)
             if ((e.message ?: "") == "no signal" && file.exists()) file.readText() else throw e
@@ -528,7 +528,7 @@ object MapboxRest {
                         val nx = ints.optJSONObject(ii + 1)?.optJSONArray("location")
                         tunnelSpots += a to nx?.let { LL(it.getDouble(1), it.getDouble(0)) }
                     }
-                } catch (e: Exception) { }
+                } catch (e: Exception) { softFail(e) }
                 // a stop on the way: not a step of its own (the next leg carries on from it)
                 val skip = type == "notification" || type == "exit roundabout" || type == "exit rotary" ||
                     (type == "arrive" && li < legs.length() - 1) || (type == "depart" && li > 0)
@@ -565,7 +565,7 @@ object MapboxRest {
                             }
                             if (out.any { it.follow != null } && out.any { it.follow == null }) laneSecs += LaneSec(max(prevOff * k, at - 300.0), at, out)
                         }
-                    } catch (e: Exception) { }
+                    } catch (e: Exception) { softFail(e) }
                 }
                 try {
                     val ints = s.optJSONArray("intersections")
@@ -578,7 +578,7 @@ object MapboxRest {
                         // up to the last junction on the motorway (the rest of the step has left it)
                         if (last >= 0) motorway += at to at + s.optDouble("distance", 0.0) * k * (last + 1).toDouble() / ints.length()
                     }
-                } catch (e: Exception) { }
+                } catch (e: Exception) { softFail(e) }
                 prevOff = off
                 off += s.optDouble("distance", 0.0)
             }
@@ -613,7 +613,7 @@ object MapboxRest {
                 // fires along the road are not traffic information: left out
                 if (Regex("\\bfire\\b", RegexOption.IGNORE_CASE).containsMatchIn(text)) continue
                 incidents += Incident("mb-" + x.optString("id", "$a"), incidentCat(x.optString("type")), text, 0, pts.subList(a, b + 1).toList())
-            } catch (e: Exception) { }
+            } catch (e: Exception) { softFail(e) }
             legStart += leg.optDouble("distance", 0.0)
             legPtStart += n
         }
@@ -655,7 +655,7 @@ object MapboxRest {
                 val s0 = cum[ia]; val s1 = if (ib > ia) cum[ib] else min(total, s0 + 150.0)
                 if (s1 > s0 + 5.0) tun += s0 to s1
             }
-        } catch (e: Exception) { }
+        } catch (e: Exception) { softFail(e) }
         // a van, lorry or towed trailer: the time never assumes faster than the top speed set in Settings > Routes > Vehicle
         val vmax = Vehicle.active.maxMs
         val timed = if (vmax != null && vmax > 0.0) kotlin.math.max(time, total / vmax) else time
@@ -758,7 +758,7 @@ object MapboxRest {
                 val disp = x.optString("display_name")
                 addOne(Place(x.optString("name").ifBlank { disp.substringBefore(',') }, disp.substringAfter(", ", ""), LL(x.getDouble("lat"), x.getDouble("lon"))).town(SearchRank.nominatimTown(x)))
             }
-        } catch (e: Exception) { }
+        } catch (e: Exception) { softFail(e) }
         return out
     }
 

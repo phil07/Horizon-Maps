@@ -42,7 +42,7 @@ internal object Furniture {
     /** The models, added to the style once (they're files in the app). */
     fun addModels(st: Style) {
         for ((id, f) in listOf(LAMP to "lamp", LAMP_LENS to "lamp_lens", SIGNAL to "signal", SIGNAL_LENS to "signal_lens", CAMERA to "camera")) {
-            try { if (!st.hasStyleModel(id)) st.addStyleModel(id, "asset://models/$f.glb") } catch (e: Throwable) { }
+            try { if (!st.hasStyleModel(id)) st.addStyleModel(id, "asset://models/$f.glb") } catch (e: Throwable) { softFail(e) }
         }
     }
 
@@ -105,9 +105,9 @@ internal object Sky {
         val isRain = c in 51..67 || c in 80..82 || c in 95..99
         val heavy = c == 63 || c == 65 || c == 81 || c == 82 || c >= 95 || c == 75 || c == 86
         if (isRain) st.setRain(rain { density(if (heavy) 0.9 else 0.5); intensity(if (heavy) 1.0 else 0.6); opacity(if (heavy) 0.55 else 0.4); vignette(if (heavy) 0.4 else 0.2) })
-        else try { st.removeRain() } catch (e: Throwable) { }
+        else try { st.removeRain() } catch (e: Throwable) { softFail(e) }
         if (isSnow) st.setSnow(snow { density(if (heavy) 0.9 else 0.55); intensity(if (heavy) 1.0 else 0.7); opacity(0.8); vignette(0.2) })
-        else try { st.removeSnow() } catch (e: Throwable) { }
+        else try { st.removeSnow() } catch (e: Throwable) { softFail(e) }
         true
     } catch (e: Throwable) { android.util.Log.w("MapExtras", "weather: ${e.message}"); false }
 
@@ -118,12 +118,12 @@ internal object Sky {
                 if (!st.styleSourceExists("dl-dem")) st.addSource(RasterDemSource.Builder("dl-dem").url("mapbox://mapbox.mapbox-terrain-dem-v1").tileSize(514L).maxzoom(14L).build())
                 st.setTerrain(Terrain("dl-dem").exaggeration(1.0))
             } else {
-                try { st.removeTerrain() } catch (e: Throwable) { }
+                try { st.removeTerrain() } catch (e: Throwable) { softFail(e) }
             }
         } catch (e: Throwable) { android.util.Log.w("MapExtras", "terrain: ${e.message}") }
     }
 
-    fun clearTerrain(st: Style) { try { st.removeTerrain() } catch (e: Throwable) { } }
+    fun clearTerrain(st: Style) { try { st.removeTerrain() } catch (e: Throwable) { softFail(e) } }
 
     /**
      * The haze towards the horizon to match the weather (Open-Meteo code): a light grey haze when it's overcast, thicker in rain or
@@ -138,7 +138,7 @@ internal object Sky {
                 3 -> 1
                 else -> 0
             }
-            if (kind == 0) { try { st.removeAtmosphere() } catch (e: Throwable) { }; return }
+            if (kind == 0) { try { st.removeAtmosphere() } catch (e: Throwable) { softFail(e) }; return }
             val col = if (night) "#2A2F3D" else when (kind) { 3 -> "#D3D6DB"; 2 -> "#C2C7CF"; else -> "#CDD3DB" }
             val high = if (night) "#1C2131" else when (kind) { 3 -> "#C9CDD3"; 2 -> "#A9B1BD"; else -> "#B9C4D2" }
             val rg = when (kind) { 3 -> listOf(0.2, 2.5); 2 -> listOf(0.6, 5.5); else -> listOf(1.0, 9.0) }

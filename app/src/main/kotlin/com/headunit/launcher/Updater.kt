@@ -414,7 +414,7 @@ object Updater {
             o.use { os -> (res.openInputStream(src) ?: throw IllegalStateException("Could not read downloaded APK")).use { it.copyTo(os) } }
             res.update(out, android.content.ContentValues().apply { put(android.provider.MediaStore.MediaColumns.IS_PENDING, 0) }, null, null)
         } catch (e: Exception) {
-            try { res.delete(out, null, null) } catch (x: Exception) { }
+            try { res.delete(out, null, null) } catch (x: Exception) { softFail(x) }
             throw e
         }
     }

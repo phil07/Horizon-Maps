@@ -479,7 +479,7 @@ object TomTomRest {
         return "$API/assets/styles/0.*/style.json?key=$k&apiVersion=1&map=basic_street-$d-driving" +
             (if (traffic) "&trafficFlow=flow_relative-$d" else "") +
             // place and road names in the app's language; TomTom keeps the original name where it has no translation
-            "&language=" + (if (Lang.de) "de-DE" else "en-GB")
+            "&language=" + (Lang.serviceTag)
     }
 
     /** A failed request, explained in plain words for the common cases (a missing or wrong key, the daily limit). */
@@ -544,7 +544,7 @@ object TomTomRest {
         // 1. classic fuzzy search
         var classicRefused = false
         try {
-            var url = "$SEARCH/$enc.json?key=$k&limit=15&language=${if (Lang.de) "de-DE" else "en-GB"}&typeahead=true&minFuzzyLevel=1&maxFuzzyLevel=2&idxSet=POI,Addr,Str,Xstr,Geo,PAD&openingHours=nextSevenDays"
+            var url = "$SEARCH/$enc.json?key=$k&limit=15&language=${Lang.serviceTag}&typeahead=true&minFuzzyLevel=1&maxFuzzyLevel=2&idxSet=POI,Addr,Str,Xstr,Geo,PAD&openingHours=nextSevenDays"
             if (cc.isNotEmpty()) url += "&countrySet=$cc"
             if (near != null) url += "&lat=${near.lat}&lon=${near.lon}"
             parsePlaces(JSONObject(get(url)).optJSONArray("results") ?: JSONArray(), q, out)
@@ -552,7 +552,7 @@ object TomTomRest {
         // 1b. Newer keys can come with the Orbis APIs only: the classic search refuses them, so the same search goes to Orbis
         var orbisRefused = false
         if (classicRefused) try {
-            var url = "$API/places/search/$enc.json?key=$k&apiVersion=1&limit=15&language=${if (Lang.de) "de-DE" else "en-GB"}&typeahead=true"
+            var url = "$API/places/search/$enc.json?key=$k&apiVersion=1&limit=15&language=${Lang.serviceTag}&typeahead=true"
             if (cc.isNotEmpty()) url += "&countrySet=$cc"
             if (near != null) url += "&lat=${near.lat}&lon=${near.lon}"
             parsePlaces(JSONObject(get(url)).optJSONArray("results") ?: JSONArray(), q, out)
@@ -577,7 +577,7 @@ object TomTomRest {
                 val p = Place(x.optString("name").ifBlank { disp.substringBefore(',') }, disp.substringAfter(", ", ""), LL(x.getDouble("lat"), x.getDouble("lon"))).town(SearchRank.nominatimTown(x))
                 if (out.none { Geo.dist(it.pos, p.pos) < 60 }) out += p
             }
-        } catch (e: Exception) { }
+        } catch (e: Exception) { softFail(e) }
         return out
     }
 
@@ -739,7 +739,7 @@ object TomTomRest {
     fun poiNearby(key: String, kind: String, c: LL, radius: Int): List<Nearby> {
         val k = URLEncoder.encode(key, "UTF-8")
         val q = URLEncoder.encode(poiQuery(kind), "UTF-8").replace("+", "%20")
-        val body = get("https://api.tomtom.com/search/2/categorySearch/$q.json?key=$k&lat=${c.lat}&lon=${c.lon}&radius=$radius&limit=25&language=${if (Lang.de) "de-DE" else "en-GB"}", 8000, 12000)
+        val body = get("https://api.tomtom.com/search/2/categorySearch/$q.json?key=$k&lat=${c.lat}&lon=${c.lon}&radius=$radius&limit=25&language=${Lang.serviceTag}", 8000, 12000)
         val arr = JSONObject(body).optJSONArray("results") ?: JSONArray()
         return (0 until arr.length()).mapNotNull { poiResult(arr.getJSONObject(it), kind, c) }
     }
@@ -753,14 +753,14 @@ object TomTomRest {
         val enc = URLEncoder.encode(kind ?: q.trim(), "UTF-8").replace("+", "%20")
         val api = if (kind != null) "categorySearch" else "poiSearch"
         val url = "https://api.tomtom.com/search/2/$api/$enc.json?key=$k&lat=${near.lat}&lon=${near.lon}&radius=$radius&limit=25" +
-            "&language=${if (Lang.de) "de-DE" else "en-GB"}&openingHours=nextSevenDays" + (if (kind == null) "&typeahead=true" else "")
+            "&language=${Lang.serviceTag}&openingHours=nextSevenDays" + (if (kind == null) "&typeahead=true" else "")
         val out = ArrayList<Place>()
         try {
             parsePlaces(JSONObject(get(url, 8000, 9000)).optJSONArray("results") ?: JSONArray(), q, out)
         } catch (e: Refused) {
             // the classic search turned the key away: the same search on Orbis (a kind of place goes in as the search words)
             val orbis = "$API/places/search/$enc.json?key=$k&apiVersion=1&lat=${near.lat}&lon=${near.lon}&radius=$radius&limit=25" +
-                "&language=${if (Lang.de) "de-DE" else "en-GB"}" + (if (kind == null) "&typeahead=true" else "")
+                "&language=${Lang.serviceTag}" + (if (kind == null) "&typeahead=true" else "")
             parsePlaces(JSONObject(get(orbis, 8000, 9000)).optJSONArray("results") ?: JSONArray(), q, out)
         }
         return out.filter { Geo.dist(near, it.pos) <= radius * 1.2 }.sortedBy { Geo.dist(near, it.pos) }
@@ -798,13 +798,13 @@ object TomTomRest {
         val body = get("$CLASSIC/$loc/json?key=$k&arriveAt=$iso&traffic=true&routeRepresentation=none$prefs", 10000, 20000)
         val sum = JSONObject(body).optJSONArray("routes")?.optJSONObject(0)?.optJSONObject("summary") ?: return null
         val dep = sum.optString("departureTime")
-        if (dep.isNotBlank()) try { return java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX", java.util.Locale.US).parse(dep)?.time } catch (e: Exception) { }
+        if (dep.isNotBlank()) try { return java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX", java.util.Locale.US).parse(dep)?.time } catch (e: Exception) { softFail(e) }
         val secs = sum.optDouble("travelTimeInSeconds", -1.0)
         return if (secs > 0) arriveAtMs - (secs * 1000).toLong() else null
     }
 
     fun incidents(key: String, minLon: Double, minLat: Double, maxLon: Double, maxLat: Double): List<Incident> {
-        val url = "$API/traffic/incidents/details?apiVersion=2&timeValidity=present&bbox=$minLon,$minLat,$maxLon,$maxLat&language=${if (Lang.de) "de-DE" else "en-GB"}"
+        val url = "$API/traffic/incidents/details?apiVersion=2&timeValidity=present&bbox=$minLon,$minLat,$maxLon,$maxLat&language=${Lang.serviceTag}"
         val c = URL(url).openConnection() as HttpURLConnection
         c.connectTimeout = 15000; c.readTimeout = 25000
         c.setRequestProperty("TomTom-Api-Key", key)
@@ -1096,7 +1096,7 @@ object OsmSearch {
                     .town(pr.optString("osm_key") == "place" && pr.optString("osm_value") in SearchRank.OSM_TOWNS || pr.optString("type") == "city")
                 if (out.none { it.name == p.name && Geo.dist(it.pos, p.pos) < 60 }) out += p
             }
-        } catch (e: Exception) { }
+        } catch (e: Exception) { softFail(e) }
         if (out.size < 5) try {
             var url = "https://nominatim.openstreetmap.org/search?format=jsonv2&limit=10&q=$enc"
             if (near != null) url += "&viewbox=${near.lon - 0.5},${near.lat + 0.35},${near.lon + 0.5},${near.lat - 0.35}"
@@ -1109,7 +1109,7 @@ object OsmSearch {
                 val p = Place(x.optString("name").ifBlank { disp.substringBefore(',') }, disp.substringAfter(", ", ""), LL(x.getDouble("lat"), x.getDouble("lon"))).town(SearchRank.nominatimTown(x))
                 if (out.none { Geo.dist(it.pos, p.pos) < 60 }) out += p
             }
-        } catch (e: Exception) { }
+        } catch (e: Exception) { softFail(e) }
         // neither could be reached: say so (the caller shows the saved and downloaded places instead)
         if (!anyOk) throw IOException("no signal")
         return out

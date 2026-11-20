@@ -48,9 +48,9 @@ class MainActivity : ComponentActivity() {
         val boot = getSharedPreferences(CrashGuardPrefs.FILE, android.content.Context.MODE_PRIVATE)
         val startedAt = System.currentTimeMillis()
         Thread.setDefaultUncaughtExceptionHandler { t, e ->
-            try { crashFile.writeText("Thread ${t.name}\n" + android.util.Log.getStackTraceString(e).take(3000)) } catch (x: Throwable) { }
+            try { crashFile.writeText("Thread ${t.name}\n" + android.util.Log.getStackTraceString(e).take(3000)) } catch (x: Throwable) { softFail(x) }
             // a crash in the first 25 seconds counts as "crashed while starting"
-            try { if (System.currentTimeMillis() - startedAt < 25_000L) boot.edit().putInt(CrashGuardPrefs.START_FAILURES, boot.getInt(CrashGuardPrefs.START_FAILURES, 0) + 1).commit() } catch (x: Throwable) { }
+            try { if (System.currentTimeMillis() - startedAt < 25_000L) boot.edit().putInt(CrashGuardPrefs.START_FAILURES, boot.getInt(CrashGuardPrefs.START_FAILURES, 0) + 1).commit() } catch (x: Throwable) { softFail(x) }
             prev?.uncaughtException(t, e)
         }
         // freezes ("isn't responding") don't reach the crash handler: watch for them, and pick up Android's record of the last one
@@ -63,7 +63,7 @@ class MainActivity : ComponentActivity() {
             return
         }
         // running fine for 25 seconds: clear the counts and the "starting" marker
-        window.decorView.postDelayed({ try { boot.edit().putInt(CrashGuardPrefs.START_FAILURES, 0).putBoolean(CrashGuardPrefs.STARTING, false).putInt(CrashGuardPrefs.BAD_STARTS, 0).apply() } catch (x: Throwable) { } }, 25_000L)
+        window.decorView.postDelayed({ try { boot.edit().putInt(CrashGuardPrefs.START_FAILURES, 0).putBoolean(CrashGuardPrefs.STARTING, false).putInt(CrashGuardPrefs.BAD_STARTS, 0).apply() } catch (x: Throwable) { softFail(x) } }, 25_000L)
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         window.statusBarColor = android.graphics.Color.TRANSPARENT
         window.navigationBarColor = android.graphics.Color.TRANSPARENT
@@ -109,8 +109,8 @@ class MainActivity : ComponentActivity() {
         val sessionStep = try { SessionWatch.onStartup(applicationContext, prefs) } catch (e: Throwable) { 0 }
         // the Mapbox token from Settings, before the map is made
         val tok = MapboxRest.clean(prefs.s(PreferenceKeys.MAPBOX_TOKEN, ""))
-        try { prefs.migrateToMapbox() } catch (e: Throwable) { }
-        if (tok.isNotEmpty()) try { com.mapbox.common.MapboxOptions.accessToken = tok } catch (e: Throwable) { }
+        try { prefs.migrateToMapbox() } catch (e: Throwable) { softFail(e) }
+        if (tok.isNotEmpty()) try { com.mapbox.common.MapboxOptions.accessToken = tok } catch (e: Throwable) { softFail(e) }
         map = MapBinding(this, prefs.b(PreferenceKeys.MAPFAST, true), (prefs.s(PreferenceKeys.MAP_RESOLUTION, "80").toIntOrNull() ?: 80) / 100f).also { it.setArrowScale((prefs.s(PreferenceKeys.ARROW_PERCENT, "240").toIntOrNull() ?: 240) / 100f) }
         lifecycle.addObserver(map)
         // open where you were last time (the GPS takes over as soon as it answers)
@@ -118,14 +118,14 @@ class MainActivity : ComponentActivity() {
             val sp = prefs.s(PreferenceKeys.STARTPOS, "").split(',')
             val la = sp.getOrNull(0)?.toDoubleOrNull(); val lo = sp.getOrNull(1)?.toDoubleOrNull(); val br = sp.getOrNull(2)?.toDoubleOrNull()
             if (la != null && lo != null) map.startAt(LL(la, lo), br?.takeIf { it >= 0 })
-        } catch (e: Throwable) { }
+        } catch (e: Throwable) { softFail(e) }
         engine = NavEngine(applicationContext, prefs, map)
         SessionWatch.speed = { try { engine.fix?.speed ?: 0.0 } catch (e: Throwable) { 0.0 } }
         SessionWatch.perf = { try { engine.perfLine } catch (e: Throwable) { "" } }
         SessionWatch.resumed(applicationContext)
-        if (sessionStep > 0) window.decorView.postDelayed({ try { engine.toast(SessionWatch.message(sessionStep), 12_000) } catch (e: Throwable) { } }, 5000L)
+        if (sessionStep > 0) window.decorView.postDelayed({ try { engine.toast(SessionWatch.message(sessionStep), 12_000) } catch (e: Throwable) { softFail(e) } }, 5000L)
         if (safeLevel > 0) window.decorView.postDelayed({
-            try { engine.toast(if (safeLevel >= 2) Lang.t("Horizon Nav hatte Startprobleme, darum ist die Karte auf „Am leichtesten“ gestellt. Ändern kannst du das unter Einstellungen > Kartenansicht", "Horizon Nav had trouble starting, so the map is on Lightest. You can change it in Settings > Map look") else Lang.t("Horizon Nav hatte Startprobleme, darum sind die aufwendigsten 3D-Funktionen aus. Einschalten kannst du sie unter Einstellungen > Kartenansicht und Auf der Karte", "Horizon Nav had trouble starting, so the heaviest 3D map features are off. You can turn them back on in Settings > Map look and On the map"), 10_000) } catch (e: Throwable) { }
+            try { engine.toast(if (safeLevel >= 2) Lang.t("Horizon Nav hatte Startprobleme, darum ist die Karte auf „Am leichtesten“ gestellt. Ändern kannst du das unter Einstellungen > Kartenansicht", "Horizon Nav had trouble starting, so the map is on Lightest. You can change it in Settings > Map look") else Lang.t("Horizon Nav hatte Startprobleme, darum sind die aufwendigsten 3D-Funktionen aus. Einschalten kannst du sie unter Einstellungen > Kartenansicht und Auf der Karte", "Horizon Nav had trouble starting, so the heaviest 3D map features are off. You can turn them back on in Settings > Map look and On the map"), 10_000) } catch (e: Throwable) { softFail(e) }
         }, 4000L)
 
         setContent { App(prefs, engine, map) }
@@ -167,7 +167,7 @@ class MainActivity : ComponentActivity() {
             WindowInsetsControllerCompat(window, window.decorView).show(WindowInsetsCompat.Type.systemBars())
             @Suppress("DEPRECATION")
             if (Build.VERSION.SDK_INT < 30) window.decorView.systemUiVisibility = android.view.View.SYSTEM_UI_FLAG_LAYOUT_STABLE
-        } catch (e: Exception) { }
+        } catch (e: Exception) { softFail(e) }
     }
 
     override fun onMultiWindowModeChanged(isInMultiWindowMode: Boolean, newConfig: android.content.res.Configuration) {
@@ -190,7 +190,7 @@ class MainActivity : ComponentActivity() {
                     android.view.View.SYSTEM_UI_FLAG_HIDE_NAVIGATION or android.view.View.SYSTEM_UI_FLAG_LAYOUT_STABLE or
                     android.view.View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN or android.view.View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION)
             }
-        } catch (e: Exception) { }
+        } catch (e: Exception) { softFail(e) }
     }
 
     override fun onWindowFocusChanged(hasFocus: Boolean) {
@@ -225,7 +225,7 @@ class MainActivity : ComponentActivity() {
         ExternalLinks.footMode(text)?.let { mode ->
             val go = android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(text)).setPackage("com.google.android.apps.maps")
                 .addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
-            try { startActivity(go); return } catch (e: Exception) { }
+            try { startActivity(go); return } catch (e: Exception) { softFail(e) }
             if (mode == "w") {
                 lifecycleScope.launch {
                     val t = try { kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { ExternalLinks.parse(text) } } catch (e: Exception) { null }
@@ -265,8 +265,8 @@ class MainActivity : ComponentActivity() {
         super.onStop()
         CarCloud.appVisible = false
         // closed or put away normally: not a failed start
-        try { SessionWatch.stopped(applicationContext) } catch (e: Throwable) { }
-        try { getSharedPreferences(CrashGuardPrefs.FILE, android.content.Context.MODE_PRIVATE).edit().putBoolean(CrashGuardPrefs.STARTING, false).apply() } catch (e: Throwable) { }
+        try { SessionWatch.stopped(applicationContext) } catch (e: Throwable) { softFail(e) }
+        try { getSharedPreferences(CrashGuardPrefs.FILE, android.content.Context.MODE_PRIVATE).edit().putBoolean(CrashGuardPrefs.STARTING, false).apply() } catch (e: Throwable) { softFail(e) }
         if (!::engine.isInitialized) return
         engine.appVisible = false
         // with no route there is nothing to guide, so GPS is switched off while the app is in the background

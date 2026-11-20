@@ -196,16 +196,16 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
             styleUri = null,
         )
         mapView = MapView(ctx, opts)
-        try { mapView.scalebar.enabled = false } catch (e: Throwable) { }
-        try { mapView.compass.enabled = false } catch (e: Throwable) { }
+        try { mapView.scalebar.enabled = false } catch (e: Throwable) { softFail(e) }
+        try { mapView.compass.enabled = false } catch (e: Throwable) { softFail(e) }
         // Mapbox's logo and credits must stay visible: top right, clear of the app's own cards
         placeBranding(null)
         mapView.post { styleAttribution() }
-        try { mbMap.setBounds(CameraBoundsOptions.Builder().maxPitch(75.0).build()) } catch (e: Throwable) { }
+        try { mbMap.setBounds(CameraBoundsOptions.Builder().maxPitch(75.0).build()) } catch (e: Throwable) { softFail(e) }
         try {
             mapView.gestures.rotateEnabled = true
             mapView.gestures.pitchEnabled = true
-        } catch (e: Throwable) { }
+        } catch (e: Throwable) { softFail(e) }
         // counted all the time: the automatic frame rate compares frames drawn with camera moves asked for
         subs += mbMap.subscribeRenderFrameStarted { PerfStats.renders++ }
         subs += mbMap.subscribeMapLoadingError { e ->
@@ -254,7 +254,7 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
         mapView.gestures.addOnMoveListener(object : OnMoveListener {
             override fun onMoveBegin(detector: MoveGestureDetector) { onUserGesture?.invoke() }
             override fun onMove(detector: MoveGestureDetector): Boolean = false
-            override fun onMoveEnd(detector: MoveGestureDetector) { try { onViewMoved?.invoke(LL(mbMap.cameraState.center.latitude(), mbMap.cameraState.center.longitude())) } catch (e: Throwable) { } }
+            override fun onMoveEnd(detector: MoveGestureDetector) { try { onViewMoved?.invoke(LL(mbMap.cameraState.center.latitude(), mbMap.cameraState.center.longitude())) } catch (e: Throwable) { softFail(e) } }
         })
         mapView.gestures.addOnScaleListener(object : OnScaleListener {
             override fun onScaleBegin(detector: StandardScaleGestureDetector) { onUserGesture?.invoke() }
@@ -273,7 +273,7 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
         })
         subs += mbMap.subscribeCameraChanged {
             // zooming across the level where the turn arrow appears or goes: put the route back together (or cut it for the arrow)
-            if (turnCut != null && cutZoomOk() != cutActive) try { setLine(main) } catch (e: Exception) { }
+            if (turnCut != null && cutZoomOk() != cutActive) try { setLine(main) } catch (e: Exception) { softFail(e) }
             placeAltCards(false)
             refreshLamps(); refreshSignals(); sizeFurniture()
             // (while you drive the map never stops moving, so the roads on screen are read on the move too, every few seconds)
@@ -305,12 +305,12 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
             mapView.logo.marginTop = if (top) vEdge else 0f; mapView.logo.marginBottom = if (top) 0f else vEdge
             // the logo sits beside the (i) button, on the side away from the edge
             mapView.logo.marginLeft = if (left) hEdge + 30f * d else 0f; mapView.logo.marginRight = if (left) 0f else hEdge + 30f * d
-        } catch (e: Throwable) { }
+        } catch (e: Throwable) { softFail(e) }
         try {
             mapView.attribution.position = v or h
             mapView.attribution.marginTop = if (top) vEdge else 0f; mapView.attribution.marginBottom = if (top) 0f else vEdge
             mapView.attribution.marginLeft = if (left) hEdge else 0f; mapView.attribution.marginRight = if (left) 0f else hEdge
-        } catch (e: Throwable) { }
+        } catch (e: Throwable) { softFail(e) }
     }
 
 
@@ -332,14 +332,14 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
         mapView.width > 50 && mapView.height > 50
 
     // (the Mapbox map also follows the screen it's on by itself; these calls are safe to repeat)
-    override fun onStart(owner: LifecycleOwner) { started = true; try { mapView.onStart() } catch (e: Throwable) { } }
-    override fun onResume(owner: LifecycleOwner) { started = true; try { flowAnim?.resume() } catch (e: Exception) { } }
-    override fun onPause(owner: LifecycleOwner) { try { flowAnim?.pause() } catch (e: Exception) { } }
-    override fun onStop(owner: LifecycleOwner) { started = false; try { mapView.onStop() } catch (e: Throwable) { } }
+    override fun onStart(owner: LifecycleOwner) { started = true; try { mapView.onStart() } catch (e: Throwable) { softFail(e) } }
+    override fun onResume(owner: LifecycleOwner) { started = true; try { flowAnim?.resume() } catch (e: Exception) { softFail(e) } }
+    override fun onPause(owner: LifecycleOwner) { try { flowAnim?.pause() } catch (e: Exception) { softFail(e) } }
+    override fun onStop(owner: LifecycleOwner) { started = false; try { mapView.onStop() } catch (e: Throwable) { softFail(e) } }
 
     /** The car screen went away for a while (another app full screen) or came back: stop or restart drawing. */
-    fun carPause() { if (!started) return; started = false; try { flowAnim?.pause() } catch (e: Exception) { }; try { mapView.onStop() } catch (e: Throwable) { } }
-    fun carResume() { if (started) return; try { mapView.onStart() } catch (e: Throwable) { }; started = true; try { flowAnim?.resume() } catch (e: Exception) { } }
+    fun carPause() { if (!started) return; started = false; try { flowAnim?.pause() } catch (e: Exception) { softFail(e) }; try { mapView.onStop() } catch (e: Throwable) { softFail(e) } }
+    fun carResume() { if (started) return; try { mapView.onStart() } catch (e: Throwable) { softFail(e) }; started = true; try { flowAnim?.resume() } catch (e: Exception) { softFail(e) } }
     override fun onDestroy(owner: LifecycleOwner) = destroy()
 
     /** Stops everything and frees the map (the car screen calls this when it goes away). */
@@ -348,14 +348,14 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
         if (destroyed) return
         destroyed = true
         started = false
-        try { lampExec.shutdownNow() } catch (e: Throwable) { }
-        try { signalExec.shutdownNow() } catch (e: Throwable) { }
-        for (c in subs) try { c.cancel() } catch (e: Throwable) { }
+        try { lampExec.shutdownNow() } catch (e: Throwable) { softFail(e) }
+        try { signalExec.shutdownNow() } catch (e: Throwable) { softFail(e) }
+        for (c in subs) try { c.cancel() } catch (e: Throwable) { softFail(e) }
         subs.clear()
-        for (c in pendingQueries) try { c.cancel() } catch (e: Throwable) { }
+        for (c in pendingQueries) try { c.cancel() } catch (e: Throwable) { softFail(e) }
         pendingQueries.clear()
-        try { meAnim?.cancel(); bubbleAnim?.cancel(); lanePulse?.cancel(); pulseAnim?.cancel(); flowAnim?.cancel() } catch (e: Throwable) { }
-        try { mapView.onStop(); mapView.onDestroy() } catch (e: Throwable) { }
+        try { meAnim?.cancel(); bubbleAnim?.cancel(); lanePulse?.cancel(); pulseAnim?.cancel(); flowAnim?.cancel() } catch (e: Throwable) { softFail(e) }
+        try { mapView.onStop(); mapView.onDestroy() } catch (e: Throwable) { softFail(e) }
     }
 
     // ---- token and style ----
@@ -399,7 +399,7 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
     fun applyHdRoads(on: Boolean) {
         if (on == hdRoads) return
         hdRoads = on
-        main0.post { try { setBase("showHdRoads", Value.valueOf(on)) } catch (e: Throwable) { } }
+        main0.post { try { setBase("showHdRoads", Value.valueOf(on)) } catch (e: Throwable) { softFail(e) } }
     }
 
     fun setMapDetail(d: String) {
@@ -408,7 +408,7 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
         val wasLightest = mapDetail == "lightest"
         mapDetail = v
         lite = v != "full"
-        try { glowLayer?.visibility(vis(!lite)) } catch (e: Exception) { }
+        try { glowLayer?.visibility(vis(!lite)) } catch (e: Exception) { softFail(e) }
         // to or from the classic map: a different style; between full and lite: just Standard's settings
         if (wasLightest || v == "lightest") { if (isMapboxStyle(wantedStyle)) setStyleUrl(baseStyle()) }
         else {
@@ -457,7 +457,7 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
     /** One of Standard's settings (only once a style is showing; they're also written into the style when it loads). */
     private fun setBase(key: String, v: Value) {
         val st = style ?: return
-        try { st.setStyleImportConfigProperty(BASE, key, v) } catch (e: Throwable) { }
+        try { st.setStyleImportConfigProperty(BASE, key, v) } catch (e: Throwable) { softFail(e) }
     }
 
     /** Standard's settings as they should be now, written into the style before it loads (so night never flashes up as day). */
@@ -523,7 +523,7 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
         try {
             val scale = (if (b.density > 0) b.density else android.util.DisplayMetrics.DENSITY_DEFAULT) / android.util.DisplayMetrics.DENSITY_DEFAULT.toFloat()
             st.addStyleImage(id, scale, b.toMapboxImage(), false, emptyList(), emptyList(), null)
-        } catch (e: Throwable) { }
+        } catch (e: Throwable) { softFail(e) }
     }
 
     // ---- small helpers for the map's expressions ----
@@ -611,14 +611,14 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
                             st.setStyleLayerProperty(info.id, "icon-opacity", Value.valueOf(labelOp))
                         }
                     }
-                } catch (e: Throwable) { }
+                } catch (e: Throwable) { softFail(e) }
             }
         } catch (e: Throwable) { android.util.Log.w("MapBinding", "satellite: ${e.message}") }
     }
     /** Takes the satellite photos out of the style again, so the other photo source can be added in their place. */
     private fun dropSatellite(st: Style) {
-        for (l in st.styleLayers.map { it.id }.filter { it.startsWith("dl-sat") }) try { st.removeStyleLayer(l) } catch (e: Throwable) { }
-        for (src in st.styleSources.map { it.id }.filter { it.startsWith("dl-sat") }) try { st.removeStyleSource(src) } catch (e: Throwable) { }
+        for (l in st.styleLayers.map { it.id }.filter { it.startsWith("dl-sat") }) try { st.removeStyleLayer(l) } catch (e: Throwable) { softFail(e) }
+        for (src in st.styleSources.map { it.id }.filter { it.startsWith("dl-sat") }) try { st.removeStyleSource(src) } catch (e: Throwable) { softFail(e) }
     }
     private fun addS(st: Style, s: com.mapbox.maps.extension.style.StyleContract.StyleSourceExtension) {
         try { st.addSource(s) } catch (e: Throwable) { android.util.Log.w("MapBinding", "source: ${e.message}") }
@@ -635,7 +635,7 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
      */
     private fun query(box: RectF, layers: List<String>, timeoutMs: Long = 3000L, done: (List<Feature>?) -> Unit) {
         var finished = false
-        fun finish(r: List<Feature>?) { if (finished) return; finished = true; try { done(r) } catch (e: Throwable) { } }
+        fun finish(r: List<Feature>?) { if (finished) return; finished = true; try { done(r) } catch (e: Throwable) { softFail(e) } }
         val c = try {
             mbMap.queryRenderedFeatures(
                 RenderedQueryGeometry(ScreenBox(ScreenCoordinate(box.left.toDouble(), box.top.toDouble()), ScreenCoordinate(box.right.toDouble(), box.bottom.toDouble()))),
@@ -648,7 +648,7 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
         pendingQueries += c
         main0.postDelayed({
             pendingQueries.remove(c)
-            if (!finished) { try { c.cancel() } catch (e: Throwable) { }; finish(null) }
+            if (!finished) { try { c.cancel() } catch (e: Throwable) { softFail(e) }; finish(null) }
         }, timeoutMs)
     }
 
@@ -662,7 +662,7 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
     fun setWalk(p: List<LL>) {
         walkPts = p
         main0.post {
-            try { src("dl-walk")?.featureCollection(if (p.size >= 2) FeatureCollection.fromFeatures(listOf(line(p))) else empty()) } catch (e: Throwable) { }
+            try { src("dl-walk")?.featureCollection(if (p.size >= 2) FeatureCollection.fromFeatures(listOf(line(p))) else empty()) } catch (e: Throwable) { softFail(e) }
         }
     }
 
@@ -672,19 +672,19 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
 
     fun setEntrance(p: LL?) {
         entranceAt = p
-        main0.post { try { src("dl-entrance")?.featureCollection(FeatureCollection.fromFeatures(p?.let { listOf(Feature.fromGeometry(Point.fromLngLat(it.lon, it.lat))) } ?: emptyList())) } catch (e: Throwable) { } }
+        main0.post { try { src("dl-entrance")?.featureCollection(FeatureCollection.fromFeatures(p?.let { listOf(Feature.fromGeometry(Point.fromLngLat(it.lon, it.lat))) } ?: emptyList())) } catch (e: Throwable) { softFail(e) } }
     }
 
     fun setArrivalWalk(p: List<LL>) {
         arrWalk = p
-        main0.post { try { src("dl-arrwalk")?.featureCollection(if (p.size >= 2) FeatureCollection.fromFeatures(listOf(line(p))) else empty()) } catch (e: Throwable) { } }
+        main0.post { try { src("dl-arrwalk")?.featureCollection(if (p.size >= 2) FeatureCollection.fromFeatures(listOf(line(p))) else empty()) } catch (e: Throwable) { softFail(e) } }
     }
 
     fun setParked(p: LL?) {
         if (p == parkedAt || (p != null && parkedAt != null && Geo.dist(p, parkedAt!!) < 1.0)) return
         parkedAt = p
         main0.post {
-            try { src("dl-parked")?.featureCollection(FeatureCollection.fromFeatures(p?.let { listOf(Feature.fromGeometry(Point.fromLngLat(it.lon, it.lat))) } ?: emptyList())) } catch (e: Throwable) { }
+            try { src("dl-parked")?.featureCollection(FeatureCollection.fromFeatures(p?.let { listOf(Feature.fromGeometry(Point.fromLngLat(it.lon, it.lat))) } ?: emptyList())) } catch (e: Throwable) { softFail(e) }
         }
     }
 
@@ -713,7 +713,7 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
                     signAt = null
                     src("dl-lanesign")?.featureCollection(FeatureCollection.fromFeatures(emptyList()))
                 }
-            } catch (e: Throwable) { }
+            } catch (e: Throwable) { softFail(e) }
         }
     }
 
@@ -725,7 +725,7 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
     private var bubbleCur: LL? = null
     private var bubbleAnim: android.animation.ValueAnimator? = null
     private fun pushBubble(p: LL) {
-        try { src("dl-lanebubble")?.featureCollection(FeatureCollection.fromFeatures(listOf(Feature.fromGeometry(Point.fromLngLat(p.lon, p.lat))))) } catch (e: Throwable) { }
+        try { src("dl-lanebubble")?.featureCollection(FeatureCollection.fromFeatures(listOf(Feature.fromGeometry(Point.fromLngLat(p.lon, p.lat))))) } catch (e: Throwable) { softFail(e) }
     }
 
     /** Shows the lane bubble at [at] (null hides it). Same lane description as [setLaneSign]. */
@@ -761,7 +761,7 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
                     bubbleCur = null; bubbleAt = null
                     src("dl-lanebubble")?.featureCollection(FeatureCollection.fromFeatures(emptyList()))
                 }
-            } catch (e: Throwable) { }
+            } catch (e: Throwable) { softFail(e) }
         }
     }
 
@@ -1045,7 +1045,7 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
                 override fun setColorFilter(cf: android.graphics.ColorFilter?) {}
                 @Deprecated("Deprecated in Java") override fun getOpacity() = android.graphics.PixelFormat.TRANSLUCENT
             })
-        } catch (e: Throwable) { }
+        } catch (e: Throwable) { softFail(e) }
     }
 
 
@@ -1151,7 +1151,7 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
         try {
             for (id in furnSigIds) if (st.styleLayerExists(id)) st.setStyleLayerProperty(id, "model-scale", sv)
             for (id in furnLampIds) if (st.styleLayerExists(id)) st.setStyleLayerProperty(id, "model-scale", lv)
-        } catch (e: Throwable) { }
+        } catch (e: Throwable) { softFail(e) }
     }
 
     /** On a route, the traffic lights that aren't on it are greyed out (faded and dimmed), so the ones that matter stand out. */
@@ -1169,7 +1169,7 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
                     lens?.modelOpacity(1.0); lens?.modelColorMixIntensity(0.0); lens?.modelEmissiveStrength(1.0)
                 }
             }
-        } catch (e: Throwable) { }
+        } catch (e: Throwable) { softFail(e) }
     }
 
     // ---- zebra crossings on the route ----
@@ -1190,7 +1190,7 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
     fun setStopSigns(list: List<LL>) {
         main0.post {
             stopSigns = list
-            try { src("dl-stops")?.featureCollection(FeatureCollection.fromFeatures(stopFeats())) } catch (e: Throwable) { }
+            try { src("dl-stops")?.featureCollection(FeatureCollection.fromFeatures(stopFeats())) } catch (e: Throwable) { softFail(e) }
         }
     }
 
@@ -1220,7 +1220,7 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
             try {
                 src("dl-zebras")?.featureCollection(FeatureCollection.fromFeatures(zebraFeats()))
                 src("dl-beacons")?.featureCollection(FeatureCollection.fromFeatures(beaconFeats()))
-            } catch (e: Throwable) { }
+            } catch (e: Throwable) { softFail(e) }
         }
     }
 
@@ -1261,7 +1261,7 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
     fun setTunnels(lines: List<List<LL>>) {
         main0.post {
             tunnelLines = lines
-            try { src("dl-tunnels")?.featureCollection(FeatureCollection.fromFeatures(lines.filter { it.size >= 2 }.map { line(it) })) } catch (e: Throwable) { }
+            try { src("dl-tunnels")?.featureCollection(FeatureCollection.fromFeatures(lines.filter { it.size >= 2 }.map { line(it) })) } catch (e: Throwable) { softFail(e) }
         }
     }
 
@@ -1340,7 +1340,7 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
     fun setTrack(pts: List<LL>) {
         main0.post {
             gpxLine = pts
-            try { src("dl-gpx")?.featureCollection(FeatureCollection.fromFeatures(if (pts.size >= 2) listOf(line(pts)) else emptyList())) } catch (e: Throwable) { }
+            try { src("dl-gpx")?.featureCollection(FeatureCollection.fromFeatures(if (pts.size >= 2) listOf(line(pts)) else emptyList())) } catch (e: Throwable) { softFail(e) }
         }
     }
 
@@ -1350,7 +1350,7 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
     fun setSharpBends(lines: List<List<LL>>) {
         main0.post {
             sharpLines = lines
-            try { src("dl-sharp")?.featureCollection(FeatureCollection.fromFeatures(lines.filter { it.size >= 2 }.map { line(it) })) } catch (e: Throwable) { }
+            try { src("dl-sharp")?.featureCollection(FeatureCollection.fromFeatures(lines.filter { it.size >= 2 }.map { line(it) })) } catch (e: Throwable) { softFail(e) }
         }
     }
 
@@ -1375,7 +1375,7 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
             try {
                 src("dl-avg")?.featureCollection(FeatureCollection.fromFeatures(lines.filter { it.size >= 2 }.map { line(it) }))
                 src("dl-avg-cams")?.featureCollection(FeatureCollection.fromFeatures(avgCamFeats()))
-            } catch (e: Throwable) { }
+            } catch (e: Throwable) { softFail(e) }
         }
     }
 
@@ -1392,7 +1392,7 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
         if (p == null) {
             val f = destLit
             destLit = null; destLitFor = null
-            if (f != null) try { mbMap.setFeatureState(f, com.mapbox.maps.interactions.standard.generated.StandardBuildingsState { highlight(false) }) } catch (e: Throwable) { }
+            if (f != null) try { mbMap.setFeatureState(f, com.mapbox.maps.interactions.standard.generated.StandardBuildingsState { highlight(false) }) } catch (e: Throwable) { softFail(e) }
             return
         }
         if (!slotsOn || satellite) return
@@ -1412,10 +1412,10 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
                 main0.post {
                     if (destLitFor == null || Geo.dist(destLitFor!!, p) >= 5.0) return@post
                     destLit = f
-                    try { mbMap.setFeatureState(f, com.mapbox.maps.interactions.standard.generated.StandardBuildingsState { highlight(true) }) } catch (e: Throwable) { }
+                    try { mbMap.setFeatureState(f, com.mapbox.maps.interactions.standard.generated.StandardBuildingsState { highlight(true) }) } catch (e: Throwable) { softFail(e) }
                 }
             }
-        } catch (e: Throwable) { }
+        } catch (e: Throwable) { softFail(e) }
     }
 
     private var clearAt: LL? = null
@@ -1430,7 +1430,7 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
         if (!force && (now - clearTime < 500L || (last != null && Geo.dist(last, p) < 4.0))) return
         val s = src("dl-clip") ?: return
         clearAt = p; clearTime = now
-        try { s.featureCollection(ClearView.shapes(p, meHeading, main)) } catch (e: Throwable) { }
+        try { s.featureCollection(ClearView.shapes(p, meHeading, main)) } catch (e: Throwable) { softFail(e) }
     }
 
     // ---- tapping buildings and places on Mapbox's map: they light up (Settings > Map > Tap to highlight) ----
@@ -1443,7 +1443,7 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
         try {
             mbMap.resetFeatureStates(com.mapbox.maps.interactions.standard.generated.StandardBuildings())
             mbMap.resetFeatureStates(com.mapbox.maps.interactions.standard.generated.StandardPoi())
-        } catch (e: Throwable) { }
+        } catch (e: Throwable) { softFail(e) }
     }
 
     private fun installTapSelect() {
@@ -1521,8 +1521,8 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
         val st = style ?: return
         try {
             Sky.clearTerrain(st)
-            for (l in st.styleLayers.map { it.id }.filter { it.startsWith("dl-") }.reversed()) try { st.removeStyleLayer(l) } catch (e: Throwable) { }
-            for (src in st.styleSources.map { it.id }.filter { it.startsWith("dl-") }) try { st.removeStyleSource(src) } catch (e: Throwable) { }
+            for (l in st.styleLayers.map { it.id }.filter { it.startsWith("dl-") }.reversed()) try { st.removeStyleLayer(l) } catch (e: Throwable) { softFail(e) }
+            for (src in st.styleSources.map { it.id }.filter { it.startsWith("dl-") }) try { st.removeStyleSource(src) } catch (e: Throwable) { softFail(e) }
             install(st)
         } catch (e: Throwable) { android.util.Log.w("MapBinding", "reinstall failed", e) }
     }
@@ -1550,7 +1550,7 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
             addS(st, VectorSource.Builder("dl-hd").url("mapbox://mapbox.hd-road-v1").build())
             addL(st, LineLayer("dl-hdq", "dl-hd").sourceLayer("hd_road_centerlines").inSlot("bottom")
                 .lineColor("#808080").lineOpacity(0.01).lineWidth(1.0).lineEmissiveStrength(1.0).minZoom(15.5))
-        } catch (e: Throwable) { }
+        } catch (e: Throwable) { softFail(e) }
     }
 
     /**
@@ -1881,7 +1881,7 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
         signalsOn = on
         // (the search along the route carries on either way: it also finds the speed cameras)
         pushSignals()
-        if (!on) try { src("dl-signals-near")?.featureCollection(empty()) } catch (e: Throwable) { }
+        if (!on) try { src("dl-signals-near")?.featureCollection(empty()) } catch (e: Throwable) { softFail(e) }
         else main0.post { lampsCentre = null; refreshLamps(true) }
     }
 
@@ -2013,8 +2013,8 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
                         signalShown = fc.features()?.size ?: 0
                         src("dl-signals")?.featureCollection(fc)
                         src("dl-signals-m")?.featureCollection(if (on) signalModels else empty())
-                        try { onRouteSignals?.invoke(signalKept) } catch (e: Throwable) { }
-                    } catch (e: Throwable) { }
+                        try { onRouteSignals?.invoke(signalKept) } catch (e: Throwable) { softFail(e) }
+                    } catch (e: Throwable) { softFail(e) }
                     signalJob = false
                     if (signalDirty) pushSignals()
                 }
@@ -2135,7 +2135,7 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
                     if (gaps == 0) signalErr = ""
                     main0.post {
                         if (token == signalToken) { signalPts = snap; pushSignals() }
-                        try { onRouteCameras?.invoke(camSnap) } catch (e: Throwable) { }
+                        try { onRouteCameras?.invoke(camSnap) } catch (e: Throwable) { softFail(e) }
                     }
                 }
                 if (gaps > 0) { if (signalErr.isEmpty()) signalErr = "some stretches not searched"; sigFailAt = android.os.SystemClock.uptimeMillis() }
@@ -2212,7 +2212,7 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
         val dayLook = !nightStyle
         bubImgs.clear(); laneImgs.clear()
         // the classic map in the Horizon colours
-        if (!slotsOn && (colours == "horizon" || recolourBase)) try { recolourClassic(st) } catch (e: Throwable) { }
+        if (!slotsOn && (colours == "horizon" || recolourBase)) try { recolourClassic(st) } catch (e: Throwable) { softFail(e) }
         // Standard's newer settings are set once it's loaded (so a style that doesn't know one can't stop the map loading)
         if (!satellite) {
             setBase("show3dTrees", Value.valueOf(treesOn)); setBase("showLandmarkIcons", Value.valueOf(!lite))
@@ -2559,7 +2559,7 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
             try {
                 if (st.styleLayerExists("dl-building-3d")) st.setStyleLayerProperty("dl-building-3d", "visibility", Value.valueOf(if (b3d) "visible" else "none"))
                 else if (b3d && colours == "horizon") recolourClassic(st)
-            } catch (e: Throwable) { }
+            } catch (e: Throwable) { softFail(e) }
         }
     }
 
@@ -2625,11 +2625,11 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
     fun setTrafficGreen(on: Boolean) {
         if (on == trafficGreen) return
         trafficGreen = on
-        main0.post { try { (layer("dl-traffic") as? LineLayer)?.filter(trafficFilter()) } catch (e: Throwable) { } }
+        main0.post { try { (layer("dl-traffic") as? LineLayer)?.filter(trafficFilter()) } catch (e: Throwable) { softFail(e) } }
     }
 
     private fun applyTraffic() {
-        try { layer("dl-traffic")?.visibility(vis(trafficOn && !(routing && hideTraffic))) } catch (e: Throwable) { }
+        try { layer("dl-traffic")?.visibility(vis(trafficOn && !(routing && hideTraffic))) } catch (e: Throwable) { softFail(e) }
     }
 
     /** Light map: no points of interest and no route glow, so there is less to draw and place every frame. */
@@ -2646,7 +2646,7 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
     fun setLite(b: Boolean) {
         if (lite == b || mapDetail != "full") return
         lite = b
-        try { glowLayer?.visibility(vis(!lite)) } catch (e: Exception) { }
+        try { glowLayer?.visibility(vis(!lite)) } catch (e: Exception) { softFail(e) }
         setBase("showPointOfInterestLabels", Value.valueOf(!lite && !poiMoving))
         setBase("showTransitLabels", Value.valueOf(!lite))
         if (!satellite) {
@@ -2685,7 +2685,7 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
         val greenByClass = Expression.fromRaw("[\"match\",[\"downcase\",[\"to-string\",[\"coalesce\",[\"get\",\"class\"],[\"get\",\"subclass\"],[\"get\",\"kind\"],[\"get\",\"type\"],\"\"]]],$greenKinds,\"$park\",\"$land\"]")
         val cols = if (dark) listOf("#3C4370", "#454C7E", "#51598F", "#5F68A0") else listOf("#F1EFEB", "#E9E7E3", "#E0DED9", "#D6D4CF")
         val extColour = Expression.fromRaw("[\"interpolate\",[\"linear\"],[\"case\",[\"has\",\"render_height\"],[\"to-number\",[\"get\",\"render_height\"]],[\"has\",\"height\"],[\"to-number\",[\"get\",\"height\"]],10],0,\"${cols[0]}\",20,\"${cols[1]}\",60,\"${cols[2]}\",150,\"${cols[3]}\"]")
-        fun set(id: String, prop: String, v: Value) { try { st.setStyleLayerProperty(id, prop, v) } catch (e: Throwable) { } }
+        fun set(id: String, prop: String, v: Value) { try { st.setStyleLayerProperty(id, prop, v) } catch (e: Throwable) { softFail(e) } }
         fun set(id: String, prop: String, hex: String) = set(id, prop, Value.valueOf(hex))
         var has3d = false
         var buildingSrc: String? = null
@@ -2839,7 +2839,7 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
             s.featureCollection(FeatureCollection.fromFeatures(favPins.map { p ->
                 Feature.fromGeometry(Point.fromLngLat(p.pos.lon, p.pos.lat)).also { it.addStringProperty("img", favImg(p)) }
             }))
-        } catch (e: Throwable) { }
+        } catch (e: Throwable) { softFail(e) }
     }
 
     /** A yellow star with a dark edge; with the name on a white label under it, when names are shown. */
@@ -2896,7 +2896,7 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
             s.featureCollection(FeatureCollection.fromFeatures(chainPins.map { p ->
                 Feature.fromGeometry(Point.fromLngLat(p.pos.lon, p.pos.lat)).also { it.addStringProperty("img", chainImg(p)); it.addNumberProperty("z", if (p.selected) 1 else 0) }
             }))
-        } catch (e: Throwable) { }
+        } catch (e: Throwable) { softFail(e) }
     }
 
     /** A round badge with the logo (or a red pin) and the drive time in a pill beside it, standing on a little stem; bigger when chosen. */
@@ -2963,7 +2963,7 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
             s.featureCollection(FeatureCollection.fromFeatures(garages.map { g ->
                 Feature.fromGeometry(Point.fromLngLat(g.pos.lon, g.pos.lat)).also { it.addStringProperty("img", garageImg(g)) }
             }))
-        } catch (e: Throwable) { }
+        } catch (e: Throwable) { softFail(e) }
     }
 
     /** A blue P with the free spaces beside it: green, amber when filling up, red when full, grey without a live count (then the size). */
@@ -3025,12 +3025,12 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
 
     private fun pushAlpr() {
         val s = src("dl-alpr") ?: return
-        try { s.featureCollection(FeatureCollection.fromFeatures(alpr.map { Feature.fromGeometry(Point.fromLngLat(it.lon, it.lat)) })) } catch (e: Exception) { }
+        try { s.featureCollection(FeatureCollection.fromFeatures(alpr.map { Feature.fromGeometry(Point.fromLngLat(it.lon, it.lat)) })) } catch (e: Exception) { softFail(e) }
     }
 
     private fun pushCams() {
         val s = src("dl-cams") ?: return
-        try { s.featureCollection(FeatureCollection.fromFeatures(cams.map { Feature.fromGeometry(Point.fromLngLat(it.lon, it.lat)) })) } catch (e: Exception) { }
+        try { s.featureCollection(FeatureCollection.fromFeatures(cams.map { Feature.fromGeometry(Point.fromLngLat(it.lon, it.lat)) })) } catch (e: Exception) { softFail(e) }
         // the 3D cameras face you (turned towards where you are now), standing at the left kerb
         val m = src("dl-cams-m") ?: return
         try {
@@ -3040,7 +3040,7 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
                 val at = Furniture.offset(c, b - 90.0, 4.0)
                 Furniture.point(at.lat, at.lon, b)
             }))
-        } catch (e: Exception) { }
+        } catch (e: Exception) { softFail(e) }
     }
 
     // (never throws: asking a style that's being replaced by a newer one is an error in the map engine, and these are called from
@@ -3056,7 +3056,7 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
         main0.post {
             if (pts.isEmpty() && routeShift.isEmpty()) return@post
             routeShift = pts
-            try { setLine(main) } catch (e: Throwable) { }
+            try { setLine(main) } catch (e: Throwable) { softFail(e) }
         }
     }
 
@@ -3072,7 +3072,7 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
     private fun setLine(pts0: List<LL>) {
         val s = src("dl-route") ?: return
         val (pts, origIdx) = withShift(pts0)
-        try { src("dl-flow")?.featureCollection(if (pts.size < 2) FeatureCollection.fromFeatures(ArrayList<Feature>()) else FeatureCollection.fromFeatures(arrayListOf(line(pts)))) } catch (e: Exception) { }
+        try { src("dl-flow")?.featureCollection(if (pts.size < 2) FeatureCollection.fromFeatures(ArrayList<Feature>()) else FeatureCollection.fromFeatures(arrayListOf(line(pts)))) } catch (e: Exception) { softFail(e) }
         if (pts.size < 2) { s.featureCollection(empty()); return }
         val sev = mainSev
         fun level(j0: Int): Int { val j = origIdx?.getOrNull(j0) ?: j0; return if (sev != null && mainOff + j in sev.indices) sev[mainOff + j] else 0 }
@@ -3311,7 +3311,7 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
                 val df = ArrayList<Feature>()
                 for (d in divs) if (d.pts.size >= 2) df.add(Feature.fromGeometry(LineString.fromLngLats(d.pts.map { Point.fromLngLat(it.lon, it.lat) })).also { it.addNumberProperty("s", if (d.solid) 1 else 0) })
                 src("dl-lane-divs")?.featureCollection(FeatureCollection.fromFeatures(df))
-            } catch (e: Throwable) { }
+            } catch (e: Throwable) { softFail(e) }
         }
     }
 
@@ -3332,14 +3332,14 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
             src("dl-lanes")?.featureCollection(FeatureCollection.fromFeatures(feats))
             val layer = lanesOnLayer
             lanePulse?.cancel(); lanePulse = null
-            if (feats.isEmpty()) { try { layer?.iconOpacity(1.0) } catch (e: Throwable) { }; return@post }
+            if (feats.isEmpty()) { try { layer?.iconOpacity(1.0) } catch (e: Throwable) { softFail(e) }; return@post }
             lanePulse = android.animation.ValueAnimator.ofFloat(0f, 1f).apply {
                 duration = 600; repeatMode = android.animation.ValueAnimator.REVERSE; repeatCount = android.animation.ValueAnimator.INFINITE
                 // only four brightness steps, so the map is not asked to redraw on every screen refresh just for a blink
                 var lastStep = -1
                 addUpdateListener {
                     val step = Math.round((it.animatedValue as Float) * 3f)
-                    if (step != lastStep) { lastStep = step; try { layer?.iconOpacity(0.7 + 0.3 * step / 3.0) } catch (e: Throwable) { } }
+                    if (step != lastStep) { lastStep = step; try { layer?.iconOpacity(0.7 + 0.3 * step / 3.0) } catch (e: Throwable) { softFail(e) } }
                 }
                 start()
             }
@@ -3473,7 +3473,7 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
             val fl = ArrayList<Feature>()
             liveLines.forEachIndexed { i, l -> if (l.size >= 2) fl += line(l).also { it.addNumberProperty("i", i) } }
             src("dl-live-alts")?.featureCollection(FeatureCollection.fromFeatures(fl))
-        } catch (e: Exception) { }
+        } catch (e: Exception) { softFail(e) }
         pushCards()
     }
 
@@ -3498,7 +3498,7 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
             }
             shownCards = shown
             src("dl-live-bub")?.featureCollection(FeatureCollection.fromFeatures(fb))
-        } catch (e: Exception) { }
+        } catch (e: Exception) { softFail(e) }
     }
 
     // ---- rain radar ----
@@ -3518,7 +3518,7 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
             val u = radarUrl ?: return
             addS(st, RasterSource.Builder("dl-radar").tiles(listOf(u)).tileSize(256).minzoom(0).maxzoom(7).build())
             addL(st, RasterLayer("dl-radar", "dl-radar").inSlot(MID).rasterOpacity(0.55).rasterFadeDuration(0.0).rasterEmissiveStrength(1.0), "dl-alts-line")
-        } catch (e: Exception) { }
+        } catch (e: Exception) { softFail(e) }
     }
 
     // ---- cinematic route preview ----
@@ -3574,7 +3574,7 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
 
     /** Ends a route fly-through as a tap on the map does: its animation stops and its "done" runs (back to the overview). */
     fun cancelFly() {
-        flyDone?.let { d -> flyDone = null; flyToken++; try { mapView.camera.cancelAllAnimators() } catch (e: Throwable) { }; d() }
+        flyDone?.let { d -> flyDone = null; flyToken++; try { mapView.camera.cancelAllAnimators() } catch (e: Throwable) { softFail(e) }; d() }
     }
 
     /** The width (dp) of a route panel down the left of the screen (a phone held sideways), or 0 when the panel is along the bottom: [fit] leaves that part free. */
@@ -3609,7 +3609,7 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
         flowOn = want
         main0.post {
             flowAnim?.cancel(); flowAnim = null
-            try { flowLayer?.visibility(vis(flowOn)) } catch (e: Exception) { }
+            try { flowLayer?.visibility(vis(flowOn)) } catch (e: Exception) { softFail(e) }
         }
     }
 
@@ -3622,7 +3622,7 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
         val now = android.os.SystemClock.uptimeMillis()
         if (now - flowLastPush < 30) return
         flowLastPush = now
-        try { flowLayer?.lineGradient(flowGradient((now % 3200L) / 3200f)) } catch (e: Exception) { }
+        try { flowLayer?.lineGradient(flowGradient((now % 3200L) / 3200f)) } catch (e: Exception) { softFail(e) }
     }
 
     private var pulseAnim: android.animation.ValueAnimator? = null
@@ -3635,13 +3635,13 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
             pulseAnim?.cancel(); pulseAnim = null
             val layer = glowLayer
             if (!on) {
-                try { layer?.lineOpacity(0.4); layer?.lineWidth(routeW(1.7f)) } catch (e: Throwable) { }
+                try { layer?.lineOpacity(0.4); layer?.lineWidth(routeW(1.7f)) } catch (e: Throwable) { softFail(e) }
             } else {
                 pulseAnim = android.animation.ValueAnimator.ofFloat(0f, 1f).apply {
                     duration = 650; repeatMode = android.animation.ValueAnimator.REVERSE; repeatCount = android.animation.ValueAnimator.INFINITE
                     addUpdateListener {
                         val v = (it.animatedValue as Float).toDouble()
-                        try { layer?.lineOpacity(0.35 + 0.55 * v); layer?.lineWidth(18.0 + 16.0 * v) } catch (e: Throwable) { }
+                        try { layer?.lineOpacity(0.35 + 0.55 * v); layer?.lineWidth(18.0 + 16.0 * v) } catch (e: Throwable) { softFail(e) }
                     }
                     start()
                 }
@@ -3805,7 +3805,7 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
             if (modelGlow && (first || prev == null || Math.abs(prev.lat - p.lat) > 1e-8 || Math.abs(prev.lon - p.lon) > 1e-8))
                 src("dl-me-glow")?.featureCollection(FeatureCollection.fromFeatures(listOf(Feature.fromGeometry(Point.fromLngLat(p.lon, p.lat)))))
             if (first) { layer("dl-me-model-a")?.visibility(vis(true)); layer("dl-me-model-b")?.visibility(vis(true)) }
-        } catch (e: Throwable) { }
+        } catch (e: Throwable) { softFail(e) }
     }
 
     /** Sprites are drawn at 2.4x; this brings them to the same on-screen size the flat arrow had (the car a little longer). */
@@ -3878,8 +3878,8 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
                     st.setStyleSourceProperty("dl-me-ma", "models", modelSourceValue(carUri("body"), me ?: modelAt, meHeading))
                     st.setStyleSourceProperty("dl-me-mb", "models", modelSourceValue(carUri("parts"), me ?: modelAt, meHeading))
                 }
-            } catch (e: Throwable) { }
-            try { pushModel(true) } catch (e: Throwable) { }
+            } catch (e: Throwable) { softFail(e) }
+            try { pushModel(true) } catch (e: Throwable) { softFail(e) }
         }
     }
 
@@ -4300,7 +4300,7 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
     /** Chevrons along the route on or off (the turn arrow has its own setting, checked in the engine). */
     fun setRouteArrows(on: Boolean) {
         chevOn = on
-        try { layer("dl-route-chev")?.visibility(vis(on)) } catch (e: Exception) { }
+        try { layer("dl-route-chev")?.visibility(vis(on)) } catch (e: Exception) { softFail(e) }
     }
 
     fun setArrowScale(f: Float) {
@@ -4311,7 +4311,7 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
             (layer("dl-me-halo") as? CircleLayer)?.circleRadius(15.0 * 0.625 * f)
             if (modelOn) { val sc = modelScale(); (layer("dl-me-model-a") as? ModelLayer)?.modelScale(sc); (layer("dl-me-model-b") as? ModelLayer)?.modelScale(sc)
                 (layer("dl-me-glow-l") as? CircleLayer)?.circleRadius(glowRadius()) }
-        } catch (e: Exception) { }
+        } catch (e: Exception) { softFail(e) }
         placeLocator()
     }
 
@@ -4330,21 +4330,21 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
             src("dl-turn")?.feature(line(path))
             val a = path[path.size - 2]; val b = path.last()
             src("dl-turn-head")?.feature(Feature.fromGeometry(Point.fromLngLat(b.lon, b.lat)).also { it.addNumberProperty("b", Geo.bearing(a, b)) })
-        } catch (e: Exception) { }
+        } catch (e: Exception) { softFail(e) }
     }
 
     fun setTurnArrow(path: List<LL>) {
         main0.post {
             turnPath = path
             turnCut = if (path.size >= 2 && turnArrowsShown) path else null
-            try { setLine(main) } catch (e: Exception) { }
+            try { setLine(main) } catch (e: Exception) { softFail(e) }
             try {
                 if (path.size < 2) { src("dl-turn")?.featureCollection(empty()); src("dl-turn-head")?.featureCollection(empty()); return@post }
                 // the shaft runs right to the end, where the head's flat base sits on it
                 src("dl-turn")?.feature(line(path))
                 val a = path[path.size - 2]; val b = path.last()
                 src("dl-turn-head")?.feature(Feature.fromGeometry(Point.fromLngLat(b.lon, b.lat)).also { it.addNumberProperty("b", Geo.bearing(a, b)) })
-            } catch (e: Exception) { }
+            } catch (e: Exception) { softFail(e) }
         }
     }
     private var roadName = ""
@@ -4384,7 +4384,7 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
         val v = s.coerceIn(0.5f, 2.5f)
         if (v == roadNameScale) return
         roadNameScale = v
-        try { roadView.scaleType = android.widget.ImageView.ScaleType.FIT_XY } catch (e: Throwable) { }
+        try { roadView.scaleType = android.widget.ImageView.ScaleType.FIT_XY } catch (e: Throwable) { softFail(e) }
         placeLocator()
     }
 
@@ -4396,7 +4396,7 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
     fun setRoadNameHidden(h: Boolean) {
         if (h == roadNameHidden) return
         roadNameHidden = h
-        main0.post { try { placeLocator() } catch (e: Throwable) { } }
+        main0.post { try { placeLocator() } catch (e: Throwable) { softFail(e) } }
     }
 
     /** Shows the name of the road you are on in a small pill under the locator (empty hides it). */
@@ -4404,7 +4404,7 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
         if (name == roadName) return
         roadName = name
         // a view over the map: a new name used to be a new map picture, which made the map lay out all its labels again
-        try { if (name.isNotBlank()) roadView.setImageBitmap(roadBitmap(name)) } catch (e: Exception) { }
+        try { if (name.isNotBlank()) roadView.setImageBitmap(roadBitmap(name)) } catch (e: Exception) { softFail(e) }
         placeLocator()
     }
 
@@ -4415,7 +4415,7 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
             val im = theme == "immersive"; val day = !nightStyle
             for (id in listOf("dl-route-line", "dl-route-glow")) try {
                 if (st.styleLayerExists(id)) st.setStyleLayerProperty(id, "line-color", sevColor(im, day))
-            } catch (e: Throwable) { }
+            } catch (e: Throwable) { softFail(e) }
         }
     }
 
@@ -4426,7 +4426,7 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
             val st = style ?: return@post
             for (id in listOf("dl-alts-line", "dl-live-alts-line")) try {
                 if (st.styleLayerExists(id)) st.setStyleLayerProperty(id, "line-color", Value.valueOf(c))
-            } catch (e: Throwable) { }
+            } catch (e: Throwable) { softFail(e) }
         }
     }
 
@@ -4435,7 +4435,7 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
      * beat set by Settings > Display > Frame rate. The map itself is left free to draw each of those updates the moment it arrives: capping
      * it at the same rate made it drop the odd update (its timer and the screen's never line up exactly), which looked jumpy.
      */
-    fun setMaxFps(n: Int) { try { mapView.setMaximumFps(60) } catch (e: Exception) { } } // (deliberately not [n]: see above)
+    fun setMaxFps(n: Int) { try { mapView.setMaximumFps(60) } catch (e: Exception) { softFail(e) } } // (deliberately not [n]: see above)
 
     private var doneEmpty = true
 
@@ -4470,8 +4470,8 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
             val b = CameraOptions.Builder().center(Point.fromLngLat(p.lon, p.lat)).zoom(16.5).pitch(55.0)
             if (bearing != null) b.bearing(bearing)
             mbMap.setCamera(b.build())
-        } catch (e: Throwable) { }
-        try { setMe(p, bearing ?: 0.0, 0) } catch (e: Throwable) { }
+        } catch (e: Throwable) { softFail(e) }
+        try { setMe(p, bearing ?: 0.0, 0) } catch (e: Throwable) { softFail(e) }
     }
 
     fun setMe(p0: LL?, heading: Double = 0.0, durationMs: Long = 1000) {
@@ -4595,7 +4595,7 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
         return out
     }
     private fun pushFlags() {
-        try { src("dl-flags")?.featureCollection(FeatureCollection.fromFeatures(flagFeats())) } catch (e: Throwable) { }
+        try { src("dl-flags")?.featureCollection(FeatureCollection.fromFeatures(flagFeats())) } catch (e: Throwable) { softFail(e) }
         startFlagWave()
     }
 
@@ -4609,7 +4609,7 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
             if (!flushBranding && !mapView.isShown) { main0.postDelayed(this, 1000L); return }
             if (zoomNow() >= 14.0) {
                 flagPhase = (flagPhase + 0.45) % (2 * Math.PI * 1000)
-                try { src("dl-flags")?.featureCollection(FeatureCollection.fromFeatures(flagFeats())) } catch (e: Throwable) { }
+                try { src("dl-flags")?.featureCollection(FeatureCollection.fromFeatures(flagFeats())) } catch (e: Throwable) { softFail(e) }
             }
             main0.postDelayed(this, if (zoomNow() >= 14.0) 160L else 1000L)
         }
@@ -4721,7 +4721,7 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
     }
 
     private fun applyLocatorVisibility() {
-        try { layer("dl-me-arrow")?.visibility(vis(locatorStyle == "flat")) } catch (e: Exception) { }
+        try { layer("dl-me-arrow")?.visibility(vis(locatorStyle == "flat")) } catch (e: Exception) { softFail(e) }
         pushMe()
         placeLocator()
     }
@@ -4781,7 +4781,7 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
         val b = CameraOptions.Builder().center(Point.fromLngLat(c.lon, c.lat)).pitch(tilt).zoom(zoom).padding(edge(pd))
         if (bearing != null) b.bearing(bearing)
         tiltNow = tilt
-        try { mbMap.easeTo(b.build(), MapAnimationOptions.mapAnimationOptions { duration(max(1, ms).toLong()) }) } catch (e: Throwable) { }
+        try { mbMap.easeTo(b.build(), MapAnimationOptions.mapAnimationOptions { duration(max(1, ms).toLong()) }) } catch (e: Throwable) { softFail(e) }
     }
 
     /** Moves the camera instantly (no animation). Called every frame by the glide loop so motion never stalls between GPS fixes. */
@@ -4793,7 +4793,7 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
             // an eased move still running would fight this one (the old map stopped it the same way)
             mapView.camera.cancelAllAnimators()
             mbMap.setCamera(CameraOptions.Builder().center(Point.fromLngLat(c.lon, c.lat)).pitch(tilt).zoom(zoom).bearing(bearing).padding(edge(pd)).build())
-        } catch (e: Throwable) { }
+        } catch (e: Throwable) { softFail(e) }
         placeLocator()
     }
 
@@ -4924,7 +4924,7 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
      */
     fun tapAt(sp: android.graphics.PointF): Boolean {
         // a tap during the route fly-through skips straight to the overview
-        flyDone?.let { d -> flyDone = null; flyToken++; try { mapView.camera.cancelAllAnimators() } catch (e: Throwable) { }; d(); return true }
+        flyDone?.let { d -> flyDone = null; flyToken++; try { mapView.camera.cancelAllAnimators() } catch (e: Throwable) { softFail(e) }; d(); return true }
         // a branch of a chain ("Alle Standorte")
         chainAt(sp)?.let { onChainTap?.invoke(it); return true }
         // a favourite's star
@@ -5024,18 +5024,18 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
 
     fun setTilt(tilt: Double) {
         tiltNow = tilt
-        try { mbMap.easeTo(CameraOptions.Builder().pitch(tilt).build(), MapAnimationOptions.mapAnimationOptions { duration(500L) }) } catch (e: Throwable) { }
+        try { mbMap.easeTo(CameraOptions.Builder().pitch(tilt).build(), MapAnimationOptions.mapAnimationOptions { duration(500L) }) } catch (e: Throwable) { softFail(e) }
     }
 
     fun zoomBy(delta: Double) {
         try {
             val z = mbMap.cameraState.zoom
             mbMap.easeTo(CameraOptions.Builder().zoom(z + delta).build(), MapAnimationOptions.mapAnimationOptions { duration(250L) })
-        } catch (e: Throwable) { }
+        } catch (e: Throwable) { softFail(e) }
     }
 
     fun resetNorth() {
-        try { mbMap.easeTo(CameraOptions.Builder().bearing(0.0).build(), MapAnimationOptions.mapAnimationOptions { duration(400L) }) } catch (e: Throwable) { }
+        try { mbMap.easeTo(CameraOptions.Builder().bearing(0.0).build(), MapAnimationOptions.mapAnimationOptions { duration(400L) }) } catch (e: Throwable) { softFail(e) }
     }
 
     /** Drags the map with the user's finger (the car screen's scroll gesture). Android Auto reports
@@ -5045,7 +5045,7 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
         try {
             val w = mapView.width / 2.0; val h = mapView.height / 2.0
             mbMap.setCamera(mbMap.cameraForDrag(ScreenCoordinate(w, h), ScreenCoordinate(w - dx, h - dy)))
-        } catch (e: Throwable) { }
+        } catch (e: Throwable) { softFail(e) }
     }
 
     /** Zooms by [dz] levels keeping the point under ([x], [y]) where it is (the car screen's pinch and double tap). */
@@ -5053,7 +5053,7 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
         try {
             val z = mbMap.cameraState.zoom
             mbMap.setCamera(CameraOptions.Builder().zoom((z + dz).coerceIn(1.0, 21.0)).anchor(ScreenCoordinate(x.toDouble(), y.toDouble())).build())
-        } catch (e: Throwable) { }
+        } catch (e: Throwable) { softFail(e) }
     }
 
     /** Smoothly zooms out (flat, north-up) so every point sits in the area above the route-preview panel. */
@@ -5093,7 +5093,7 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
         tiltNow = 0.0
         val cp = CameraOptions.Builder().center(Point.fromLngLat(lon, lat)).zoom(zoom).pitch(0.0).bearing(0.0)
             .padding(EdgeInsets(0.0, 0.0, 0.0, 0.0)).build()
-        try { mbMap.easeTo(cp, MapAnimationOptions.mapAnimationOptions { duration(1600L) }) } catch (e: Throwable) { }
+        try { mbMap.easeTo(cp, MapAnimationOptions.mapAnimationOptions { duration(1600L) }) } catch (e: Throwable) { softFail(e) }
     }
 
     private fun mapPixelRatio(): Double = pixelRatioUsed.toDouble()

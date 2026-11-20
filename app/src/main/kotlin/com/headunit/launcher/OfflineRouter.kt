@@ -40,7 +40,7 @@ object OfflineRouter {
 
     fun setActive(ctx: Context, id: String?) {
         active = id; activeLoaded = true; fileFlags.clear()
-        try { File(packsRoot(ctx), "active.txt").writeText(id ?: "") } catch (e: Exception) { }
+        try { File(packsRoot(ctx), "active.txt").writeText(id ?: "") } catch (e: Exception) { softFail(e) }
     }
 
     /** The folder of the area in use (the old single-pack folder when nothing has been moved yet). */
@@ -109,7 +109,7 @@ object OfflineRouter {
     private fun boundsOnDisk(ctx: Context, id: String): DoubleArray? {
         val d = packDir(ctx, id)
         val cache = File(d, "bounds.txt")
-        try { if (cache.exists()) cache.readText().trim().split(',').map { it.toDouble() }.takeIf { it.size == 4 }?.let { return it.toDoubleArray() } } catch (e: Exception) { }
+        try { if (cache.exists()) cache.readText().trim().split(',').map { it.toDouble() }.takeIf { it.size == 4 }?.let { return it.toDoubleArray() } } catch (e: Exception) { softFail(e) }
         var b: DoubleArray? = null
         try {
             val f = File(d, "map.pmtiles")
@@ -121,13 +121,13 @@ object OfflineRouter {
                     if (n > s0 && e > w) b = doubleArrayOf(s0, w, n, e)
                 }
             }
-        } catch (e: Exception) { }
+        } catch (e: Exception) { softFail(e) }
         if (b == null) b = when (id) {
             "gb" -> doubleArrayOf(49.8, -8.7, 60.9, 1.8)
             "ew" -> doubleArrayOf(49.8, -6.5, 55.9, 1.8)
             else -> null
         }
-        b?.let { try { cache.writeText(it.joinToString(",")) } catch (e: Exception) { } }
+        b?.let { try { cache.writeText(it.joinToString(",")) } catch (e: Exception) { softFail(e) } }
         return b
     }
 
@@ -349,7 +349,7 @@ object OfflineRouter {
 
     @Synchronized
     fun closeEngine() {
-        try { engine?.close() } catch (e: Exception) { }
+        try { engine?.close() } catch (e: Exception) { softFail(e) }
         engine = null; engineStamp = ""
     }
 
@@ -649,7 +649,7 @@ object OfflineRouter {
                     }
                 }
             }
-        } catch (e: Throwable) { }
+        } catch (e: Throwable) { softFail(e) }
         return out
     }
 
@@ -739,7 +739,7 @@ object OfflineRouter {
                     out += hits.sortedBy { it.first }.take(8).map { it.second }
                 }
             }
-        } catch (e: Throwable) { }
+        } catch (e: Throwable) { softFail(e) }
         return out
     }
 
@@ -754,7 +754,7 @@ object OfflineRouter {
         val stamp = tf.path + "@" + tf.lastModified()
         val cur = engine
         if (cur != null && stamp == engineStamp) return cur
-        try { cur?.close() } catch (e: Exception) { }
+        try { cur?.close() } catch (e: Exception) { softFail(e) }
         val e = com.valhalla.valhalla.Valhalla(deviceConfig(d))
         engine = e; engineStamp = stamp
         return e
@@ -893,7 +893,7 @@ object OfflineRouter {
         for (v in via) locs.put(JSONObject().put("lat", v.lat).put("lon", v.lon).put("type", "through"))
         locs.put(JSONObject().put("lat", to.lat).put("lon", to.lon))
         val req = JSONObject().put("locations", locs).put("costing", costing)
-            .put("directions_options", JSONObject().put("units", "kilometers").put("language", if (Lang.de) "de-DE" else "en-GB"))
+            .put("directions_options", JSONObject().put("units", "kilometers").put("language", Lang.serviceTag))
         val ex = exclude
         if (ex.isNotEmpty()) {
             val polys = org.json.JSONArray()

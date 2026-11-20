@@ -39,7 +39,7 @@ object OfflineServer {
         val f = OfflineMap.file(ctx)
         // the pack in use changed (another area): read the new file
         if (pmFile?.absolutePath != f.absolutePath || pmFile?.lastModified() != f.lastModified()) {
-            try { pm?.close() } catch (e: Exception) { }
+            try { pm?.close() } catch (e: Exception) { softFail(e) }
             pm = try { PmTiles(f) } catch (e: Exception) { null }
             pmFile = f
         }
@@ -50,7 +50,7 @@ object OfflineServer {
         Thread({
             while (!s.isClosed) {
                 val c = try { s.accept() } catch (e: Exception) { break }
-                try { pool.execute { serve(c, fonts) } } catch (e: Exception) { try { c.close() } catch (x: Exception) { } }
+                try { pool.execute { serve(c, fonts) } } catch (e: Exception) { try { c.close() } catch (x: Exception) { softFail(x) } }
             }
         }, "offline-server").apply { isDaemon = true }.start()
         return port
@@ -59,7 +59,7 @@ object OfflineServer {
     /** Stops the server (when the online map is back). */
     @Synchronized
     fun stop() {
-        try { server?.close() } catch (e: Exception) { }
+        try { server?.close() } catch (e: Exception) { softFail(e) }
         server = null
     }
 
@@ -124,7 +124,7 @@ object OfflineServer {
                     out.write(body)
                 }
                 out.flush()
-            } catch (e: Exception) { }
+            } catch (e: Exception) { softFail(e) }
         }
     }
 }

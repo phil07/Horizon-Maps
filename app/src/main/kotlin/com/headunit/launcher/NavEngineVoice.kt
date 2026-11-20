@@ -57,7 +57,7 @@ internal fun NavEngine.pickBestVoice() {
             ?.filter { it.locale.language == lang && it.features?.contains(TextToSpeech.Engine.KEY_FEATURE_NOT_INSTALLED) != true }
             ?.maxByOrNull { it.quality }
         if (best != null) t.voice = best
-    } catch (e: Exception) { }
+    } catch (e: Exception) { softFail(e) }
 }
 
 /** The installed voices in the app's language, best first, for the Settings list. */
@@ -73,7 +73,7 @@ fun NavEngine.installedVoices(): List<android.speech.tts.Voice> {
 /** Uses the voice [name] from now on (kept across restarts). */
 fun NavEngine.useVoice(name: String) {
     prefs.put(PreferenceKeys.TTS_VOICE, name)
-    try { tts?.voices?.firstOrNull { it.name == name }?.let { tts?.voice = it } } catch (e: Exception) { }
+    try { tts?.voices?.firstOrNull { it.name == name }?.let { tts?.voice = it } } catch (e: Exception) { softFail(e) }
 }
 
 /**
@@ -231,7 +231,7 @@ private fun NavEngine.pushAvgZones(r: Route, zones: List<AvgOnRoute>) {
 
 /** Once a second while navigating: fetches and places services, bumps, schools and average speed checks, and raises their alerts. */
 internal fun NavEngine.routeExtrasTick(r: Route, progress: Double) {
-    try { checkVignette(r, progress) } catch (e: Exception) { }
+    try { checkVignette(r, progress) } catch (e: Exception) { softFail(e) }
     if (previewing) return
     // your destination's building lights up for the last 400 m (and goes back to normal when you get there)
     run {
@@ -256,7 +256,7 @@ internal fun NavEngine.routeExtrasTick(r: Route, progress: Double) {
     // (and motorway junction names, outside the UK and Ireland: they come in the same request)
     val wantJct = jctCountry()
     // (average speed checks have a small request of their own: this one is the slowest and the most likely to fail)
-    try { avgLookupTick(r, progress, now) } catch (e: Exception) { }
+    try { avgLookupTick(r, progress, now) } catch (e: Exception) { softFail(e) }
     // (the average speed setting still switches this search on, as it always did: crossings, stop signs and level crossings come with it)
     val wantHz = prefs.b(PreferenceKeys.BUMPS, false) || prefs.b(PreferenceKeys.SCHOOLS, false) || prefs.b(PreferenceKeys.AVGZONES, true) || wantJct
     // (a new route after a reroute is looked up again, but not more than once every 45 seconds)
@@ -284,7 +284,7 @@ internal fun NavEngine.routeExtrasTick(r: Route, progress: Double) {
             try {
                 val on = withContext(Dispatchers.Default) { jl.mapNotNull { j -> RouteExtras.project(r, j.pos, 30.0)?.let { JctOnRoute(j, it.first) } }.sortedBy { it.off } }
                 jctsOn = r to on
-            } catch (e: Exception) { }
+            } catch (e: Exception) { softFail(e) }
             finally { jctsSig = js; jctsPlacing = false }
         }
     }

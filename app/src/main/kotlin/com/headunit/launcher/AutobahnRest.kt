@@ -25,7 +25,7 @@ object AutobahnRest {
             try {
                 val arr = JSONObject(get(BASE + road + "/services/" + service)).optJSONArray(service) ?: continue
                 for (i in 0 until arr.length()) parse(arr.optJSONObject(i) ?: continue, road, service, cat)?.let { out += it }
-            } catch (e: Exception) { }
+            } catch (e: Exception) { softFail(e) }
         }
         return out
     }
@@ -66,7 +66,7 @@ object AutobahnRest {
         for (road in roads) try {
             val arr = JSONObject(get(BASE + road + "/services/warning")).optJSONArray("warning") ?: continue
             for (i in 0 until arr.length()) parse(arr.optJSONObject(i) ?: continue, road, "warning", "danger")?.takeIf { it.cat == "wrongway" }?.let { out += it }
-        } catch (e: Exception) { }
+        } catch (e: Exception) { softFail(e) }
         return out
     }
 

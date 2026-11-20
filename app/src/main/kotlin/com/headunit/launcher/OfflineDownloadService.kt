@@ -76,7 +76,7 @@ class OfflineDownloadService : Service() {
         }
 
         fun stop(ctx: Context) {
-            try { ctx.stopService(Intent(ctx, OfflineDownloadService::class.java)) } catch (e: Exception) { }
+            try { ctx.stopService(Intent(ctx, OfflineDownloadService::class.java)) } catch (e: Exception) { softFail(e) }
         }
     }
 }

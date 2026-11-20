@@ -1074,7 +1074,7 @@ private fun FuelSection(prefs: Prefs, engine: NavEngine) {
                     if (!busy && FuelFinder.configured(prefs)) {
                         busy = true; st = "Tankstellen und Preise werden heruntergeladen…"
                         sc.launch {
-                            try { withContext(Dispatchers.IO) { FuelFinder.refresh(ctx, prefs, force = true) } } catch (e: Exception) { }
+                            try { withContext(Dispatchers.IO) { FuelFinder.refresh(ctx, prefs, force = true) } } catch (e: Exception) { softFail(e) }
                             st = FuelFinder.status; busy = false
                         }
                     }
@@ -1415,7 +1415,7 @@ private fun AboutSection(prefs: Prefs, engine: NavEngine) {
                     try {
                         val cm = ctx.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as? android.content.ClipboardManager
                         cm?.setPrimaryClip(android.content.ClipData.newPlainText("Horizon Nav Logs", text))
-                    } catch (e: Exception) { }
+                    } catch (e: Exception) { softFail(e) }
                     android.os.Handler(android.os.Looper.getMainLooper()).post { engine.toast("Logs kopiert", 3000) }
                 }.start()
             }

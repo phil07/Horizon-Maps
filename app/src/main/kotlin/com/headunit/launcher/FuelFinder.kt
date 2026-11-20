@@ -182,7 +182,7 @@ object FuelFinder {
                     if (la != null && lo != null) out += Station(p[0], p[1], p[2], LL(la, lo), p[5] == "1", p.getOrNull(6).orEmpty())
                 }
             }
-        } catch (e: Exception) { }
+        } catch (e: Exception) { softFail(e) }
         stationCache = out
         return out
     }
@@ -196,7 +196,7 @@ object FuelFinder {
                 val p = l.split('\t')
                 if (p.size >= 3) { val v = p[2].toDoubleOrNull(); if (v != null) out.getOrPut(p[0]) { HashMap() }[p[1]] = Price(v, p.getOrNull(3).orEmpty()) }
             }
-        } catch (e: Exception) { }
+        } catch (e: Exception) { softFail(e) }
         priceCache = out
         return out
     }

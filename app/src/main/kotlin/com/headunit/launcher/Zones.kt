@@ -120,7 +120,7 @@ object Zones {
                     out += Zone(o.optString("n"), rings, cc)
                 }
             }
-        } catch (e: Exception) { }
+        } catch (e: Exception) { softFail(e) }
         cache = out; cacheRegion = reg
         status = if (out.isEmpty()) Lang.t("Keine Zonen in den Kartendaten gefunden", "No zones found in the map data") else Lang.t("${out.size} Zonen: ", "${out.size} zones: ") + out.joinToString(", ") { it.name }.take(200)
         return out

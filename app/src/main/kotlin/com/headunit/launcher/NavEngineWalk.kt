@@ -165,7 +165,7 @@ internal fun NavEngine.enqueue(u: Utt) {
         val p = playing
         // a plain note being read out is cut short; a warning or a turn call is finished first (cutting a turn call off mid
         // sentence left half a direction)
-        if (p != null && p.kind == 0) { playing = null; playingId = ""; speechSegs.clear(); try { tts?.stop() } catch (e: Exception) { } }
+        if (p != null && p.kind == 0) { playing = null; playingId = ""; speechSegs.clear(); try { tts?.stop() } catch (e: Exception) { softFail(e) } }
     } else speechQ.addLast(u)
     playNext()
 }
@@ -179,7 +179,7 @@ private fun NavEngine.playNext() {
         val maxAge = when (u.kind) { 2 -> 6_000L; 1 -> 30_000L; else -> 15_000L }
         if (now - u.at > maxAge) continue
         val ch = prefs.s(PreferenceKeys.VOICE_CHANNEL, "nav")
-        if (ch != voiceChan) { voiceChan = ch; try { tts?.setAudioAttributes(speechAttrs) } catch (e: Exception) { } }
+        if (ch != voiceChan) { voiceChan = ch; try { tts?.setAudioAttributes(speechAttrs) } catch (e: Exception) { softFail(e) } }
         spoken = 1
         duck()
         playing = u
@@ -255,7 +255,7 @@ internal fun NavEngine.speakNextSegment(): Boolean {
         try {
             if (voice != null) { if (!inForeignVoice) homeVoice = t.voice; t.voice = voice; inForeignVoice = true }
             else restoreHomeVoice()
-        } catch (e: Exception) { }
+        } catch (e: Exception) { softFail(e) }
         val id = "nav${++uttSeq}"
         playingId = id
         if (t.speak(text, TextToSpeech.QUEUE_ADD, null, id) != TextToSpeech.ERROR) return true
@@ -267,5 +267,5 @@ internal fun NavEngine.speakNextSegment(): Boolean {
 internal fun NavEngine.restoreHomeVoice() {
     if (!inForeignVoice) return
     inForeignVoice = false
-    try { homeVoice?.let { tts?.voice = it } } catch (e: Exception) { }
+    try { homeVoice?.let { tts?.voice = it } } catch (e: Exception) { softFail(e) }
 }

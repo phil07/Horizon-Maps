@@ -99,7 +99,7 @@ object ChargerInfo {
         if (key.isEmpty()) return reg
         // Open Charge Map adds only the places the register doesn't have (its own copies are the same spots)
         val out = ArrayList(reg)
-        try { out += ocmInBox(key, box).filter { s -> reg.none { Geo.dist(it.pos, s.pos) < SAME_M } } } catch (e: Exception) { }
+        try { out += ocmInBox(key, box).filter { s -> reg.none { Geo.dist(it.pos, s.pos) < SAME_M } } } catch (e: Exception) { softFail(e) }
         return out
     }
 
@@ -174,7 +174,7 @@ object ChargerInfo {
                     if (kw > 0) out += Math.round(kw).toInt()
                 }
             }
-        } catch (e: Exception) { }
+        } catch (e: Exception) { softFail(e) }
         return out
     }
 

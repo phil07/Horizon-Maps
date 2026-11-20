@@ -278,7 +278,7 @@ private fun PermissionStep() {
                 Text(tr(sub), color = c.sub, fontSize = 13.sp)
             }
             if (ok) Icon(Icons.Rounded.Check, "Erlaubt", tint = Good, modifier = Modifier.size(24.dp))
-            else SButton("Erlauben", primary = true) { try { ask.launch(perms) } catch (e: Exception) { } }
+            else SButton("Erlauben", primary = true) { try { ask.launch(perms) } catch (e: Exception) { softFail(e) } }
         }
     }
     row("Standort", "Erforderlich, um deine Position auf der Karte zu zeigen und zu führen", loc, arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION))

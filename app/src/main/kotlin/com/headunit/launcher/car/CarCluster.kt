@@ -37,7 +37,7 @@ class ClusterSession : Session() {
     private var surface: SurfaceContainer? = null
     private val redraw = object : Runnable {
         override fun run() {
-            try { draw() } catch (e: Throwable) { }
+            try { draw() } catch (e: Throwable) { softFail(e) }
             if (surface != null) ui.postDelayed(this, 500L)
         }
     }
@@ -58,7 +58,7 @@ class ClusterSession : Session() {
         if (!sf.isValid) return
         val cv = try { sf.lockCanvas(null) } catch (e: Throwable) { null } ?: return
         try { ClusterPainter.paint(cv, sc.width.toFloat(), sc.height.toFloat(), ClusterLink.engine, ClusterLink.dark) } finally {
-            try { sf.unlockCanvasAndPost(cv) } catch (e: Throwable) { }
+            try { sf.unlockCanvasAndPost(cv) } catch (e: Throwable) { softFail(e) }
         }
     }
 }

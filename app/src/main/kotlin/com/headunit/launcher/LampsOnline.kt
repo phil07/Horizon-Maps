@@ -68,7 +68,7 @@ object LampsOnline {
         }
         val result = HashMap<Key, List<DoubleArray>>()
         for ((k, arr) in byArea) {
-            try { file(dir, k).writeText(arr.toString()) } catch (x: Exception) { }
+            try { file(dir, k).writeText(arr.toString()) } catch (x: Exception) { softFail(x) }
             result[k] = parse(arr.toString())
         }
         return result

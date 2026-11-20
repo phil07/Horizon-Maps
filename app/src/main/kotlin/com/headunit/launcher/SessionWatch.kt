@@ -70,7 +70,7 @@ object SessionWatch {
                 }
                 p.edit().putInt(STRIKES, strikes).putInt(LEVEL, level).putString(REPORT, report).commit()
             }
-        } catch (e: Throwable) { }
+        } catch (e: Throwable) { softFail(e) }
         return stepped
     }
 
@@ -125,7 +125,7 @@ object SessionWatch {
                     // (written straight away: a unit that loses power or reboots never runs anything that was left for later)
                     p.edit().putLong(BEAT, System.currentTimeMillis()).putLong(BEAT_UP, SystemClock.elapsedRealtime())
                         .putFloat(SPEED, speed().toFloat()).putBoolean(STUCK, stuck > 0L).putString(NOTE, note).commit()
-                } catch (e: Throwable) { }
+                } catch (e: Throwable) { softFail(e) }
                 try { Thread.sleep(10_000L) } catch (e: InterruptedException) { break }
             }
         }, "session-watch").apply { isDaemon = true; priority = Thread.MIN_PRIORITY }
@@ -142,7 +142,7 @@ object SessionWatch {
             val e = p.edit().putBoolean(RUNNING, false)
             if (lenMs > 10 * 60_000L) e.putInt(STRIKES, 0)
             e.apply()
-        } catch (e: Throwable) { }
+        } catch (e: Throwable) { softFail(e) }
     }
 
     /** For the feedback report: how the last session ended, and the unit's details. */

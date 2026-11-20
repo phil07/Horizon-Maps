@@ -58,7 +58,7 @@ object SatTileCache {
         Thread({
             while (!s.isClosed) {
                 val c = try { s.accept() } catch (e: Exception) { break }
-                try { serving.execute { serve(c) } } catch (e: Exception) { try { c.close() } catch (x: Exception) { } }
+                try { serving.execute { serve(c) } } catch (e: Exception) { try { c.close() } catch (x: Exception) { softFail(x) } }
             }
         }, "sat-server").apply { isDaemon = true }.start()
         // the store's size, counted once in the background (then kept up to date as tiles are added)
@@ -103,7 +103,7 @@ object SatTileCache {
             // used now: kept longer than photos not looked at for a while
             f.setLastModified(System.currentTimeMillis())
             return Answer(200, b)
-        } catch (e: Exception) { }
+        } catch (e: Exception) { softFail(e) }
         return fetch(src, z, x, y, f)
     }
 
@@ -120,7 +120,7 @@ object SatTileCache {
             if (b.isEmpty() || !isImage(b)) return Answer(502, null)
             keep(f, b)
             Answer(200, b)
-        } catch (e: Exception) { Answer(504, null) } finally { try { c?.disconnect() } catch (e: Exception) { } }
+        } catch (e: Exception) { Answer(504, null) } finally { try { c?.disconnect() } catch (e: Exception) { softFail(e) } }
     }
 
     private fun isImage(b: ByteArray) = b.size > 4 && ((b[0] == 0x89.toByte() && b[1] == 'P'.code.toByte()) || (b[0] == 0xFF.toByte() && b[1] == 0xD8.toByte()))
@@ -132,7 +132,7 @@ object SatTileCache {
             tmp.writeBytes(b)
             if (!tmp.renameTo(f)) { tmp.delete(); return }
             if (size.get() >= 0 && size.addAndGet(b.size.toLong()) > MAX_BYTES) upkeep.execute { trim() }
-        } catch (e: Exception) { }
+        } catch (e: Exception) { softFail(e) }
     }
 
     // ---- the web server the map asks ----
@@ -162,7 +162,7 @@ object SatTileCache {
                     out.write(body)
                 }
                 out.flush()
-            } catch (e: Exception) { }
+            } catch (e: Exception) { softFail(e) }
         }
     }
 
@@ -195,7 +195,7 @@ object SatTileCache {
     fun clear(ctx: Context) {
         generation.incrementAndGet()
         upkeep.execute {
-            try { folder(ctx).listFiles()?.forEach { it.deleteRecursively() } } catch (e: Exception) { }
+            try { folder(ctx).listFiles()?.forEach { it.deleteRecursively() } } catch (e: Exception) { softFail(e) }
             size.set(0)
         }
     }
