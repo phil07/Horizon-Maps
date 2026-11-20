@@ -93,12 +93,6 @@ class PlaceStore(private val prefs: Prefs) {
         return on
     }
 
-    /** Gives a favourite its own name (the spot and the rest stay the same). */
-    fun renameFavourite(p: Place, name: String) {
-        val n = name.trim().take(40); if (n.isBlank()) return
-        writeList("places_fav", favourites().map { if (same(it, p)) it.copy(name = n) else it })
-        onFavChanged?.invoke()
-    }
 
     // ---- tags for favourites ("Kunden", "Urlaub"): kept beside the list, by position, so the saved favourites stay as they are ----
     private fun tagKey(p: Place) = String.format(java.util.Locale.US, "%.4f,%.4f", p.pos.lat, p.pos.lon)
@@ -118,6 +112,7 @@ class PlaceStore(private val prefs: Prefs) {
         val n = name.trim().take(40)
         if (n.isEmpty()) return
         writeList("places_fav", favourites().map { if (same(it, p)) it.copy(name = n) else it })
+        onFavChanged?.invoke()
     }
 
     /** Recents saved while the habit suggestion still put "Meist gegen 12:02" in the subtitle: that text is no address, so it is dropped. */
