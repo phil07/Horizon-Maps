@@ -582,10 +582,7 @@ private fun CarScreen(engine: NavEngine, a: android.graphics.Rect?, actions: Car
             }
         }
 
-        // "Auf der Karte wählen": the crosshair in the middle of the map (the card below follows it)
-        if (engine.aimOn) Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { AimCross() }
-
-        // a spot picked on the map: go there (or add it as a stop)
+        // a spot picked by tapping the map: go there (or add it as a stop)
         if (engine.mapPick != null && engine.arrival == null) Box(Modifier.align(Alignment.BottomCenter).padding(start = left, end = rightBottom, bottom = bottom)) {
             CompositionLocalProvider(LocalDensity provides Density(dens.density * cardScale * 1.2f, dens.fontScale)) { PickCard(engine) }
         }

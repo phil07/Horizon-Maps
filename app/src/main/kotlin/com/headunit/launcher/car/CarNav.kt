@@ -482,11 +482,12 @@ class CarSurface(private val carContext: CarContext, private val onReady: (MapBi
     override fun onClick(x: Float, y: Float) {
         try {
             // the app's cards and buttons first, then the map itself (alternative route cards and lines, skipping the fly-through)
+            // (a tap on an empty spot of the map picks it, with a card to go there: Android Auto passes no long press)
             if (!com.headunit.launcher.ui.CarTaps.hit(x, y)) {
                 // the app's own cards and buttons first, then the map itself (alternative route cards and lines, skipping the fly-through)
                 // (a tap on an empty spot of the map picks it, with a card to go there: Android Auto passes no long press)
-                // (a tap on an empty spot of the map does nothing: spots are picked with "Auf der Karte wählen")
-                map?.tapAt(android.graphics.PointF(x, y))
+                val pt = android.graphics.PointF(x, y)
+                if (map?.tapAt(pt) != true) engine?.carMapTap(pt)
             }
         } catch (e: Exception) { }
     }
@@ -1266,11 +1267,6 @@ class SearchScreen(carContext: CarContext, private val holder: CarHolder, initia
         val e = holder.engine
         val limit = try { carContext.getCarService(ConstraintManager::class.java).getContentLimit(ConstraintManager.CONTENT_LIMIT_TYPE_LIST) } catch (x: Exception) { 6 }
         val list = ItemList.Builder().setNoItemsMessage(if (query.trim().length < 2) Lang.t("Ort, Adresse oder Postleitzahl eingeben, oder sag „Hey Google, navigiere mit Horizon Nav zu …“", "Type a place, address or postcode, or say \"Hey Google, navigate to … with Horizon Nav\"") else Lang.t("Suche läuft…", "Searching…"))
-        if (query.trim().length < 2) {
-            // a spot picked on the map: a crosshair in the middle of the map, and the card goes as destination or stop
-            list.addItem(Row.Builder().setTitle(Lang.t("Auf der Karte wählen", "Pick on the map"))
-                .setOnClickListener { e?.startAim(); screenManager.popToRoot() }.build())
-        }
         if (query.trim().length >= 2 && e != null && e.route != null) {
             // adding a stop: the matches along the rest of the route, sorted by detour
             list.addItem(Row.Builder().setTitle(Lang.t("Entlang der Route suchen", "See them along your route"))
