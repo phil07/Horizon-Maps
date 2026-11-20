@@ -104,7 +104,7 @@ class MainActivity : ComponentActivity() {
         // once the map has run for 25 seconds, or when the app is closed normally; if it's still set on the next start, that start
         // went wrong. After three in a row the heavy map features are turned down (a fourth turns the map down to Lightest), and
         // the app says so once, so it can be turned back up in Settings.
-        val safeLevel = try { safeStart(boot, prefs) } catch (e: Throwable) { 0 }
+        val safeLevel = try { safeStart(boot, prefs, applicationContext) } catch (e: Throwable) { 0 }
         // the whole head unit restarting while the app was open (which nothing above can see): after two, safer drawing
         val sessionStep = try { SessionWatch.onStartup(applicationContext, prefs) } catch (e: Throwable) { 0 }
         // the Mapbox token from Settings, before the map is made
@@ -308,8 +308,9 @@ private fun NoGlesPage(gl: Int) {
  * Notes this start and, if the last start never got going (see onCreate), turns the map down. Returns 0 (normal), 1 (heavy
  * features off) or 2 (map on Lightest as well). Only ever turns things down, and only after repeated failures.
  */
-private fun safeStart(boot: android.content.SharedPreferences, prefs: Prefs): Int {
-    val bad = if (boot.getBoolean(CrashGuardPrefs.STARTING, false)) boot.getInt(CrashGuardPrefs.BAD_STARTS, 0) + 1 else 0
+private fun safeStart(boot: android.content.SharedPreferences, prefs: Prefs, ctx: android.content.Context): Int {
+    // (a start that never got going only counts when the last run ended badly: swiped away or closed for memory is not that)
+    val bad = if (boot.getBoolean(CrashGuardPrefs.STARTING, false) && FreezeWatch.lastEndedBadly(ctx)) boot.getInt(CrashGuardPrefs.BAD_STARTS, 0) + 1 else 0
     boot.edit().putBoolean(CrashGuardPrefs.STARTING, true).putInt(CrashGuardPrefs.BAD_STARTS, bad).commit()
     // (three in a row before anything changes: a head unit losing power within 25 seconds of starting looks the same, and that
     // happening once or twice shouldn't turn anyone's map down)

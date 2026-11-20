@@ -1,5 +1,8 @@
 ## Unreleased
 
+### Fixed
+- Problemberichte sagen, wie die App tatsächlich beendet wurde: Android's eigene Aufzeichnung (weggewischt, wegen zu wenig Speicher geschlossen, Absturz im Kartencode, keine Reaktion) steht jetzt im Bericht. Wegwischen zählt nicht mehr als „von Android geschlossen“ und auch nicht zum Herunterstellen der Zeichnung.
+  EN: Problem reports say how the app really ended: Android's own record (swiped away, closed for low memory, crashed in the map's code, not responding) is now in the report. Swiping the app away no longer shows as "closed by Android" and no longer counts towards turning the drawing down.
 
 ## 1.0.246 — 2026-10-28
 

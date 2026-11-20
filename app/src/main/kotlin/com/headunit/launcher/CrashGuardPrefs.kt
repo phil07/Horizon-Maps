@@ -8,4 +8,6 @@ internal object CrashGuardPrefs {
     /** Set while the app is starting; still set on the next start means that start never got going. */
     const val STARTING = "starting"
     const val BAD_STARTS = "badstarts"
+    /** When Android's record of how the app last ended was last written to the report. */
+    const val LAST_EXIT_SEEN = "lastexitseen"
 }

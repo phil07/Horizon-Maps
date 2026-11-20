@@ -1939,6 +1939,8 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
                 appendLine("Last route ends:"); ends.lines().forEach { appendLine("  $it") }
             }
             if (crash != null) { appendLine(); appendLine("Last crash:"); appendLine(crash) }
+            val ended = try { FreezeWatch.exitFile(ctx).takeIf { it.exists() }?.readText()?.take(300) } catch (e: Exception) { null }
+            if (ended != null) { appendLine(); appendLine("How the app last ended (Android's record):"); appendLine(ended) }
             val freeze = try { FreezeWatch.file(ctx).takeIf { it.exists() }?.readText()?.take(2500) } catch (e: Exception) { null }
             if (freeze != null) { appendLine(); appendLine("Last freeze:"); appendLine(freeze) }
         }

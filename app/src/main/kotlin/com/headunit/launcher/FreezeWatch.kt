@@ -18,6 +18,7 @@ object FreezeWatch {
     @Volatile var stuckSince = 0L
 
     fun file(ctx: Context) = File(ctx.filesDir, "lastfreeze.txt")
+    fun exitFile(ctx: Context) = File(ctx.filesDir, "lastexit.txt")
 
     @Synchronized
     fun start(ctx: Context) {
@@ -49,8 +50,46 @@ object FreezeWatch {
         }, "freeze-watch").apply { isDaemon = true; priority = Thread.MIN_PRIORITY }.start()
     }
 
-    /** Android 11+: if the app was last closed for not responding, keeps the screen thread's part of Android's record of it. */
+    /** The way the app last ended, from Android's record (Android 11+), or null. */
+    private fun lastExit(ctx: Context): android.app.ApplicationExitInfo? {
+        if (Build.VERSION.SDK_INT < 30) return null
+        return try {
+            val am = ctx.getSystemService(Context.ACTIVITY_SERVICE) as android.app.ActivityManager
+            am.getHistoricalProcessExitReasons(ctx.packageName, 0, 1).firstOrNull()
+        } catch (e: Throwable) { softFail(e); null }
+    }
+
+    /** Whether the last run ended in a crash, a native crash in the map's code, or a freeze. Swiping the app away, or Android
+     *  closing it for low memory, is not that, so it doesn't count towards turning the drawing down. Unknown counts as bad. */
+    fun lastEndedBadly(ctx: Context): Boolean {
+        if (Build.VERSION.SDK_INT < 30) return true
+        val r = lastExit(ctx)?.reason ?: return false
+        return r == android.app.ApplicationExitInfo.REASON_CRASH || r == android.app.ApplicationExitInfo.REASON_CRASH_NATIVE || r == android.app.ApplicationExitInfo.REASON_ANR
+    }
+
+    /** The words for how the app ended, for the problem report. */
+    fun exitWords(reason: Int): String = when (reason) {
+        android.app.ApplicationExitInfo.REASON_USER_REQUESTED -> "swiped away or closed by you"
+        android.app.ApplicationExitInfo.REASON_USER_STOPPED -> "stopped by you"
+        android.app.ApplicationExitInfo.REASON_LOW_MEMORY -> "closed by Android for low memory"
+        android.app.ApplicationExitInfo.REASON_CRASH -> "crashed"
+        android.app.ApplicationExitInfo.REASON_CRASH_NATIVE -> "crashed in the map's code (native)"
+        android.app.ApplicationExitInfo.REASON_ANR -> "not responding"
+        android.app.ApplicationExitInfo.REASON_EXCESSIVE_RESOURCE_USAGE -> "closed by Android for using too many resources"
+        android.app.ApplicationExitInfo.REASON_OTHER -> "ended (Android gave no reason)"
+        else -> "ended (reason $reason)"
+    }
+
+    /** Android 11+: keeps Android's record of how the app last ended, for the problem report, and the screen thread's part of a freeze. */
     fun collectLastExit(ctx: Context) {
+        try {
+            val last = lastExit(ctx) ?: return
+            val prefs0 = ctx.getSharedPreferences(CrashGuardPrefs.FILE, Context.MODE_PRIVATE)
+            if (prefs0.getLong(CrashGuardPrefs.LAST_EXIT_SEEN, 0L) < last.timestamp) {
+                prefs0.edit().putLong(CrashGuardPrefs.LAST_EXIT_SEEN, last.timestamp).apply()
+                exitFile(ctx).writeText("Ended: ${exitWords(last.reason)} (${java.util.Date(last.timestamp)})${last.description?.let { " · $it" } ?: ""}")
+            }
+        } catch (e: Throwable) { softFail(e) }
         if (Build.VERSION.SDK_INT < 30) return
         try {
             val am = ctx.getSystemService(Context.ACTIVITY_SERVICE) as android.app.ActivityManager
