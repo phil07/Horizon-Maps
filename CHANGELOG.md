@@ -1,12 +1,8 @@
 ## Unreleased
 
-### Added
-- Einstellungen › Karte: Ein optionaler Hinweis zu den HD-Spurdaten. Er ist aus und erscheint nur im Demo-Modus. Die Spurführung selbst bleibt unverändert.
-  EN: Settings › Map: an optional HD lane data note. It is off and only shows in Demo mode. The lane guidance itself is unchanged.
-
 ### Improved
-- TomTom-Karte: Übersetzte Orts- und Straßennamen in der gewählten Sprache der App. Wo es keine Übersetzung gibt, bleibt der Originalname.
-  EN: TomTom map labels: translated place and road names in the app's selected language. Where there is no translation, the original name stays.
+- Favoriten werden standardmäßig alphabetisch angezeigt. Unter Orte & Fahrten lässt sich „Nächste zuerst“ wählen. Das gilt auch für Android Auto.
+  EN: Favourites are shown alphabetically by default. Under Places & trips you can choose "Nearest first" instead. This also applies to Android Auto.
 
 ## 1.0.246 — 2026-10-28
 

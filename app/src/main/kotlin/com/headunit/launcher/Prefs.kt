@@ -50,6 +50,8 @@ internal object PreferenceKeys {
     const val HD_DIAG = "hddiag"
     /** Favourites on the map as yellow stars with their names (names only when not navigating). */
     const val FAV_ON_MAP = "favmap"
+    /** How the favourites are listed: "az" (alphabetical, the default) or "near" (nearest first). */
+    const val FAV_SORT = "favsort"
     /** Rain, snow and fog on the map, each on its own (all on by default; the master switch is RAIN_EFFECTS). */
     const val FX_RAIN = "fxrain"
     const val FX_SNOW = "fxsnow"

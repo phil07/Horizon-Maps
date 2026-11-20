@@ -9,6 +9,8 @@ data class LabeledPlace(val label: String, val place: Place, val starred: Boolea
 
 /** Saved places (home, work, your own labelled places, favourites, recents), stored as JSON in [Prefs]. */
 class PlaceStore(private val prefs: Prefs) {
+    /** Where you are now, for "nearest first" (set by the engine; null until a fix). */
+    var here: () -> LL? = { null }
     private fun enc(p: Place) = JSONObject().put("n", p.name).put("s", p.sub).put("la", p.pos.lat).put("lo", p.pos.lon)
     private fun dec(o: JSONObject) = Place(o.optString("n"), o.optString("s"), LL(o.getDouble("la"), o.getDouble("lo")))
 
@@ -77,13 +79,23 @@ class PlaceStore(private val prefs: Prefs) {
     }
     fun customAt(p: Place): LabeledPlace? = customs().firstOrNull { same(it.place, p) }
 
-    fun favourites(): List<Place> = readList("places_fav")
+    /** The favourites as they were saved (newest first). */
+    private fun savedFavourites(): List<Place> = readList("places_fav")
+
+    /** The favourites in the chosen order: alphabetical by default, or nearest first (Settings › Places & trips). */
+    fun favourites(): List<Place> {
+        val all = savedFavourites()
+        return if (prefs.s(PreferenceKeys.FAV_SORT, "az") == "near") {
+            val h = here()
+            if (h == null) all else all.sortedBy { Geo.dist(it.pos, h) }
+        } else all.sortedWith(compareBy({ it.name.lowercase() }, { it.name }))
+    }
     fun isFavourite(p: Place) = favourites().any { same(it, p) }
     /** Called when the favourites change (the map's stars follow it). */
     var onFavChanged: (() -> Unit)? = null
 
     fun toggleFavourite(p: Place): Boolean {
-        val cur = favourites()
+        val cur = savedFavourites()
         val on = if (cur.any { same(it, p) }) {
             writeList("places_fav", cur.filterNot { same(it, p) }); false
         } else {
@@ -111,7 +123,7 @@ class PlaceStore(private val prefs: Prefs) {
     fun renameFavourite(p: Place, name: String) {
         val n = name.trim().take(40)
         if (n.isEmpty()) return
-        writeList("places_fav", favourites().map { if (same(it, p)) it.copy(name = n) else it })
+        writeList("places_fav", savedFavourites().map { if (same(it, p)) it.copy(name = n) else it })
         onFavChanged?.invoke()
     }
 

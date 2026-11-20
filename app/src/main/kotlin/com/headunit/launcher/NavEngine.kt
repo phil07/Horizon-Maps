@@ -96,7 +96,7 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
     }
 
     // saved places, departure planner, road info
-    val places = PlaceStore(prefs)
+    val places = PlaceStore(prefs).also { it.here = { fix?.pos } }
     val trips = TripStore(prefs)
     var pendingSave by mutableStateOf<String?>(null)
     var departMin by mutableIntStateOf(0)

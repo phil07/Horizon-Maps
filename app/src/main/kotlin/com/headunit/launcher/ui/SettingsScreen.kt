@@ -796,6 +796,9 @@ private fun PlacesSection(engine: NavEngine) {
     GpxTracksGroup(engine)
     var settingSlot by remember { mutableStateOf<String?>(null) }
     val slotsRaw = engine.prefs.s(PreferenceKeys.PLACE_HOME, "") + engine.prefs.s("place_work", "")
+    SGroup("Favoriten", footer = "A–Z: alphabetisch. Nächste zuerst: die nächsten Favoriten oben. Gilt auch für Android Auto.") {
+        SChoice("Favoriten sortieren", listOf("az" to "A–Z", "near" to "Nächste zuerst"), engine.prefs.s(PreferenceKeys.FAV_SORT, "az")) { engine.prefs.put(PreferenceKeys.FAV_SORT, it) }
+    }
     SGroup("Gespeicherte Orte", footer = "Auch über die Buttons unter der Suchleiste festlegbar.") {
         PlaceItem("Zuhause", remember(slotsRaw) { pl.slot("home") }, { settingSlot = "home" }) { pl.clearSlot("home") }
         PlaceItem("Arbeitsplatz", remember(slotsRaw) { pl.slot("work") }, { settingSlot = "work" }) { pl.clearSlot("work") }
