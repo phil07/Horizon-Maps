@@ -360,6 +360,9 @@ private fun MapLookSection(prefs: Prefs, engine: NavEngine) {
     }
     SGroup("Wetter") {
         SToggle(prefs, "Wettereffekte auf der Karte", "rainfx", false, "Regen, Schnee und Nebel passend zum Wetter")
+        SToggle(prefs, "Regen auf der Karte", "fxrain", true, "Nur wenn die Wettereffekte an sind")
+        SToggle(prefs, "Schnee auf der Karte", "fxsnow", true, "Nur wenn die Wettereffekte an sind")
+        SToggle(prefs, "Nebel auf der Karte", "fxfog", true, "Nur wenn die Wettereffekte an sind")
         SToggle(prefs, "Regenradar-Ebene", "radar", false, "Live-Radar von RainViewer unter der Route")
     }
     SGroup("3D und Satellit") {

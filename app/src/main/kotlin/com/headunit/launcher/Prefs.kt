@@ -46,6 +46,10 @@ internal object PreferenceKeys {
     const val PATHS = "paths"
     const val RAIN_RADAR = "radar"
     const val RAIN_EFFECTS = "rainfx"
+    /** Rain, snow and fog on the map, each on its own (all on by default; the master switch is RAIN_EFFECTS). */
+    const val FX_RAIN = "fxrain"
+    const val FX_SNOW = "fxsnow"
+    const val FX_FOG = "fxfog"
     const val MAP_FPS = "mapfps"
     const val UI_SCALE = "uiscale"
     const val UI_AUTO_SCALE = "uiauto"

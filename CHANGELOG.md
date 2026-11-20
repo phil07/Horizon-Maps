@@ -1,8 +1,8 @@
 ## Unreleased
 
 ### Improved
-- Android Auto, Routenwahl auf kurzen Bildschirmen: Die Schrift der Routen bleibt lesbar, und die Liste lässt sich scrollen, statt das ganze Feld zu verkleinern.
-  EN: Android Auto, route choice on short screens: the route text stays readable, and the panel scrolls instead of shrinking the whole panel.
+- Einstellungen › Wetter: Regen, Schnee und Nebel auf der Karte lassen sich jetzt einzeln ein- und ausschalten. Der Hauptschalter „Wettereffekte auf der Karte“ bleibt davor.
+  EN: Settings › Weather: rain, snow and fog on the map can now be switched on or off one by one. The main switch "Weather effects on the map" stays in front of them.
 
 ## 1.0.246 — 2026-10-28
 

@@ -197,7 +197,8 @@ fun App(prefs: Prefs, engine: NavEngine, map: MapBinding) {
     // real rain and snow on the map when it's raining or snowing where you are (Weather effects)
     val wxOn = prefs.b(PreferenceKeys.RAIN_EFFECTS, false)
     val wxNow = engine.weather?.code
-    LaunchedEffect(wxOn, wxNow) { map.setWeather(if (wxOn) wxNow else null) }
+    val fxNow = if (wxOn) weatherKindOn(prefs, wxNow) else null
+    LaunchedEffect(fxNow) { map.setWeather(fxNow) }
     // the haze towards the horizon follows the weather, and the route's ribbon look
     val skyOn = prefs.b(PreferenceKeys.SKYWEATHER, true)
     LaunchedEffect(skyOn, wxNow) { map.setSky(if (skyOn) wxNow else null) }
@@ -273,7 +274,7 @@ fun App(prefs: Prefs, engine: NavEngine, map: MapBinding) {
                     val wxCode = engine.weather?.code
                     // rain, snow or fog over the map to match the real weather where you are
                     // (the map draws rain and snow itself now; the screen overlay is kept for fog, and for when the map can't)
-                    if (prefs.b(PreferenceKeys.RAIN_EFFECTS, false) && wxCode != null && (wxCode == 45 || wxCode == 48 || !map.drawsWeather)) WeatherFx(wxCode, Modifier.fillMaxSize())
+                    if (prefs.b(PreferenceKeys.RAIN_EFFECTS, false) && wxCode != null && (wxCode == 45 || wxCode == 48 || !map.drawsWeather)) weatherKindOn(prefs, wxCode)?.let { WeatherFx(it, Modifier.fillMaxSize()) }
                     // coming back from the settings, the map fades up from the background instead of flashing in
                     val back = remember { androidx.compose.animation.core.Animatable(1f) }
                     LaunchedEffect(Unit) { back.animateTo(0f, androidx.compose.animation.core.tween(320)) }

@@ -70,6 +70,7 @@ import com.headunit.launcher.NavEngine
 import com.headunit.launcher.NavService
 import com.headunit.launcher.Place
 import com.headunit.launcher.Prefs
+import com.headunit.launcher.ui.weatherKindOn
 import com.headunit.launcher.TurnInfo
 import java.util.TimeZone
 
@@ -191,7 +192,7 @@ class CarNavSession : Session() {
         val m = holder.map ?: return
         val on = try { Prefs(carContext.applicationContext).b(PreferenceKeys.RAIN_EFFECTS, false) } catch (x: Exception) { false }
         val sky = try { Prefs(carContext.applicationContext).b(PreferenceKeys.SKYWEATHER, true) } catch (x: Exception) { true }
-        val code = if (on) e.weather?.code else null
+        val code = if (on) try { weatherKindOn(Prefs(carContext.applicationContext), e.weather?.code) } catch (x: Exception) { e.weather?.code } else null
         val skyCode = if (sky) e.weather?.code else null
         val key = Pair(code, skyCode)
         if (key == wxShown) return
