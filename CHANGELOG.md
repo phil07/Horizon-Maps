@@ -1,16 +1,9 @@
 ## Unreleased
 
 ### Improved
-- Eine Pfeilgröße: Der Pfeil hatte zwei Größen-Regler, „Pfeil“ und „Bildschirm & Größen“, die sich miteinander multipliziert haben. Jetzt gibt es nur noch „Pfeilgröße“. Wer beide verändert hatte, bekommt die verrechnete Größe, der Pfeil bleibt also so groß wie vorher.
-  EN: One arrow size: the arrow had two size sliders, "Arrow" and "Screen & sizes", which multiplied each other. There's now just "Arrow size". If you had changed both, they are combined, so your arrow stays the size it was.
-- Kartenquelle zeigt nur, was funktioniert: OpenStreetMap immer, Mapbox sobald ein Mapbox-Schlüssel eingetragen ist, TomTom sobald ein TomTom-Schlüssel eingetragen ist.
-  EN: Map source only offers what works: OpenStreetMap always, Mapbox once a Mapbox key is entered, TomTom once a TomTom key is entered.
-- Der Auto-Start-Countdown wird nur angezeigt, wenn der Auto-Start eingeschaltet ist.
-  EN: The auto-start countdown only shows when auto-start is on.
+- Ein einfacher Tipp auf die Karte macht nichts mehr, auch nicht auf eine freie Stelle oder einen Ort. Langes Drücken öffnet die Karte des Ortes mit Name, „Los“ und „Als Stopp“.
+  EN: A simple tap on the map does nothing now, on a free spot or on a place. A long press opens the card of the place with its name, "Los" and "Als Stopp".
 
-### Fixed
-- Suche mit Mapbox: Unter Schlüssel & Konten › Nutzung sucht Mapbox jetzt auch wirklich mit Mapbox. Die eigene Einstellung „Suchen mit“, die davon abweichen konnte, ist entfernt.
-  EN: Search with Mapbox: under Keys & accounts › Nutzung, Mapbox now searches with Mapbox too. The separate "Search with" setting, which could disagree with it, is gone.
 
 ## 1.0.246 — 2026-10-28
 

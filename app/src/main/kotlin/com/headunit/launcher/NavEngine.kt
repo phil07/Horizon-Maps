@@ -1051,14 +1051,9 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
         }
         // holding on a place you've just tapped on the map goes there by its name (a shop, a station...), anywhere else to a dropped pin
         // (while you're driving a route, holding adds the place as a stop on the way instead of replacing where you're going)
-        map.onLongPress = { p ->
-            val t = tappedPoi
-            val place = if (t != null && Geo.dist(t.second, p) < 60.0 && android.os.SystemClock.uptimeMillis() - tappedAt < 120_000L) { tappedPoi = null; Place(t.first, "", t.second) }
-                else Place(pinName(), "", p)
-            if (route != null && !previewing && dest != null) addStop(place) else startRoute(place)
-        }
-// a place tapped on the map: a card with its name, "Los" and "Als Stopp" (holding on it still goes there straight away)
-        map.onPoiTap = { name, p -> tappedPoi = name to p; tappedAt = android.os.SystemClock.uptimeMillis(); showPick(p, name) }
+        // a long press on the map (or on a place in it) shows the card with its name or address, "Los" and "Als Stopp";
+        // a simple tap does nothing, so a touch by accident doesn't start anything
+        map.onLongPress = { p, name -> showPick(p, name) }
         map.onUserGesture = { if (following) { following = false }; if (route == null && !previewing && !walking) searchTucked = true; scheduleRecentre(12_000) }
         map.onMapIdle = { box -> refreshChargerLayer(box) }
         map.onAltTap = { i -> switchToAlt(i) }
@@ -1369,10 +1364,6 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
      * The Mapbox edition draws Mapbox's map (which keeps recently seen areas for when signal drops); the downloaded packs' own map
      * isn't drawn yet (their offline routing, places, limits, cameras and lights all still work).
      */
-    /** The last place tapped on Mapbox's map (name and spot), and when. */
-    private var tappedPoi: Pair<String, LL>? = null
-    private var tappedAt = 0L
-
     /** With no signal, Mapbox's map has started missing pieces (an area it hasn't stored): the pack's map is used until signal returns. */
     @Volatile private var mapboxGaps = false
     private var gapFirstAt = 0L
@@ -5105,10 +5096,6 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
             // a place listed for Add a stop: tapping it on the map adds it, as tapping it in the list does
             if (ch == null && nearbyPinned) nearby.getOrNull(i)?.let { addStop(it.place) }
             else ch?.locs?.getOrNull(i)?.let { selectChain(it) }
-        }
-        // the phone, not while being guided: a tap on a free spot shows its address with "Los" (a second tap anywhere puts the card away)
-        map.onFreeTap = { p ->
-            if (!isCar && (route == null || previewing) && results.isEmpty() && chain == null && !chainBusy) { if (mapPick != null) clearPick() else showPick(p, null) }
         }
     }
 
