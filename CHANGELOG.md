@@ -1,12 +1,12 @@
 ## Unreleased
 
-### Fixed
-- Gegenläufige Meldungen: Verkehrsmeldungen, die als Strecke gemeldet werden, zählen nur, wenn sie in die Fahrtrichtung der Route gehen. Punktmeldungen müssen näher an der Route liegen. Das verringert Warnungen von der Gegenfahrbahn.
-  EN: Opposite-direction alerts: traffic incidents reported as a stretch count only when they run in the route's direction. Point incidents must lie closer to the route. This reduces warnings from the opposite carriageway.
+### New
+- Blitzer: Kurz bevor du an einem Blitzer vorbeifährst, gibt es einen zweiten, kurzen Piepton, etwa 4 Sekunden davor. Die Warnung bei etwa 500 m bleibt.
+  EN: Speed cameras: a short second beep sounds about 4 seconds before a camera, after the warning about 500 m ahead.
 
-### Improved
-- Favoriten werden standardmäßig alphabetisch angezeigt. Unter Orte & Fahrten lässt sich „Nächste zuerst“ wählen. Das gilt auch für Android Auto.
-  EN: Favourites are shown alphabetically by default. Under Places & trips you can choose "Nearest first" instead. This also applies to Android Auto.
+### Fixed
+- Der Stern auf der Karte eines Favoriten: Ein Ort, der etwas neben seiner Stelle auf der Karte gespeichert ist (oft bei importierten Orten), zeigte einen leeren Stern, und ein Tipp darauf entfernte den Favoriten. Die Karte findet ihn jetzt wie der Stern selbst.
+  EN: A favourite's star on its card: a place saved a little way from where it shows on the map showed an empty star, and tapping it removed the favourite. The card now finds it the same way the star does.
 
 ## 1.0.246 — 2026-10-28
 

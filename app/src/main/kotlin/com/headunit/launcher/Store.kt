@@ -90,14 +90,18 @@ class PlaceStore(private val prefs: Prefs) {
             if (h == null) all else all.sortedBy { Geo.dist(it.pos, h) }
         } else all.sortedWith(compareBy({ it.name.lowercase() }, { it.name }))
     }
-    fun isFavourite(p: Place) = favourites().any { same(it, p) }
+    /** The saved favourite nearest [p] within [r] metres (a place is often saved a little way from where it shows on the map). */
+    fun favouriteNear(p: Place, r: Double = 150.0): Place? =
+        savedFavourites().filter { Geo.dist(it.pos, p.pos) < r }.minByOrNull { Geo.dist(it.pos, p.pos) }
+    fun isFavourite(p: Place) = favouriteNear(p) != null
     /** Called when the favourites change (the map's stars follow it). */
     var onFavChanged: (() -> Unit)? = null
 
     fun toggleFavourite(p: Place): Boolean {
         val cur = savedFavourites()
-        val on = if (cur.any { same(it, p) }) {
-            writeList("places_fav", cur.filterNot { same(it, p) }); false
+        val near = favouriteNear(p)
+        val on = if (near != null) {
+            writeList("places_fav", cur.filterNot { it == near }); false
         } else {
             writeList("places_fav", (listOf(p) + cur).take(60)); true
         }
