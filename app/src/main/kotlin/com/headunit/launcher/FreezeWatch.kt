@@ -30,7 +30,11 @@ object FreezeWatch {
             while (true) {
                 val answered = AtomicBoolean(false)
                 main.post { answered.set(true) }
+                val t0 = System.currentTimeMillis()
                 try { Thread.sleep(5000) } catch (e: InterruptedException) { return@Thread }
+                // the phone went to sleep (or the app was paused in the background) in between: the screen thread can't answer then,
+                // and that is not a freeze, so nothing is recorded
+                if (System.currentTimeMillis() - t0 > 15_000L) { reported = false; stuckSince = 0L; continue }
                 if (!answered.get()) {
                     if (stuckSince == 0L) stuckSince = System.currentTimeMillis() - 5000L
                     if (!reported) {

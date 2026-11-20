@@ -1,8 +1,14 @@
 ## Unreleased
 
 ### Improved
-- Tippen auf die Karte wählt wieder einen Ort: Ein Tipp auf eine freie Stelle oder auf einen Ort zeigt die Karte mit Name, „Los“ und „Als Stopp“. Die Auswahl per Fadenkreuz („Auf der Karte wählen“) ist wieder entfernt.
-  EN: Tapping the map picks a place again: a tap on a free spot or on a place shows the card with its name, "Go" and "Add stop". The crosshair selection ("Pick on the map") is removed again.
+- Ortsnamen und Straßennamen auf der Karte folgen der Sprache der App statt der des Telefons.
+  EN: Place and road names on the map follow the app's language instead of the phone's.
+- Die Musik wird beim Ansagen höchstens 90 Sekunden leiser gehalten, auch wenn eine Ansage nicht fertig gemeldet wird.
+  EN: Music is held down during announcements for at most 90 seconds, even when an announcement never reports that it has finished.
+
+### Fixed
+- Falsche Einfrier-Meldungen: Wenn das Telefon schlief oder die App im Hintergrund pausiert war, konnte der Problembericht ein „Einfrieren“ melden, das nie war. Das wird jetzt ignoriert.
+  EN: False freeze reports: when the phone slept or the app was paused in the background, the problem report could record a freeze that never happened. These are now ignored.
 
 ## 1.0.246 — 2026-10-28
 

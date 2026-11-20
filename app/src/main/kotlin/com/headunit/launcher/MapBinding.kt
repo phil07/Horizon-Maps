@@ -465,6 +465,8 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
         val sat = (wantedStyle ?: "") == Style.STANDARD_SATELLITE
         val c = org.json.JSONObject()
         c.put("lightPreset", if (sat && lightPreset == "night") "dusk" else lightPreset)
+        // place and road names in the app's language where the map has them (not the phone's, when the app is set to another)
+        c.put("language", java.util.Locale.getDefault().language.ifBlank { "en" })
         // shop and place labels rest on the light map and (on the full map) while you're on the move: placing them is the costly part
         c.put("showPointOfInterestLabels", !lite && !poiMoving)
         c.put("showTransitLabels", !lite)

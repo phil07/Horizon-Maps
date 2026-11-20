@@ -1115,6 +1115,11 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
                 .build()
             focusReq = req
             audioMgr.requestAudioFocus(req)
+            // the music is never held for more than 90 s, even when some announcement never reports that it has finished
+            scope.launch {
+                delay(90_000L)
+                if (focusReq === req) { spoken = 0; try { audioMgr.abandonAudioFocusRequest(req) } catch (e: Exception) { }; focusReq = null }
+            }
         } catch (e: Exception) { }
     }
 
