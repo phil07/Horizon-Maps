@@ -1245,7 +1245,7 @@ private fun CarListScreen(engine: NavEngine, kind: String) {
     // folders first, then what's in no folder; a folder opens to its own places or tracks, and Back goes up again
     var inFolder by remember { mutableStateOf<String?>(null) }
     val folders = if (inFolder == null) rows.map { it.folder }.filter { it.isNotBlank() }.distinct().sorted() else emptyList()
-    val shown = (if (inFolder == null) rows.filter { it.folder.isBlank() } else rows.filter { it.folder == inFolder }).sortedBy { it.dist }
+    val shown = (if (inFolder == null) rows.filter { it.folder.isBlank() } else rows.filter { it.folder == inFolder }).inListOrder(engine.fix != null)
     Column(Modifier.fillMaxSize().background(c.surface).padding(start = 28.dp, end = 28.dp, top = 22.dp, bottom = 18.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(inFolder ?: if (kind == "places") Lang.t("Meine Orte", "My places") else Lang.t("Meine Tracks", "My tracks"), color = c.text, fontSize = 28.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))

@@ -1,12 +1,14 @@
 ## Unreleased
 
 ### New
-- Blitzer: Kurz bevor du an einem Blitzer vorbeifährst, gibt es einen zweiten, kurzen Piepton, etwa 4 Sekunden davor. Die Warnung bei etwa 500 m bleibt.
-  EN: Speed cameras: a short second beep sounds about 4 seconds before a camera, after the warning about 500 m ahead.
+- Favoriten nach Deine Orte verschieben: Jeder Favorit hat „In Deine Orte“, und „Alle verschieben“ legt alle in einen Ordner „Favoriten“ unter Deine Orte. Die Liste neben Zuhause und Arbeit bleibt so kurz.
+  EN: Move favourites to Your places: each favourite has "In Deine Orte", and "Alle verschieben" puts all of them into a "Favoriten" folder under Your places, so the row next to Home and Work stays short.
+- Zuhause und Arbeit: „Hier verwenden“ setzt den Ort auf deine aktuelle Position und zeigt die gefundene Adresse. So kannst du sie auch im Parkzustand speichern.
+  EN: Home and Work: "Hier verwenden" sets the place to where you are now and shows the address it found, so you can save it while parked.
 
-### Fixed
-- Der Stern auf der Karte eines Favoriten: Ein Ort, der etwas neben seiner Stelle auf der Karte gespeichert ist (oft bei importierten Orten), zeigte einen leeren Stern, und ein Tipp darauf entfernte den Favoriten. Die Karte findet ihn jetzt wie der Stern selbst.
-  EN: A favourite's star on its card: a place saved a little way from where it shows on the map showed an empty star, and tapping it removed the favourite. The card now finds it the same way the star does.
+### Improved
+- Deine Orte: Die Ordner stehen in A–Z-Reihenfolge, die Orte darin ebenfalls A–Z, bis die App deine Position kennt. Danach kommen die nächsten zuerst.
+  EN: Your places: the folders are in A–Z order, and the places in them are A–Z until the app knows where you are; then the nearest come first.
 
 ## 1.0.246 — 2026-10-28
 

@@ -734,9 +734,23 @@ private fun SoundSection(prefs: Prefs, engine: NavEngine) {
 
 // ------------------------------------------------------------------ Places & trips
 
+/** Home or Work set to where you are now: the address is looked up and shown, so it can be saved while parked. */
+private fun useHereFor(engine: NavEngine, slot: String) {
+    val at = engine.fix?.pos ?: return
+    engine.toast(Lang.t("Adresse wird gesucht …", "Looking up the address …"), 2000)
+    kotlinx.coroutines.CoroutineScope(Dispatchers.Main).launch {
+        val addr = withContext(Dispatchers.IO) { try { com.headunit.launcher.PoiSearch.addressAt(at) } catch (e: Exception) { null } }
+        val name = addr?.substringBefore(", ")?.ifBlank { null } ?: Lang.t("Aktueller Ort", "Current spot")
+        val sub = addr?.substringAfter(", ", "") ?: ""
+        engine.places.setSlot(slot, Place(name, sub, at))
+        engine.toast(Lang.t("Gespeichert: $name", "Saved: $name"), 2500)
+    }
+}
+
 @Composable
-private fun PlaceItem(label: String, p: Place?, onChange: () -> Unit, onClear: () -> Unit) {
+private fun PlaceItem(label: String, p: Place?, onChange: () -> Unit, onClear: () -> Unit, useHere: (() -> Unit)? = null) {
     SItem(label, p?.let { it.name + (if (it.sub.isNotBlank()) ", " + it.sub else "") } ?: "Nicht festgelegt") {
+        if (useHere != null) SButton("Hier verwenden", onClick = useHere)
         SButton(if (p != null) "Ändern" else "Festlegen", primary = true, onClick = onChange)
         if (p != null) SButton("Löschen", danger = true, onClick = onClear)
     }
@@ -800,8 +814,8 @@ private fun PlacesSection(engine: NavEngine) {
         SChoice("Favoriten sortieren", listOf("az" to "A–Z", "near" to "Nächste zuerst"), engine.prefs.s(PreferenceKeys.FAV_SORT, "az")) { engine.prefs.put(PreferenceKeys.FAV_SORT, it) }
     }
     SGroup("Gespeicherte Orte", footer = "Auch über die Buttons unter der Suchleiste festlegbar.") {
-        PlaceItem("Zuhause", remember(slotsRaw) { pl.slot("home") }, { settingSlot = "home" }) { pl.clearSlot("home") }
-        PlaceItem("Arbeitsplatz", remember(slotsRaw) { pl.slot("work") }, { settingSlot = "work" }) { pl.clearSlot("work") }
+        PlaceItem("Zuhause", remember(slotsRaw) { pl.slot("home") }, { settingSlot = "home" }, { pl.clearSlot("home") }, { useHereFor(engine, "home") })
+        PlaceItem("Arbeitsplatz", remember(slotsRaw) { pl.slot("work") }, { settingSlot = "work" }, { pl.clearSlot("work") }, { useHereFor(engine, "work") })
     }
     settingSlot?.let { s -> AddPlaceDialog(engine, null, slot = s) { settingSlot = null } }
     // Home and Work under the search bar: each can be left off (the app and Android Auto alike)
@@ -847,10 +861,12 @@ private fun PlacesSection(engine: NavEngine) {
                     SButton("Schlagwort") { taggingFav = f }
                     SButton("Umbenennen") { renamingFav = f }
                     SButton("Zuhause / Arbeit") { slotFor = f }
+                    SButton("In Deine Orte") { pl.moveFavouriteToPlaces(f) }
                     SButton("Entfernen", danger = true) { pl.toggleFavourite(f) }
                 }
             }
         }
+        if (favs.size > 1) SItem("Alle in Deine Orte", "Alle Favoriten kommen in einen Ordner „Favoriten“ unter Deine Orte. Die Liste neben Zuhause und Arbeit bleibt kurz.") { SButton("Alle verschieben", primary = true) { pl.moveAllFavouritesToPlaces() } }
         if (favs.size > 1) SItem("Alle Favoriten entfernen") { SButton("Alle löschen", danger = true) { pl.clearFavourites() } }
     }
     SGroup("Verlauf", footer = "Zum Entfernen zur Seite wischen.") {

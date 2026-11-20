@@ -1567,7 +1567,7 @@ private fun ImmChips(engine: NavEngine, focusSearch: () -> Unit) {
         // folders first, then what's in no folder; a folder opens to its own places or tracks, and ‹ goes back
         val inFolder = listFolder
         val folders = if (inFolder == null) rows.map { it.folder }.filter { it.isNotBlank() }.distinct().sorted() else emptyList()
-        val shown = (if (inFolder == null) rows.filter { it.folder.isBlank() } else rows.filter { it.folder == inFolder }).sortedBy { it.dist }
+        val shown = (if (inFolder == null) rows.filter { it.folder.isBlank() } else rows.filter { it.folder == inFolder }).inListOrder(engine.fix != null)
         androidx.compose.material3.AlertDialog(onDismissRequest = { listKind = null }, confirmButton = { },
             title = { Text(inFolder ?: if (kind == "places") Lang.t("Meine Orte", "My places") else Lang.t("Meine Tracks", "My tracks"), color = cList.text) },
             text = {
@@ -1999,6 +1999,10 @@ internal fun findOn(prefs: com.headunit.launcher.Prefs, kind: String): Boolean =
 
 /** One row of a shortcut list ("My places", "My tracks"): its name, how far it is, the folder it's in (blank = none), and what a tap does. */
 internal class ShortcutRow(val name: String, val dist: Double, val folder: String, val go: () -> Unit)
+
+/** Your places: A–Z until the app knows where you are, then nearest first. */
+internal fun List<ShortcutRow>.inListOrder(positionKnown: Boolean): List<ShortcutRow> =
+    if (positionKnown) sortedBy { it.dist } else sortedBy { it.name.lowercase() }
 
 /** The colour of the time left: green on time, amber for a few minutes' delay, red for ten or more. On a light card deeper shades,
  *  so they stand out against white. */

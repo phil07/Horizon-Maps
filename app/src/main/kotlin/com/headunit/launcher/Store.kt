@@ -123,6 +123,25 @@ class PlaceStore(private val prefs: Prefs) {
     /** The tags in use, in alphabetical order. */
     fun favTags(): List<String> = favourites().map { favTag(it) }.filter { it.isNotBlank() }.distinct().sortedBy { it.lowercase() }
 
+    /** Moves a favourite into Your places (into [folder] when given), so it no longer sits in the favourites. */
+    fun moveFavouriteToPlaces(p: Place, folder: String = "") {
+        val near = favouriteNear(p) ?: return
+        writeList("places_fav", savedFavourites().filterNot { it == near })
+        addCustom(near.name, near)
+        if (folder.isNotBlank()) setFolder(near.name.trim().take(24).ifBlank { near.name.take(24) }, folder)
+        onFavChanged?.invoke()
+    }
+
+    /** Moves every favourite into Your places, in a "Favoriten" folder there. */
+    fun moveAllFavouritesToPlaces() {
+        for (f in savedFavourites()) {
+            addCustom(f.name, f)
+            setFolder(f.name.trim().take(24).ifBlank { f.name.take(24) }, "Favoriten")
+        }
+        writeList("places_fav", emptyList())
+        onFavChanged?.invoke()
+    }
+
     /** Gives a favourite a name of your own (it stays in the same place in the list). */
     fun renameFavourite(p: Place, name: String) {
         val n = name.trim().take(40)
