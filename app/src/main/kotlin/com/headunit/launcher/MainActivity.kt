@@ -90,6 +90,7 @@ class MainActivity : ComponentActivity() {
         }
 
         val prefs = Prefs(applicationContext)
+        prefs.mergeArrowSize()
         // the battery level from the car maker's cloud, when signed in
         CarCloud.start(applicationContext, prefs)
         // the Mapbox map needs OpenGL ES 3.0: on an older unit, say so plainly instead of showing a black map (or closing)

@@ -819,7 +819,8 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
      * instead. Without a key it's Mapbox's (with OpenStreetMap's alongside), or OpenStreetMap's alone with neither.
      */
     private fun netGeocode(country: String, q: String, near: LL?): List<Place> {
-        val with = prefs.s(PreferenceKeys.SEARCHWITH, "auto")
+        // the Routen, Suche und Verkehr choice (Nutzung) decides which service searches
+        val with = prefs.s(PreferenceKeys.DATAPROV, "auto")
         val tomtomOk = hasKey && refusedKey != apiKey && System.currentTimeMillis() >= ttDownUntil
         if (tomtomOk && (with == "tomtom" || (with == "auto") || !hasMapbox)) {
             // TomTom goes first; Mapbox only starts when TomTom is still busy after a second, or when TomTom comes back thin (so

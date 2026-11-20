@@ -339,7 +339,11 @@ private fun MapLookSection(prefs: Prefs, engine: NavEngine) {
         }
     }
     SGroup("Karte") {
-        SChoice("Kartenquelle", listOf("mapbox" to "Mapbox", "tomtom" to "TomTom", "osm" to "OpenStreetMap"), prefs.mapSource(),
+        SChoice("Kartenquelle", listOfNotNull(
+            "osm" to "OpenStreetMap",
+            if (engine.hasMapbox) "mapbox" to "Mapbox" else null,
+            if (engine.hasKey) "tomtom" to "TomTom" else null,
+        ), prefs.mapSource(),
             "Mapbox: 3D-Karte. Benötigt das Mapbox-Token.") { prefs.put(PreferenceKeys.MAP_STYLE, it) }
         if (prefs.mapSource() == "mapbox") {
             SChoice("Kartendetails", listOf("full" to "Vollständiges 3D", "lite" to "Lite", "lightest" to "Einfachst"), prefs.mapDetail(),
@@ -544,7 +548,7 @@ private fun RoutesSection(prefs: Prefs) {
     }
     SGroup("Routenstart") {
         SToggle(prefs, "Auto-Start-Countdown", PreferenceKeys.AUTO_START_ROUTE, true, "Startet die Navigation nach dem Countdown")
-        SSlider("Auto-Start-Countdown", prefs.i(PreferenceKeys.AUTO_START_SECONDS, 10).coerceIn(3, 30).toFloat(), 3f..30f, " s", sub = "Dauer bis zum Start der Navigation", steps = 26, reset = 10f) { prefs.put(PreferenceKeys.AUTO_START_SECONDS, it.coerceIn(3, 30)) }
+        if (prefs.b(PreferenceKeys.AUTO_START_ROUTE, true)) SSlider("Auto-Start-Countdown", prefs.i(PreferenceKeys.AUTO_START_SECONDS, 10).coerceIn(3, 30).toFloat(), 3f..30f, " s", sub = "Dauer bis zum Start der Navigation", steps = 26, reset = 10f) { prefs.put(PreferenceKeys.AUTO_START_SECONDS, it.coerceIn(3, 30)) }
         SToggle(prefs, "3D-Flug entlang neuer Route", "cinematic", true, "Ein 3-Sekunden-3D-Flug vor der Übersicht")
         SToggle(prefs, "Routenflug-Button", "flyover", true, "3D-Flug über die gesamte Strecke vor der Abfahrt")
     }
@@ -1156,7 +1160,6 @@ private fun ScreenSection(prefs: Prefs, engine: NavEngine) {
             SSlider("Karten-Größe", prefs.i(PreferenceKeys.MAIN_CARD_SIZE, 100).toFloat(), 70f..150f, "%", sub = "Abbiege-, Fahrten- und Routenkarten", steps = 15, reset = 100f) { prefs.put(PreferenceKeys.MAIN_CARD_SIZE, it) }
             SSlider("Button-Größe", prefs.i(PreferenceKeys.MAIN_BUTTON_SIZE, 100).toFloat(), 70f..150f, "%", sub = "Bedienelemente auf dem Bildschirm", steps = 15, reset = 100f) { prefs.put(PreferenceKeys.MAIN_BUTTON_SIZE, it) }
             SSlider("Textgröße", prefs.i(PreferenceKeys.MAIN_TEXT_SIZE, 100).toFloat(), 70f..150f, "%", sub = "Unabhängige Textskalierung", steps = 15, reset = 100f) { prefs.put(PreferenceKeys.MAIN_TEXT_SIZE, it) }
-            SSlider("Navigationspfeil-Größe", prefs.i(PreferenceKeys.MAIN_ARROW_SIZE, 100).toFloat(), 60f..180f, "%", sub = "Positionspfeil auf der Karte", steps = 11, reset = 100f) { prefs.put(PreferenceKeys.MAIN_ARROW_SIZE, it) }
             SSlider("Straßennamen-Größe", prefs.i(PreferenceKeys.ROAD_NAME_SIZE, 100).toFloat(), 70f..200f, "%", sub = "Name der aktuellen Straße unter dem Pfeil", steps = 12, reset = 100f) { prefs.put(PreferenceKeys.ROAD_NAME_SIZE, it) }
         }
 
@@ -1318,9 +1321,7 @@ private fun KeysSection(prefs: Prefs, engine: NavEngine) {
     }
     SGroup("Suche") {
         SChoice("Suchergebnisse", searchCountryOptions(engine), searchCountryValue(prefs)) { prefs.put(PreferenceKeys.COUNTRY, it) }
-        if (engine.hasKey && engine.hasMapbox) SChoice("Suchen mit", listOf("auto" to "TomTom", "mapbox" to "Mapbox"), if (prefs.s(PreferenceKeys.SEARCHWITH, "auto") == "mapbox") "mapbox" else "auto",
-            "TomTom ist am genauesten für Adressen") { prefs.put(PreferenceKeys.SEARCHWITH, it) }
-        else if (!engine.hasKey) SNote("Für genaueste Adresssuche: TomTom-Schlüssel eintragen.")
+        if (!engine.hasKey) SNote("Für genaueste Adresssuche: TomTom-Schlüssel eintragen.")
     }
     SGroup("Kartenkonten", footer = "Ohne Empfang: Routen und Suche aus dem Offline-Paket.") {
         SFieldItem("TomTom API-Schlüssel", prefs.s(PreferenceKeys.API_KEY, ""), "Kostenlos erhältlich auf developer.tomtom.com",

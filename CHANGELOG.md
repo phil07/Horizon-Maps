@@ -1,12 +1,16 @@
 ## Unreleased
 
-### New
-- Helligkeit der Karte in den Kartenoptionen: ein Regler unter Tag und Nacht, für den Modus, der gerade gezeigt wird. Die Nachthelligkeit ist die aus den Einstellungen (Karte heller/dunkler), die Tageshelligkeit ist neu.
-  EN: Map brightness in Map options: a slider under Day and Night, for whichever is showing. The night brightness is the one in Settings (Karte heller/dunkler), the day brightness is new.
-
 ### Improved
-- Fortschrittsbalken der Abbiegekarte: Er erscheint jetzt erst etwa 800 m vor der Abbiegung und füllt sich bis dahin, statt kilometerweit leer zu stehen.
-  EN: Turn card progress bar: it now appears about 800 m before the turn and fills up to it, instead of sitting empty for kilometres.
+- Eine Pfeilgröße: Der Pfeil hatte zwei Größen-Regler, „Pfeil“ und „Bildschirm & Größen“, die sich miteinander multipliziert haben. Jetzt gibt es nur noch „Pfeilgröße“. Wer beide verändert hatte, bekommt die verrechnete Größe, der Pfeil bleibt also so groß wie vorher.
+  EN: One arrow size: the arrow had two size sliders, "Arrow" and "Screen & sizes", which multiplied each other. There's now just "Arrow size". If you had changed both, they are combined, so your arrow stays the size it was.
+- Kartenquelle zeigt nur, was funktioniert: OpenStreetMap immer, Mapbox sobald ein Mapbox-Schlüssel eingetragen ist, TomTom sobald ein TomTom-Schlüssel eingetragen ist.
+  EN: Map source only offers what works: OpenStreetMap always, Mapbox once a Mapbox key is entered, TomTom once a TomTom key is entered.
+- Der Auto-Start-Countdown wird nur angezeigt, wenn der Auto-Start eingeschaltet ist.
+  EN: The auto-start countdown only shows when auto-start is on.
+
+### Fixed
+- Suche mit Mapbox: Unter Schlüssel & Konten › Nutzung sucht Mapbox jetzt auch wirklich mit Mapbox. Die eigene Einstellung „Suchen mit“, die davon abweichen konnte, ist entfernt.
+  EN: Search with Mapbox: under Keys & accounts › Nutzung, Mapbox now searches with Mapbox too. The separate "Search with" setting, which could disagree with it, is gone.
 
 ## 1.0.246 — 2026-10-28
 

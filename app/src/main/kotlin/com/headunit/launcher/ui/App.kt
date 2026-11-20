@@ -162,8 +162,7 @@ fun App(prefs: Prefs, engine: NavEngine, map: MapBinding) {
     val flagsOn = prefs.b(PreferenceKeys.FLAGS_3D, true); val flagsWave = prefs.b(PreferenceKeys.FLAGS_WAVE, true)
     LaunchedEffect(flagsOn, flagsWave) { map.refreshFlags() }
     val arrowPct = prefs.s(PreferenceKeys.ARROW_PERCENT, "240").toIntOrNull() ?: 240
-    val mainArrowScale = prefs.i(PreferenceKeys.MAIN_ARROW_SIZE, 100).coerceIn(60, 180) / 100f
-    LaunchedEffect(arrowPct, mainArrowScale) { map.setArrowScale(arrowPct / 100f * mainArrowScale) }
+    LaunchedEffect(arrowPct) { map.setArrowScale(arrowPct / 100f) }
     val carModel = prefs.s(PreferenceKeys.CAR_MODEL, "saloon")
     LaunchedEffect(carModel) { map.setCarModel(carModel) }
     val trafficGreen = prefs.b(PreferenceKeys.TRAFFIC_GREEN, false)

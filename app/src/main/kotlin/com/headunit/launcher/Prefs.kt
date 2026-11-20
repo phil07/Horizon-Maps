@@ -66,6 +66,8 @@ internal object PreferenceKeys {
     const val MAIN_SPEED_SIDE = "mainspeedside"
     const val MAIN_BUTTON_SIZE = "mainbuttonsize"
     const val MAIN_ARROW_SIZE = "mainarrowsize"
+    /** Set once the old Screen & sizes arrow factor was folded into the arrow size (see mergeArrowSize). */
+    const val ARROW_MERGED = "arrowmerged"
     const val CAR_CARD_SIZE = "carcardsize"
     const val CAR_TEXT_SIZE = "cartextsize"
     const val CAR_SPEED_SIZE = "carspeedsize"
@@ -545,6 +547,21 @@ class Prefs(ctx: Context) {
  * The map source: whatever was picked in Settings; until something is picked, TomTom once a TomTom key has been entered
  * (otherwise this build's default).
  */
+/**
+ * One arrow size: the phone's "Screen & sizes" factor (Bildschirm) used to multiply the arrow's own percentage (Pfeil), so turning
+ * both up made the arrow huge. It is folded into the percentage once, so the arrow stays the size it was; the factor is then 100.
+ */
+fun Prefs.mergeArrowSize() {
+    if (b(PreferenceKeys.ARROW_MERGED, false)) return
+    val factor = i(PreferenceKeys.MAIN_ARROW_SIZE, 100).coerceIn(60, 180)
+    if (factor != 100) {
+        val pct = s(PreferenceKeys.ARROW_PERCENT, "240").toIntOrNull() ?: 240
+        put(PreferenceKeys.ARROW_PERCENT, (pct * factor / 100).toString())
+    }
+    put(PreferenceKeys.MAIN_ARROW_SIZE, 100)
+    put(PreferenceKeys.ARROW_MERGED, true)
+}
+
 fun Prefs.mapSource(): String = s(PreferenceKeys.MAP_STYLE, BuildConfig.DEFAULT_MAP).let { if (it == "google") "mapbox" else it }
 
 /**
