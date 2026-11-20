@@ -126,12 +126,17 @@ internal fun NavEngine.checkIncidents(r: Route, progress: Double) {
                         noteClosures(list)
                         val out = ArrayList<Triple<Incident, Double, String>>()
                         for (inc in list) {
-                            var bestOff = -1.0; var bestD = 70.0
+                            var bestOff = -1.0; var bestD = 40.0
                             val q = inc.pts.first()
+                            // a line (a stretch of road) only counts where the route drives the same way along it: a road the other way
+                            // (the carriageway across the median) is left out
+                            val lineDir = if (inc.pts.size >= 2) Geo.bearing(inc.pts[0], inc.pts[1]) else null
                             for (n in r.pts.indices) {
                                 if (r.cum[n] < progress - 200 || r.cum[n] > progress + 40_000) continue
                                 val d = Geo.dist(r.pts[n], q)
-                                if (d < bestD) { bestD = d; bestOff = r.cum[n] }
+                                if (d >= bestD) continue
+                                if (lineDir != null && n + 1 < r.pts.size && abs(angDiff(Geo.bearing(r.pts[n], r.pts[n + 1]), lineDir)) > 45.0) continue
+                                bestD = d; bestOff = r.cum[n]
                             }
                             if (bestOff >= 0) out += Triple(inc, bestOff, incidentLabel(inc))
                         }

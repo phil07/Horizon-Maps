@@ -1,5 +1,9 @@
 ## Unreleased
 
+### Fixed
+- Gegenläufige Meldungen: Verkehrsmeldungen, die als Strecke gemeldet werden, zählen nur, wenn sie in die Fahrtrichtung der Route gehen. Punktmeldungen müssen näher an der Route liegen. Das verringert Warnungen von der Gegenfahrbahn.
+  EN: Opposite-direction alerts: traffic incidents reported as a stretch count only when they run in the route's direction. Point incidents must lie closer to the route. This reduces warnings from the opposite carriageway.
+
 ### Improved
 - Favoriten werden standardmäßig alphabetisch angezeigt. Unter Orte & Fahrten lässt sich „Nächste zuerst“ wählen. Das gilt auch für Android Auto.
   EN: Favourites are shown alphabetically by default. Under Places & trips you can choose "Nearest first" instead. This also applies to Android Auto.
