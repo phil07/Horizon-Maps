@@ -102,9 +102,9 @@ internal fun NavEngine.checkIncidents(r: Route, progress: Double) {
     // TomTom's incident data when there's a key; otherwise the incidents that came with a Mapbox route
     val fromRoute = (!hasKey || ttDown()) && r.incidents.isNotEmpty()
     val ab = autobahnIncidents(r)
-    // Spain: the DGT's incidents (DgtRest), with or without a TomTom key
-    val dgtOn = countryCode() == "ES" && DgtRest.items.isNotEmpty()
-    if ((!hasKey && !fromRoute && ab.isEmpty() && !dgtOn) || simMode != 0 || !prefs.b(PreferenceKeys.INCIDENTS, true)) { incidentAhead = null; return }
+    // Spain: the DGT's incidents (DgtRest); the Netherlands: NDW's (NdwRest). With or without a TomTom key
+    val feedOn = (countryCode() == "ES" && DgtRest.items.isNotEmpty()) || (countryCode() == "NL" && NdwRest.items.isNotEmpty())
+    if ((!hasKey && !fromRoute && ab.isEmpty() && !feedOn) || simMode != 0 || !prefs.b(PreferenceKeys.INCIDENTS, true)) { incidentAhead = null; return }
     val now = System.currentTimeMillis()
     // (the phone in the background while the car screen runs the trip: the car asks, not both)
     if (now - incAt > 180_000 && !shadow()) {
@@ -122,7 +122,7 @@ internal fun NavEngine.checkIncidents(r: Route, progress: Double) {
                     if (!any) emptyList() else {
                         val tt = if (fromRoute) r.incidents else if (hasKey) TomTomRest.incidents(apiKey, minLon - 0.01, minLat - 0.01, maxLon + 0.01, maxLat + 0.01) else emptyList<Incident>()
                         // (what TomTom already has is not repeated from the DGT)
-                        val list = tt + ab + (if (dgtOn) DgtRest.notIn(tt) else emptyList())
+                        val list = tt + ab + when (countryCode()) { "ES" -> DgtRest.notIn(tt); "NL" -> NdwRest.notIn(tt); else -> emptyList() }
                         noteClosures(list)
                         val out = ArrayList<Triple<Incident, Double, String>>()
                         for (inc in list) {

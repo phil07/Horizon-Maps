@@ -1,8 +1,12 @@
 ## Unreleased
 
-### Fixed
-- Android Auto im geteilten Bildschirm: Wenn die Karte als Kachel neben Musik oder einer anderen App steht, ordnet die App Abbiegekarte, Fahrtleiste, Tacho und Knöpfe jetzt innerhalb dieser Kachel an und passt sie an ihre Größe an. Vorher lagen sie teils unter der anderen Kachel, und die Fahrtleiste war links abgeschnitten. Pfeil und Route bleiben in der Kachel sichtbar.
-  EN: Android Auto split screen: when the map is a card beside music or another app, the turn card, trip bar, speed and buttons are now laid out within that card and fit its size. Before, some of them lay under the other card and the trip bar was cut off on the left. The arrow and the route stay visible in the card.
+### Added
+- Verkehrsmeldungen in den Niederlanden: Unfälle, Pannen, Sperrungen und Baustellen vom NDW, auf der Karte und auf der Strecke, wie in Spanien (DGT). Im Schalter „Baustellen und Ereignisse“ enthalten.
+  EN: Traffic events in the Netherlands: accidents, breakdowns, closures and roadworks from NDW, on the map and on the route, as in Spain (DGT). Included in the "Roadworks and events" switch.
+- Unwetterwarnungen in weiteren Ländern (Meteoalarm): auf der Strecke durch Frankreich, Österreich, Italien, Spanien, die Niederlande und weitere Länder mit Warngebieten, gezeigt wie die DWD-Warnungen. Deutschland bleibt beim DWD.
+  EN: Severe weather warnings in more countries (Meteoalarm): on the route through France, Austria, Italy, Spain, the Netherlands and other countries with warning areas, shown like the DWD warnings. Germany stays with the DWD.
+- Feiertagshinweis: Beim Start einer Route ein kurzer Hinweis, wenn heute oder morgen ein Feiertag ist (mehr Verkehr). Ein Schalter in den Einstellungen.
+  EN: Public holiday note: when a route starts, a short note if today or tomorrow is a public holiday (more traffic). A switch in the settings.
 
 ## 1.0.246 — 2026-10-28
 

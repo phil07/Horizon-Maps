@@ -2880,6 +2880,7 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
             return
         }
         evStartPending = false
+        try { checkHolidayHint() } catch (e: Exception) { }
         // electric: the chosen route's charging stops go onto the trip as it starts (once per destination), and the route is
         // worked out through them; the other routes stayed on offer until now
         val d0 = dest
@@ -3531,7 +3532,11 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
      * 10 minutes, and at once for a new route. Each warning is shown and announced once.
      */
     private fun checkWeatherWarnings(p: Fix) {
-        if (!prefs.b(PreferenceKeys.DWD_WARN, true) || wxBusy || !online() || !DwdWarnings.inGermany(p.pos)) return
+        if (!prefs.b(PreferenceKeys.DWD_WARN, true) || wxBusy || !online()) return
+        // Germany: the DWD. Elsewhere: Meteoalarm, where the country's warning areas have outlines (see MeteoAlarm)
+        val de = DwdWarnings.inGermany(p.pos)
+        val cc = countryCode().uppercase()
+        if (!de && !MeteoAlarm.supports(cc)) return
         val now = System.currentTimeMillis()
         val r = if (previewing) null else route
         if (now - wxAt < 600_000L && r === wxRoute) return
@@ -3550,7 +3555,7 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
         if (line.isEmpty()) line += p.pos
         scope.launch {
             try {
-                val found = withContext(Dispatchers.IO) { DwdWarnings.along(line) } ?: return@launch
+                val found = withContext(Dispatchers.IO) { if (de) DwdWarnings.along(line) else MeteoAlarm.along(line, cc) } ?: return@launch
                 val t = System.currentTimeMillis()
                 // one warning covers many districts: the first one along the way is named
                 fun firstAlong(w: DwdWarning): Int { val b = w.box ?: return line.size; return line.indexOfFirst { it.lat in b[0]..b[2] && it.lon in b[1]..b[3] }.let { if (it < 0) line.size else it } }

@@ -332,6 +332,8 @@ internal object PreferenceKeys {
     const val WXADVICE = "wxadvice"
     /** Official DWD weather warnings (markant and worse) on the route ahead or where you are. */
     const val DWD_WARN = "dwdwarn"
+    /** A note at the start of a route when today or tomorrow is a public holiday (more traffic). */
+    const val HOLIDAY_HINT = "holidayhint"
     /** The rescue lane notice in a jam on the motorway. */
     const val RESCUE_LANE = "rescuelane"
     const val ZEBRAS = "zebras"
