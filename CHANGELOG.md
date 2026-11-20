@@ -1,8 +1,10 @@
 ## Unreleased
 
-### Improved
-- Einstellungen › Wetter: Regen, Schnee und Nebel auf der Karte lassen sich jetzt einzeln ein- und ausschalten. Der Hauptschalter „Wettereffekte auf der Karte“ bleibt davor.
-  EN: Settings › Weather: rain, snow and fog on the map can now be switched on or off one by one. The main switch "Weather effects on the map" stays in front of them.
+### New
+- Favoriten auf der Karte: Deine gespeicherten Orte erscheinen als gelbe Sterne mit ihrem Namen. Ein Tipp auf einen Stern zeigt seine Karte mit „Los“. Beim Fahren ohne Namen. Ausschalten unter Einstellungen › Karte › Favoriten auf der Karte.
+  EN: Favourites on the map: your saved places show as yellow stars with their names. A tap on a star shows its card with "Go". While driving, without names. Switch it off under Settings › Map › Favourites on the map.
+- Beim Speichern eines Favoriten erscheint ein Feld mit dem Namen, den du ihm selbst geben kannst.
+  EN: When you save a favourite, a box with its name appears, so you can call it something of your own.
 
 ## 1.0.246 — 2026-10-28
 

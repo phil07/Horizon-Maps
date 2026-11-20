@@ -354,6 +354,7 @@ private fun MapLookSection(prefs: Prefs, engine: NavEngine) {
             "Fahrspuren, Abbiegepfeile und 3D-Brücken. Auto: nur in UK an, sonst zeigt die Karte in manchen Ländern nur die Hauptstraßen.") { prefs.put(PreferenceKeys.HD_ROADS2, it) }
         DefaultZoomRow(prefs)
         SToggle(prefs, "Fußwege und Pfade", "paths", true, "Ausschalten für eine übersichtlichere Fahrkarte")
+        SToggle(prefs, "Favoriten auf der Karte", "favmap", true, "Gelbe Sterne mit Namen. Beim Fahren ohne Namen")
         SToggle(prefs, "Glaskarten", "glass", true, "Halbtransparente Karten")
         SChoice("Mapbox-Logo-Position", listOf("tl" to "Oben links", "tr" to "Oben rechts", "bl" to "Unten links", "br" to "Unten rechts"), prefs.s(PreferenceKeys.MAPBOX_LOGO, "tr"),
             "Ecke für das geforderte Mapbox-Logo wählen") { prefs.put(PreferenceKeys.MAPBOX_LOGO, it) }

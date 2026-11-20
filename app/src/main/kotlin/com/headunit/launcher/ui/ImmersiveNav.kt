@@ -294,6 +294,7 @@ private fun MapScreen(engine: NavEngine, onSettings: () -> Unit) {
         fun report(i: Int, r: androidx.compose.ui.geometry.Rect) { engine.setPanel(i, r.left / boxW, r.top / boxH, r.right / boxW, r.bottom / boxH) }
         // a place tapped on the map: its card floats over everything else (also over the route options while choosing a route)
         // docked like Add a stop: along the bottom, or down the driver's side when the screen is held sideways (a head unit too)
+        engine.favNaming?.let { FavNameDialog(engine, it) }
         if (engine.mapPick != null) {
             val landscape = boxW > boxH
             Box(Modifier.align(if (landscape) side(Alignment.CenterStart) else Alignment.BottomCenter).padding(16.dp).zIndex(30f)) { PhonePickCard(engine) }
@@ -1325,6 +1326,19 @@ private fun NewDestCard(engine: NavEngine) {
     }
 }
 
+/** The name box after a place is saved as a favourite: pre-filled with its name, to call it something of your own. */
+@Composable
+private fun FavNameDialog(engine: NavEngine, p: Place) {
+    var name by remember(p) { mutableStateOf(p.name) }
+    androidx.compose.material3.AlertDialog(
+        onDismissRequest = { engine.favNaming = null },
+        title = { Text(Lang.t("Name für den Favoriten", "Name for the favourite")) },
+        text = { androidx.compose.material3.OutlinedTextField(value = name, onValueChange = { name = it.take(40) }, singleLine = true) },
+        confirmButton = { androidx.compose.material3.TextButton(onClick = { engine.saveFavName(name) }) { Text(Lang.t("Speichern", "Save")) } },
+        dismissButton = { androidx.compose.material3.TextButton(onClick = { engine.favNaming = null }) { Text(Lang.t("Abbrechen", "Cancel")) } },
+    )
+}
+
 /** The card for a place tapped on the phone's map: its name and address, "Los", and "Als Stopp" when there is a trip to add it to. */
 @Composable
 private fun PhonePickCard(engine: NavEngine) {
@@ -1361,7 +1375,7 @@ private fun PhonePickCard(engine: NavEngine) {
                 modifier = Modifier.weight(1f).clip(RoundedCornerShape(50)).border(1.dp, c.accent, RoundedCornerShape(50)).clickable { engine.stopPick() }.padding(vertical = 10.dp))
         }
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-            Pill(if (fav) Lang.t("Gespeichert", "Saved") else Lang.t("Speichern", "Save"), fav, { fav = engine.places.toggleFavourite(p) })
+            Pill(if (fav) Lang.t("Gespeichert", "Saved") else Lang.t("Speichern", "Save"), fav, { fav = engine.places.toggleFavourite(p); if (fav) engine.favNaming = p })
             if (!moving && p.phone != null) Pill(Lang.t("Anrufen", "Call"), false, { engine.callPlace(p.phone!!) })
             if (!moving && p.web != null) Pill(Lang.t("Website", "Website"), false, { engine.openWebsite(p.web!!) })
             Pill(Lang.t("Teilen", "Share"), false, { engine.sharePlace(p) })

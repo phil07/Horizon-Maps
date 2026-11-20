@@ -79,13 +79,25 @@ class PlaceStore(private val prefs: Prefs) {
 
     fun favourites(): List<Place> = readList("places_fav")
     fun isFavourite(p: Place) = favourites().any { same(it, p) }
+    /** Called when the favourites change (the map's stars follow it). */
+    var onFavChanged: (() -> Unit)? = null
+
     fun toggleFavourite(p: Place): Boolean {
         val cur = favourites()
-        return if (cur.any { same(it, p) }) {
+        val on = if (cur.any { same(it, p) }) {
             writeList("places_fav", cur.filterNot { same(it, p) }); false
         } else {
             writeList("places_fav", (listOf(p) + cur).take(60)); true
         }
+        onFavChanged?.invoke()
+        return on
+    }
+
+    /** Gives a favourite its own name (the spot and the rest stay the same). */
+    fun renameFavourite(p: Place, name: String) {
+        val n = name.trim().take(40); if (n.isBlank()) return
+        writeList("places_fav", favourites().map { if (same(it, p)) it.copy(name = n) else it })
+        onFavChanged?.invoke()
     }
 
     // ---- tags for favourites ("Kunden", "Urlaub"): kept beside the list, by position, so the saved favourites stay as they are ----

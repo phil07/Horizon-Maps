@@ -2415,6 +2415,12 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
             .iconPitchAlignment(IconPitchAlignment.VIEWPORT).iconEmissiveStrength(1.0).iconAnchor(IconAnchor.BOTTOM)
             .iconSize(zoomed(1.0, 13 to 0.42, 15 to 0.55, 18 to 0.7)).minZoom(13.0))
         // every branch of a chain ("Alle Standorte"): its logo with the drive time, above everything else
+        favImgs.clear()
+        addS(st, GeoJsonSource.Builder("dl-fav").featureCollection(empty()).build())
+        addL(st, SymbolLayer("dl-fav", "dl-fav").inSlot(TOP)
+            .iconImage(Expression.get("img")).iconAllowOverlap(true).iconIgnorePlacement(true)
+            .iconPitchAlignment(IconPitchAlignment.VIEWPORT).iconEmissiveStrength(1.0).iconAnchor(IconAnchor.BOTTOM).iconSize(0.6))
+        pushFav()
         chainImgs.clear()
         addS(st, GeoJsonSource.Builder("dl-chain").featureCollection(empty()).build())
         addL(st, SymbolLayer("dl-chain", "dl-chain").inSlot(TOP)
@@ -2814,6 +2820,71 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
     private val chainImgs = HashSet<String>()
 
     fun setChainPins(list: List<ChainPin>) { main0.post { chainPins = list; pushChain() } }
+
+    // ---- favourites: a yellow star with the name (or without it, while navigating) ----
+    var onFavTap: ((Int) -> Unit)? = null
+    private var favPins: List<Place> = emptyList()
+    private var favNames = true
+    private val favImgs = HashSet<String>()
+
+    fun setFavourites(list: List<Place>, withNames: Boolean) { main0.post { favPins = list; favNames = withNames; pushFav() } }
+
+    private fun favImg(p: Place) = "dl-fav-" + (if (favNames) "n" else "s") + "-" + p.name.hashCode()
+
+    private fun pushFav() {
+        val st = style ?: return
+        val s = src("dl-fav") ?: return
+        try {
+            for (p in favPins) { val id = favImg(p); if (favImgs.add(id)) addImg(st, id, favBitmap(p.name)) }
+            s.featureCollection(FeatureCollection.fromFeatures(favPins.map { p ->
+                Feature.fromGeometry(Point.fromLngLat(p.pos.lon, p.pos.lat)).also { it.addStringProperty("img", favImg(p)) }
+            }))
+        } catch (e: Throwable) { }
+    }
+
+    /** A yellow star with a dark edge; with the name on a white label under it, when names are shown. */
+    private fun favBitmap(name: String): Bitmap {
+        val s = 44f
+        val label = if (favNames) name.take(24) else ""
+        val tp = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xFF111418.toInt(); textSize = 26f; typeface = android.graphics.Typeface.DEFAULT_BOLD }
+        val tw = if (label.isEmpty()) 0f else tp.measureText(label)
+        val w = maxOf(s, tw + 16f).toInt().coerceAtLeast(1)
+        val h = (s + if (label.isEmpty()) 0f else 40f).toInt().coerceAtLeast(1)
+        val bmp = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
+        val c = Canvas(bmp)
+        val cx = w / 2f; val cy = s / 2f; val big = s / 2f - 3f; val small = big * 0.45f
+        val star = Path()
+        for (i in 0 until 10) {
+            val rad = if (i % 2 == 0) big else small
+            val a = -Math.PI / 2 + i * Math.PI / 5
+            val x = (cx + rad * Math.cos(a)).toFloat(); val y = (cy + rad * Math.sin(a)).toFloat()
+            if (i == 0) star.moveTo(x, y) else star.lineTo(x, y)
+        }
+        star.close()
+        c.drawPath(star, Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xFFFFD60A.toInt() })
+        c.drawPath(star, Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xFF6B5300.toInt(); style = Paint.Style.STROKE; strokeWidth = 3f; strokeJoin = Paint.Join.ROUND })
+        if (label.isNotEmpty()) {
+            c.drawRoundRect(RectF(0f, s + 2f, w.toFloat(), h.toFloat()), 10f, 10f, Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xEEFFFFFF.toInt() })
+            tp.textAlign = Paint.Align.CENTER
+            c.drawText(label, w / 2f, h - 12f, tp)
+        }
+        return bmp
+    }
+
+    /** The favourite star nearest the tap (within about a finger's width). */
+    private fun favAt(sp: android.graphics.PointF): Int? {
+        val ps = favPins
+        if (ps.isEmpty()) return null
+        val dp = mapView.resources.displayMetrics.density
+        val px = pixels(ps.map { it.pos })
+        if (px.size != ps.size) return null
+        var best: Int? = null; var bd = 30.0 * dp
+        for (k in ps.indices) {
+            val d = Math.hypot(px[k].x - sp.x, px[k].y - 16 * dp - sp.y)
+            if (d < bd) { bd = d; best = k }
+        }
+        return best
+    }
 
     private fun chainImg(p: ChainPin) = "dl-ch-" + (p.logo?.let { System.identityHashCode(it) } ?: 0) + "-" + p.label.replace(Regex("[^A-Za-z0-9]"), "_") + (if (p.selected) "-s" else "")
 
@@ -4856,6 +4927,8 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
         flyDone?.let { d -> flyDone = null; flyToken++; try { mapView.camera.cancelAllAnimators() } catch (e: Throwable) { }; d(); return true }
         // a branch of a chain ("Alle Standorte")
         chainAt(sp)?.let { onChainTap?.invoke(it); return true }
+        // a favourite's star
+        favAt(sp)?.let { onFavTap?.invoke(it); return true }
         // a charge point on the map (drawn above the route, so it comes first)
         nearestCharger(sp)?.let { onChargerTap?.invoke(it); return true }
         // choosing a route: a tap on one of the other routes' lines (see onPreviewTap)

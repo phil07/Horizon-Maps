@@ -193,6 +193,21 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
 
     fun carMapTap(sp: android.graphics.PointF) { map.pickAt(sp) { p, name -> showPick(p, name) } }
 
+    /** The favourites on the map: the stars, names only while not navigating (see MapBinding.setFavourites). */
+    var favShown: List<Place> = emptyList()
+        private set
+
+    fun pushFavourites() {
+        favShown = if (prefs.b(PreferenceKeys.FAV_ON_MAP, true)) places.favourites() else emptyList()
+        val guiding = route != null && !previewing
+        map.setFavourites(favShown, withNames = !guiding)
+    }
+
+    /** The name box after a place is saved as a favourite (see ImmersiveNav). */
+    var favNaming by mutableStateOf<Place?>(null)
+
+    fun saveFavName(name: String) { favNaming?.let { places.renameFavourite(it, name) }; favNaming = null }
+
     /** Shows the card for the spot [p] (a place called [name], or just a point): on the car screen, and for a place tapped on the phone. */
     fun showPick(p: LL, name: String?) {
         run {
@@ -1064,6 +1079,10 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
         map.onAltTap = { i -> switchToAlt(i) }
         map.onPreviewTap = { k -> onPreviewRouteTap(k) }
         map.onChargerTap = { s -> chargerTapped(s) }
+        // a favourite's star: its card, with Go (or Als Stopp on a trip)
+        map.onFavTap = { i -> favShown.getOrNull(i)?.let { showPick(it.pos, it.name) } }
+        places.onFavChanged = { pushFavourites() }
+        pushFavourites()
         // the parked-car spot is no longer used (the app lives in the car): drop any old one
         if (prefs.s(PreferenceKeys.PLACE_PARKED, "").isNotBlank()) places.clearParked()
         map.onError = { msg -> onMapError(msg) }
@@ -2877,6 +2896,7 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
     }
 
     fun beginNavigation() {
+        scope.launch { pushFavourites() }
         if (!previewing) return
         // electric: the charging plan of the chosen route is still being worked out. Starting now would set off without its stops
         // (they would only come a little later, with the route worked out again on the way): wait for the plan, then start
@@ -3049,6 +3069,7 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
     }
 
     fun endRoute() {
+        scope.launch { pushFavourites() }
         try { noteRouteEnd() } catch (e: Exception) { }
         stopPause = null
         stopTripShare(quiet = true)
