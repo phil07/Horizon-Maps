@@ -1,8 +1,12 @@
 ## Unreleased
 
+### New
+- Android Auto folgt dem Auto wieder von selbst: Wenn du die Karte im Auto von Hand verschiebst und das Auto dann weiterfährt, folgt die Karte ein paar Sekunden später wieder dem Auto. So verschwindet der Pfeil nicht vom Bildschirm.
+  EN: Android Auto follows the car again by itself: if you move the map by hand and the car drives on, the map follows the car again a few seconds later, so the arrow doesn't leave the screen.
+
 ### Fixed
-- Problemberichte sagen, wie die App tatsächlich beendet wurde: Android's eigene Aufzeichnung (weggewischt, wegen zu wenig Speicher geschlossen, Absturz im Kartencode, keine Reaktion) steht jetzt im Bericht. Wegwischen zählt nicht mehr als „von Android geschlossen“ und auch nicht zum Herunterstellen der Zeichnung.
-  EN: Problem reports say how the app really ended: Android's own record (swiped away, closed for low memory, crashed in the map's code, not responding) is now in the report. Swiping the app away no longer shows as "closed by Android" and no longer counts towards turning the drawing down.
+- Kosten für Sprit auf den Routenkarten: „≈ £2,10“ statt „Sprit etwa £2,10“. Das Zapfsäulen-Symbol zeigt schon, worum es geht, und so wird der Betrag bei zwei oder drei Routen nebeneinander nicht abgeschnitten.
+  EN: Fuel cost on the route cards: "≈ £2.10" instead of "Fuel about £2.10", as the pump icon already says what it is, so the amount isn't cut off with two or three routes side by side.
 
 ## 1.0.246 — 2026-10-28
 

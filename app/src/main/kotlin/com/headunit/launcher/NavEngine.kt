@@ -3133,6 +3133,12 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
 
     private var recentreToken = 0
 
+    /** A touch on the car's screen moved the map: it follows the car again a few seconds after the last touch. */
+    fun onCarGesture() {
+        following = false
+        scheduleRecentre(5_000L)
+    }
+
     /** While navigating, snaps the map back to the car after you stop moving it for [ms]. */
     private fun scheduleRecentre(ms: Long) {
         if (route == null || previewing) return

@@ -254,8 +254,7 @@ internal fun BoxScope.RoutePreview(engine: NavEngine) {
     fun costOf(len: Double): String? = if (use != null && cents != null) {
         val km = len / 1000.0
         val amount = if (ev) km / use * cents / 100.0 else km * use / 100.0 * cents / 100.0
-        (if (ev) Lang.t("Laden etwa ", "Charging about ") else Lang.t("Sprit etwa ", "Fuel about ")) +
-            com.headunit.launcher.moneyText(amount, cc)
+        "≈ " + com.headunit.launcher.moneyText(amount, cc)
     } else null
     val eco = engine.prefs.b(PreferenceKeys.ROUTE_ECO, false)
     val evPlan = if (ev) engine.evPlanned else emptyList()
@@ -832,5 +831,5 @@ fun routeCostText(engine: NavEngine, len: Double): String? {
     val cents = priceCents(if (ev) PreferenceKeys.EVPPK else PreferenceKeys.FUELPPL) ?: return null
     val km = len / 1000.0
     val amount = if (ev) km / use * cents / 100.0 else km * use / 100.0 * cents / 100.0
-    return (if (ev) Lang.t("Laden etwa ", "Charging about ") else Lang.t("Sprit etwa ", "Fuel about ")) + com.headunit.launcher.moneyText(amount, cc)
+    return "≈ " + com.headunit.launcher.moneyText(amount, cc)
 }

@@ -475,6 +475,7 @@ class CarSurface(private val carContext: CarContext, private val onReady: (MapBi
     override fun onScroll(distanceX: Float, distanceY: Float) {
         val m = map ?: return
         m.onUserGesture?.invoke()
+        engine?.onCarGesture()
         try { m.panBy(distanceX, distanceY) } catch (e: Exception) { softFail(e) }
     }
 
@@ -497,6 +498,7 @@ class CarSurface(private val carContext: CarContext, private val onReady: (MapBi
     override fun onScale(focusX: Float, focusY: Float, scaleFactor: Float) {
         val m = map ?: return
         m.onUserGesture?.invoke()
+        engine?.onCarGesture()
         // a double tap comes as a negative factor: zoom in one step
         val dz = if (scaleFactor <= 0f) 1.0 else Math.log(scaleFactor.toDouble()) / Math.log(2.0)
         try { m.zoomAround(dz, focusX, focusY) } catch (e: Exception) { softFail(e) }
