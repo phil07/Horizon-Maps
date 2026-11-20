@@ -160,6 +160,7 @@ import com.headunit.launcher.Place
 import com.headunit.launcher.NavEngine
 import kotlinx.coroutines.delay
 import com.headunit.launcher.PreferenceKeys
+import com.headunit.launcher.softFail
 
 private val Teal = GmGreen
 private val TealDeep = GmGreenDeep

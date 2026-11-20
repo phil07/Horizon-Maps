@@ -43,6 +43,7 @@ import androidx.compose.ui.unit.sp
 import com.headunit.launcher.NavEngine
 import com.headunit.launcher.Prefs
 import com.headunit.launcher.PreferenceKeys
+import com.headunit.launcher.softFail
 
 /** True when the temperature unit is Fahrenheit. */
 /** Fahrenheit: as chosen in Settings, else from the country you're in (the US and a few others), else Celsius. */
@@ -87,7 +88,7 @@ internal fun openSystemSettings(ctx: android.content.Context, action: String, ur
         if (uri != null) i.data = uri
         ctx.startActivity(i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
     } catch (e: Exception) {
-        try { ctx.startActivity(Intent(android.provider.Settings.ACTION_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) } catch (_: Exception) { softFail(_) }
+        try { ctx.startActivity(Intent(android.provider.Settings.ACTION_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) } catch (e: Exception) { softFail(e) }
     }
 }
 

@@ -91,6 +91,7 @@ import com.headunit.launcher.Zones
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import com.headunit.launcher.softFail
 
 /** A settings section; [heading] puts a small group heading (Map, Driving, You, Device) above it in the list. */
 private class Section(val title: String, val sub: String, val icon: ImageVector, val tint: Color, val heading: String? = null)

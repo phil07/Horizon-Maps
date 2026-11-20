@@ -91,7 +91,7 @@ object BrandLogos {
             ?: fetch("https://icons.duckduckgo.com/ip3/$domain.ico")
         if (b == null) { synchronized(mem) { failed += domain }; return null }
         synchronized(mem) { mem[domain] = b }
-        try { file(ctx, domain).outputStream().use { b.compress(Bitmap.CompressFormat.PNG, 100, it) } } catch (_: Exception) { softFail(_) }
+        try { file(ctx, domain).outputStream().use { b.compress(Bitmap.CompressFormat.PNG, 100, it) } } catch (e: Exception) { softFail(e) }
         return b
     }
 

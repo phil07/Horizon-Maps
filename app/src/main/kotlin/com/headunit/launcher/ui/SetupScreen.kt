@@ -65,6 +65,7 @@ import com.headunit.launcher.PreferenceKeys
 import com.headunit.launcher.mapSource
 import com.headunit.launcher.setApiKey
 import kotlinx.coroutines.delay
+import com.headunit.launcher.softFail
 
 private class SetupStep(val title: String, val sub: String, val icon: ImageVector)
 

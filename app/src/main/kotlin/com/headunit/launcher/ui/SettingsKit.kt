@@ -49,6 +49,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.headunit.launcher.Prefs
 import kotlin.math.roundToInt
+import com.headunit.launcher.softFail
 
 // Building blocks for the settings screen: rounded groups of rows, in the same soft style as the map screen.
 

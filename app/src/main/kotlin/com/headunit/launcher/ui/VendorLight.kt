@@ -4,6 +4,7 @@ import android.content.Context
 import android.provider.Settings
 import com.headunit.launcher.PreferenceKeys
 import com.headunit.launcher.Prefs
+import com.headunit.launcher.softFail
 
 /**
  * Headlights on Teyes and FYT head units: these units pass the lights on in one of their own system settings instead of switching
@@ -32,7 +33,7 @@ object VendorLight {
                         if (words.any { low.contains(it) }) out[name] = value.trim().lowercase()
                     }
                 }
-            } catch (_: Throwable) { softFail(_) }
+            } catch (e: Throwable) { softFail(e) }
         }
         return out
     }

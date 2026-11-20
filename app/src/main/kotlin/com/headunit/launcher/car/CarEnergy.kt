@@ -11,6 +11,7 @@ import com.headunit.launcher.CarData
 import com.headunit.launcher.EvWidget
 import com.headunit.launcher.PreferenceKeys
 import com.headunit.launcher.Prefs
+import com.headunit.launcher.softFail
 
 /**
  * The battery level straight from the car, through Android Auto's car hardware API. Live, and without the car maker's

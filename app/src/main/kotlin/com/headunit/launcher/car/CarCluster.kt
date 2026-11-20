@@ -20,6 +20,7 @@ import androidx.car.app.navigation.model.NavigationTemplate
 import com.headunit.launcher.Geo
 import com.headunit.launcher.LL
 import com.headunit.launcher.NavEngine
+import com.headunit.launcher.softFail
 
 /** What the driver's display shows comes from the main car screen's engine (one engine per connection to the car). */
 object ClusterLink {
