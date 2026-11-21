@@ -557,6 +557,8 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
             val backup = if (p == "tomtom" && hasMapbox) "mapbox" else if (p == "mapbox" && hasKey) "tomtom" else ""
             if (!serviceFault || backup.isEmpty()) throw e
             val wait = if (m.contains("401") || m.contains("403") || m.contains("accept") || m.contains("limit") || m.contains("too many")) 3_600_000L else 600_000L
+            // TomTom turned this key away: it is remembered for this run, so TomTom isn't asked again until the key is changed
+            if (p == "tomtom" && (m.contains("401") || m.contains("403") || m.contains("unauthor") || m.contains("forbidden"))) refusedKey = apiKey
             if (p == "tomtom") ttDownUntil = System.currentTimeMillis() + wait else mbDownUntil = System.currentTimeMillis() + wait
             val name = if (p == "tomtom") "TomTom" else "Mapbox"
             scope.launch { toast(Lang.f("%1\$s funktioniert gerade nicht, daher wird stattdessen %2\$s genutzt", "%1\$s isn\'t working right now, so %2\$s is being used instead", name, if (backup == "tomtom") "TomTom" else "Mapbox"), 4500) }
@@ -1368,7 +1370,7 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
     private var styleRetry = 0
 
     /** The map style failed to load (usually a signal blip): try again a few times, then fall back to the downloaded map if there is one. */
-    /** A key TomTom's map server turned away (it may still work for search and routes): the OpenStreetMap map is used instead. */
+    /** A key TomTom turned away with 401/403 in search or routing: TomTom isn't asked again with it during this run. */
     @Volatile private var refusedKey: String? = null
     /** A key TomTom's map server turned away while its map was showing: Mapbox's map is used then (search and routes keep the key). */
     @Volatile private var mapRefusedKey: String? = null

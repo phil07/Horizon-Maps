@@ -1,12 +1,8 @@
 ## Unreleased
 
-### Improved
-- Geschwindigkeitswechsel auf der Karte: Hat die Route für den aktuellen Abschnitt keine Grenze, kommt der nächste Wechsel jetzt aus den Live-Straßendaten, statt zu fehlen.
-  EN: Speed-limit changes on the map: when the route has no limit for the current stretch, the next change now comes from the live road data instead of being missing.
-
 ### Fixed
-- Haltestellen-Schilder auf der Karte: Nach einer neuen Route verschwinden die Schilder der alten Route sofort, und späte Antworten zur alten Route werden nicht mehr angezeigt.
-  EN: Stop signs on the map: after a new route the old route's signs disappear at once, and late replies for the old route are no longer shown.
+- Abgelehnter TomTom-Schlüssel: Weist TomTom den Schlüssel bei Suche oder Route mit 401/403 ab, wird TomTom mit diesem Schlüssel für den restlichen Lauf nicht mehr gefragt.
+  EN: Rejected TomTom key: when TomTom turns the key away with 401/403 for search or routing, TomTom isn't asked again with that key for the rest of the run.
 
 ## 1.0.246 — 2026-10-28
 
