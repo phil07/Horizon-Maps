@@ -114,3 +114,58 @@ internal fun arrowBitmap(): Bitmap {
     c.drawPath(path, fill)
     return bmp
 }
+
+/**
+ * Your picture as the locator: the same size as the 3D arrow; when it turns with you it is also laid flat on the road
+ * (squashed by the tilt, like the arrow), otherwise it stands upright facing you.
+ */
+internal fun renderCustom(base: Bitmap, yaw: Double, pitch: Double, lie: Boolean, circle: Boolean): Bitmap {
+    val w = 300
+    val bmp = Bitmap.createBitmap(w, w, Bitmap.Config.ARGB_8888)
+    val c = Canvas(bmp)
+    val side = 190f
+    val src = if (circle) {
+        // cut to a circle with a thin white edge, for photos and square logos
+        val n = minOf(base.width, base.height)
+        val out = Bitmap.createBitmap(n, n, Bitmap.Config.ARGB_8888)
+        val oc = Canvas(out)
+        val p = Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG)
+        oc.drawCircle(n / 2f, n / 2f, n / 2f, p)
+        p.xfermode = android.graphics.PorterDuffXfermode(android.graphics.PorterDuff.Mode.SRC_IN)
+        oc.drawBitmap(base, -(base.width - n) / 2f, -(base.height - n) / 2f, p)
+        p.xfermode = null; p.style = Paint.Style.STROKE; p.strokeWidth = n * 0.045f; p.color = 0xFFFFFFFF.toInt()
+        oc.drawCircle(n / 2f, n / 2f, n / 2f - p.strokeWidth / 2f, p)
+        out
+    } else base
+    val sc = side / maxOf(src.width, src.height)
+    val m = android.graphics.Matrix()
+    m.postTranslate(-src.width / 2f, -src.height / 2f)
+    m.postScale(sc, sc)
+    if (lie) {
+        m.postRotate(yaw.toFloat())
+        m.postScale(1f, Math.cos(Math.toRadians(pitch)).toFloat().coerceAtLeast(0.35f))
+    }
+    m.postTranslate(w / 2f, w / 2f)
+    // a soft shadow under it so it stands out on any map colour
+    val sh = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0x55000000; maskFilter = android.graphics.BlurMaskFilter(14f, android.graphics.BlurMaskFilter.Blur.NORMAL) }
+    val shadow = src.extractAlpha()
+    c.save(); c.translate(0f, 6f); c.drawBitmap(shadow, m, sh); c.restore()
+    c.drawBitmap(src, m, Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG))
+    shadow.recycle()
+    if (src !== base) src.recycle()
+    return bmp
+}
+
+private val drawnBottom = java.util.WeakHashMap<Bitmap, Float>()
+
+/** How far below the picture's centre its drawing reaches (in the picture's pixels), measured once per picture. */
+internal fun drawnBelowCentre(b: Bitmap): Float = drawnBottom.getOrPut(b) {
+    val w = b.width; val h = b.height
+    val row = IntArray(w)
+    var bottom = h / 2
+    for (y in h - 1 downTo h / 2) {
+        b.getPixels(row, 0, w, 0, y, w, 1)
+        if (row.any { (it ushr 24) > 40 }) { bottom = y; break }
+    }
+    (bottom - h / 2f).coerceAtLeast(0f)
+}
