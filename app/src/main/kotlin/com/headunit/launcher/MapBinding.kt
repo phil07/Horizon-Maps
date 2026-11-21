@@ -1753,6 +1753,7 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
     /** Small grid cells (about 20 m) of road that have already been searched for lights. */
     private val sigCovered = HashSet<Long>()
     private val sigLock = Any()
+    private val routeGrid = RouteGrid()
     /** Speed cameras found along the route by the same search (the engine turns them into alerts and map badges). */
     private val camAll = LinkedHashMap<Long, LL>()
     /** Gets every speed camera found along routes so far, each time more arrive. */
@@ -1791,42 +1792,14 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
 
     // only the lights on the road you are following are drawn: the route is turned into a grid of small cells, each knowing which
     // bits of the route pass through it, so finding the route near a light is a quick look at its own and neighbouring cells
-    private var cellsFor: List<LL>? = null
-    private val routeCells = HashMap<Long, ArrayList<Int>>()
-    private fun cellKey(lat: Double, lon: Double) = Math.floor(lat / 0.0002).toLong() * 1000003L + Math.floor(lon / 0.0003).toLong()
-
-    private fun rebuildCells(r: List<LL>) {
-        routeCells.clear()
-        for (i in 0 until r.size - 1) {
-            val a = r[i]; val b = r[i + 1]
-            val steps = (Geo.dist(a, b) / 15.0).toInt()
-            var lastK = Long.MIN_VALUE
-            for (k in 0..steps + 1) {
-                val t = k / (steps + 1.0)
-                val key = cellKey(a.lat + (b.lat - a.lat) * t, a.lon + (b.lon - a.lon) * t)
-                if (key == lastK) continue
-                lastK = key
-                val l = routeCells.getOrPut(key) { ArrayList(2) }
-                if (l.isEmpty() || l[l.size - 1] != i) l.add(i)
-            }
-        }
-        cellsFor = r
-    }
-
-    private fun onRoute(p: LL): Boolean {
-        val k = cellKey(p.lat, p.lon)
-        for (dy in -1..1) for (dx in -1..1) if (routeCells.containsKey(k + dy * 1000003L + dx)) return true
-        return false
-    }
-
     private fun signalFeatures(): FeatureCollection {
         val r = main
         signalModels = empty(); signalKept = emptyList()
         if (r.size < 2) return empty()
-        if (cellsFor !== r) rebuildCells(r)
+        routeGrid.ensure(r)
         // only lights that stand on the route's own road (within ~10 m of the line), and at each junction only the first one you reach:
         // a junction usually has a light on every arm, but only the one on your approach matters
-        val near = signalPts.filter { onRoute(it) }
+        val near = signalPts.filter { routeGrid.onRoute(it) }
         if (near.isEmpty()) return empty()
         val cum = DoubleArray(r.size)
         for (i in 1 until r.size) cum[i] = cum[i - 1] + Geo.dist(r[i - 1], r[i])
@@ -1835,8 +1808,7 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
         signalHeading.clear()
         for (p in near) {
             segs.clear()
-            val k = cellKey(p.lat, p.lon)
-            for (dy in -1..1) for (dx in -1..1) routeCells[k + dy * 1000003L + dx]?.let { segs.addAll(it) }
+            routeGrid.segmentsNear(p, segs)
             val kx = Math.cos(Math.toRadians(p.lat)) * 111320.0; val ky = 110574.0
             var bd = 10.0; var bo = -1.0; var bi = -1
             for (i in segs) {
@@ -1932,13 +1904,13 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
                 }
                 fun cellsAlong(a: LL, b: LL, into: MutableCollection<Long>) {
                     val steps = (Geo.dist(a, b) / 15.0).toInt()
-                    for (k in 0..steps + 1) { val t = k / (steps + 1.0); into += cellKey(a.lat + (b.lat - a.lat) * t, a.lon + (b.lon - a.lon) * t) }
+                    for (k in 0..steps + 1) { val t = k / (steps + 1.0); into += RouteGrid.key(a.lat + (b.lat - a.lat) * t, a.lon + (b.lon - a.lon) * t) }
                 }
                 // stretches of route not searched yet, at most 400 points (~20 km) each
                 val chunks = ArrayList<List<LL>>()
                 var cur = ArrayList<LL>()
                 for (i in pts.indices) {
-                    val covered = synchronized(sigLock) { sigCovered.contains(cellKey(pts[i].lat, pts[i].lon)) }
+                    val covered = synchronized(sigLock) { sigCovered.contains(RouteGrid.key(pts[i].lat, pts[i].lon)) }
                     if (covered) { if (cur.size >= 2) chunks += cur; cur = ArrayList(); continue }
                     if (cur.isEmpty() && i > 0) cur += pts[i - 1]
                     cur += pts[i]
@@ -1992,7 +1964,7 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
                     if (found == null) { gaps++; sigFailAt = android.os.SystemClock.uptimeMillis(); continue }
                     // keep only lights near this stretch (the offline search is a box, and the corridor search is a little generous)
                     val keep = found.filter { p ->
-                        val k = cellKey(p.lat, p.lon)
+                        val k = RouteGrid.key(p.lat, p.lon)
                         var hit = false
                         for (dy in -1..1) for (dx in -1..1) if (cells.contains(k + dy * 1000003L + dx)) hit = true
                         hit
