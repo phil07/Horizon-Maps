@@ -48,3 +48,22 @@ internal fun nearestCameraAhead(
     }
     return best?.let { it to bestD }
 }
+
+/** What to sound for the camera ahead: [first] when it first comes into range (once per camera), [second] a short beep about 4 seconds before it (once per camera). */
+internal class CameraAlerts {
+    data class Announce(val first: Boolean, val second: Boolean)
+
+    private val alerted = HashSet<LL>()
+    private var beepNear: LL? = null
+
+    /** [best] is the camera ahead ([dist] metres away), null when none; [speed] in m/s. */
+    fun check(best: LL?, dist: Double, speed: Double): Announce {
+        if (best == null) return Announce(first = false, second = false)
+        if (alerted.size > 100) alerted.clear()
+        val first = alerted.add(best)
+        val fourSec = max(4.0 * speed, 30.0)
+        val second = speed > 2.0 && dist <= fourSec && beepNear != best
+        if (second) beepNear = best
+        return Announce(first, second)
+    }
+}

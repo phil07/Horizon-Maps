@@ -955,9 +955,8 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
     private var limitAt = 0L
     private var limitPos: LL? = null
     internal var cameras: List<LL> = emptyList()
-    private val camAlerted = HashSet<LL>()
-    /** The camera the second, nearer beep was sounded for. */
-    private var camBeepNear: LL? = null
+    /** Which camera sounds were already made (once per camera). */
+    private val camAlerts = CameraAlerts()
     private var drove = false
     private var stillSince = 0L
     /** When the car came to rest near the destination, and when a route came to rest at all (0 = not stopped). */
@@ -3872,13 +3871,10 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
         val best = hit?.first
         val bestD = hit?.second ?: 1e9
         cameraDist = if (best != null) bestD.toInt() else null
-        if (best != null) {
-            if (camAlerted.size > 100) camAlerted.clear()
-            if (camAlerted.add(best)) { chime(android.media.ToneGenerator.TONE_PROP_PROMPT); raiseAlert("camera", Lang.t("Blitzer voraus", "Speed camera ahead")); speak(Lang.t("Blitzer voraus", "Speed camera ahead"), true) }
-            // a short second beep about 4 seconds before the camera (once per camera)
-            val fourSec = max(4.0 * p.speed, 30.0)
-            if (p.speed > 2.0 && bestD <= fourSec && camBeepNear != best) { camBeepNear = best; chime(android.media.ToneGenerator.TONE_PROP_BEEP2) }
-        }
+        val a = camAlerts.check(best, bestD, p.speed)
+        if (a.first) { chime(android.media.ToneGenerator.TONE_PROP_PROMPT); raiseAlert("camera", Lang.t("Blitzer voraus", "Speed camera ahead")); speak(Lang.t("Blitzer voraus", "Speed camera ahead"), true) }
+        // a short second beep about 4 seconds before the camera (once per camera)
+        if (a.second) chime(android.media.ToneGenerator.TONE_PROP_BEEP2)
     }
 
     private fun trackParking(p: Fix) {
