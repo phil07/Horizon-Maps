@@ -1,5 +1,9 @@
 ## Unreleased
 
+### Improved
+- Geschwindigkeitswechsel auf der Karte: Hat die Route für den aktuellen Abschnitt keine Grenze, kommt der nächste Wechsel jetzt aus den Live-Straßendaten, statt zu fehlen.
+  EN: Speed-limit changes on the map: when the route has no limit for the current stretch, the next change now comes from the live road data instead of being missing.
+
 ### Fixed
 - Haltestellen-Schilder auf der Karte: Nach einer neuen Route verschwinden die Schilder der alten Route sofort, und späte Antworten zur alten Route werden nicht mehr angezeigt.
   EN: Stop signs on the map: after a new route the old route's signs disappear at once, and late replies for the old route are no longer shown.

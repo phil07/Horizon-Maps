@@ -3770,7 +3770,7 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
     /** While navigating a TomTom route: the posted limit for exactly where you are on it, updated with every GPS fix. */
     private fun applyRouteLimit(r: Route, prog: Double, p: Fix) {
         val secs = r.limits
-        if (secs.isEmpty()) { routeLimitNow = null; nextLimitMs = null; return }
+        if (secs.isEmpty()) { routeLimitNow = null; if (nextLookRoute !== r) nextLimitMs = null; lookNextLimitAhead(r, prog); return }
         // a few metres ahead, to make up for the GPS being about a second behind
         val at = prog + min(max(p.speed, 0.0) * 0.8, 20.0)
         var lo = 0; var hi = secs.size - 1; var hit: LimitSec? = null
@@ -3781,9 +3781,10 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
             if (at < sc.off) hi = m - 1 else if (at >= sc.end) lo = m + 1 else { hit = sc; hitIdx = m; break }
         }
         // the next posted limit that differs from this one, along the route
+        // no posted limit known for this stretch: the map data takes over, and the next change ahead comes from its look-ahead below
+        if (hit == null) { routeLimitNow = null; if (nextLookRoute !== r) nextLimitMs = null; lookNextLimitAhead(r, prog); return }
         nextLimitMs = null
-        if (hit != null) for (j in hitIdx + 1 until secs.size) if (secs[j].ms != hit.ms) { nextLimitMs = secs[j].ms; nextLimitM = secs[j].off - at; break }
-        if (hit == null) { routeLimitNow = null; return }      // no posted limit known for this stretch: the map data takes over
+        for (j in hitIdx + 1 until secs.size) if (secs[j].ms != hit.ms) { nextLimitMs = secs[j].ms; nextLimitM = secs[j].off - at; break }
         routeLimitNow = hit.ms
         routeLimitAt = System.currentTimeMillis()
         // the other sources outvoted this very value (a sign on the road, say): the vote's answer stays until the route's value changes
@@ -3794,6 +3795,32 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
         if (noLimit) noLimit = false
         checkLimitChange(hit.ms, false)
         limitOkAt = routeLimitAt; limitOkPos = p.pos
+    }
+
+    // no posted limit for this stretch of the route: the next change ahead comes from the live road data (a few points along the
+    // route, 200 m to 1 km on), looked up in the background and again only once the car has moved on or a while has passed
+    private var nextLookRoute: Route? = null
+    private var nextLookProg = -1e9
+    private var nextLookAt = 0L
+
+    private fun lookNextLimitAhead(r: Route, prog: Double) {
+        val now = System.currentTimeMillis()
+        if (nextLookRoute === r && Math.abs(prog - nextLookProg) < 150.0 && now - nextLookAt < 15_000L) return
+        nextLookRoute = r; nextLookProg = prog; nextLookAt = now
+        val cur = speedLimit ?: return
+        scope.launch {
+            val ahead = withContext(Dispatchers.IO) {
+                var found: Pair<Double, Double>? = null
+                for (d in 200..1000 step 200) {
+                    val at = pointAt(r, prog + d).first
+                    val ms = try { lookUpLimit(at, -1.0, null).first?.ms } catch (e: Exception) { null } ?: continue
+                    if (ms > 0.0 && Math.abs(ms - cur) > 0.1) { found = ms to d.toDouble(); break }
+                }
+                found
+            }
+            // (only if this is still the route and the stretch it was looked up for, with no posted limit)
+            if (nextLookRoute === r && routeLimitNow == null) { nextLimitMs = ahead?.first; nextLimitM = ahead?.second ?: 0.0 }
+        }
     }
 
     private fun updateRoadInfo(p: Fix) {
