@@ -530,7 +530,7 @@ object TomTomRest {
                 p.hours = try { OpenHours.fromTomTom(poi) } catch (e: Exception) { null }
                 p.phone = poi.optString("phone").takeIf { it.isNotBlank() }
             }
-            if (out.none { it.name == p.name && Geo.within(it.pos, p.pos, 60) }) out += p
+            if (out.none { it.name == p.name && Geo.within(it.pos, p.pos, 60.0) }) out += p
         }
     }
 
@@ -578,7 +578,7 @@ object TomTomRest {
                 val x = arr.getJSONObject(i)
                 val disp = x.optString("display_name")
                 val p = Place(x.optString("name").ifBlank { disp.substringBefore(',') }, disp.substringAfter(", ", ""), LL(x.getDouble("lat"), x.getDouble("lon"))).town(SearchRank.nominatimTown(x))
-                if (out.none { Geo.within(it.pos, p.pos, 60) }) out += p
+                if (out.none { Geo.within(it.pos, p.pos, 60.0) }) out += p
             }
         } catch (e: Exception) { softFail(e) }
         return out
@@ -1097,7 +1097,7 @@ object OsmSearch {
                     pr.optString("county").takeIf { pr.optString("city").isBlank() } ?: "").filter { it.isNotBlank() }.joinToString(", ")
                 val p = Place(name, sub, LL(co.getDouble(1), co.getDouble(0)))
                     .town(pr.optString("osm_key") == "place" && pr.optString("osm_value") in SearchRank.OSM_TOWNS || pr.optString("type") == "city")
-                if (out.none { it.name == p.name && Geo.within(it.pos, p.pos, 60) }) out += p
+                if (out.none { it.name == p.name && Geo.within(it.pos, p.pos, 60.0) }) out += p
             }
         } catch (e: Exception) { softFail(e) }
         if (out.size < 5) try {
@@ -1110,7 +1110,7 @@ object OsmSearch {
                 val x = arr.getJSONObject(i)
                 val disp = x.optString("display_name")
                 val p = Place(x.optString("name").ifBlank { disp.substringBefore(',') }, disp.substringAfter(", ", ""), LL(x.getDouble("lat"), x.getDouble("lon"))).town(SearchRank.nominatimTown(x))
-                if (out.none { Geo.within(it.pos, p.pos, 60) }) out += p
+                if (out.none { Geo.within(it.pos, p.pos, 60.0) }) out += p
             }
         } catch (e: Exception) { softFail(e) }
         // neither could be reached: say so (the caller shows the saved and downloaded places instead)

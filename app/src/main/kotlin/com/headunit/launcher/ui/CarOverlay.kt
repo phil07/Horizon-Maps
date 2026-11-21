@@ -1105,7 +1105,7 @@ private fun CarChips(engine: NavEngine, actions: CarActions, rows: Int) {
         val saved = remember(rawC, rawF, rawR) {
             val mine = engine.places.customs()
             val favs = engine.places.favouritesNotIn(mine)
-            val recents = engine.places.recents().filter { r -> favs.none { Geo.within(it.pos, r.pos, 60) } && mine.none { Geo.within(it.place.pos, r.pos, 60) } }
+            val recents = engine.places.recents().filter { r -> favs.none { Geo.within(it.pos, r.pos, 60.0) } && mine.none { Geo.within(it.place.pos, r.pos, 60.0) } }
             // only the recent places here: your places and favourites are in the row above, so nothing appears twice
             recents.take(4).map { Triple(it, false, it.name) }
         }
