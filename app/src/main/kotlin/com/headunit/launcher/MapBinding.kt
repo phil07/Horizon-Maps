@@ -816,14 +816,6 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
     }
 
     /** A hexagon path of radius [r] round ([cx], [cy]), pointing up (the neon look's marker shape). */
-    private fun hexPath(cx: Float, cy: Float, r: Float): Path = Path().apply {
-        for (k in 0 until 6) {
-            val a = Math.toRadians(-90.0 + 60.0 * k)
-            val x = cx + r * Math.cos(a).toFloat(); val y = cy + r * Math.sin(a).toFloat()
-            if (k == 0) moveTo(x, y) else lineTo(x, y)
-        }
-        close()
-    }
 
     /** The neon look's marker: a hexagon in [fill] with a dark [inner] mark, and a point below it when [tip] (the destination). */
     private fun neonHex(w: Int, h: Int, cx: Float, cy: Float, r: Float, fill: Int, bolt: Boolean, tip: Boolean): Bitmap {
@@ -3893,31 +3885,9 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
     /** Sprites are drawn at 2.4x; this brings them to the same on-screen size the flat arrow had (the car a little longer). */
     private fun spriteSize(): Float = arrowScale * 1.22f * (if (locatorStyle == "car") 0.28f else 0.31f)
 
-    private fun shade(hex: String, f: Float): Int {
-        val c = try { android.graphics.Color.parseColor(hex) } catch (e: Exception) { -1 }
-        fun ch(v: Int) = (v * f).toInt().coerceIn(0, 255)
-        return android.graphics.Color.rgb(ch(android.graphics.Color.red(c)), ch(android.graphics.Color.green(c)), ch(android.graphics.Color.blue(c)))
-    }
 
     /** A shape with soft corners: every corner of [pts] is replaced by a small curve of radius about [r] (in the same units). */
-    private fun soften(pts: List<Pair<Double, Double>>, r: Double, steps: Int = 5): List<Pair<Double, Double>> {
-        val n = pts.size
-        val out = ArrayList<Pair<Double, Double>>()
-        for (i in 0 until n) {
-            val p0 = pts[(i - 1 + n) % n]; val p1 = pts[i]; val p2 = pts[(i + 1) % n]
-            val d1 = Math.hypot(p1.first - p0.first, p1.second - p0.second); val d2 = Math.hypot(p2.first - p1.first, p2.second - p1.second)
-            val rr = minOf(r, d1 * 0.45, d2 * 0.45)
-            val a = (p1.first + (p0.first - p1.first) * rr / d1) to (p1.second + (p0.second - p1.second) * rr / d1)
-            val b = (p1.first + (p2.first - p1.first) * rr / d2) to (p1.second + (p2.second - p1.second) * rr / d2)
-            for (k in 0..steps) {
-                val t = k / steps.toDouble(); val u = 1 - t
-                out += (u * u * a.first + 2 * u * t * p1.first + t * t * b.first) to (u * u * a.second + 2 * u * t * p1.second + t * t * b.second)
-            }
-        }
-        return out
-    }
 
-    private fun rrect(x0: Double, x1: Double, y0: Double, y1: Double, r: Double) = soften(listOf(x1 to y1, x0 to y1, x0 to y0, x1 to y0), r, 4)
 
     /** One solid piece of the model: a footprint pushed up from [z0] to [z1], in one colour. */
     private class Prism(val pts: List<Pair<Double, Double>>, val z0: Double, val z1: Double, val col: Int)
@@ -4151,10 +4121,6 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
         return bmp
     }
 
-    private fun scaleCol(c: Int, f: Double): Int {
-        fun ch(v: Int) = (v * f).toInt().coerceIn(0, 255)
-        return android.graphics.Color.argb(android.graphics.Color.alpha(c), ch(android.graphics.Color.red(c)), ch(android.graphics.Color.green(c)), ch(android.graphics.Color.blue(c)))
-    }
 
     /**
      * The 3D locator is an Android view laid over the map, not a picture inside it. A new picture is needed every 8 degrees of
