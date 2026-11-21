@@ -6404,7 +6404,7 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
         // (while driving only the rest of the route is asked about: the chargers behind you are of no use, and the lists are capped)
         val candsJob = scope.async { withContext(Dispatchers.IO) { chargersAlong(r, here) } }
         // the heights along the route first (hills change the range a lot)
-        evElevNow(r)
+        ev.evElevNow(r)
         if (route !== r && routes.none { it === r }) { candsJob.cancel(); return null }
         // the range counts as far as this route's speeds, hills, the weather and the safety margin allow (EvModel), not the rated km
         val rf = try {

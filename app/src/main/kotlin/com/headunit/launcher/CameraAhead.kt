@@ -102,7 +102,7 @@ internal fun camerasAlongRoute(r: Route, cams: List<LL>): List<Pair<LL, Double>>
         }
         // a camera that checks the other carriageway (it's known which way it points): not on your route
         val cd = Overpass.camDir[Overpass.camKey(c)]
-        if (off >= 0 && cd != null && bi >= 0 && bi + 1 < pts.size && abs(angDiff(cd, Geo.bearing(pts[bi], pts[bi + 1]))) > 75.0) off = -1.0
+        if (off >= 0 && cd != null && bi >= 0 && bi + 1 < pts.size && abs(Geo.angDiff(cd, Geo.bearing(pts[bi], pts[bi + 1]))) > 75.0) off = -1.0
         if (off >= 0) out += c to off
     }
     out.sortBy { it.second }
