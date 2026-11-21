@@ -473,10 +473,10 @@ internal fun FuelSection(prefs: Prefs, engine: NavEngine) {
 /** What the app has learned about your driving (and an electric car's use), with a button to start again. */
 @Composable
 internal fun LearnedGroup(engine: NavEngine) {
-    var rows by remember { mutableStateOf(engine.learnedSummary()) }
+    var rows by remember { mutableStateOf(engine.ev.learnedSummary()) }
     SGroup(Lang.t("Aus Fahrten gelernt", "Learnt from trips"), footer = Lang.t("Verbessert Ankunftszeit und Reichweite", "Improves arrival time and range")) {
         rows.forEach { (k, v) -> SItem(k, v) }
-        SItem(Lang.t("Gelerntes zurücksetzen", "Reset what was learnt")) { SButton("Zurücksetzen", danger = true) { engine.resetLearned(); rows = engine.learnedSummary() } }
+        SItem(Lang.t("Gelerntes zurücksetzen", "Reset what was learnt")) { SButton("Zurücksetzen", danger = true) { engine.ev.resetLearned(); rows = engine.ev.learnedSummary() } }
     }
 }
 

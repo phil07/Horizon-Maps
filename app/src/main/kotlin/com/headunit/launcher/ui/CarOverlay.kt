@@ -406,7 +406,7 @@ private fun CarScreen(engine: NavEngine, a: android.graphics.Rect?, actions: Car
 
         // the charger power filter: slides out from the left (opened by the button under Einstellungen), pick one and it closes
         // (while driving the list opens beside the filter button further down, not here)
-        val tripFilter = guiding && !previewing && !arriving && engine.isEv
+        val tripFilter = guiding && !previewing && !arriving && engine.ev.isEv
         AnimatedVisibility(engine.chargerFilterOpen && !arriving && !tripFilter, modifier = Modifier.align(Alignment.CenterStart).padding(start = left),
             enter = androidx.compose.animation.slideInHorizontally(tween(220)) { -it } + fadeIn(tween(200)),
             exit = androidx.compose.animation.slideOutHorizontally(tween(200)) { -it } + fadeOut(tween(180))) { CarChargerFilter(engine) }
@@ -718,19 +718,19 @@ private fun EvPill(engine: NavEngine) {
     // the estimate from the last reading, worked on every second: the drive since then comes off the battery (standing still adds nothing)
     val est by androidx.compose.runtime.produceState<Pair<Int, Int?>?>(null, engine) {
         while (true) {
-            value = if (com.headunit.launcher.EvWidget.readAt(engine.prefs) > 0) Math.round(engine.evNowEstimatePct()).toInt() to engine.evEstimateKm() else null
+            value = if (com.headunit.launcher.EvWidget.readAt(engine.prefs) > 0) Math.round(engine.ev.evNowEstimatePct()).toInt() to engine.ev.evEstimateKm() else null
             kotlinx.coroutines.delay(1000L)
         }
     }
     val evPct = est?.first ?: engine.prefs.s(PreferenceKeys.EV_NOW_PCT, "").toIntOrNull()
     val evKm = est?.second ?: engine.prefs.s(PreferenceKeys.EV_NOW_KM, "").toIntOrNull()
     // "ca." once the last real reading is more than 10 minutes old
-    val approx = if (est != null && engine.evEstimateOld()) "ca. " else ""
+    val approx = if (est != null && engine.ev.evEstimateOld()) "ca. " else ""
     Row(Modifier.height(64.dp).panel(10.dp, RoundedCornerShape(32.dp), c.surface).padding(horizontal = 22.dp),
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
         Text(if (evPct != null) "$approx$evPct %" else "– %", color = if (evPct == null) c.sub else if (evPct < 15) Bad else if (evPct < 30) Warn else c.text, fontSize = 28.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
         Text(if (evKm != null) "· $approx$evKm km" else "· – km", color = if (evKm == null) c.sub else c.text, fontSize = 28.sp, maxLines = 1)
-        if (est != null && engine.evCharging()) Text(Lang.t("· lädt", "· charging"), color = Good, fontSize = 22.sp, maxLines = 1)
+        if (est != null && engine.ev.evCharging()) Text(Lang.t("· lädt", "· charging"), color = Good, fontSize = 22.sp, maxLines = 1)
     }
 }
 
@@ -798,8 +798,8 @@ private fun TripCard(engine: NavEngine, fill: Boolean, oneLine: Boolean = false)
             CarStat(Geo.fmtDist(e.dist, engine.imperial), "Entfernung", c.text)
             // the battery and range the car reports now (as the app's chip), then the battery expected at arrival
             // (only on a tall screen: on a wide one the battery and range pill sits above the speed, so they aren't repeated here)
-            if (fill) engine.evNowPct()?.let { p -> CarStat("$p%", "Akku jetzt", if (p < 10) Bad else if (p < 20) Warn else c.text) }
-            if (fill) engine.evNowKm()?.let { k -> CarStat("$k km", "Reichweite", c.text) }
+            if (fill) engine.ev.evNowPct()?.let { p -> CarStat("$p%", "Akku jetzt", if (p < 10) Bad else if (p < 20) Warn else c.text) }
+            if (fill) engine.ev.evNowKm()?.let { k -> CarStat("$k km", "Reichweite", c.text) }
             engine.evArrivalPct()?.let { p -> CarStat("$p%", "Akku Ankunft", if (p < 10) Bad else if (p < 20) Warn else Good) }
         }
         // the whole route at a glance (a text button), and the voice guidance (round: all, alerts only, off; one tap steps on)

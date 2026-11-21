@@ -271,7 +271,7 @@ internal fun BoxScope.RoutePreview(engine: NavEngine) {
             else -> add(Lang.t("Abfahrt +$m Min.", "Leave +$m min"))
         }
         if (ev) {
-            val pctNow = engine.evNowPct() ?: engine.prefs.i(PreferenceKeys.EV_CHARGE_PCT, 80).coerceIn(5, 100)
+            val pctNow = engine.ev.evNowPct() ?: engine.prefs.i(PreferenceKeys.EV_CHARGE_PCT, 80).coerceIn(5, 100)
             add(Lang.t("Akku $pctNow %", "Battery $pctNow%"))
             val selPlan = engine.route?.let { engine.evPlanShown(it) }
             val nStops = if (evPlan.isNotEmpty()) evPlan.size else selPlan?.stops ?: 0
@@ -320,7 +320,7 @@ internal fun BoxScope.RoutePreview(engine: NavEngine) {
     ) {
         val pct = engine.prefs.i(PreferenceKeys.EV_CHARGE_PCT, 80).coerceIn(5, 100)
         val destKm = engine.prefs.i(PreferenceKeys.EV_DEST_KM, 50)
-        val fromWidget = engine.evNowPct() != null
+        val fromWidget = engine.ev.evNowPct() != null
         if (!fromWidget) {
             Text(Lang.t("Akku jetzt", "Battery now"), color = c.sub, fontSize = 13.sp, modifier = Modifier.padding(horizontal = 10.dp))
             StepPill("−") { engine.prefs.put(PreferenceKeys.EV_CHARGE_PCT, (engine.prefs.i(PreferenceKeys.EV_CHARGE_PCT, 80).coerceIn(5, 100) - 1).coerceAtLeast(5)); engine.refreshEvPlan() }

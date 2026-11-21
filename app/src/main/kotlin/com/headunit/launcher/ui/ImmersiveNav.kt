@@ -411,7 +411,7 @@ private fun MapScreen(engine: NavEngine, onSettings: () -> Unit) {
             androidx.compose.runtime.SideEffect { if (spNow > 3.0) stopped = false else if (spNow < 1.0) stopped = true }
             val showZoom = stopped || !engine.following || kotlin.math.abs(engine.zoomOffset) > 0.01
             // electric on a trip: the zoom column stays, with just the charger filter (the zoom buttons come back when you zoom or stop)
-            val evTrip = engine.isEv && engine.route != null && !engine.previewing
+            val evTrip = engine.ev.isEv && engine.route != null && !engine.previewing
             val showSettings = !routing
             val unit = 52.dp * mainButtonScale
             // the top of the speedometer (measured; a fair guess until it has been laid out)
@@ -762,22 +762,22 @@ internal fun ImmCompass(engine: NavEngine, modifier: Modifier = Modifier) {
 internal fun EvNowChip(engine: NavEngine) {
     // the estimate, as on the car screen: the last reading moved on by what has been driven or charged since
     if (com.headunit.launcher.EvWidget.readAt(engine.prefs) <= 0) return
-    val pct = Math.round(engine.evNowEstimatePct()).toInt()
-    val km = engine.evEstimateKm()
-    val age = engine.evNowAgeMin() ?: 0L
+    val pct = Math.round(engine.ev.evNowEstimatePct()).toInt()
+    val km = engine.ev.evEstimateKm()
+    val age = engine.ev.evNowAgeMin() ?: 0L
     val col = if (pct < 10) Bad else if (pct < 20) Warn else Good
     Row(
         Modifier.padding(bottom = 6.dp).clip(RoundedCornerShape(50)).background(Color(0xCC0B0F16)).padding(horizontal = 10.dp, vertical = 5.dp),
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         Box(Modifier.size(8.dp).clip(CircleShape).background(col))
-        Text((if (engine.evEstimateOld()) "ca. " else "") + "$pct %", color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+        Text((if (engine.ev.evEstimateOld()) "ca. " else "") + "$pct %", color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Bold)
         km?.let { Text("· $it km", color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Bold) }
         // charging, from the car maker's cloud (only while that reading is recent)
         if (engine.prefs.s(PreferenceKeys.CLOUD_CHARGING, "") == "1" && System.currentTimeMillis() - (engine.prefs.s(PreferenceKeys.CLOUD_AT, "").toLongOrNull() ?: 0L) < 30 * 60_000L) {
             val m = engine.prefs.s(PreferenceKeys.CLOUD_CHARGE_MIN, "").toIntOrNull()
             Text("· " + Lang.t("lädt", "charging") + (m?.let { " · $it min" } ?: ""), color = Good, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
-        } else if (engine.evCharging()) {
+        } else if (engine.ev.evCharging()) {
             // standing at a charger with a rising reading (see NavEngine.evCharging)
             Text("· " + Lang.t("lädt", "charging"), color = Good, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
         }
