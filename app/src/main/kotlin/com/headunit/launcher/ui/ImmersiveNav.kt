@@ -341,7 +341,7 @@ private fun MapScreen(engine: NavEngine, onSettings: () -> Unit) {
                         // a phone held sideways is short: the home and work tiles come down a little there
                         val chipsDensity = LocalDensity.current
                         CompositionLocalProvider(LocalDensity provides Density(chipsDensity.density * (if (sidewaysPhone(engine)) 0.85f else 1f), chipsDensity.fontScale)) {
-                            ImmChips(engine) { try { focus.requestFocus() } catch (_: Exception) {} }
+                            ImmChips(engine) { try { focus.requestFocus() } catch (e: Exception) { softFail(e) } }
                         }
                         PredictionCard(engine)
                         NoticeCard(engine)

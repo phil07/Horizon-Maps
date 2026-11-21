@@ -1,6 +1,7 @@
 package com.headunit.launcher.ui
 
 import com.headunit.launcher.Lang
+import com.headunit.launcher.softFail
 
 import android.view.ViewGroup
 import android.widget.FrameLayout
@@ -70,7 +71,7 @@ fun Modifier.pressClick(onClick: () -> Unit): Modifier = this.composed {
     val s by androidx.compose.animation.core.animateFloatAsState(if (pressed) 0.93f else 1f, androidx.compose.animation.core.tween(90), label = "press")
     val haptic = androidx.compose.ui.platform.LocalHapticFeedback.current
     this.graphicsLayer { scaleX = s; scaleY = s }.clickable(interactionSource = src, indication = null, onClick = {
-        try { haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.TextHandleMove) } catch (_: Exception) {}
+        try { haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.TextHandleMove) } catch (e: Exception) { softFail(e) }
         onClick()
     })
 }

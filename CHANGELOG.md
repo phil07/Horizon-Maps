@@ -1,12 +1,8 @@
 ## Unreleased
 
-### Improved
-- Akku: Auf dem Handy geht der Bildschirm wie üblich aus, solange du nur die Karte ansiehst. Er bleibt nur an, während eine Route geführt wird. Head Units bleiben wie bisher an.
-  EN: Battery: on a phone the screen goes off as usual while you only look at the map, and stays on only while a route is guided. Head units stay on as before.
-
 ### Fixed
-- Die Karte „nächste 3 km“ wird nicht mehr hoch: Die Angabe bleibt in einer Zeile, und ein langer Name wird stattdessen gekürzt.
-  EN: The "next 3 km" hazard card no longer grows tall: the distance stays on one line, and a long name is cut short instead.
+- Fehler, die die App still überspringt (z. B. Tastatur-Fokus, Haptik, Ladestopp-Abfrage beim Stoppen), werden jetzt im Problembericht mitgezählt.
+  EN: Errors the app quietly skips (e.g. keyboard focus, haptics, saving the battery state when stopping) are now counted in the problem report.
 
 ## 1.0.246 — 2026-10-28
 

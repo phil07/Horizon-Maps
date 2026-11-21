@@ -19,6 +19,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.selects.select
@@ -1564,14 +1565,14 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
     fun stopLocation() {
         // the battery learning state is saved every minute while driving: the last stretch is saved here as well (the phone app going
         // into the background, Android Auto unplugged), so it isn't lost when the app is closed after that
-        if (evLoaded) try { evSave() } catch (_: Exception) {}
-        try { lm?.removeUpdates(this) } catch (_: Exception) {}
+        if (evLoaded) try { evSave() } catch (e: Exception) { softFail(e) }
+        try { lm?.removeUpdates(this) } catch (e: Exception) { softFail(e) }
         lm = null
     }
 
     /** Map options › Close Horizon Nav: any route ends, the GPS stops, and the app is closed so nothing keeps running in the background. */
     fun closeApp() {
-        try { endRoute() } catch (_: Exception) {}
+        try { endRoute() } catch (e: Exception) { softFail(e) }
         stopLocation()
         (ctx as? android.app.Activity)?.finishAndRemoveTask()
         android.os.Process.killProcess(android.os.Process.myPid())
@@ -7344,7 +7345,7 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
     }
 
     /** Chargers along the whole route, with where they are on it (metres) and the detour. */
-    private fun chargersAlong(r: Route, from: Double = 0.0): List<Nearby> {
+    private suspend fun chargersAlong(r: Route, from: Double = 0.0): List<Nearby> {
         val out = ArrayList<Nearby>()
         val minKw = prefs.i(PreferenceKeys.EV_MIN_KW, 50)
         // the power filter from Settings drops chargers known to be slower. Ones of unknown power stay, as a last resort
@@ -7352,7 +7353,7 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
         fun fast(n: Nearby) = minKw <= 0 || n.kw == null || n.kw >= minKw
         try {
             // TomTom's list and the registers are asked at the same time (each is a network call of a second or more)
-            val (tt, reg) = kotlinx.coroutines.runBlocking {
+            val (tt, reg) = coroutineScope {
                 val ttJob = async(Dispatchers.IO) {
                     val l = ArrayList<Nearby>()
                     if (hasKey && online()) {
