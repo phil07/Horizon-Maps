@@ -5211,44 +5211,7 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
         camsRoute = r; camsCount = cams.size
         if (cams.isEmpty()) { routeCams = emptyList(); return }
         scope.launch {
-            val found = withContext(Dispatchers.Default) {
-                // points every 10 m along the route (filled in along long straight stretches, where the route's own points can be
-                // hundreds of metres apart: a camera in between was too far from any point and never shown or warned about),
-                // in a coarse grid so each camera only checks the route nearby
-                val grid = HashMap<Long, ArrayList<Int>>()
-                val pts = ArrayList<LL>(); val offs = ArrayList<Double>()
-                fun key(lat: Double, lon: Double) = Math.floor(lat / 0.002).toLong() * 1000003L + Math.floor(lon / 0.003).toLong()
-                fun add(p: LL, o: Double) { grid.getOrPut(key(p.lat, p.lon)) { ArrayList() }.add(pts.size); pts += p; offs += o }
-                for (n in r.pts.indices) {
-                    add(r.pts[n], r.cum[n])
-                    if (n + 1 < r.pts.size) {
-                        val a = r.pts[n]; val b = r.pts[n + 1]
-                        val len = r.cum[n + 1] - r.cum[n]
-                        val steps = (len / 10.0).toInt()
-                        for (j in 1 until steps) {
-                            val f = j / steps.toDouble()
-                            add(LL(a.lat + (b.lat - a.lat) * f, a.lon + (b.lon - a.lon) * f), r.cum[n] + len * f)
-                        }
-                    }
-                }
-                val out = ArrayList<Pair<LL, Double>>()
-                for (c in cams) {
-                    // within 25 m of the route line (was 45 m): a camera in the next village, just off the road, is not on the route
-                    var bestD = 25.0; var off = -1.0
-                    val k = key(c.lat, c.lon)
-                    var bi = -1
-                    for (dy in -1..1) for (dx in -1..1) grid[k + dy * 1000003L + dx]?.forEach { i ->
-                        val d = Geo.dist(pts[i], c)
-                        if (d < bestD) { bestD = d; off = offs[i]; bi = i }
-                    }
-                    // a camera that checks the other carriageway (it's known which way it points): not on your route
-                    val cd = Overpass.camDir[Overpass.camKey(c)]
-                    if (off >= 0 && cd != null && bi >= 0 && bi + 1 < pts.size && abs(angDiff(cd, Geo.bearing(pts[bi], pts[bi + 1]))) > 75.0) off = -1.0
-                    if (off >= 0) out += c to off
-                }
-                out.sortBy { it.second }
-                out
-            }
+            val found = withContext(Dispatchers.Default) { camerasAlongRoute(r, cams) }
             if (camsRoute === r) { routeCams = found; hazardSig = 0; mergeCams() }
         }
     }
