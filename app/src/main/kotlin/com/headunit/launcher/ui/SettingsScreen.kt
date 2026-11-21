@@ -357,6 +357,7 @@ private fun MapLookSection(prefs: Prefs, engine: NavEngine) {
         DefaultZoomRow(prefs)
         SToggle(prefs, "Fußwege und Pfade", PreferenceKeys.PATHS, true, "Ausschalten für eine übersichtlichere Fahrkarte")
         SToggle(prefs, "Favoriten auf der Karte", PreferenceKeys.FAV_ON_MAP, true, "Gelbe Sterne mit Namen. Beim Fahren ohne Namen")
+        SSlider("Symbole gespeicherter Orte", prefs.i(PreferenceKeys.SAVED_ICON_SIZE, 100).toFloat(), 50f..200f, " %", "Zuhause, Arbeit und markierte Orte", reset = 100f) { prefs.put(PreferenceKeys.SAVED_ICON_SIZE, it.toString()) }
         SToggle(prefs, "Glaskarten", PreferenceKeys.GLASS, true, "Halbtransparente Karten")
         SChoice("Mapbox-Logo-Position", listOf("tl" to "Oben links", "tr" to "Oben rechts", "bl" to "Unten links", "br" to "Unten rechts"), prefs.s(PreferenceKeys.MAPBOX_LOGO, "tr"),
             "Ecke für das geforderte Mapbox-Logo wählen") { prefs.put(PreferenceKeys.MAPBOX_LOGO, it) }

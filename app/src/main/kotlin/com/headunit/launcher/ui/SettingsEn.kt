@@ -176,6 +176,8 @@ internal object SettingsEn {
         "Wetter" to "Weather",
         "Wettereffekte auf der Karte" to "Weather effects on the map",
         "Favoriten auf der Karte" to "Favourites on the map",
+        "Symbole gespeicherter Orte" to "Saved places icons",
+        "Zuhause, Arbeit und markierte Orte" to "Home, Work and starred places",
         "Gelbe Sterne mit Namen. Beim Fahren ohne Namen" to "Yellow stars with names. Without names while driving",
         "Name für den Favoriten" to "Name for the favourite",
         "Regen auf der Karte" to "Rain on the map",

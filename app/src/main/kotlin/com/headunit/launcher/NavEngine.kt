@@ -201,6 +201,21 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
         favShown = if (prefs.b(PreferenceKeys.FAV_ON_MAP, true)) places.favourites() else emptyList()
         val guiding = route != null && !previewing
         map.setFavourites(favShown, withNames = !guiding)
+        pushSaved()
+    }
+
+    /** Home, Work and starred places of Your places, as symbols on the map; a tap opens the place's card. */
+    private var savedShown: List<Place> = emptyList()
+
+    private fun pushSaved() {
+        val pins = ArrayList<MapBinding.SavedPin>()
+        val shown = ArrayList<Place>()
+        places.slot("home")?.let { pins += MapBinding.SavedPin(it.pos, MapBinding.SavedKind.HOME); shown += it }
+        places.slot("work")?.let { pins += MapBinding.SavedPin(it.pos, MapBinding.SavedKind.WORK); shown += it }
+        for (lp in places.customs()) if (lp.starred) { pins += MapBinding.SavedPin(lp.place.pos, MapBinding.SavedKind.STAR); shown += lp.place }
+        savedShown = shown
+        map.setSavedPins(pins, prefs.i(PreferenceKeys.SAVED_ICON_SIZE, 100).coerceIn(50, 200) / 100.0)
+        map.onSavedTap = { i -> savedShown.getOrNull(i)?.let { showPick(it.pos, it.name) } }
     }
 
     /** The name box after a place is saved as a favourite (see ImmersiveNav). */
@@ -1083,7 +1098,7 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
         map.onChargerTap = { s -> chargerTapped(s) }
         // a favourite's star: its card, with Go (or Als Stopp on a trip)
         map.onFavTap = { i -> favShown.getOrNull(i)?.let { showPick(it.pos, it.name) } }
-        places.onFavChanged = { pushFavourites() }
+        places.onSavedChanged = { pushFavourites() }
         pushFavourites()
         // the parked-car spot is no longer used (the app lives in the car): drop any old one
         if (prefs.s(PreferenceKeys.PLACE_PARKED, "").isNotBlank()) places.clearParked()
@@ -5030,7 +5045,8 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
         var coverL = 0.0; var coverR = 0.0
         for (p in panels) {
             if (p[2] - p[0] < 0.02 || p[3] - p[1] < 0.02) continue
-            if (p[1] < y + band && p[3] > y - band) {
+            // a card that ends above the arrow doesn't move it (the band only widens what counts beside it)
+            if (p[1] < y + band && p[3] > y) {
                 if (p[0] + p[2] < 1.0) coverL = max(coverL, p[2].toDouble()) else coverR = max(coverR, 1.0 - p[0])
             }
         }

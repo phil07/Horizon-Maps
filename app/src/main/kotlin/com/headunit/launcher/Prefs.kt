@@ -52,6 +52,8 @@ internal object PreferenceKeys {
     const val FAV_ON_MAP = "favmap"
     /** How the favourites are listed: "az" (alphabetical, the default) or "near" (nearest first). */
     const val FAV_SORT = "favsort"
+    /** The size of the symbols of Home, Work and starred places on the map, in percent. */
+    const val SAVED_ICON_SIZE = "savedicon"
     /** Rain, snow and fog on the map, each on its own (all on by default; the master switch is RAIN_EFFECTS). */
     const val FX_RAIN = "fxrain"
     const val FX_SNOW = "fxsnow"

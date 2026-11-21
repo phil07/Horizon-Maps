@@ -2421,6 +2421,12 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
             .iconImage(Expression.get("img")).iconAllowOverlap(true).iconIgnorePlacement(true)
             .iconPitchAlignment(IconPitchAlignment.VIEWPORT).iconEmissiveStrength(1.0).iconAnchor(IconAnchor.BOTTOM).iconSize(0.6))
         pushFav()
+        savedImgs.clear()
+        addS(st, GeoJsonSource.Builder("dl-saved").featureCollection(empty()).build())
+        addL(st, SymbolLayer("dl-saved", "dl-saved").inSlot(TOP)
+            .iconImage(Expression.get("img")).iconAllowOverlap(true).iconIgnorePlacement(true)
+            .iconPitchAlignment(IconPitchAlignment.VIEWPORT).iconEmissiveStrength(1.0).iconAnchor(IconAnchor.BOTTOM).iconSize(1.0))
+        pushSaved()
         chainImgs.clear()
         addS(st, GeoJsonSource.Builder("dl-chain").featureCollection(empty()).build())
         addL(st, SymbolLayer("dl-chain", "dl-chain").inSlot(TOP)
@@ -2830,6 +2836,82 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
     fun setFavourites(list: List<Place>, withNames: Boolean) { main0.post { favPins = list; favNames = withNames; pushFav() } }
 
     private fun favImg(p: Place) = "dl-fav-" + (if (favNames) "n" else "s") + "-" + p.name.hashCode()
+
+    // ---- Home, Work and starred places: a house on blue, a briefcase on amber, a star; a tap opens the place ----
+    enum class SavedKind { HOME, WORK, STAR }
+    class SavedPin(val pos: LL, val kind: SavedKind)
+    var onSavedTap: ((Int) -> Unit)? = null
+    private var savedPins: List<SavedPin> = emptyList()
+    private var savedScale = 1.0
+    private val savedImgs = HashSet<String>()
+
+    /** [scale] is the size of the symbols as a share of the usual (1.0 = 100 %). */
+    fun setSavedPins(list: List<SavedPin>, scale: Double) { main0.post { savedPins = list; savedScale = scale; pushSaved() } }
+
+    private fun savedImg(k: SavedKind) = "dl-saved-" + k.name + "-" + Math.round(savedScale * 100)
+
+    private fun pushSaved() {
+        val st = style ?: return
+        val s = src("dl-saved") ?: return
+        try {
+            for (k in savedPins) { val id = savedImg(k.kind); if (savedImgs.add(id)) addImg(st, id, savedBitmap(k.kind)) }
+            s.featureCollection(FeatureCollection.fromFeatures(savedPins.map { p ->
+                Feature.fromGeometry(Point.fromLngLat(p.pos.lon, p.pos.lat)).also { it.addStringProperty("img", savedImg(p.kind)) }
+            }))
+        } catch (e: Throwable) { softFail(e) }
+    }
+
+    private fun savedBitmap(k: SavedKind): Bitmap {
+        val d = 44f * savedScale.toFloat()
+        val bmp = Bitmap.createBitmap(d.toInt().coerceAtLeast(1), d.toInt().coerceAtLeast(1), Bitmap.Config.ARGB_8888)
+        val c = Canvas(bmp)
+        val ring = Paint(Paint.ANTI_ALIAS_FLAG)
+        val white = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xFFFFFFFF.toInt(); style = Paint.Style.FILL }
+        val m = d / 2f
+        when (k) {
+            SavedKind.HOME -> {
+                ring.color = 0xFF2F6FED.toInt(); c.drawCircle(m, m, m - 1f, ring)
+                val roof = Path().apply { moveTo(m, d * 0.2f); lineTo(d * 0.76f, d * 0.48f); lineTo(d * 0.24f, d * 0.48f); close() }
+                c.drawPath(roof, white)
+                c.drawRect(RectF(d * 0.32f, d * 0.46f, d * 0.68f, d * 0.8f), white)
+            }
+            SavedKind.WORK -> {
+                ring.color = 0xFFF5A623.toInt(); c.drawCircle(m, m, m - 1f, ring)
+                val dark = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xFF3A2A00.toInt() }
+                c.drawRoundRect(RectF(d * 0.22f, d * 0.38f, d * 0.78f, d * 0.74f), 3f, 3f, dark)
+                c.drawRect(RectF(d * 0.4f, d * 0.26f, d * 0.6f, d * 0.4f), Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xFF3A2A00.toInt(); style = Paint.Style.STROKE; strokeWidth = 3f * savedScale.toFloat() })
+            }
+            SavedKind.STAR -> {
+                val star = Path()
+                val big = m - 3f; val small = big * 0.45f
+                for (i in 0 until 10) {
+                    val rad = if (i % 2 == 0) big else small
+                    val a = -Math.PI / 2 + i * Math.PI / 5
+                    val x = (m + rad * Math.cos(a)).toFloat(); val y = (m + rad * Math.sin(a)).toFloat()
+                    if (i == 0) star.moveTo(x, y) else star.lineTo(x, y)
+                }
+                star.close()
+                c.drawPath(star, Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xFFFFD60A.toInt() })
+                c.drawPath(star, Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xFF6B5300.toInt(); style = Paint.Style.STROKE; strokeWidth = 3f; strokeJoin = Paint.Join.ROUND })
+            }
+        }
+        return bmp
+    }
+
+    /** The saved symbol nearest the tap (within about a finger's width). */
+    private fun savedAt(sp: android.graphics.PointF): Int? {
+        val ps = savedPins
+        if (ps.isEmpty()) return null
+        val dp = mapView.resources.displayMetrics.density
+        val px = pixels(ps.map { it.pos })
+        if (px.size != ps.size) return null
+        var best: Int? = null; var bd = 30.0 * dp
+        for (k in ps.indices) {
+            val d = Math.hypot(px[k].x - sp.x, px[k].y - 16 * dp - sp.y)
+            if (d < bd) { bd = d; best = k }
+        }
+        return best
+    }
 
     private fun pushFav() {
         val st = style ?: return
@@ -4929,6 +5011,7 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
         chainAt(sp)?.let { onChainTap?.invoke(it); return true }
         // a favourite's star
         favAt(sp)?.let { onFavTap?.invoke(it); return true }
+        savedAt(sp)?.let { onSavedTap?.invoke(it); return true }
         // a charge point on the map (drawn above the route, so it comes first)
         nearestCharger(sp)?.let { onChargerTap?.invoke(it); return true }
         // choosing a route: a tap on one of the other routes' lines (see onPreviewTap)

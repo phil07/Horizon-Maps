@@ -38,7 +38,7 @@ class PlaceStore(private val prefs: Prefs) {
     private fun same(a: Place, b: Place) = Geo.within(a.pos, b.pos, 60)
 
     fun slot(name: String): Place? = readOne("place_$name")
-    fun setSlot(name: String, p: Place) = prefs.put("place_$name", enc(p).toString())
+    fun setSlot(name: String, p: Place) { prefs.put("place_$name", enc(p).toString()); onSavedChanged?.invoke() }
 
 
     /** Your own labelled places, in the order you added them (shown as pills after Home and Work). */
@@ -52,6 +52,7 @@ class PlaceStore(private val prefs: Prefs) {
     }
 
     private fun writeCustoms(list: List<LabeledPlace>) {
+        onSavedChanged?.invoke()
         val a = JSONArray()
         list.forEach { a.put(enc(it.place).put("l", it.label).put("s", it.starred).put("f", it.folder)) }
         prefs.put(PreferenceKeys.PLACES_CUSTOM, a.toString())
@@ -97,8 +98,8 @@ class PlaceStore(private val prefs: Prefs) {
     /** The favourites that aren't already in Your places ([customs]), so a place shows once. */
     fun favouritesNotIn(customs: List<LabeledPlace>): List<Place> =
         favourites().filter { f -> customs.none { Geo.within(it.place.pos, f.pos, 60) } }
-    /** Called when the favourites change (the map's stars follow it). */
-    var onFavChanged: (() -> Unit)? = null
+    /** Called when the saved places change: favourites, Your places, Home and Work (the map's symbols follow it). */
+    var onSavedChanged: (() -> Unit)? = null
 
     fun toggleFavourite(p: Place): Boolean {
         val cur = savedFavourites()
@@ -108,7 +109,7 @@ class PlaceStore(private val prefs: Prefs) {
         } else {
             writeList("places_fav", (listOf(p) + cur).take(60)); true
         }
-        onFavChanged?.invoke()
+        onSavedChanged?.invoke()
         return on
     }
 
@@ -132,7 +133,7 @@ class PlaceStore(private val prefs: Prefs) {
         writeList("places_fav", savedFavourites().filterNot { it == near })
         addCustom(near.name, near)
         if (folder.isNotBlank()) setFolder(near.name.trim().take(24).ifBlank { near.name.take(24) }, folder)
-        onFavChanged?.invoke()
+        onSavedChanged?.invoke()
     }
 
     /** Moves every favourite into Your places, in a "Favoriten" folder there. */
@@ -142,7 +143,7 @@ class PlaceStore(private val prefs: Prefs) {
             setFolder(f.name.trim().take(24).ifBlank { f.name.take(24) }, "Favoriten")
         }
         writeList("places_fav", emptyList())
-        onFavChanged?.invoke()
+        onSavedChanged?.invoke()
     }
 
     /** Gives a favourite a name of your own (it stays in the same place in the list). */
@@ -150,7 +151,7 @@ class PlaceStore(private val prefs: Prefs) {
         val n = name.trim().take(40)
         if (n.isEmpty()) return
         writeList("places_fav", savedFavourites().map { if (same(it, p)) it.copy(name = n) else it })
-        onFavChanged?.invoke()
+        onSavedChanged?.invoke()
     }
 
     /** Recents saved while the habit suggestion still put "Meist gegen 12:02" in the subtitle: that text is no address, so it is dropped. */
@@ -159,7 +160,7 @@ class PlaceStore(private val prefs: Prefs) {
     }
     /** Takes one place off the recent list (it's still remembered for searching without signal). */
     fun removeRecent(p: Place) = writeList("places_recent", recents().filterNot { same(it, p) })
-    fun clearSlot(name: String) = prefs.put("place_$name", "")
+    fun clearSlot(name: String) { prefs.put("place_$name", ""); onSavedChanged?.invoke() }
     fun clearParked() = prefs.put(PreferenceKeys.PLACE_PARKED, "")
     fun clearFavourites() = prefs.put(PreferenceKeys.PLACES_FAVOURITES, "")
     /** Forgets recent destinations and the places remembered for searching without signal. */

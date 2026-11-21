@@ -1,8 +1,14 @@
 ## Unreleased
 
-### Improved
-- Problemberichte nennen auch die Fehler, bei denen die App ohne Unterbrechung weitergelaufen ist: wie oft jede Art aufgetreten ist und die letzten Worte dazu.
-  EN: Problem reports also list the failures the app carried on past without stopping: how often each kind happened and the last words of each.
+### New
+- Zuhause, Arbeit und markierte Orte aus Deine Orte erscheinen auf der Karte: Zuhause als blaues Haus, Arbeit als gelber Koffer, markierte Orte als Stern. Ein Tipp öffnet den Ort mit „Los“. Die Größe lässt sich unter Einstellungen › Karte › Symbole gespeicherter Orte einstellen.
+  EN: Home, Work and starred places from Your places now show on the map: Home as a house on blue, Work as a briefcase on amber, starred places as a star. A tap opens the place with "Go". The size is under Settings › Map › Saved places icons.
+
+### Fixed
+- Die grauen Straßen am Abbiegepfeil stehen jetzt auf 45 Grad genau, auf der Seite, auf der sie wirklich liegen, statt in einem schiefen Winkel neben dem Pfeil.
+  EN: The faded roads beside the turn arrow now sit at 45 degrees, on the side they really are, instead of at an odd angle beside the arrow.
+- Der Pfeil bleibt in der Mitte, wenn die Suchliste eingeklappt ist: Was oberhalb des Pfeils endet, schiebt ihn nicht mehr zur Seite.
+  EN: The arrow stays in the middle when the recents panel folds away: anything that ends above the arrow no longer pushes it to the side.
 
 ## 1.0.246 — 2026-10-28
 

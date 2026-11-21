@@ -322,7 +322,9 @@ fun androidx.compose.ui.graphics.drawscope.DrawScope.drawManeuverArrow(
         val ringRect = Rect(Offset((cx - rr) * s, (cy - rr) * s), Size(rr * 2f * s, rr * 2f * s))
         val ringStroke = Stroke(width = 3.5f * s, cap = StrokeCap.Round)
         drawCircle(color.copy(alpha = 0.3f), rr * s, p(cx, cy), style = ringStroke)
-        for (o in otherExits) if (o.isFinite()) {
+        for (o0 in otherExits) if (o0.isFinite()) {
+            // the faded roads sit at the nearest 45 degrees (the side they really are on), like the arrow's own angles
+            val o = Math.round(o0 / 45f) * 45f
             val a = Math.toRadians((o - 90f).toDouble())
             val ox = kotlin.math.cos(a).toFloat(); val oy = kotlin.math.sin(a).toFloat()
             drawLine(color.copy(alpha = 0.4f), p(cx + ox * (rr + 1.5f), cy + oy * (rr + 1.5f)), p(cx + ox * (rr + 9f), cy + oy * (rr + 9f)), 3.5f * s, StrokeCap.Round)
