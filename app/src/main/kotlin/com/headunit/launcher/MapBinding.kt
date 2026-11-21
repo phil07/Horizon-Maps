@@ -4147,23 +4147,12 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
         return coverNow
     }
 
-    /** Camera padding (left, top, right, bottom) for a locator place given as fractions, within [viewInset]. */
-    private fun pads(topF: Double, leftF: Double): DoubleArray {
-        val w = mapView.width.toDouble(); val h = mapView.height.toDouble()
-        val tf = min(topF, maxTopFrac)
-        val i = viewInset ?: return doubleArrayOf(w * max(0.0, leftF), h * tf, w * max(0.0, -leftF), 0.0)
-        val bot = i.bottom + min(cover(), (h - i.top - i.bottom) * 0.55)
-        val vw = max(1.0, w - i.left - i.right); val vh = max(1.0, h - i.top - bot)
-        return doubleArrayOf(i.left + vw * max(0.0, leftF), i.top + vh * tf, i.right + vw * max(0.0, -leftF), bot)
-    }
+    /** Camera padding (left, top, right, bottom) for a locator place given as fractions, within [viewInset] (see CameraPadding). */
+    private fun pads(topF: Double, leftF: Double): DoubleArray =
+        CameraPadding.pads(mapView.width.toDouble(), mapView.height.toDouble(), viewInset, maxTopFrac, topF, leftF) { cover() }
 
-    /** Mapbox's padding is (top, left, bottom, right); the app's is (left, top, right, bottom). Kept inside the view so the map never refuses it. */
-    private fun edge(pd: DoubleArray): EdgeInsets {
-        val w = max(1.0, mapView.width.toDouble()); val h = max(1.0, mapView.height.toDouble())
-        val l = pd[0].coerceIn(0.0, w * 0.95); val r = pd[2].coerceIn(0.0, max(0.0, w * 0.95 - l))
-        val t = pd[1].coerceIn(0.0, h * 0.95); val b = pd[3].coerceIn(0.0, max(0.0, h * 0.95 - t))
-        return EdgeInsets(t, l, b, r)
-    }
+    /** The camera padding as Mapbox's insets. */
+    private fun edge(pd: DoubleArray): EdgeInsets = CameraPadding.edge(pd, mapView.width.toDouble(), mapView.height.toDouble())
 
     fun cameraTo(c: LL, bearing: Double?, tilt: Double, zoom: Double, ms: Int, topPadFraction: Double, leftPadFraction: Double = 0.0) {
         val pd = pads(topPadFraction, leftPadFraction)
