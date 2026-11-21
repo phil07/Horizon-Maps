@@ -306,7 +306,7 @@ internal fun BoxScope.RoutePreview(engine: NavEngine) {
         Modifier.floating(50.dp).horizontalScroll(rememberScrollState()).padding(6.dp),
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp),
     ) {
-        Text(stringResource(R.string.ui_054), color = c.sub, fontSize = 13.sp, modifier = Modifier.padding(horizontal = 10.dp))
+        Text(Lang.t("Stopps", "Stops"), color = c.sub, fontSize = 13.sp, modifier = Modifier.padding(horizontal = 10.dp))
         if (engine.prefs.s(PreferenceKeys.FUEL_TYPE, "E10") == "EV") Pill(Lang.t("+ Ladesäule", "+ Charger"), engine.stopMode && engine.nearbyKind == "charging", { engine.stopMode = true; engine.loadNearby("charging", false) })
         else Pill(Lang.t("+ Tanken", "+ Fuel"), engine.stopMode && engine.nearbyKind == "fuel", { engine.stopMode = true; engine.loadNearby("fuel", false) })
         Pill(if (engine.via.isEmpty()) Lang.t("+ Stopp", "+ Stop") else Lang.t("Stopps bearbeiten", "Edit stops"), false, { engine.stopsEditor = true })
@@ -322,7 +322,7 @@ internal fun BoxScope.RoutePreview(engine: NavEngine) {
         val destKm = engine.prefs.i(PreferenceKeys.EV_DEST_KM, 50)
         val fromWidget = engine.evNowPct() != null
         if (!fromWidget) {
-            Text(stringResource(R.string.ui_007), color = c.sub, fontSize = 13.sp, modifier = Modifier.padding(horizontal = 10.dp))
+            Text(Lang.t("Akku jetzt", "Battery now"), color = c.sub, fontSize = 13.sp, modifier = Modifier.padding(horizontal = 10.dp))
             StepPill("−") { engine.prefs.put(PreferenceKeys.EV_CHARGE_PCT, (engine.prefs.i(PreferenceKeys.EV_CHARGE_PCT, 80).coerceIn(5, 100) - 1).coerceAtLeast(5)); engine.refreshEvPlan() }
             Text("$pct%", color = c.text, fontSize = 16.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 4.dp))
             StepPill("+") { engine.prefs.put(PreferenceKeys.EV_CHARGE_PCT, (engine.prefs.i(PreferenceKeys.EV_CHARGE_PCT, 80).coerceIn(5, 100) + 1).coerceAtMost(100)); engine.refreshEvPlan() }
@@ -340,15 +340,15 @@ internal fun BoxScope.RoutePreview(engine: NavEngine) {
         Column(m) {
             val d = engine.dest
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(stringResource(R.string.ui_012), color = c.sub, fontSize = 12.sp, modifier = Modifier.weight(1f, fill = false))
+                Text(Lang.t("Ziel", "Destination"), color = c.sub, fontSize = 12.sp, modifier = Modifier.weight(1f, fill = false))
                 if (d != null) Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 val fav = engine.places.isFavourite(d)
                 Icon(if (fav) Icons.Rounded.Star else Icons.Rounded.StarBorder, Lang.t("Favorit", "Favourite"), tint = if (fav) Warn else c.sub,
-                    modifier = Modifier.size(22.dp).clickable { engine.toast(if (engine.places.toggleFavourite(d)) engine.str(R.string.toast_065) else engine.str(R.string.rest_1253), 2000) })
+                    modifier = Modifier.size(22.dp).clickable { engine.toast(if (engine.places.toggleFavourite(d)) engine.Lang.t("Zu Favoriten hinzugefügt", "Saved to favourites") else engine.Lang.t("Aus den Favoriten entfernt", "Removed from favourites"), 2000) })
                 Icon(Icons.Rounded.Home, Lang.t("Als Zuhause festlegen", "Set as home"), tint = c.sub,
-                    modifier = Modifier.size(22.dp).clickable { engine.places.setSlot("home", d); engine.toast(engine.str(R.string.rest_1263, d.name), 2500) })
+                    modifier = Modifier.size(22.dp).clickable { engine.places.setSlot("home", d); engine.toast(engine.Lang.f("Zuhause gesetzt auf %1\$s", "Home set to %1\$s", d.name), 2500) })
                 Icon(Icons.Rounded.Work, Lang.t("Als Arbeit festlegen", "Set as work"), tint = c.sub,
-                    modifier = Modifier.size(22.dp).clickable { engine.places.setSlot("work", d); engine.toast(engine.str(R.string.rest_1262, d.name), 2500) })
+                    modifier = Modifier.size(22.dp).clickable { engine.places.setSlot("work", d); engine.toast(engine.Lang.f("Arbeit gesetzt auf %1\$s", "Work set to %1\$s", d.name), 2500) })
                 var saving by remember { mutableStateOf(false) }
                 val mine = engine.places.customAt(d) != null
                 Icon(Icons.Rounded.BookmarkAdd, Lang.t("Mit Namen speichern", "Save with a name"), tint = if (mine) c.accent else c.sub, modifier = Modifier.size(26.dp).clickable { saving = true })
@@ -422,7 +422,7 @@ internal fun BoxScope.RoutePreview(engine: NavEngine) {
             // instead of being cut off at both ends
             var startFs by remember(narrowP) { mutableStateOf(17f) }
             Column(Modifier.padding(horizontal = 12.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(stringResource(R.string.ui_052), color = Color.White, fontSize = startFs.sp, fontWeight = FontWeight.Bold, maxLines = 1, softWrap = false,
+                Text(Lang.t("Navigation starten", "Start navigation"), color = Color.White, fontSize = startFs.sp, fontWeight = FontWeight.Bold, maxLines = 1, softWrap = false,
                     onTextLayout = { if (it.hasVisualOverflow && startFs > 11f) startFs -= 1f })
                 Text(if (planHold) Lang.t("Für später geplant", "Planned for later") else if (hold) Lang.t("Zum Starten tippen", "Tap to start") else if (autoStart) Lang.t("Start in ${kotlin.math.ceil((1f - progress.value) * (countdownMs / 1000f)).toInt()} s", "Starting in ${kotlin.math.ceil((1f - progress.value) * (countdownMs / 1000f)).toInt()} s") else Lang.t("Zum Starten tippen", "Tap to start"), color = Color.White.copy(alpha = 0.85f), fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
@@ -523,14 +523,14 @@ internal fun ArrivalCard(engine: NavEngine, a: ArrivalInfo, modifier: Modifier =
         Box(Modifier.size(64.dp).clip(androidx.compose.foundation.shape.CircleShape).background(Good.copy(alpha = 0.18f)), contentAlignment = Alignment.Center) {
             Icon(Icons.Rounded.Check, null, tint = Good, modifier = Modifier.size(38.dp))
         }
-        Text(stringResource(R.string.ui_072), color = c.sub, fontSize = 14.sp)
+        Text(Lang.t("Du bist angekommen", "You\'ve arrived"), color = c.sub, fontSize = 14.sp)
         Text(a.name, color = c.text, fontSize = 24.sp, fontWeight = FontWeight.Bold, maxLines = 2, overflow = TextOverflow.Ellipsis)
         if (a.side.isNotEmpty()) Text(Lang.t("Ziel liegt ${a.side}", "On the " + (if (a.side == "links") "left" else "right")), color = c.accent, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
         Row(Modifier.fillMaxWidth().padding(vertical = 6.dp), horizontalArrangement = Arrangement.SpaceEvenly) {
-            ArrivalStat(Geo.fmtDist(a.dist, imp), stringResource(R.string.ui_093))
-            ArrivalStat(Geo.fmtDur(a.secs), stringResource(R.string.ui_092))
+            ArrivalStat(Geo.fmtDist(a.dist, imp), Lang.t("Entfernung", "Distance"))
+            ArrivalStat(Geo.fmtDur(a.secs), Lang.t("Zeit", "Time"))
             // (the short unit: the spoken "Kilometer pro Stunde" made the figure too wide for the card)
-            ArrivalStat("${Math.round(a.avgMs * k)} ${if (imp) "mph" else "km/h"}", stringResource(R.string.ui_096))
+            ArrivalStat("${Math.round(a.avgMs * k)} ${if (imp) "mph" else "km/h"}", Lang.t("Durchschnitt", "Average"))
         }
         engine.arrivalParking?.let { pk ->
             Row(
@@ -539,12 +539,12 @@ internal fun ArrivalCard(engine: NavEngine, a: ArrivalInfo, modifier: Modifier =
             ) {
                 Icon(Icons.Rounded.LocalParking, null, tint = Color(0xFF4C8DFF), modifier = Modifier.size(26.dp))
                 Column(Modifier.padding(start = 12.dp).weight(1f)) {
-                    Text(stringResource(R.string.ui_034), color = c.sub, fontSize = 12.sp)
+                    Text(Lang.t("Nächster Parkplatz", "Nearest parking"), color = c.sub, fontSize = 12.sp)
                     Text(pk.place.name, color = c.text, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
                 ParkSpaces(pk)
                 Text(Geo.fmtDist(pk.dist, imp), color = c.sub, fontSize = 13.sp, modifier = Modifier.padding(horizontal = 8.dp))
-                Text(stringResource(R.string.ui_019), color = c.accent, fontSize = 15.sp, fontWeight = FontWeight.Bold)
+                Text(Lang.t("Los", "Go"), color = c.accent, fontSize = 15.sp, fontWeight = FontWeight.Bold)
             }
         }
         // Parkuhr: a reminder 10 minutes before the parking time ends, with the walk back to the car

@@ -63,7 +63,7 @@ internal fun CarConnectedScreen(engine: NavEngine, onShowMap: () -> Unit, onSett
                 }
                 ImmPill(Lang.t("Route beenden", "End route"), { engine.endRoute() }, icon = Icons.Rounded.Close)
             } else {
-                Text(stringResource(R.string.ui_038),
+                Text(Lang.t("Ziel auf dem Autodisplay auswählen oder einen Ort aus einer beliebigen App an Horizon Nav teilen, dann erscheint er dort.", "Pick where to go on the car screen, or share a place to Horizon Nav from any app and it appears there."),
                     color = c.sub, fontSize = 15.sp, textAlign = TextAlign.Center)
             }
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {

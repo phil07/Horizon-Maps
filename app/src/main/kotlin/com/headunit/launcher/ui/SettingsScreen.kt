@@ -153,7 +153,7 @@ private fun SettingsBody(prefs: Prefs, engine: NavEngine, onClose: () -> Unit) {
                 Box(Modifier.size(46.dp).clip(CircleShape).background(c.tile).pressClick(onClose), contentAlignment = Alignment.Center) {
                     Icon(Icons.Rounded.ArrowBack, "Zurück zur Karte", tint = c.text, modifier = Modifier.size(24.dp))
                 }
-                Text(stringResource(R.string.ui_048), color = c.text, fontSize = 24.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(start = 14.dp))
+                Text(Lang.t("Einstellungen", "Settings"), color = c.text, fontSize = 24.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(start = 14.dp))
             }
             // search every setting by name
             Row(
@@ -162,7 +162,7 @@ private fun SettingsBody(prefs: Prefs, engine: NavEngine, onClose: () -> Unit) {
             ) {
                 Icon(Icons.Rounded.Search, null, tint = c.sub, modifier = Modifier.size(20.dp))
                 Box(Modifier.weight(1f).padding(start = 10.dp), contentAlignment = Alignment.CenterStart) {
-                    if (query.isEmpty()) Text(stringResource(R.string.ui_045), color = c.sub, fontSize = 15.sp)
+                    if (query.isEmpty()) Text(Lang.t("Sucheinstellungen", "Search settings"), color = c.sub, fontSize = 15.sp)
                     androidx.compose.foundation.text.BasicTextField(
                         value = query, onValueChange = { query = it; highlight = null }, singleLine = true,
                         textStyle = androidx.compose.ui.text.TextStyle(color = c.text, fontSize = 15.sp),
@@ -175,7 +175,7 @@ private fun SettingsBody(prefs: Prefs, engine: NavEngine, onClose: () -> Unit) {
                 if (query.isNotEmpty()) Icon(Icons.Rounded.Close, "Löschen", tint = c.sub, modifier = Modifier.size(20.dp).clickable { query = ""; focus.clearFocus() })
             }
             if (words.isNotEmpty()) {
-                if (matches.isEmpty()) Text(stringResource(R.string.ui_080, query.trim()), color = c.sub, fontSize = 13.sp, modifier = Modifier.padding(10.dp))
+                if (matches.isEmpty()) Text(Lang.f("Keine Treffer für „%1\$s“", "Nothing matches “%1\$s”", query.trim()), color = c.sub, fontSize = 13.sp, modifier = Modifier.padding(10.dp))
                 matches.forEach { r ->
                     Column(
                         Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).clickable {
@@ -734,8 +734,9 @@ private fun SoundSection(prefs: Prefs, engine: NavEngine) {
 }
 
 
-// ------------------------------------------------------------------ Places & trips
+// ------------------------------------------------------------------ Screen & sizes
 
+@Composable
 private fun ScreenSection(prefs: Prefs, engine: NavEngine) {
     SGroup("Bildschirm") {
         SSlider("Helligkeit", prefs.i(PreferenceKeys.BRIGHT, 100).toFloat(), 10f..100f, "%", sub = "100% überlässt die Steuerung dem System", live = true) { prefs.put(PreferenceKeys.BRIGHT, it) }

@@ -84,7 +84,7 @@ internal fun NavEngine.avgFreeTick(p: Fix) {
         raiseAlert("avg", Lang.t("Abschnittskontrolle voraus", "Average speed check ahead"), 6000)
         speak(Lang.t("Abschnittskontrolle voraus", "Average speed check ahead"), true)
     }
-    if (t.left) { avgInfo = null; toast(ctx.getString(R.string.toast_008), 2500) }
+    if (t.left) { avgInfo = null; toast(ctx.Lang.t("Ende der Durchschnittsgeschwindigkeitskontrolle", "End of average speed check"), 2500) }
     val cur = freeAvg.cur
     if (cur == null) { if (avgInfo != null) avgInfo = null; return }
     val secs = (now - cur.enterAt) / 1000.0

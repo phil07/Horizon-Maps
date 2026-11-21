@@ -1,5 +1,7 @@
 package com.headunit.launcher.ui
 
+import com.headunit.launcher.Lang
+
 import com.headunit.launcher.R
 import androidx.compose.ui.res.stringResource
 
@@ -103,7 +105,7 @@ private fun SetupBody(prefs: Prefs, engine: NavEngine, onDone: () -> Unit) {
                     Box(Modifier.height(8.dp).width(w).clip(RoundedCornerShape(50)).background(if (i <= step) c.accent else c.tile))
                 }
                 Box(Modifier.weight(1f))
-                if (step < last) Text(stringResource(R.string.ui_049), color = c.sub, fontSize = 14.sp, modifier = Modifier.clip(RoundedCornerShape(50)).clickable { finish() }.padding(horizontal = 12.dp, vertical = 6.dp))
+                if (step < last) Text(Lang.t("Einrichtung überspringen", "Skip setup"), color = c.sub, fontSize = 14.sp, modifier = Modifier.clip(RoundedCornerShape(50)).clickable { finish() }.padding(horizontal = 12.dp, vertical = 6.dp))
             }
             androidx.compose.animation.AnimatedContent(
                 targetState = step,
@@ -156,35 +158,35 @@ private fun SetupPoint(text: String) {
 @Composable
 private fun WelcomeStep() {
     val c = LocalVw.current
-    Text(stringResource(R.string.ui_022), color = c.text, fontSize = 16.sp)
+    Text(Lang.t("Horizon Nav ist fürs Auto gebaut: große, klare Führung auf der 3D-Karte von Mapbox, mit Live-Verkehr, Tempolimits und Blitzerhinweisen (auf Wunsch) sowie Routen und Suche, die auch ohne Empfang funktionieren.", "Horizon Nav is built for the car: big, clear guidance on Mapbox\'s 3D map, with live traffic, UK speed limits and cameras, and routes and search that keep working with no signal."), color = c.text, fontSize = 16.sp)
     SetupPoint("Live-Verkehr und schnellere Routen während der Fahrt")
     SetupPoint("Spurführung, Kreuzungsschilder und Geschwindigkeitswarnungen")
     SetupPoint("Offline-Routen und Suche für Funklöcher")
-    Text(stringResource(R.string.ui_014), color = c.sub, fontSize = 13.sp)
+    Text(Lang.t("Alles hier lässt sich später in den Einstellungen ändern.", "Everything here can be changed later in Settings."), color = c.sub, fontSize = 13.sp)
 }
 
 @Composable
 private fun KeyStep(prefs: Prefs, engine: NavEngine) {
     val c = LocalVw.current
-    Text(stringResource(R.string.ui_026), color = c.text, fontSize = 15.sp)
-    Text(stringResource(R.string.ui_001), color = c.sub, fontSize = 14.sp)
+    Text(Lang.t("Horizon Nav nutzt Mapbox für Karte, Live-Verkehr, Suche und Routen. Dafür brauchst du dein eigenes kostenloses Mapbox-Zugangstoken, damit die Karte über dein Mapbox-Konto läuft (für den privaten Gebrauch kostenlos).", "Horizon Nav uses Mapbox for the map, live traffic, search and routes. It needs your own free Mapbox access token, so the map runs on your Mapbox account (it\'s free for personal use)."), color = c.text, fontSize = 15.sp)
+    Text(Lang.t("1. Auf account.mapbox.com registrieren oder anmelden\n2. Unter Tokens das Standard-Public-Token kopieren (beginnt mit pk.)\n3. Hier einfügen", "1. Go to account.mapbox.com and sign up or log in\n2. Open Tokens and copy your Default public token (it starts pk.)\n3. Paste it here"), color = c.sub, fontSize = 14.sp)
     var k by remember { mutableStateOf(prefs.s(PreferenceKeys.MAPBOX_TOKEN, "")) }
     SField(k, { k = it; prefs.put(PreferenceKeys.MAPBOX_TOKEN, com.headunit.launcher.MapboxRest.clean(it)) }, placeholder = "Mapbox Zugangstoken (pk.…)", width = 560.dp, fill = true)
     val t = k.trim()
     when {
-        t.isEmpty() -> Text(stringResource(R.string.ui_065), color = c.sub, fontSize = 13.sp)
-        t.startsWith("sk.") -> Text(stringResource(R.string.ui_057), color = Warn, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
-        !com.headunit.launcher.MapboxRest.looksValid(t) -> Text(stringResource(R.string.ui_056), color = Warn, fontSize = 13.sp)
+        t.isEmpty() -> Text(Lang.t("Ohne Token bleibt die Karte leer; Routen können trotzdem aus dem Offline-Paket kommen.", "Without a token the map stays blank; routes can still come from the offline pack."), color = c.sub, fontSize = 13.sp)
+        t.startsWith("sk.") -> Text(Lang.t("Das ist ein geheimes Token: Hier bitte das öffentliche (pk.) verwenden.", "That\'s a secret token: use the public one (pk.) here."), color = Warn, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+        !com.headunit.launcher.MapboxRest.looksValid(t) -> Text(Lang.t("Das sieht noch nicht nach einem vollständigen Token aus: Es ist ein langer Code, der mit pk. beginnt.", "That doesn\'t look like a whole token yet: it\'s a long code starting pk."), color = Warn, fontSize = 13.sp)
         !com.headunit.launcher.MapboxRest.looksWhole(com.headunit.launcher.MapboxRest.clean(t)) -> Text(com.headunit.launcher.Lang.t("Ein Teil dieses Schlüssels scheint zu fehlen oder vertippt zu sein. Kopiere ihn noch einmal mit dem Kopieren-Knopf auf account.mapbox.com › Tokens.", "Part of that token looks missing or mistyped. Copy it again with the copy button at account.mapbox.com › Tokens."), color = Warn, fontSize = 13.sp)
         else -> SetupPoint("Token hinzugefügt: Die Karte wird nach der Einrichtung geladen")
     }
     Spacer(Modifier.height(10.dp))
-    Text(stringResource(R.string.ui_059), color = c.text, fontSize = 17.sp, fontWeight = FontWeight.SemiBold)
-    Text(stringResource(R.string.ui_004), color = c.text, fontSize = 15.sp)
-    Text(stringResource(R.string.ui_002), color = c.sub, fontSize = 14.sp)
+    Text(Lang.t("TomTom-Schlüssel", "TomTom key"), color = c.text, fontSize = 17.sp, fontWeight = FontWeight.SemiBold)
+    Text(Lang.t("Die Adresssuche nutzt TomTom: Dort werden Hausnummern, Postleitzahlen und Firmen am genauesten gefunden. TomTom ist außerdem der Ersatz für Routen und Verkehr. Der Schlüssel ist kostenlos.", "Address search uses TomTom, as Horizon Nav always has: it finds house numbers, postcodes and businesses most accurately. TomTom is also the backup for routes and traffic. The key is free."), color = c.text, fontSize = 15.sp)
+    Text(Lang.t("1. Auf developer.tomtom.com registrieren oder anmelden\n2. Dashboard öffnen (Keys) und den API-Schlüssel kopieren\n3. Hier einfügen", "1. Go to developer.tomtom.com and sign up or log in\n2. Open your Dashboard (Keys) and copy your API key\n3. Paste it here"), color = c.sub, fontSize = 14.sp)
     var tk by remember { mutableStateOf(prefs.s(PreferenceKeys.API_KEY, "")) }
     SField(tk, { tk = it; prefs.setApiKey(it) }, placeholder = "TomTom API-Schlüssel", width = 560.dp, fill = true)
-    if (tk.isBlank()) Text(stringResource(R.string.ui_067), color = c.sub, fontSize = 13.sp)
+    if (tk.isBlank()) Text(Lang.t("Ohne Schlüssel nutzt die Suche stattdessen Mapbox und OpenStreetMap, die mehr Hausnummern übersehen. Du kannst ihn später unter Einstellungen › Schlüssel & Konten eintragen.", "Without it, search uses Mapbox and OpenStreetMap instead, which miss more house numbers. You can add it later in Settings › Keys & accounts."), color = c.sub, fontSize = 13.sp)
     else SetupPoint("TomTom-Schlüssel hinzugefügt: Suche nutzt TomTom")
 }
 
@@ -199,7 +201,7 @@ private fun HomeWorkStep(engine: NavEngine) {
     // where to look: the country you're in (worked out from the GPS) or anywhere
     // the label sits above the choice, so both options have the card's full width (side by side they were cut off)
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text(stringResource(R.string.ui_044), color = c.sub, fontSize = 14.sp)
+        Text(Lang.t("Suche in", "Search in"), color = c.sub, fontSize = 14.sp)
         Segmented(searchCountryOptions(engine), searchCountryValue(engine.prefs)) { engine.prefs.put(PreferenceKeys.COUNTRY, it); if (q.length >= 3) engine.search(q) }
     }
     for ((slot, label, icon) in listOf(Triple("home", "Zuhause", Icons.Rounded.Home), Triple("work", "Arbeit", Icons.Rounded.Work))) {
@@ -243,7 +245,7 @@ private fun PackStep(prefs: Prefs, engine: NavEngine) {
     val region = engine.chosenPack()
     var picking by remember { mutableStateOf(false) }
     val installed = region.id in engine.installedPacks()
-    Text(stringResource(R.string.ui_013), color = c.text, fontSize = 15.sp)
+    Text(Lang.t("Lade das Paket einmal über WLAN herunter, dann funktionieren Routen, Suche, Tempolimits und Kameras auch ohne Empfang. Der Download ist groß (einige GB), am besten zu Hause erledigen.", "Download the pack once on Wi-Fi and routes, search, speed limits and cameras keep working with no signal. It\'s a large download (a few GB), so it\'s best done at home."), color = c.text, fontSize = 15.sp)
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
         Text(region.name, color = c.text, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
         SButton("Gebiet ändern") { picking = true }
@@ -254,11 +256,11 @@ private fun PackStep(prefs: Prefs, engine: NavEngine) {
         else SButton(if (engine.packBusy) "Lädt herunter…" else "Jetzt herunterladen", primary = true) {
             engine.downloadRegion(region)
         }
-        if (!engine.onWifi() && !installed) Text(stringResource(R.string.ui_071), color = Warn, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+        if (!engine.onWifi() && !installed) Text(Lang.t("Du bist nicht im WLAN", "You\'re not on Wi-Fi"), color = Warn, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
     }
     if (engine.packBusy) LinearProgressIndicator(color = c.accent, trackColor = c.tile, modifier = Modifier.fillMaxWidth())
     if (engine.packStatus.isNotBlank()) Text(engine.packStatus + if (engine.packBusy) tr(" · läuft weiter, wenn du fortfährst") else "", color = c.sub, fontSize = 13.sp)
-    Text(stringResource(R.string.ui_069), color = c.sub, fontSize = 13.sp)
+    Text(Lang.t("Das kannst du später unter Einstellungen › Offline-Karten erledigen.", "You can do this later in Settings › Offline maps."), color = c.sub, fontSize = 13.sp)
 }
 
 @Composable
@@ -284,5 +286,5 @@ private fun PermissionStep() {
     }
     row("Standort", "Erforderlich, um deine Position auf der Karte zu zeigen und zu führen", loc, arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION))
     if (android.os.Build.VERSION.SDK_INT >= 33) row("Benachrichtigungen", "Damit die Navigation beim App-Wechsel weiterläuft", notif, arrayOf(Manifest.permission.POST_NOTIFICATIONS))
-    if (!loc) Text(stringResource(R.string.ui_028), color = c.sub, fontSize = 13.sp)
+    if (!loc) Text(Lang.t("Wenn der Button Erlauben nichts bewirkt, wurde die Berechtigung früher abgelehnt: Erlaube sie unter Einstellungen › Info & Sicherung › App-Berechtigungen.", "If the Allow button does nothing, the permission was turned down before: allow it in Settings › About & backup › App permissions."), color = c.sub, fontSize = 13.sp)
 }

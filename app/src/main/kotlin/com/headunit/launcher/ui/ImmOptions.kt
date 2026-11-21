@@ -180,7 +180,7 @@ internal fun OptionsSheet(engine: NavEngine, shareEta: () -> Unit, voice: () -> 
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(stringResource(R.string.ui_033), color = c.text, fontSize = 20.sp, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
+            Text(Lang.t("Kartenoptionen", "Map options"), color = c.text, fontSize = 20.sp, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
             ImmIcon(Icons.Rounded.Settings, onSettings, size = 42.dp, desc = Lang.t("Einstellungen", "Settings"))
             Spacer(Modifier.width(8.dp))
             ImmIcon(Icons.Rounded.Close, close, size = 42.dp, desc = Lang.t("Schließen", "Close"))

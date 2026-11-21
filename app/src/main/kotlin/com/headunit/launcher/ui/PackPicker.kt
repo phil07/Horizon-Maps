@@ -49,7 +49,7 @@ internal fun PackPickerDialog(current: PackRegion, onPick: (PackRegion) -> Unit,
             Modifier.widthIn(max = 560.dp).fillMaxWidth().clip(RoundedCornerShape(26.dp)).background(c.panel).border(1.dp, c.line, RoundedCornerShape(26.dp)).padding(20.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Text(stringResource(R.string.ui_009), color = c.text, fontSize = 22.sp, fontWeight = FontWeight.Bold)
+            Text(Lang.t("Gebiet auswählen", "Choose an area"), color = c.text, fontSize = 22.sp, fontWeight = FontWeight.Bold)
             SField(q, { q = it }, placeholder = Lang.t("Suchen, z. B. France, Texas", "Search, e.g. France, Texas"), width = 520.dp, fill = true)
             if (q.isBlank()) Segmented(PackRegions.groups.map { it to it }, group) { group = it }
             LazyColumn(Modifier.heightIn(max = 340.dp)) {

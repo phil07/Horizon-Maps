@@ -358,23 +358,23 @@ internal fun FeedbackDialog(engine: NavEngine, onClose: () -> Unit) {
     var note by remember { mutableStateOf("") }
     androidx.compose.ui.window.Dialog(onDismissRequest = onClose) {
         Column(Modifier.widthIn(max = 560.dp).fillMaxWidth().clip(RoundedCornerShape(26.dp)).background(c.panel).padding(22.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Text(stringResource(R.string.ui_016), color = c.text, fontSize = 22.sp, fontWeight = FontWeight.Bold)
-            Text(stringResource(R.string.ui_063), color = c.sub, fontSize = 14.sp)
+            Text(Lang.t("Feedback oder Problem", "Feedback or a problem"), color = c.text, fontSize = 22.sp, fontWeight = FontWeight.Bold)
+            Text(Lang.t("Was ist passiert oder was wünschst du dir? Hilfreich sind Angaben, wo du warst und worauf du getippt hast.", "What happened, or what would you like? Where you were and what you tapped helps."), color = c.sub, fontSize = 14.sp)
             SField(note, { note = it.take(600) }, placeholder = "z. B. Falsch umgeleitet bei Frankfurt", width = 516.dp, fill = true)
-            Text(stringResource(R.string.ui_047), color = c.sub, fontSize = 12.sp)
+            Text(Lang.t("Mitgesendet werden: die App-Version, dein Autodisplay, die wichtigsten Einstellungen, deine heruntergeladenen Gebiete und der letzte Absturz (keine Orte oder API-Schlüssel).", "Sent with it: the app version, your head unit, the main settings, your downloaded areas and the last crash (no places or API keys)."), color = c.sub, fontSize = 12.sp)
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)) {
                 SButton("Schließen") { onClose() }
                 SButton("Kopieren") {
                     val cm = ctx.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as? android.content.ClipboardManager
-                    cm?.setPrimaryClip(android.content.ClipData.newPlainText(ctx.getString(R.string.ui_024), engine.feedbackReport(note)))
-                    engine.toast(engine.str(R.string.rest_1441), 3500)
+                    cm?.setPrimaryClip(android.content.ClipData.newPlainText(ctx.Lang.t("Horizon Nav Bericht", "Horizon Nav report"), engine.feedbackReport(note)))
+                    engine.toast(engine.Lang.t("Bericht kopiert: In eine Nachricht oder einen Reddit-Kommentar einfügen", "Report copied: paste it into a message or a Reddit comment"), 3500)
                 }
                 SButton("Auf GitHub senden", primary = true) {
                     val title = note.lineSequence().firstOrNull()?.take(80)?.ifBlank { null } ?: "Bericht von Horizon Nav ${com.headunit.launcher.BuildConfig.VERSION_NAME}"
                     val body = engine.feedbackReport(note).take(5000)
                     val url = "https://github.com/${BuildConfig.UPDATE_REPO}/issues/new?title=" + android.net.Uri.encode(title) + "&body=" + android.net.Uri.encode(body)
                     try { ctx.startActivity(android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(url)).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)) }
-                    catch (e: Exception) { engine.toast(engine.str(R.string.rest_1443), 3500) }
+                    catch (e: Exception) { engine.toast(engine.Lang.t("Kein Browser auf diesem Gerät: stattdessen Kopieren nutzen", "No browser on this unit: use Copy instead"), 3500) }
                     onClose()
                 }
             }

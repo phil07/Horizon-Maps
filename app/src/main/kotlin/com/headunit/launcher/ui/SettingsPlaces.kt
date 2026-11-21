@@ -214,8 +214,8 @@ internal fun PlacesSection(engine: NavEngine) {
                     }
                 }
                 slotFor == f -> SItem("${f.name} festlegen als…") {
-                    SButton("Zuhause", primary = true) { pl.setSlot("home", f); slotFor = null; engine.toast(engine.str(R.string.toast_063, f.name), 2500) }
-                    SButton("Arbeitsplatz", primary = true) { pl.setSlot("work", f); slotFor = null; engine.toast(engine.str(R.string.toast_064, f.name), 2500) }
+                    SButton("Zuhause", primary = true) { pl.setSlot("home", f); slotFor = null; engine.toast(engine.Lang.f("%1\$s ist jetzt Zuhause", "%1\$s is now Home", f.name), 2500) }
+                    SButton("Arbeitsplatz", primary = true) { pl.setSlot("work", f); slotFor = null; engine.toast(engine.Lang.f("%1\$s ist jetzt Arbeit", "%1\$s is now Work", f.name), 2500) }
                     SButton("Abbrechen") { slotFor = null }
                 }
                 else -> SItem(f.name, listOf(pl.favTag(f).let { if (it.isBlank()) "" else "#$it" }, f.sub).filter { it.isNotBlank() }.joinToString(" · ")) {
@@ -233,7 +233,7 @@ internal fun PlacesSection(engine: NavEngine) {
     SGroup("Verlauf", footer = "Zum Entfernen zur Seite wischen.") {
         SToggle(engine.prefs, "Gespeichert & Zuletzt unter der Suchleiste", PreferenceKeys.QUICKLIST, true, "Die Liste der Favoriten und letzten Orte auf der Karte")
         SItem("Letzte Ziele", "${pl.recents().size} letzte Ziele") {
-            SButton("Löschen", danger = true) { pl.clearHistory(); engine.toast(engine.str(R.string.rest_1437), 2000) }
+            SButton("Löschen", danger = true) { pl.clearHistory(); engine.toast(engine.Lang.t("Verlauf gelöscht", "History cleared"), 2000) }
         }
     }
     TripsGroup(engine)
@@ -347,10 +347,10 @@ internal fun DefaultZoomRow(prefs: Prefs) {
             if (kotlin.math.abs(v) > 0.01f) SButton("Zurücksetzen") { v = 0f; save(0f) }
         }
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            Text(stringResource(R.string.ui_017), color = c.sub, fontSize = 13.sp)
+            Text(Lang.t("Weiter entfernt", "Further out"), color = c.sub, fontSize = 13.sp)
             androidx.compose.material3.Slider(value = v, onValueChange = { v = (Math.round(it * 4f) / 4f) }, onValueChangeFinished = { save(v) },
                 valueRange = -2f..2f, modifier = Modifier.weight(1f).padding(horizontal = 10.dp))
-            Text(stringResource(R.string.ui_010), color = c.sub, fontSize = 13.sp)
+            Text(Lang.t("Näher", "Closer"), color = c.sub, fontSize = 13.sp)
         }
     }
 }
@@ -498,7 +498,7 @@ internal fun OfflinePlacesGroup(engine: NavEngine) {
                     sc.launch {
                         try {
                             val n = withContext(Dispatchers.IO) { OfflinePlaces.download(ctx, cc) }
-                            state = "Installiert: $n Orte"; engine.toast(engine.str(R.string.rest_1436), 3000)
+                            state = "Installiert: $n Orte"; engine.toast(engine.Lang.t("Offline-Orte bereit", "Offline places ready"), 3000)
                         } catch (e: Exception) { state = "Fehlgeschlagen: ${e.message}" } finally { busy = false }
                     }
                 }
@@ -507,7 +507,3 @@ internal fun OfflinePlacesGroup(engine: NavEngine) {
         }
     }
 }
-
-// ------------------------------------------------------------------ Screen & sizes
-
-@Composable

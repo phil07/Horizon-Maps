@@ -391,7 +391,7 @@ private fun CarScreen(engine: NavEngine, a: android.graphics.Rect?, actions: Car
                 // the bar opens the search (Saved & recent folds itself, by its own header)
                 Row(Modifier.weight(1f).fillMaxHeight().carTap("search") { actions.search() }.padding(start = if (engine.carShort) 16.dp else 24.dp), verticalAlignment = Alignment.CenterVertically) {
                     androidx.compose.material3.Icon(androidx.compose.material.icons.Icons.Rounded.Search, null, tint = c.sub, modifier = Modifier.size(if (engine.carShort) 24.dp else 32.dp))
-                    Text(stringResource(R.string.ui_064), color = c.sub, fontSize = if (engine.carShort) 20.sp else 28.sp, modifier = Modifier.padding(start = 12.dp))
+                    Text(Lang.t("Wohin?", "Where to?"), color = c.sub, fontSize = if (engine.carShort) 20.sp else 28.sp, modifier = Modifier.padding(start = 12.dp))
                 }
                 Box(Modifier.size(if (engine.carShort) 44.dp else 60.dp).clip(androidx.compose.foundation.shape.CircleShape).background(c.accent).carTap("search-mic") { actions.search() }, contentAlignment = Alignment.Center) {
                     androidx.compose.material3.Icon(androidx.compose.material.icons.Icons.Rounded.Mic, null, tint = Color.White, modifier = Modifier.size(if (engine.carShort) 24.dp else 32.dp))
@@ -703,7 +703,7 @@ private fun FasterCard(engine: NavEngine, modifier: Modifier) {
             androidx.compose.material3.Icon(androidx.compose.material.icons.Icons.Rounded.Route, null, tint = Good, modifier = Modifier.size(24.dp))
         }
         Column(Modifier.weight(1f, fill = false)) {
-            Text(stringResource(R.string.ui_015), color = c.text, fontSize = 18.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(Lang.t("Schnellere Route gefunden", "Faster route found"), color = c.text, fontSize = 18.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
             Text(Lang.t("Spart etwa ${fr.savedMin} Min.", "Saves about ${fr.savedMin} min"), color = Good, fontSize = 14.sp, fontWeight = FontWeight.Medium, maxLines = 1)
         }
         Box(Modifier.carTap("faster-yes") { engine.acceptFaster() }) { ImmPill("Wechseln", {}, filled = true) }
@@ -931,7 +931,7 @@ private fun CarRoutePreview(engine: NavEngine) {
     val baseMs = if (engine.departAtMs > 0) engine.departAtMs else System.currentTimeMillis()
     val dest: @Composable (Modifier) -> Unit = { m ->
         Column(m) {
-            Text(stringResource(R.string.ui_012), color = c.sub, fontSize = 12.sp)
+            Text(Lang.t("Ziel", "Destination"), color = c.sub, fontSize = 12.sp)
             Text(engine.dest?.name ?: "", color = c.text, fontSize = 17.sp, fontWeight = FontWeight.Bold, maxLines = 2, overflow = TextOverflow.Ellipsis)
         }
     }
@@ -956,8 +956,8 @@ private fun CarRoutePreview(engine: NavEngine) {
         Box(m.height(72.dp).clip(RoundedCornerShape(36.dp)).background(c.accent.copy(alpha = 0.30f)).carTap("start") { engine.beginNavigation() }, contentAlignment = Alignment.Center) {
             Box(Modifier.align(Alignment.CenterStart).fillMaxHeight().fillMaxWidth(progress.value).background(c.accent))
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(stringResource(R.string.ui_052), color = Color.White, fontSize = 17.sp, fontWeight = FontWeight.Bold)
-                if (autoStart) Text(Lang.t("Start in ${kotlin.math.ceil((1f - progress.value) * countdownSeconds).toInt()} s", "Starting in ${kotlin.math.ceil((1f - progress.value) * countdownSeconds).toInt()} s"), color = Color.White.copy(alpha = 0.85f), fontSize = 12.sp) else Text(stringResource(R.string.ui_055), color = Color.White.copy(alpha = 0.85f), fontSize = 12.sp)
+                Text(Lang.t("Navigation starten", "Start navigation"), color = Color.White, fontSize = 17.sp, fontWeight = FontWeight.Bold)
+                if (autoStart) Text(Lang.t("Start in ${kotlin.math.ceil((1f - progress.value) * countdownSeconds).toInt()} s", "Starting in ${kotlin.math.ceil((1f - progress.value) * countdownSeconds).toInt()} s"), color = Color.White.copy(alpha = 0.85f), fontSize = 12.sp) else Text(Lang.t("Zum Starten tippen", "Tap to start"), color = Color.White.copy(alpha = 0.85f), fontSize = 12.sp)
             }
         }
     }
@@ -1006,7 +1006,7 @@ private fun CarChips(engine: NavEngine, actions: CarActions, rows: Int) {
     @Composable fun tile(id: String, icon: androidx.compose.ui.graphics.vector.ImageVector, tint: Color, label: String, place: com.headunit.launcher.Place?, mins: Int?, m: Modifier) {
         val sub = when {
             place == null -> Lang.t("Festlegen", "Set")
-            mins == 0 -> stringResource(R.string.ui_102)
+            mins == 0 -> Lang.t("Du bist hier", "You\'re here")
             mins != null && mins > 0 -> Geo.fmtDur(mins * 60.0)
             here != null -> Geo.fmtDist(Geo.dist(here, place.pos), engine.imperial)
             else -> place.sub
@@ -1044,8 +1044,8 @@ private fun CarChips(engine: NavEngine, actions: CarActions, rows: Int) {
         }
         val showHome = engine.prefs.b(PreferenceKeys.HOME_TILE, true); val showWork = engine.prefs.b(PreferenceKeys.WORK_TILE, true)
         if (showHome || showWork) Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            if (showHome) tile("home", androidx.compose.material.icons.Icons.Rounded.Home, Color(0xFF4C8DFF), stringResource(R.string.ui_100), home, engine.slotMins["home"], Modifier.weight(1.2f))
-            if (showWork) tile("work", androidx.compose.material.icons.Icons.Rounded.Work, Color(0xFFF29900), stringResource(R.string.ui_101), work, engine.slotMins["work"], Modifier.weight(1.2f))
+            if (showHome) tile("home", androidx.compose.material.icons.Icons.Rounded.Home, Color(0xFF4C8DFF), Lang.t("Zuhause", "Home"), home, engine.slotMins["home"], Modifier.weight(1.2f))
+            if (showWork) tile("work", androidx.compose.material.icons.Icons.Rounded.Work, Color(0xFFF29900), Lang.t("Arbeit", "Work"), work, engine.slotMins["work"], Modifier.weight(1.2f))
         }
         // the find buttons in the order they show; a short screen keeps the first two and folds the rest behind ⋯
         data class Find(val kind: String, val icon: androidx.compose.ui.graphics.vector.ImageVector, val tint: Color)
@@ -1113,7 +1113,7 @@ private fun CarChips(engine: NavEngine, actions: CarActions, rows: Int) {
         if (engine.prefs.b(PreferenceKeys.QUICKLIST, true)) Column(Modifier.fillMaxWidth().panel(10.dp, RoundedCornerShape(24.dp), c.surface).padding(vertical = 2.dp)) {
             val open = !engine.quickFolded
             Row(Modifier.fillMaxWidth().carTap("saved") { engine.quickFolded = !engine.quickFolded }.padding(start = 16.dp, end = 14.dp, top = 10.dp, bottom = 10.dp), verticalAlignment = Alignment.CenterVertically) {
-                Text(stringResource(R.string.ui_040), color = c.sub, fontSize = 18.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.2.sp, modifier = Modifier.weight(1f))
+                Text(Lang.t("GESPEICHERT & ZULETZT", "SAVED & RECENT"), color = c.sub, fontSize = 18.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.2.sp, modifier = Modifier.weight(1f))
                 androidx.compose.material3.Icon(if (open) androidx.compose.material.icons.Icons.Rounded.KeyboardArrowUp else androidx.compose.material.icons.Icons.Rounded.KeyboardArrowDown, null, tint = c.sub, modifier = Modifier.size(34.dp))
             }
             if (open) {

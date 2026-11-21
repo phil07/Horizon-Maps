@@ -169,7 +169,7 @@ internal fun ImmSearch(engine: NavEngine, q: String, onQ: (String) -> Unit, lock
     Box(Modifier.fillMaxWidth().height(60.dp).panel(10.dp, shape, c.surface)) {
         TextField(
             value = q, onValueChange = onQ, enabled = !locked,
-            placeholder = { Text(if (locked) stringResource(R.string.ui_081) else stringResource(R.string.ui_064), fontSize = if (locked) 15.sp else 18.sp) },
+            placeholder = { Text(if (locked) Lang.t("Tippe auf das Mikrofon, um während der Fahrt zu suchen", "Tap the mic to search while driving") else Lang.t("Wohin?", "Where to?"), fontSize = if (locked) 15.sp else 18.sp) },
             leadingIcon = { Icon(Icons.Rounded.Search, null, tint = c.sub) },
             trailingIcon = {
                 if (q.isNotEmpty()) Icon(Icons.Rounded.Close, Lang.t("Löschen", "Clear"), tint = c.sub, modifier = Modifier.padding(end = 8.dp).clickable { onQ(""); engine.results = emptyList() })
@@ -486,10 +486,10 @@ internal fun ImmChips(engine: NavEngine, focusSearch: () -> Unit) {
         val showHome = engine.prefs.b(PreferenceKeys.HOME_TILE, true); val showWork = engine.prefs.b(PreferenceKeys.WORK_TILE, true)
         if (showHome || showWork) Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             if (showHome) PlaceTile(engine, Modifier.weight(1f), Icons.Rounded.Home, Color(0xFF4C8DFF), Lang.t("Zuhause", "Home"), home, engine.slotMins["home"]) {
-                if (home != null) engine.startRoute(home) else { engine.pendingSave = "home"; engine.toast(engine.str(R.string.rest_1198), 3500); focusSearch() }
+                if (home != null) engine.startRoute(home) else { engine.pendingSave = "home"; engine.toast(engine.Lang.t("Suche deine Heimadresse", "Search for your home address"), 3500); focusSearch() }
             }
             if (showWork) PlaceTile(engine, Modifier.weight(1f), Icons.Rounded.Work, Color(0xFFF29900), Lang.t("Arbeit", "Work"), work, engine.slotMins["work"]) {
-                if (work != null) engine.startRoute(work) else { engine.pendingSave = "work"; engine.toast(engine.str(R.string.rest_1197), 3500); focusSearch() }
+                if (work != null) engine.startRoute(work) else { engine.pendingSave = "work"; engine.toast(engine.Lang.t("Suche deine Arbeitsadresse", "Search for your work address"), 3500); focusSearch() }
             }
         }
         Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -525,8 +525,8 @@ private fun PlaceTile(engine: NavEngine, modifier: Modifier, icon: ImageVector, 
     val c = LocalVw.current
     val here = engine.fix?.pos
     val sub = when {
-        place == null -> stringResource(R.string.ui_098)
-        mins == 0 -> stringResource(R.string.ui_102)
+        place == null -> Lang.t("Tippen zum Festlegen", "Tap to set")
+        mins == 0 -> Lang.t("Du bist hier", "You\'re here")
         mins != null && mins > 0 -> Geo.fmtDur(mins * 60.0)
         here != null -> Geo.fmtDist(Geo.dist(here, place.pos), engine.imperial)
         else -> place.sub
@@ -621,7 +621,7 @@ private fun ParkedCard(engine: NavEngine) {
             Icon(Icons.Rounded.DirectionsCar, null, tint = c.accent, modifier = Modifier.size(21.dp))
         }
         Column(Modifier.weight(1f)) {
-            Text(stringResource(R.string.ui_073), color = c.text, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+            Text(Lang.t("Dein Auto", "Your car"), color = c.text, fontSize = 16.sp, fontWeight = FontWeight.Bold)
             Text(Lang.t("Geparkt $ago", "Parked $ago") + (if (here != null) " · " + Geo.fmtDist(Geo.dist(here, spot), engine.imperial) else ""), color = c.sub, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
         // the way on foot, in the app (it used to hand a walking link to the phone, which this app took itself and planned on the roads)
@@ -675,7 +675,7 @@ internal fun ImmQuick(engine: NavEngine, showSaved: Boolean = true) {
                 Icon(Icons.Rounded.Route, null, tint = Color.White, modifier = Modifier.size(26.dp))
                 Column(Modifier.padding(start = 12.dp).weight(1f)) {
                     Text(Lang.t("Fahrt nach ${rp.name} fortsetzen", "Resume trip to ${rp.name}"), color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                    Text(stringResource(R.string.ui_070), color = Color.White.copy(alpha = 0.8f), fontSize = 12.sp)
+                    Text(Lang.t("Du warst noch nicht angekommen, als die App geschlossen wurde", "You hadn\'t arrived when the app closed"), color = Color.White.copy(alpha = 0.8f), fontSize = 12.sp)
                 }
                 Icon(Icons.Rounded.Close, Lang.t("Schließen", "Dismiss"), tint = Color.White, modifier = Modifier.padding(start = 8.dp).size(24.dp).clickable { engine.resume = null; engine.prefs.put(PreferenceKeys.RESUME, "{}") })
             }
@@ -695,10 +695,10 @@ internal fun ImmQuick(engine: NavEngine, showSaved: Boolean = true) {
                 }
                 if (!folded) Row(Modifier.clip(RoundedCornerShape(12.dp)).clickable { adding = true }.padding(horizontal = 8.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Rounded.Add, null, tint = c.accent, modifier = Modifier.size(16.dp))
-                    Text(stringResource(R.string.ui_003), color = c.accent, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(start = 2.dp))
+                    Text(Lang.t("Hinzufügen", "Add"), color = c.accent, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(start = 2.dp))
                 }
             }
-            if (!folded && saved.isEmpty()) Text(stringResource(R.string.ui_039), color = c.sub, fontSize = 12.sp, modifier = Modifier.padding(start = 14.dp, end = 14.dp, bottom = 8.dp))
+            if (!folded && saved.isEmpty()) Text(Lang.t("Gespeicherte und angefahrene Orte erscheinen hier", "Places you save or drive to show up here"), color = c.sub, fontSize = 12.sp, modifier = Modifier.padding(start = 14.dp, end = 14.dp, bottom = 8.dp))
             if (!folded) LazyColumn(Modifier.heightIn(max = 200.dp)) {
                 items(saved) { (p, kind, label) ->
                     val fav = kind != 2
@@ -711,9 +711,9 @@ internal fun ImmQuick(engine: NavEngine, showSaved: Boolean = true) {
                             detectHorizontalDragGestures(
                                 onDragEnd = {
                                     if (kotlin.math.abs(dx) > w * 0.35f) when (kind) {
-                                        0 -> { engine.places.removeCustom(label); engine.toast(engine.str(R.string.rest_1216, label), 2000) }
-                                        1 -> { engine.places.toggleFavourite(p); engine.toast(engine.str(R.string.rest_1201), 2000) }
-                                        else -> { engine.places.removeRecent(p); engine.toast(engine.str(R.string.rest_1200), 2000) }
+                                        0 -> { engine.places.removeCustom(label); engine.toast(engine.Lang.f("%1\$s entfernt", "Removed %1\$s", label), 2000) }
+                                        1 -> { engine.places.toggleFavourite(p); engine.toast(engine.Lang.t("Aus den Favoriten entfernt", "Removed from favourites"), 2000) }
+                                        else -> { engine.places.removeRecent(p); engine.toast(engine.Lang.t("Aus den letzten Orten entfernt", "Removed from recent places"), 2000) }
                                     }
                                     dx = 0f
                                 },
@@ -758,7 +758,7 @@ internal fun ItineraryCard(engine: NavEngine) {
     Column(Modifier.fillMaxWidth().shadow(12.dp, shape).clip(shape).background(Teal).border(1.5.dp, Color.White.copy(alpha = 0.18f), shape)) {
         Row(Modifier.fillMaxWidth().padding(start = 18.dp, end = 10.dp, top = 12.dp, bottom = 8.dp), verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
-                Text(stringResource(R.string.ui_074), color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+                Text(Lang.t("Deine Route", "Your route"), color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold)
                 val e = engine.eta
                 Text("${rows.size} ${if (rows.size == 1) Lang.t("Schritt", "step") else Lang.t("Schritte", "steps")}" + (if (e != null) " · " + Geo.fmtDist(e.dist, engine.imperial) + Lang.t(" · Ankunft ", " · arrive ") + e.arrive else ""),
                     color = Color.White.copy(alpha = 0.8f), fontSize = 13.sp)

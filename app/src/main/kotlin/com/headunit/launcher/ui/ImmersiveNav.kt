@@ -532,7 +532,7 @@ private fun MapScreen(engine: NavEngine, onSettings: () -> Unit) {
             enter = fadeIn(tween(200)) + androidx.compose.animation.scaleIn(tween(220), initialScale = 0.85f), exit = fadeOut(tween(150)) + androidx.compose.animation.scaleOut(tween(150), targetScale = 0.9f),
         ) {
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
-                ImmPill(stringResource(R.string.ui_082), { engine.recenter(byUser = true) }, Icons.Rounded.MyLocation, filled = true)
+                ImmPill(Lang.t("Zentrieren", "Re-centre"), { engine.recenter(byUser = true) }, Icons.Rounded.MyLocation, filled = true)
                 // zoomed with + and - while following you, with no route: keep this as your normal zoom
                 if (!routing && engine.following && kotlin.math.abs(engine.zoomOffset) > 0.01) ImmPill(Lang.t("Als Standard verwenden", "Make this my default"), { engine.saveZoomAsDefault() }, Icons.Rounded.ZoomIn)
             }
@@ -556,7 +556,7 @@ private fun MapScreen(engine: NavEngine, onSettings: () -> Unit) {
             enter = fadeIn(tween(300)), exit = fadeOut(tween(250))) {
             Row(Modifier.panel(6.dp, RoundedCornerShape(20.dp), c.surface).padding(horizontal = 14.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
                 Icon(Icons.Rounded.Traffic, null, tint = c.accent, modifier = Modifier.size(18.dp))
-                Text(stringResource(R.string.ui_060), color = c.text, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(start = 8.dp))
+                Text(Lang.t("Verkehr wird angezeigt, während du stehst", "Showing traffic while you’re stopped"), color = c.text, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(start = 8.dp))
             }
         }
 
@@ -595,7 +595,7 @@ private fun MapScreen(engine: NavEngine, onSettings: () -> Unit) {
             ) {
                 Box(Modifier.size(44.dp).clip(CircleShape).background(Good.copy(alpha = 0.18f)), contentAlignment = Alignment.Center) { Icon(Icons.Rounded.Route, null, tint = Good, modifier = Modifier.size(24.dp)) }
                 Column {
-                    Text(stringResource(R.string.ui_015), color = c.text, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                    Text(Lang.t("Schnellere Route gefunden", "Faster route found"), color = c.text, fontSize = 18.sp, fontWeight = FontWeight.Bold)
                     Text(Lang.t("Spart etwa ${fr.savedMin} Min.", "Saves about ${fr.savedMin} min"), color = Good, fontSize = 14.sp, fontWeight = FontWeight.Medium)
                 }
                 ImmPill(Lang.t("Wechseln", "Switch"), { engine.acceptFaster() }, filled = true)

@@ -1,5 +1,7 @@
 package com.headunit.launcher.ui
 
+import com.headunit.launcher.Lang
+
 import com.headunit.launcher.R
 import androidx.compose.ui.res.stringResource
 
@@ -396,7 +398,7 @@ fun App(prefs: Prefs, engine: NavEngine, map: MapBinding) {
             val header: @Composable () -> Unit = {
                 Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(22.dp)).background(updateHeader).padding(18.dp)) {
                     androidx.compose.foundation.layout.Column(verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(6.dp)) {
-                        Text(stringResource(R.string.ui_020), color = updatePalette.accent, fontSize = 11.sp, fontWeight = androidx.compose.ui.text.font.FontWeight.Bold, letterSpacing = 1.5.sp)
+                        Text(Lang.t("HORIZON NAV  /  AKTUALISIERUNG", "HORIZON NAV  /  UPDATE"), color = updatePalette.accent, fontSize = 11.sp, fontWeight = androidx.compose.ui.text.font.FontWeight.Bold, letterSpacing = 1.5.sp)
                         Text(com.headunit.launcher.Lang.t("Das ist neu in $installedVersion", "New in $installedVersion"), color = updateHeaderTitle, fontSize = 25.sp, fontWeight = androidx.compose.ui.text.font.FontWeight.Bold, lineHeight = 30.sp)
                         val summary = remember(whatsNewNotes) { notesSummary(whatsNewNotes) }
                         Text(summary.ifBlank { com.headunit.launcher.Lang.t("Einstellungen und gespeicherte Orte bleiben erhalten", "Settings and saved places are kept") }, color = updateHeaderSub, fontSize = 14.sp)
@@ -409,7 +411,7 @@ fun App(prefs: Prefs, engine: NavEngine, map: MapBinding) {
                     modifier = Modifier.fillMaxWidth(),
                     colors = androidx.compose.material3.ButtonDefaults.buttonColors(containerColor = updatePalette.accent, contentColor = if (updatePalette.dark) Color(0xFF102039) else Color.White),
                     shape = RoundedCornerShape(16.dp)
-                ) { Text(stringResource(R.string.ui_031), fontWeight = androidx.compose.ui.text.font.FontWeight.Bold, modifier = Modifier.padding(vertical = 4.dp)) }
+                ) { Text(Lang.t("Los geht\'s", "Let\'s go"), fontWeight = androidx.compose.ui.text.font.FontWeight.Bold, modifier = Modifier.padding(vertical = 4.dp)) }
             }
             if (wideCard) {
                 val cardW = (conf.screenWidthDp.dp * 0.92f).coerceAtMost(1100.dp)

@@ -212,8 +212,8 @@ internal fun NavEngine.checkPolice(p: Fix) {
         // (a shared report is remembered by its server id: two drivers' reports can carry the same time)
         if (diff < 50 && policeAlerted.add(if (r.shared) -r.sid else r.t)) {
             chime(android.media.ToneGenerator.TONE_PROP_PROMPT)
-            raiseAlert(if (r.kind == "mobilecam") "camera" else "report", str(R.string.toast_068, reportName(r.kind)))
-            speak(str(R.string.toast_068, reportName(r.kind)), true)
+            raiseAlert(if (r.kind == "mobilecam") "camera" else "report", Lang.f("%1\$s voraus gemeldet", "%1\$s reported ahead", reportName(r.kind)))
+            speak(Lang.f("%1\$s voraus gemeldet", "%1\$s reported ahead", reportName(r.kind)), true)
         }
     }
 }

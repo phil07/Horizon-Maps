@@ -379,7 +379,7 @@ internal fun NavEngine.routeExtrasTick(r: Route, progress: Double) {
             } else null
             avgInfo = AvgInfo(avg, lim, left, over, false, 0.0, safe)
         } else {
-            if (avgIn != null) { avgIn = null; toast(ctx.getString(R.string.toast_008), 2500) }
+            if (avgIn != null) { avgIn = null; toast(ctx.Lang.t("Ende der Durchschnittsgeschwindigkeitskontrolle", "End of average speed check"), 2500) }
             val next = pl.avg.filter { it.start > progress && it.start - progress < 1200.0 }.minByOrNull { it.start }
             avgInfo = next?.let { n -> AvgInfo(0.0, n.def.limit?.let { l -> speedLimit?.let { min(it, l) } ?: l } ?: speedLimit, n.end - n.start, false, true, n.start - progress) }
             // as early as a camera is warned about (the same distance, which grows with speed)

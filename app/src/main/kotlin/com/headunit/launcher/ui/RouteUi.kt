@@ -237,7 +237,7 @@ fun AvgSpeedCard(engine: NavEngine, modifier: Modifier = Modifier) {
                     val sv = Math.floor(safe * k).toInt()
                     val lv = Math.round(lm * k).toInt()
                     when {
-                        safe <= 0.5 || sv < lv - 25 -> Text(stringResource(R.string.ui_050), color = red, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                        safe <= 0.5 || sv < lv - 25 -> Text(Lang.t("Langsamer fahren, damit dein Durchschnitt wieder unter das Limit fällt", "Slow down to bring your average back under"), color = red, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
                         sv < lv -> Text(Lang.t("Bleib für den Rest unter $sv $unit", "Keep under $sv $unit for the rest"), color = amber, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
                         sv > lv -> Text(Lang.t("Bis ${minOf(sv, lv + 15)} $unit bleibst du darunter", "Up to ${minOf(sv, lv + 15)} $unit keeps you under"), color = c.sub, fontSize = 13.sp)
                         else -> {}
@@ -339,7 +339,7 @@ fun DeadReckoningChip(modifier: Modifier = Modifier) {
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Icon(Icons.Rounded.GpsOff, null, tint = Warn, modifier = Modifier.size(18.dp))
-        Text(stringResource(R.string.ui_035), color = c.text, fontSize = 13.sp, modifier = Modifier.padding(start = 8.dp))
+        Text(Lang.t("Kein GPS · Position wird geschätzt", "No GPS · estimating your position"), color = c.text, fontSize = 13.sp, modifier = Modifier.padding(start = 8.dp))
     }
 }
 
@@ -394,13 +394,13 @@ fun StopsDialog(engine: NavEngine, asPanel: Boolean = false, onClose: () -> Unit
     val listKind: (String) -> Unit = { kind -> engine.stopMode = true; engine.loadNearby(kind, false); if (!asPanel) onClose() }
     val content: @Composable androidx.compose.foundation.layout.ColumnScope.() -> Unit = {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(stringResource(R.string.ui_053), color = c.text, fontSize = 20.sp, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
+                Text(Lang.t("Stopps unterwegs", "Stops on the way"), color = c.text, fontSize = 20.sp, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
                 Icon(Icons.Rounded.Close, Lang.t("Schließen", "Close"), tint = c.sub, modifier = Modifier.size(28.dp).clickable { onClose() })
             }
             // the search at the top, so the keyboard never covers it
             TextField(
                 value = q, onValueChange = { q = it }, singleLine = true,
-                placeholder = { Text(stringResource(R.string.ui_043)) },
+                placeholder = { Text(Lang.t("Stopp zum Hinzufügen suchen", "Search for a stop to add")) },
                 leadingIcon = { Icon(Icons.Rounded.Search, null, tint = c.sub) },
                 trailingIcon = { if (busy) CircularProgressIndicator(Modifier.size(20.dp), color = c.accent, strokeWidth = 2.dp) },
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
@@ -425,22 +425,22 @@ fun StopsDialog(engine: NavEngine, asPanel: Boolean = false, onClose: () -> Unit
             }
             // along the route: the same round coloured icons as under the search bar, one row
             if (engine.dest != null) {
-                Text(stringResource(R.string.ui_037), color = c.sub, fontSize = 11.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+                Text(Lang.t("EIN TIPP: DER BESTE ENTLANG DEINER ROUTE", "ONE TAP: THE BEST ONE ALONG YOUR ROUTE"), color = c.sub, fontSize = 11.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
                 val ev = engine.prefs.s(PreferenceKeys.FUEL_TYPE, "E10") == "EV"
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    if (!ev) StopKindButton(Icons.Rounded.LocalGasStation, Color(0xFFEA4335), stringResource(R.string.ui_084)) { listKind("fuel") }
-                    StopKindButton(Icons.Rounded.EvStation, Color(0xFF34A853), stringResource(R.string.ui_085)) { listKind("charging") }
-                    StopKindButton(Icons.Rounded.LocalCafe, Color(0xFFA56BFF), stringResource(R.string.ui_086)) { listKind("coffee") }
-                    StopKindButton(Icons.Rounded.Restaurant, Color(0xFFF29900), stringResource(R.string.ui_087)) { listKind("food") }
-                    StopKindButton(Icons.Rounded.Apartment, Color(0xFF12A4B4), stringResource(R.string.ui_088)) { listKind("services") }
-                    StopKindButton(Icons.Rounded.Wc, Color(0xFF4C8DFF), stringResource(R.string.ui_089)) { listKind("toilets") }
+                    if (!ev) StopKindButton(Icons.Rounded.LocalGasStation, Color(0xFFEA4335), Lang.t("Tankstelle", "Fuel")) { listKind("fuel") }
+                    StopKindButton(Icons.Rounded.EvStation, Color(0xFF34A853), Lang.t("Ladestation", "Charger")) { listKind("charging") }
+                    StopKindButton(Icons.Rounded.LocalCafe, Color(0xFFA56BFF), Lang.t("Café", "Coffee")) { listKind("coffee") }
+                    StopKindButton(Icons.Rounded.Restaurant, Color(0xFFF29900), Lang.t("Essen", "Food")) { listKind("food") }
+                    StopKindButton(Icons.Rounded.Apartment, Color(0xFF12A4B4), Lang.t("Services", "Services")) { listKind("services") }
+                    StopKindButton(Icons.Rounded.Wc, Color(0xFF4C8DFF), Lang.t("Toiletten", "Toilets")) { listKind("toilets") }
                 }
             }
             // your own places, added to the list below (then Update route)
             val mine = remember { listOfNotNull(engine.places.slot("home")?.let { Lang.t("Zuhause", "Home") to it }, engine.places.slot("work")?.let { Lang.t("Arbeit", "Work") to it }) +
                 engine.places.favourites().take(4).map { "★ " + it.name to it } }
             if (mine.isNotEmpty()) {
-                Text(stringResource(R.string.ui_068), color = c.sub, fontSize = 11.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+                Text(Lang.t("DEINE ORTE", "YOUR PLACES"), color = c.sub, fontSize = 11.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
                 Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     for ((name, p) in mine) Pill(name, false, { stops = (stops + p).take(8) })
                 }
@@ -470,9 +470,9 @@ fun StopsDialog(engine: NavEngine, asPanel: Boolean = false, onClose: () -> Unit
                 }
                 Text(engine.dest?.name ?: Lang.t("Ziel", "Destination"), color = c.text, fontSize = 16.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f).padding(start = 12.dp))
             }
-            if (stops.isEmpty()) Text(stringResource(R.string.ui_036), color = c.sub, fontSize = 13.sp)
+            if (stops.isEmpty()) Text(Lang.t("Noch keine Stopps. Oben suchen und hinzufügen; die Route führt in dieser Reihenfolge hindurch.", "No stops yet. Search above to add one; the route goes through them in this order."), color = c.sub, fontSize = 13.sp)
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.padding(top = 4.dp)) {
-                Pill(stringResource(R.string.ui_097), true, { engine.setStops(stops); onClose() })
+                Pill(Lang.t("Route aktualisieren", "Update route"), true, { engine.setStops(stops); onClose() })
                 Pill(Lang.t("Abbrechen", "Cancel"), false, onClose)
             }
     }
@@ -563,7 +563,7 @@ fun ArriveByDialog(engine: NavEngine, onClose: () -> Unit) {
     val f = java.text.SimpleDateFormat("EEE HH:mm", if (com.headunit.launcher.Lang.de) java.util.Locale.GERMANY else java.util.Locale.UK)  // "Do 14:30", not "Thu 14:30"
     Dialog(onDismissRequest = onClose) {
         Column(Modifier.widthIn(max = 460.dp).fillMaxWidth().clip(RoundedCornerShape(26.dp)).background(c.panel).padding(22.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
-            Text(stringResource(R.string.ui_005), color = c.text, fontSize = 22.sp, fontWeight = FontWeight.Bold)
+            Text(Lang.t("Ankunft um", "Arrive by"), color = c.text, fontSize = 22.sp, fontWeight = FontWeight.Bold)
             Text(engine.dest?.name ?: "", color = c.sub, fontSize = 14.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
                 Pill("−15", false, { ms -= 15 * 60_000L })
@@ -577,7 +577,7 @@ fun ArriveByDialog(engine: NavEngine, onClose: () -> Unit) {
                     ms = java.util.Calendar.getInstance().apply { add(java.util.Calendar.DAY_OF_YEAR, 1); set(java.util.Calendar.HOUR_OF_DAY, 9); set(java.util.Calendar.MINUTE, 0); set(java.util.Calendar.SECOND, 0) }.timeInMillis
                 })
             }
-            Text(stringResource(R.string.ui_027), color = c.sub, fontSize = 12.sp)
+            Text(Lang.t("Horizon Nav berechnet, wann du losfahren solltest, anhand des dann erwarteten Verkehrs, prüft eine halbe Stunde vorher erneut und erinnert dich 10 Minuten vorher und zur Abfahrtszeit (solange die App geöffnet ist).", "Horizon Nav works out when to leave with the traffic expected then, checks again half an hour before, and reminds you 10 minutes before and when it\'s time to go (while the app is open)."), color = c.sub, fontSize = 12.sp)
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 Pill(Lang.t("Planen", "Plan it"), true, { if (ms > System.currentTimeMillis()) { engine.planArriveBy(ms); onClose() } })
                 Pill(Lang.t("Abbrechen", "Cancel"), false, onClose)
@@ -605,7 +605,7 @@ fun PlannedCard(engine: NavEngine) {
             Text(if (mins <= 0) Lang.t("Zeit zum Losfahren nach ${p.dest.name}", "Time to leave for ${p.dest.name}") else Lang.t("Losfahren bis ${f.format(java.util.Date(p.leaveBy))} nach ${p.dest.name}", "Leave by ${f.format(java.util.Date(p.leaveBy))} for ${p.dest.name}"), color = fg, fontSize = 16.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
             Text(Lang.t("Ankunft bis ${f.format(java.util.Date(p.arriveBy))}", "Arrive by ${f.format(java.util.Date(p.arriveBy))}") + (if (mins in 1..120) Lang.t(" · in $mins Min.", " · in $mins min") else ""), color = if (mins <= 10) Color.White.copy(alpha = 0.85f) else c.sub, fontSize = 12.sp)
         }
-        Text(stringResource(R.string.ui_019), color = fg, fontSize = 16.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 10.dp))
+        Text(Lang.t("Los", "Go"), color = fg, fontSize = 16.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 10.dp))
         Icon(Icons.Rounded.Close, Lang.t("Abbrechen", "Cancel"), tint = fg, modifier = Modifier.size(24.dp).clickable { engine.cancelPlanned() })
     }
 }
@@ -965,7 +965,7 @@ fun AddPlaceDialog(engine: NavEngine, preset: Place?, slot: String? = null, onCl
                     Text(pk.name, color = c.text, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     if (pk.sub.isNotBlank()) Text(pk.sub, color = c.sub, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
-                if (preset == null) Text(stringResource(R.string.ui_008), color = c.accent, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.clickable { picked = null; q = "" })
+                if (preset == null) Text(Lang.t("Ändern", "Change"), color = c.accent, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.clickable { picked = null; q = "" })
             } else {
                 SField(q, { q = it }, placeholder = Lang.t("Adresse oder Postleitzahl suchen", "Search for the address or postcode"), width = 476.dp, fill = true)
                 LazyColumn(Modifier.heightIn(max = 240.dp)) {
@@ -983,7 +983,7 @@ fun AddPlaceDialog(engine: NavEngine, preset: Place?, slot: String? = null, onCl
                 Pill(Lang.t("Speichern", "Save"), pk != null, {
                     val p = picked
                     if (p != null && slot != null) { engine.places.setSlot(slot, p); engine.toast(if (slot == "home") Lang.t("Zuhause gespeichert", "Home saved") else Lang.t("Arbeit gespeichert", "Work saved"), 2500); close() }
-                    else if (p != null) { engine.places.addCustom(label, p); engine.toast(engine.str(R.string.rest_1371, label.trim().ifBlank { p.name }), 2500); close() }
+                    else if (p != null) { engine.places.addCustom(label, p); engine.toast(engine.Lang.f("Gespeichert als %1\$s", "Saved as %1\$s", label.trim().ifBlank { p.name }), 2500); close() }
                 })
                 Pill(Lang.t("Abbrechen", "Cancel"), false, { close() })
             }
@@ -1007,14 +1007,14 @@ fun MapboxKeyDialog(prefs: com.headunit.launcher.Prefs, refused: Boolean = false
                 Lang.t("Create a token: Nenne ihn Horizon Nav, lass die öffentlichen Berechtigungen angehakt und die geheimen nicht, und füge ihn unten ein.", "Create a token: name it Horizon Nav, leave the public scopes ticked and the secret ones unticked, then paste it below.") }, color = Warn, fontSize = 14.sp)
             Text(Lang.t("Horizon Nav zeichnet die Karte mit Mapbox. Dein kostenloser Mapbox-Schlüssel bringt die 3D-Karte mit Gebäuden, Bäumen und Fahrbahnmarkierungen, ", "Horizon Nav now draws its map with Mapbox. Your free Mapbox key adds the 3D map with buildings, trees and lane markings, ") +
                 Lang.t("Live-Verkehr auf der Route sowie bessere Suche und Tempolimits.", "live traffic on your route, and better search and speed limits."), color = c.text, fontSize = 15.sp)
-            Text(stringResource(R.string.ui_018), color = c.sub, fontSize = 13.sp)
+            Text(Lang.t("Zu finden auf account.mapbox.com › Tokens: das Standard-Public-Token kopieren (beginnt mit pk.).", "Get it at account.mapbox.com › Tokens: copy the Default public token (it starts pk.)."), color = c.sub, fontSize = 13.sp)
             SField(k, { k = it }, placeholder = Lang.t("Mapbox-Zugangsschlüssel (pk.…)", "Mapbox access token (pk.…)"), width = 500.dp, fill = true)
             val t = com.headunit.launcher.MapboxRest.clean(k)
             when {
-                t.startsWith("sk.") -> Text(stringResource(R.string.ui_057), color = Warn, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
-                t.isNotEmpty() && !com.headunit.launcher.MapboxRest.looksValid(t) -> Text(stringResource(R.string.ui_056), color = Warn, fontSize = 13.sp)
+                t.startsWith("sk.") -> Text(Lang.t("Das ist ein geheimes Token: Hier bitte das öffentliche (pk.) verwenden.", "That\'s a secret token: use the public one (pk.) here."), color = Warn, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                t.isNotEmpty() && !com.headunit.launcher.MapboxRest.looksValid(t) -> Text(Lang.t("Das sieht noch nicht nach einem vollständigen Token aus: Es ist ein langer Code, der mit pk. beginnt.", "That doesn\'t look like a whole token yet: it\'s a long code starting pk."), color = Warn, fontSize = 13.sp)
                 t.isNotEmpty() && !com.headunit.launcher.MapboxRest.looksWhole(t) -> Text(Lang.t("Ein Teil dieses Schlüssels scheint zu fehlen oder vertippt zu sein. Kopiere ihn noch einmal mit dem Kopieren-Knopf auf account.mapbox.com › Tokens.", "Part of that token looks missing or mistyped. Copy it again with the copy button at account.mapbox.com › Tokens."), color = Warn, fontSize = 13.sp)
-                t.isEmpty() -> Text(stringResource(R.string.ui_066), color = c.sub, fontSize = 13.sp)
+                t.isEmpty() -> Text(Lang.t("Ohne Token bleibt die Karte leer, Routen und Suche funktionieren aber weiter über dein Offline-Paket.", "Without it the map stays blank, but routes and search still work from your offline pack."), color = c.sub, fontSize = 13.sp)
             }
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 Pill(Lang.t("Speichern", "Save"), true, { if (t.isNotEmpty() && !t.startsWith("sk.")) { prefs.put(PreferenceKeys.MAPBOX_TOKEN, t); onClose() } })
