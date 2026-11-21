@@ -1,8 +1,5 @@
 ## Unreleased
 
-### Fixed
-- Fehler, die die App still überspringt (z. B. Tastatur-Fokus, Haptik, Ladestopp-Abfrage beim Stoppen), werden jetzt im Problembericht mitgezählt.
-  EN: Errors the app quietly skips (e.g. keyboard focus, haptics, saving the battery state when stopping) are now counted in the problem report.
 
 ## 1.0.246 — 2026-10-28
 

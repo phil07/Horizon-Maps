@@ -3765,49 +3765,9 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
         }
     }
 
-    // ---- camera warning ----
-
-    data class CameraSpot(val offset: Double, val type: String, val ref: String, val pos: LL)
-
-    private var camRoute: Route? = null
-    private var camSpots: List<CameraSpot> = emptyList()
-    private var camUpTo = 0.0
-    private var camBusy = false
-    private val camSaid = HashSet<Long>()
-
-    /** Traffic and speed cameras on the route ahead. */
-    private fun checkCameras(p: Fix) {
-        val r = route ?: return
-        if (previewing) return
-        val prog = curProgress
-        if (r !== camRoute) { camRoute = r; camSpots = emptyList(); camUpTo = 0.0; camSaid.clear(); map.setAlprCameras(emptyList()) }
-        if (!camBusy && online() && prog + 50_000.0 > camUpTo && camUpTo < r.len) {
-            camBusy = true
-            val from = max(prog, camUpTo - 500.0); val to = min(r.len, from + 100_000.0)
-            scope.launch {
-                try {
-                    val found = withContext(Dispatchers.IO) { Overpass.cameras(RouteExtras.line(r, from, to, 30.0, 2500)) }
-                    if (found != null && route === r) {
-                        val add = found.mapNotNull { cam ->
-                            val pr = RouteExtras.project(r, cam.pos, 50.0, from) ?: return@mapNotNull null
-                            CameraSpot(pr.first, cam.type, cam.ref, cam.pos)
-                        }
-                        camSpots = (camSpots + add).distinctBy { Math.round(it.offset / 100.0) }.sortedBy { it.offset }
-                        camUpTo = to
-                        map.setAlprCameras(camSpots.map { it.pos })
-                    }
-                } finally { camBusy = false }
-            }
-        }
-        val next = camSpots.firstOrNull { it.offset > prog - 20.0 } ?: return
-        val dist = next.offset - prog
-        val key = Math.round(next.offset / 100.0)
-        if (dist > 2000.0 || key in camSaid) return
-        camSaid += key
-        val d = Geo.fmtDist(dist, imperial)
-        val type = if (next.type == "speed") Lang.t("Geschwindigkeitskamera", "Speed camera") else Lang.t("Verkehrskamera", "Traffic camera")
-        showNotice(Notice("camera", Lang.t("$type in $d", "$type in $d"), next.ref.takeIf { it.isNotBlank() } ?: "", 2), 8_000L)
-    }
+    // ---- camera warning: the traffic and speed cameras ahead (RouteCameras.kt) ----
+    private val aheadCams = RouteCameras(scope, { online() }, { route }, { map.setAlprCameras(it) },
+        { n, ms -> showNotice(n, ms) }, { imperial })
 
     /** While navigating a TomTom route: the posted limit for exactly where you are on it, updated with every GPS fix. */
     private fun applyRouteLimit(r: Route, prog: Double, p: Fix) {
@@ -4699,7 +4659,7 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
             try { checkWeatherWarnings(p) } catch (e: Exception) { softFail(e) }
             try { checkRescueLane(p) } catch (e: Exception) { softFail(e) }
             try { checkClearances(p) } catch (e: Exception) { softFail(e) }
-            if (!walking) try { checkCameras(p) } catch (e: Exception) { softFail(e) }
+            if (!walking) try { route?.takeIf { !previewing }?.let { aheadCams.check(it, curProgress) } } catch (e: Exception) { softFail(e) }
             try { garagesAt(p.pos, true) } catch (e: Exception) { softFail(e) }
         }
         // the first position of this session: the zoom you left the map at last time comes back (not on a route)
