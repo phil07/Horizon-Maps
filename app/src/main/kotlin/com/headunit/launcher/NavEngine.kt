@@ -3904,36 +3904,10 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
         if (!camerasOnMap()) { cameraDist = null; if (cameras.isNotEmpty()) { cameras = emptyList(); map.setCameras(emptyList()) }; camPos = null; return }
         // the cameras on the map follow the route coming and going, and the ones you've passed drop off
         if (now - camsMergedAt > 4000L) { camsMergedAt = now; mergeCams() }
-        var best: LL? = null
-        var bestD = 1e9
-        // warned in good time: at least 500 m, or about 18 seconds ahead at speed
-        val warnAt = max(500.0, p.speed * 18.0)
-        val rc = routeCams
-        if (camerasOn() && navigatingNow() && onRouteNow && rc.isNotEmpty()) {
-            // on a route: the cameras along it, by distance along the road (works round bends, where "straight ahead" doesn't)
-            for ((c, off) in rc) {
-                if (atAvgEnd(c)) continue
-                val ahead = off - curProg
-                if (ahead < -15.0 || ahead > warnAt || ahead >= bestD) continue
-                if (!camFacesUs(c, p.heading)) continue
-                best = c; bestD = max(0.0, ahead)
-            }
-        }
-        // off the route (or driving without one): a camera counts when it lies ahead, within 35 m to the side of the line you drive along
-        val onRouteCams = camerasOn() && navigatingNow() && onRouteNow && rc.isNotEmpty()
-        if (best == null && !onRouteCams && p.heading >= 0 && p.speed > 2.0) {
-            for (c in cameras) {
-                if (atAvgEnd(c)) continue
-                val d = Geo.dist(p.pos, c)
-                if (d < 1.0 || d > warnAt + 40.0) continue
-                val ang = angDiff(Geo.bearing(p.pos, c), p.heading)
-                val along = d * Math.cos(Math.toRadians(ang))
-                val side = Math.abs(d * Math.sin(Math.toRadians(ang)))
-                if (along < 0.0 || along > warnAt || side > 35.0) continue
-                if (!camFacesUs(c, p.heading)) continue
-                if (along < bestD) { best = c; bestD = along }
-            }
-        }
+        val onRoute = camerasOn() && navigatingNow() && onRouteNow
+        val hit = nearestCameraAhead(p, curProg, onRoute, routeCams, cameras, { atAvgEnd(it) }, { c, h -> camFacesUs(c, h) })
+        val best = hit?.first
+        val bestD = hit?.second ?: 1e9
         cameraDist = if (best != null) bestD.toInt() else null
         if (best != null) {
             if (camAlerted.size > 100) camAlerted.clear()
@@ -4372,7 +4346,7 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
     private var camPad = 0.0
     private var camLeft = 0.0
 
-    internal fun angDiff(a: Double, b: Double): Double = ((a - b + 540.0) % 360.0 + 360.0) % 360.0 - 180.0
+    internal fun angDiff(a: Double, b: Double): Double = Geo.angDiff(a, b)
     private fun easeAngle(cur: Double, tgt: Double, dt: Double, tau: Double): Double =
         ((cur + angDiff(tgt, cur) * (1.0 - Math.exp(-dt / tau))) % 360.0 + 360.0) % 360.0
 

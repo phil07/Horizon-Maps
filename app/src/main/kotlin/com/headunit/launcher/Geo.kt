@@ -336,6 +336,9 @@ object Geo {
         return 2 * r * asin(sqrt(x))
     }
 
+    /** The difference between two bearings, in -180..180 degrees. */
+    fun angDiff(a: Double, b: Double): Double = ((a - b + 540.0) % 360.0 + 360.0) % 360.0 - 180.0
+
     fun bearing(a: LL, b: LL): Double {
         val y = sin(rad(b.lon - a.lon)) * cos(rad(b.lat))
         val x = cos(rad(a.lat)) * sin(rad(b.lat)) - sin(rad(a.lat)) * cos(rad(b.lat)) * cos(rad(b.lon - a.lon))
