@@ -333,7 +333,6 @@ internal fun GpxTracksGroup(engine: NavEngine) {
     }
 }
 
-/** Share your ETA and places sent from other apps (part of Places & trips). */
 /** Your own normal zoom when not on a route: a slider from further out to closer, and Reset. */
 @Composable
 internal fun DefaultZoomRow(prefs: Prefs) {
@@ -395,6 +394,7 @@ internal fun PhoneLinkGroup(prefs: Prefs) {
     }
 }
 
+/** Share your ETA and places sent from other apps (part of Places & trips). */
 @Composable
 internal fun SharingGroups(prefs: Prefs) {
     val ctx = LocalContext.current
