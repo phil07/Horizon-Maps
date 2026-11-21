@@ -58,10 +58,10 @@ import com.headunit.launcher.softFail
 internal fun SGroup(title: String? = null, footer: String? = null, content: @Composable ColumnScope.() -> Unit) {
     val c = LocalVw.current
     Column(Modifier.fillMaxWidth().padding(bottom = 14.dp)) {
-        if (title != null) Text(tr(title).uppercase(), color = c.sub, fontSize = 11.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.2.sp, modifier = Modifier.padding(start = 6.dp, bottom = 6.dp))
+        if (title != null) Text(title.uppercase(), color = c.sub, fontSize = 11.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.2.sp, modifier = Modifier.padding(start = 6.dp, bottom = 6.dp))
         // the same card look as the map screen: soft surface with a hairline edge
         Column(Modifier.fillMaxWidth().then(if (Neon.on) Modifier.neonBrackets(c.accent, 12.dp, 2.dp) else Modifier).clip(RoundedCornerShape(22.dp)).background(c.panel).border(1.dp, c.line, RoundedCornerShape(22.dp)).padding(horizontal = 18.dp, vertical = 6.dp).animateContentSize(), content = content)
-        if (footer != null) Text(tr(footer), color = c.sub, fontSize = 12.sp, modifier = Modifier.padding(start = 8.dp, end = 8.dp, top = 6.dp))
+        if (footer != null) Text(footer, color = c.sub, fontSize = 12.sp, modifier = Modifier.padding(start = 8.dp, end = 8.dp, top = 6.dp))
     }
 }
 
@@ -93,8 +93,8 @@ internal fun SItem(title: String, sub: String? = null, onClick: (() -> Unit)? = 
         // on a phone the buttons go under the words: beside them, a long name was squeezed into a column of single letters
         Column(rowMod) {
             Column(Modifier.fillMaxWidth()) {
-                Text(tr(title), color = c.text, fontSize = 16.sp, fontWeight = FontWeight.Medium)
-                if (!sub.isNullOrBlank()) Text(tr(sub), color = c.sub, fontSize = 12.sp, modifier = Modifier.padding(top = 2.dp))
+                Text(title, color = c.text, fontSize = 16.sp, fontWeight = FontWeight.Medium)
+                if (!sub.isNullOrBlank()) Text(sub, color = c.sub, fontSize = 12.sp, modifier = Modifier.padding(top = 2.dp))
             }
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.padding(top = 6.dp)) { trailing() }
         }
@@ -106,13 +106,13 @@ internal fun SItem(title: String, sub: String? = null, onClick: (() -> Unit)? = 
         val beside = maxWidth >= 480.dp
         if (beside) Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f).padding(end = 14.dp)) {
-                Text(tr(title), color = c.text, fontSize = 16.sp, fontWeight = FontWeight.Medium)
-                if (!sub.isNullOrBlank()) Text(tr(sub), color = c.sub, fontSize = 12.sp, modifier = Modifier.padding(top = 2.dp))
+                Text(title, color = c.text, fontSize = 16.sp, fontWeight = FontWeight.Medium)
+                if (!sub.isNullOrBlank()) Text(sub, color = c.sub, fontSize = 12.sp, modifier = Modifier.padding(top = 2.dp))
             }
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End), verticalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.padding(start = 4.dp)) { trailing() }
         } else Column(Modifier.fillMaxWidth()) {
-            Text(tr(title), color = c.text, fontSize = 16.sp, fontWeight = FontWeight.Medium)
-            if (!sub.isNullOrBlank()) Text(tr(sub), color = c.sub, fontSize = 12.sp, modifier = Modifier.padding(top = 2.dp))
+            Text(title, color = c.text, fontSize = 16.sp, fontWeight = FontWeight.Medium)
+            if (!sub.isNullOrBlank()) Text(sub, color = c.sub, fontSize = 12.sp, modifier = Modifier.padding(top = 2.dp))
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.padding(top = 6.dp)) { trailing() }
         }
     }
@@ -141,7 +141,7 @@ internal fun SegmentedWith(options: List<Pair<String, String>>, value: String, w
             Modifier.clip(RoundedCornerShape(50)).background(bg).clickable { onPick(k) }.padding(horizontal = 14.dp, vertical = 8.dp),
             contentAlignment = Alignment.Center,
         ) {
-            Text(tr(label), color = fg, fontSize = 14.sp, fontWeight = if (sel) FontWeight.SemiBold else FontWeight.Medium, maxLines = 1)
+            Text(label, color = fg, fontSize = 14.sp, fontWeight = if (sel) FontWeight.SemiBold else FontWeight.Medium, maxLines = 1)
         }
     }
     if (wrap) FlowRow(Modifier.clip(RoundedCornerShape(24.dp)).background(c.tile).padding(3.dp), horizontalArrangement = Arrangement.spacedBy(3.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
@@ -192,7 +192,7 @@ internal fun SButton(text: String, primary: Boolean = false, danger: Boolean = f
     val bg = if (danger) Bad.copy(alpha = 0.16f) else if (primary) c.accent else c.tile
     val fg = if (danger) Bad else if (primary) (if (c.accent.luminance() > 0.6f) Color(0xFF10131C) else Color.White) else c.text
     Box(Modifier.clip(RoundedCornerShape(50)).background(bg).pressClick(onClick).padding(horizontal = 16.dp, vertical = 9.dp), contentAlignment = Alignment.Center) {
-        Text(tr(text), color = fg, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
+        Text(text, color = fg, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
     }
 }
 
@@ -202,7 +202,7 @@ internal fun SField(value: String, onChange: (String) -> Unit, placeholder: Stri
     val c = LocalVw.current
     TextField(
         value = value, onValueChange = onChange, singleLine = true,
-        placeholder = { Text(tr(placeholder), color = c.sub) },
+        placeholder = { Text(placeholder, color = c.sub) },
         visualTransformation = if (password) PasswordVisualTransformation() else VisualTransformation.None,
         keyboardOptions = if (number) KeyboardOptions(keyboardType = KeyboardType.Decimal) else KeyboardOptions.Default,
         shape = RoundedCornerShape(16.dp),
@@ -229,7 +229,7 @@ internal fun SFieldItem(title: String, value: String, sub: String? = null, place
 /** A line of explanation inside a group. */
 @Composable
 internal fun SNote(text: String) {
-    Text(tr(text), color = LocalVw.current.sub, fontSize = 12.sp, modifier = Modifier.padding(vertical = 6.dp))
+    Text(text, color = LocalVw.current.sub, fontSize = 12.sp, modifier = Modifier.padding(vertical = 6.dp))
 }
 
 

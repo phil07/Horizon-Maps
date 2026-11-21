@@ -33,7 +33,7 @@ object TripExport {
         val sb = StringBuilder("Datum;Abfahrt;Ankunft;Ziel;Kilometer;Dauer;Fahrzeit;Höchstgeschwindigkeit (km/h);Art\r\n")
         for (t in trips.sortedBy { it.start }) {
             sb.append(listOf(day(t.start), time(t.start), time(t.end), cell(t.to), km(t.dist), dur(t.end - t.start), dur(t.moving * 1000L),
-                Math.round(t.maxSpeed * 3.6).toString(), if (t.start in business) "Dienstlich" else "Privat").joinToString(";")).append("\r\n")
+                Math.round(t.maxSpeed * 3.6).toString(), if (t.start in business) Lang.t("Dienstlich", "Business") else Lang.t("Privat", "Private")).joinToString(";")).append("\r\n")
         }
         return sb.toString()
     }
@@ -64,7 +64,7 @@ object TripExport {
                 for (t in chunk) {
                     val to = if (t.to.length > 32) t.to.take(31) + "…" else t.to
                     val cells = listOf(day(t.start), time(t.start) + "–" + time(t.end), to, km(t.dist), dur(t.end - t.start), Math.round(t.maxSpeed * 3.6).toString(),
-                        if (t.start in business) "Dienstl." else "Privat")
+                        if (t.start in business) "Dienstl." else Lang.t("Privat", "Private"))
                     cells.forEachIndexed { i, s -> c.drawText(s, cols[i], y, body) }
                     y += 12f
                 }

@@ -12,7 +12,7 @@ data class Garage(val id: String, val name: String, val pos: LL, val total: Int,
     val live: Boolean get() = free != null
     val full: Boolean get() = !open || (free != null && free <= 0)
 
-    /** "281 frei", "Voll", "Geschlossen", or "400 Plätze" without a live count. */
+    /** "281 frei", Lang.t("Voll", "Full"), "Geschlossen", or "400 Plätze" without a live count. */
     fun label(): String = when {
         !open -> Lang.t("Geschlossen", "Closed")
         free != null && free <= 0 -> Lang.t("Voll", "Full")

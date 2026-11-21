@@ -306,7 +306,7 @@ fun ParkingCard(engine: NavEngine, modifier: Modifier = Modifier) {
     }
 }
 
-/** A car park's free spaces as a small coloured pill ("281 frei" green, amber when filling up, "Voll" red), or its size in grey. */
+/** A car park's free spaces as a small coloured pill ("281 frei" green, amber when filling up, Lang.t("Voll", "Full") red), or its size in grey. */
 @Composable
 fun ParkSpaces(n: com.headunit.launcher.Nearby, big: Boolean = false) {
     val total = n.total ?: 0
@@ -793,7 +793,7 @@ fun HazardRadar(engine: NavEngine, modifier: Modifier = Modifier) {
     val shape = RoundedCornerShape(22.dp)
     Column(modifier.widthIn(max = 540.dp).fillMaxWidth().panel(8.dp, shape, c.surface).padding(start = 16.dp, end = 16.dp, top = 9.dp, bottom = 10.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(radarIcon(near.kind), null, tint = radarColor(near.kind), modifier = Modifier.size(20.dp).graphicsFlip(near.kind == "bend" && (near.label.endsWith("left") || near.label.startsWith("Links"))))
+            Icon(radarIcon(near.kind), null, tint = radarColor(near.kind), modifier = Modifier.size(20.dp).graphicsFlip(near.kind == "bend" && (near.label.endsWith("left") || near.label.startsWith(Lang.t("Links", "Left")))))
             Text(near.label, color = c.text, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(start = 8.dp).weight(1f, fill = false), maxLines = 1, overflow = TextOverflow.Ellipsis)
             Text(" · " + (if (near.dist < 20) Lang.t("jetzt", "now") else Lang.t("in ", "in ") + Geo.fmtDist(near.dist, engine.imperial)), color = c.sub, fontSize = 14.sp, maxLines = 1)
             Box(Modifier.weight(1f))
@@ -809,7 +809,7 @@ fun HazardRadar(engine: NavEngine, modifier: Modifier = Modifier) {
                 val f = (it.dist / reach).toFloat().coerceIn(0f, 1f)
                 val x = (w - 26.dp) * f + 4.dp
                 Box(Modifier.offset(x = x).align(Alignment.CenterStart).size(26.dp).clip(CircleShape).background(c.surface2).border(2.dp, radarColor(it.kind), CircleShape), contentAlignment = Alignment.Center) {
-                    Icon(radarIcon(it.kind), null, tint = radarColor(it.kind), modifier = Modifier.size(15.dp).graphicsFlip(it.kind == "bend" && (it.label.endsWith("left") || it.label.startsWith("Links"))))
+                    Icon(radarIcon(it.kind), null, tint = radarColor(it.kind), modifier = Modifier.size(15.dp).graphicsFlip(it.kind == "bend" && (it.label.endsWith("left") || it.label.startsWith(Lang.t("Links", "Left")))))
                 }
             }
         }

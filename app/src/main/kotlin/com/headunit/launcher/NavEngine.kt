@@ -1845,7 +1845,7 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
     private val vignetteSaid = HashSet<String>()
 
     /**
-     * Settings > Routes "Vignettenpflichtige Straßen meiden": when the best route uses a vignette road in a country you only pass
+     * Settings > Routes Lang.t("Vignettenpflichtige Straßen meiden", "Avoid vignette roads"): when the best route uses a vignette road in a country you only pass
      * through, it's asked again without toll roads; the new one is kept if it needs fewer vignettes.
      */
     private suspend fun avoidVignette(rs: List<Route>, from: LL, to: LL, departMs: Long): List<Route> {
@@ -3474,7 +3474,7 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
         limitOkAt = System.currentTimeMillis(); limitOkPos = at
     }
 
-    // ---- "Ankunftszeit teilen": a live link with your position, arrival time and distance left ----
+    // ---- Lang.t("Ankunftszeit teilen", "Share arrival time"): a live link with your position, arrival time and distance left ----
 
     /** The link while sharing (the options show "Teilen beenden" then), else null. */
     var tripShareUrl by mutableStateOf<String?>(null); private set

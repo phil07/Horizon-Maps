@@ -110,9 +110,9 @@ internal fun useHereFor(engine: NavEngine, slot: String) {
 
 @Composable
 internal fun PlaceItem(label: String, p: Place?, onChange: () -> Unit, onClear: () -> Unit, useHere: (() -> Unit)? = null) {
-    SItem(label, p?.let { it.name + (if (it.sub.isNotBlank()) ", " + it.sub else "") } ?: "Nicht festgelegt") {
+    SItem(label, p?.let { it.name + (if (it.sub.isNotBlank()) ", " + it.sub else "") } ?: Lang.t("Nicht festgelegt", "Not set")) {
         if (useHere != null) SButton("Hier verwenden", onClick = useHere)
-        SButton(if (p != null) "Ändern" else "Festlegen", primary = true, onClick = onChange)
+        SButton(if (p != null) Lang.t("Ändern", "Change") else Lang.t("Festlegen", "Set"), primary = true, onClick = onChange)
         if (p != null) SButton("Löschen", danger = true, onClick = onClear)
     }
 }
@@ -125,41 +125,41 @@ internal fun PlacesSection(engine: NavEngine) {
     var renaming by remember { mutableStateOf<String?>(null) }
     var folderFor by remember { mutableStateOf<String?>(null) }
     var adding by remember { mutableStateOf(false) }
-    SGroup("Unter der Suchleiste", footer = "Die Knöpfe unter der Suchleiste: Verknüpfungen, Such-Knöpfe, die Suchleiste und Zuhause und Arbeit. Der Knopf zeigt eine Liste, den nächsten Ort oder Track zuerst.") {
-        SToggle(engine.prefs, "Meine Orte", PreferenceKeys.SC_PLACES, false, "Liste deiner Orte und Favoriten")
-        SToggle(engine.prefs, "Meine Tracks", PreferenceKeys.SC_TRACKS, false, "Liste deiner GPX-Tracks")
+    SGroup(Lang.t("Unter der Suchleiste", "Under the search bar"), footer = Lang.t("Die Knöpfe unter der Suchleiste: Verknüpfungen, Such-Knöpfe, die Suchleiste und Zuhause und Arbeit. Der Knopf zeigt eine Liste, den nächsten Ort oder Track zuerst.", "The buttons under the search bar: shortcuts, find buttons, the search bar, and Home and Work. A button shows a list, the nearest place or track first.")) {
+        SToggle(engine.prefs, Lang.t("Meine Orte", "My places"), PreferenceKeys.SC_PLACES, false, Lang.t("Liste deiner Orte und Favoriten", "A list of your places and favourites"))
+        SToggle(engine.prefs, Lang.t("Meine Tracks", "My tracks"), PreferenceKeys.SC_TRACKS, false, Lang.t("Liste deiner GPX-Tracks", "A list of your GPX tracks"))
         for ((kind, label) in listOf("fuel" to "Tanken", "charging" to "Laden", "food" to "Essen", "coffee" to "Kaffee", "parking" to "Parken",
             "camp" to "Stellplätze", "dump" to "Entsorgung", "lpg" to "Autogas")) {
             SToggle(engine.prefs, label, "find_$kind", true, "Knopf „$label in der Nähe“")
         }
-        SToggle(engine.prefs, "Suche als Knopf", PreferenceKeys.SEARCH_FOLD, false, "Ohne Route nur ein runder Knopf in der Ecke")
-        SToggle(engine.prefs, "Zuhause", PreferenceKeys.HOME_TILE, true, "Die Kachel Zuhause mit der Fahrtzeit")
-        SToggle(engine.prefs, "Arbeit", PreferenceKeys.WORK_TILE, true, "Die Kachel Arbeit mit der Fahrtzeit")
-        SToggle(engine.prefs, "Markierte Orte unter der Suche", PreferenceKeys.STARRED_ROW, true, "Aus: alle markierten Orte sind ausgeblendet. Sie bleiben in der Suche und in „Meine Orte“.")
-        if (mine.isEmpty()) SNote("Noch keine eigenen Orte vorhanden.")
+        SToggle(engine.prefs, Lang.t("Suche als Knopf", "Search as a button"), PreferenceKeys.SEARCH_FOLD, false, Lang.t("Ohne Route nur ein runder Knopf in der Ecke", "With no route, just one round button in the corner"))
+        SToggle(engine.prefs, Lang.t("Zuhause", "Home"), PreferenceKeys.HOME_TILE, true, Lang.t("Die Kachel Zuhause mit der Fahrtzeit", "The Home tile with the drive time"))
+        SToggle(engine.prefs, Lang.t("Arbeit", "Work"), PreferenceKeys.WORK_TILE, true, Lang.t("Die Kachel Arbeit mit der Fahrtzeit", "The Work tile with the drive time"))
+        SToggle(engine.prefs, Lang.t("Markierte Orte unter der Suche", "Starred places under the search"), PreferenceKeys.STARRED_ROW, true, Lang.t("Aus: alle markierten Orte sind ausgeblendet. Sie bleiben in der Suche und in „Meine Orte“.", "Off: all starred places are hidden. They stay in search and in My places."))
+        if (mine.isEmpty()) SNote(Lang.t("Noch keine eigenen Orte vorhanden.", "No places of your own yet."))
         mine.forEach { lp ->
             if (renaming == lp.label) {
                 var t by remember(lp.label) { mutableStateOf(lp.label) }
                 SItem("${lp.label} umbenennen") {
                     SField(t, { t = it.take(24) }, width = 220.dp)
-                    SButton("Speichern", primary = true) { pl.renameCustom(lp.label, t); renaming = null }
+                    SButton(Lang.t("Speichern", "Save"), primary = true) { pl.renameCustom(lp.label, t); renaming = null }
                 }
             } else if (folderFor == lp.label) {
                 var f by remember(lp.label) { mutableStateOf(lp.folder) }
-                SItem("Ordner für ${lp.label}", "Einen neuen Namen eintippen oder einen vorhandenen. Leer: kein Ordner.") {
+                SItem("Ordner für ${lp.label}", Lang.t("Einen neuen Namen eintippen oder einen vorhandenen. Leer: kein Ordner.", "Type a new name or an existing one. Empty: no folder.")) {
                     SField(f, { f = it.take(24) }, width = 220.dp)
-                    SButton("Speichern", primary = true) { pl.setFolder(lp.label, f); folderFor = null }
+                    SButton(Lang.t("Speichern", "Save"), primary = true) { pl.setFolder(lp.label, f); folderFor = null }
                 }
             } else SItem(lp.label, (if (lp.folder.isNotBlank()) "Ordner: ${lp.folder} · " else "") + lp.place.name + if (lp.place.sub.isNotBlank()) ", " + lp.place.sub else "") {
-                SButton(if (lp.starred) "★ Markiert" else "☆ Markieren", primary = lp.starred) { pl.setStar(lp.label, !lp.starred) }
-                SButton("Ordner") { folderFor = lp.label }
-                SButton("Umbenennen") { renaming = lp.label }
-                SButton("Entfernen", danger = true) { pl.removeCustom(lp.label) }
+                SButton(if (lp.starred) Lang.t("★ Markiert", "★ Starred") else Lang.t("☆ Markieren", "☆ Star"), primary = lp.starred) { pl.setStar(lp.label, !lp.starred) }
+                SButton(Lang.t("Ordner", "Folder")) { folderFor = lp.label }
+                SButton(Lang.t("Umbenennen", "Rename")) { renaming = lp.label }
+                SButton(Lang.t("Entfernen", "Remove"), danger = true) { pl.removeCustom(lp.label) }
             }
         }
-        SItem("Ort hinzufügen") { SButton("Hinzufügen", primary = true) { adding = true } }
+        SItem(Lang.t("Ort hinzufügen", "Add a place")) { SButton(Lang.t("Hinzufügen", "Add"), primary = true) { adding = true } }
         if (mine.size > 1) {
-            SNote("Die Reihenfolge der Knöpfe unter der Suchleiste. Mit den Pfeilen verschieben.")
+            SNote(Lang.t("Die Reihenfolge der Knöpfe unter der Suchleiste. Mit den Pfeilen verschieben.", "The order of the shortcuts under the search bar. Move them with the arrows."))
             mine.forEachIndexed { i, lp ->
                 SItem(lp.label) {
                     SButton("↑") { if (i > 0) pl.moveCustom(lp.label, -1) }
@@ -171,12 +171,12 @@ internal fun PlacesSection(engine: NavEngine) {
     GpxTracksGroup(engine)
     var settingSlot by remember { mutableStateOf<String?>(null) }
     val slotsRaw = engine.prefs.s(PreferenceKeys.PLACE_HOME, "") + engine.prefs.s("place_work", "")
-    SGroup("Favoriten", footer = "A–Z: alphabetisch. Nächste zuerst: die nächsten Favoriten oben. Gilt auch für Android Auto.") {
+    SGroup(Lang.t("Favoriten", "Favourites"), footer = "A–Z: alphabetisch. Nächste zuerst: die nächsten Favoriten oben. Gilt auch für Android Auto.") {
         SChoice("Favoriten sortieren", listOf("az" to "A–Z", "near" to "Nächste zuerst"), engine.prefs.s(PreferenceKeys.FAV_SORT, "az")) { engine.prefs.put(PreferenceKeys.FAV_SORT, it) }
     }
-    SGroup("Gespeicherte Orte", footer = "Auch über die Buttons unter der Suchleiste festlegbar.") {
-        PlaceItem("Zuhause", remember(slotsRaw) { pl.slot("home") }, { settingSlot = "home" }, { pl.clearSlot("home") }, { useHereFor(engine, "home") })
-        PlaceItem("Arbeitsplatz", remember(slotsRaw) { pl.slot("work") }, { settingSlot = "work" }, { pl.clearSlot("work") }, { useHereFor(engine, "work") })
+    SGroup(Lang.t("Gespeicherte Orte", "Saved places"), footer = Lang.t("Auch über die Buttons unter der Suchleiste festlegbar.", "Can also be set with the buttons under the search bar.")) {
+        PlaceItem(Lang.t("Zuhause", "Home"), remember(slotsRaw) { pl.slot("home") }, { settingSlot = "home" }, { pl.clearSlot("home") }, { useHereFor(engine, "home") })
+        PlaceItem(Lang.t("Arbeitsplatz", "Work"), remember(slotsRaw) { pl.slot("work") }, { settingSlot = "work" }, { pl.clearSlot("work") }, { useHereFor(engine, "work") })
     }
     settingSlot?.let { s -> AddPlaceDialog(engine, null, slot = s) { settingSlot = null } }
     // Home and Work under the search bar: each can be left off (the app and Android Auto alike)
@@ -190,11 +190,11 @@ internal fun PlacesSection(engine: NavEngine) {
     var tagFilter by remember { mutableStateOf("") }
     val tagRaw = engine.prefs.s(PreferenceKeys.FAV_TAGS, "")
     val tags = remember(favRaw, tagRaw) { pl.favTags() }
-    SGroup("Favoriten") {
-        if (favs.isEmpty()) SNote("Noch keine Favoriten vorhanden.")
+    SGroup(Lang.t("Favoriten", "Favourites")) {
+        if (favs.isEmpty()) SNote(Lang.t("Noch keine Favoriten vorhanden.", "No favourites yet."))
         // your own tags ("Kunden", "Urlaub"): the list shows one tag's favourites at a time
-        if (tags.isNotEmpty()) SItem("Schlagwort", if (tagFilter.isBlank() || tagFilter !in tags) "Alle" else tagFilter) {
-            SButton("Alle", primary = tagFilter.isBlank() || tagFilter !in tags) { tagFilter = "" }
+        if (tags.isNotEmpty()) SItem(Lang.t("Schlagwort", "Tag"), if (tagFilter.isBlank() || tagFilter !in tags) Lang.t("Alle", "All") else tagFilter) {
+            SButton(Lang.t("Alle", "All"), primary = tagFilter.isBlank() || tagFilter !in tags) { tagFilter = "" }
             for (t in tags) SButton(t, primary = tagFilter == t) { tagFilter = t }
         }
         favs.filter { tagFilter.isBlank() || tagFilter !in tags || pl.favTag(it) == tagFilter }.forEach { f ->
@@ -202,37 +202,37 @@ internal fun PlacesSection(engine: NavEngine) {
                 taggingFav == f -> {
                     var t by remember(f) { mutableStateOf(pl.favTag(f)) }
                     SItem("Schlagwort für ${f.name}") {
-                        SField(t, { t = it.take(20) }, placeholder = "z. B. Kunden", width = 200.dp)
-                        SButton("Speichern", primary = true) { pl.setFavTag(f, t); taggingFav = null }
+                        SField(t, { t = it.take(20) }, placeholder = Lang.t("z. B. Kunden", "e.g. customers"), width = 200.dp)
+                        SButton(Lang.t("Speichern", "Save"), primary = true) { pl.setFavTag(f, t); taggingFav = null }
                     }
                 }
                 renamingFav == f -> {
                     var t by remember(f) { mutableStateOf(f.name) }
                     SItem("${f.name} umbenennen") {
                         SField(t, { t = it.take(40) }, width = 220.dp)
-                        SButton("Speichern", primary = true) { pl.renameFavourite(f, t); renamingFav = null }
+                        SButton(Lang.t("Speichern", "Save"), primary = true) { pl.renameFavourite(f, t); renamingFav = null }
                     }
                 }
                 slotFor == f -> SItem("${f.name} festlegen als…") {
-                    SButton("Zuhause", primary = true) { pl.setSlot("home", f); slotFor = null; engine.toast(engine.Lang.f("%1\$s ist jetzt Zuhause", "%1\$s is now Home", f.name), 2500) }
-                    SButton("Arbeitsplatz", primary = true) { pl.setSlot("work", f); slotFor = null; engine.toast(engine.Lang.f("%1\$s ist jetzt Arbeit", "%1\$s is now Work", f.name), 2500) }
-                    SButton("Abbrechen") { slotFor = null }
+                    SButton(Lang.t("Zuhause", "Home"), primary = true) { pl.setSlot("home", f); slotFor = null; engine.toast(engine.Lang.f("%1\$s ist jetzt Zuhause", "%1\$s is now Home", f.name), 2500) }
+                    SButton(Lang.t("Arbeitsplatz", "Work"), primary = true) { pl.setSlot("work", f); slotFor = null; engine.toast(engine.Lang.f("%1\$s ist jetzt Arbeit", "%1\$s is now Work", f.name), 2500) }
+                    SButton(Lang.t("Abbrechen", "Cancel")) { slotFor = null }
                 }
                 else -> SItem(f.name, listOf(pl.favTag(f).let { if (it.isBlank()) "" else "#$it" }, f.sub).filter { it.isNotBlank() }.joinToString(" · ")) {
-                    SButton("Schlagwort") { taggingFav = f }
-                    SButton("Umbenennen") { renamingFav = f }
-                    SButton("Zuhause / Arbeit") { slotFor = f }
+                    SButton(Lang.t("Schlagwort", "Tag")) { taggingFav = f }
+                    SButton(Lang.t("Umbenennen", "Rename")) { renamingFav = f }
+                    SButton(Lang.t("Zuhause / Arbeit", "Home / Work")) { slotFor = f }
                     SButton("In Deine Orte") { pl.moveFavouriteToPlaces(f) }
-                    SButton("Entfernen", danger = true) { pl.toggleFavourite(f) }
+                    SButton(Lang.t("Entfernen", "Remove"), danger = true) { pl.toggleFavourite(f) }
                 }
             }
         }
         if (favs.size > 1) SItem("Alle in Deine Orte", "Alle Favoriten kommen in einen Ordner „Favoriten“ unter Deine Orte. Die Liste neben Zuhause und Arbeit bleibt kurz.") { SButton("Alle verschieben", primary = true) { pl.moveAllFavouritesToPlaces() } }
-        if (favs.size > 1) SItem("Alle Favoriten entfernen") { SButton("Alle löschen", danger = true) { pl.clearFavourites() } }
+        if (favs.size > 1) SItem(Lang.t("Alle Favoriten entfernen", "Remove all favourites")) { SButton(Lang.t("Alle löschen", "Delete all"), danger = true) { pl.clearFavourites() } }
     }
-    SGroup("Verlauf", footer = "Zum Entfernen zur Seite wischen.") {
-        SToggle(engine.prefs, "Gespeichert & Zuletzt unter der Suchleiste", PreferenceKeys.QUICKLIST, true, "Die Liste der Favoriten und letzten Orte auf der Karte")
-        SItem("Letzte Ziele", "${pl.recents().size} letzte Ziele") {
+    SGroup(Lang.t("Verlauf", "History"), footer = Lang.t("Zum Entfernen zur Seite wischen.", "Swipe aside to remove.")) {
+        SToggle(engine.prefs, Lang.t("Gespeichert & Zuletzt unter der Suchleiste", "Saved & Recent under the search bar"), PreferenceKeys.QUICKLIST, true, Lang.t("Die Liste der Favoriten und letzten Orte auf der Karte", "The list of favourites and recent places on the map"))
+        SItem(Lang.t("Letzte Ziele", "Recent destinations"), "${pl.recents().size} letzte Ziele") {
             SButton("Löschen", danger = true) { pl.clearHistory(); engine.toast(engine.Lang.t("Verlauf gelöscht", "History cleared"), 2000) }
         }
     }
@@ -245,18 +245,18 @@ internal fun TripsGroup(engine: NavEngine) {
     val fmt = java.text.SimpleDateFormat("EEE, d. MMM, HH:mm", java.util.Locale.GERMANY)
     val k = if (engine.imperial) 2.23694 else 3.6
     val unit = if (engine.imperial) "mph" else "km/h"
-    SGroup("Fahrtenbuch") {
+    SGroup(Lang.t("Fahrtenbuch", "Trip log")) {
         // closed at start to save room; the header (count and distance) opens and closes it
         var open by remember { mutableStateOf(false) }
-        if (shown.isEmpty()) SNote("Noch keine Fahrten aufgezeichnet.")
-        else SItem("${shown.size} Fahrten", Geo.fmtDist(shown.sumOf { it.dist }, engine.imperial) + " insgesamt", onClick = { open = !open }) {
+        if (shown.isEmpty()) SNote(Lang.t("Noch keine Fahrten aufgezeichnet.", "No trips recorded yet."))
+        else SItem("${shown.size} Fahrten", Geo.fmtDist(shown.sumOf { it.dist }, engine.imperial) + Lang.t(" insgesamt", " in total"), onClick = { open = !open }) {
             Text(if (open) "▴" else "▾", color = LocalVw.current.sub, fontSize = 18.sp)
         }
         if (!open) return@SGroup
         if (shown.isNotEmpty()) {
-            SItem("Fahrtenbuch leeren", "Alle Fahrten löschen") { SButton("Löschen", danger = true) { engine.trips.clear(); shown = emptyList() } }
+            SItem(Lang.t("Fahrtenbuch leeren", "Clear the trip log"), Lang.t("Alle Fahrten löschen", "Delete all trips")) { SButton("Löschen", danger = true) { engine.trips.clear(); shown = emptyList() } }
             val ctx = androidx.compose.ui.platform.LocalContext.current
-            SItem("Exportieren", "CSV oder PDF. Fahrt antippen: dienstlich oder privat.") {
+            SItem(Lang.t("Exportieren", "Export"), Lang.t("CSV oder PDF. Fahrt antippen: dienstlich oder privat.", "CSV or PDF. Tap a trip: business or private.")) {
                 SButton("CSV") { com.headunit.launcher.TripExport.share(ctx, engine.prefs, shown, false)?.let { engine.toast("Export fehlgeschlagen: $it", 4000) } }
                 SButton("PDF", primary = true) { com.headunit.launcher.TripExport.share(ctx, engine.prefs, shown, true)?.let { engine.toast("Export fehlgeschlagen: $it", 4000) } }
             }
@@ -267,7 +267,7 @@ internal fun TripsGroup(engine: NavEngine) {
             val isBiz = t.start in biz
             SItem(
                 fmt.format(java.util.Date(t.start)) + (if (t.to.isNotBlank()) " → ${t.to}" else ""),
-                "${Geo.fmtDur(mins * 60.0)} · in Fahrt ${Geo.fmtDur(t.moving.toDouble())} · max ${Math.round(t.maxSpeed * k)} $unit · " + (if (isBiz) "Dienstlich" else "Privat"),
+                "${Geo.fmtDur(mins * 60.0)} · in Fahrt ${Geo.fmtDur(t.moving.toDouble())} · max ${Math.round(t.maxSpeed * k)} $unit · " + (if (isBiz) Lang.t("Dienstlich", "Business") else Lang.t("Privat", "Private")),
                 onClick = { com.headunit.launcher.TripExport.toggleBusiness(engine.prefs, t.start) },
             ) { Text(Geo.fmtDist(t.dist, engine.imperial), color = LocalVw.current.text, fontSize = 16.sp, fontWeight = FontWeight.Bold) }
         }
@@ -289,7 +289,7 @@ internal fun GpxTracksGroup(engine: NavEngine) {
     val pick = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         if (uri != null) {
             val parsed = try { ctx.contentResolver.openInputStream(uri)?.bufferedReader()?.use { com.headunit.launcher.Gpx.parse(it.readText()) } } catch (e: Exception) { null }
-            if (parsed == null) note = "Keine Strecke in dieser Datei gefunden."
+            if (parsed == null) note = Lang.t("Keine Strecke in dieser Datei gefunden.", "No track found in this file.")
             else {
                 com.headunit.launcher.Gpx.save(ctx, parsed.first, parsed.second)
                 tracks = com.headunit.launcher.Gpx.list(ctx); note = null
@@ -298,34 +298,34 @@ internal fun GpxTracksGroup(engine: NavEngine) {
     }
     fun refresh() { tracks = com.headunit.launcher.Gpx.list(ctx) }
     val trackRow: @Composable (com.headunit.launcher.GpxTrack) -> Unit = { t ->
-        if (movingId == t.id) SItem("Ordner für ${t.name}", "Leer lassen für keinen Ordner") {
+        if (movingId == t.id) SItem("Ordner für ${t.name}", Lang.t("Leer lassen für keinen Ordner", "Leave empty for no folder")) {
             SField(folderName, { folderName = it.take(24) }, placeholder = "z. B. Urlaub", width = 200.dp)
-            SButton("Speichern", primary = true) { com.headunit.launcher.Gpx.setGroup(ctx, t.id, folderName); movingId = null; refresh() }
-            SButton("Abbrechen") { movingId = null }
+            SButton(Lang.t("Speichern", "Save"), primary = true) { com.headunit.launcher.Gpx.setGroup(ctx, t.id, folderName); movingId = null; refresh() }
+            SButton(Lang.t("Abbrechen", "Cancel")) { movingId = null }
         } else SItem(t.name, "${t.points} Punkte") {
-            SButton("Ordner") { movingId = t.id; folderName = t.group }
-            SButton(if (shown == t.id) "Ausblenden" else "Zeigen") {
+            SButton(Lang.t("Ordner", "Folder")) { movingId = t.id; folderName = t.group }
+            SButton(if (shown == t.id) Lang.t("Ausblenden", "Hide") else Lang.t("Zeigen", "Show")) {
                 if (shown == t.id) { shown = null; engine.map.setTrack(emptyList()) }
                 else { shown = t.id; engine.map.setTrack(com.headunit.launcher.Gpx.load(ctx, t.id)) }
             }
-            SButton("Navigieren", primary = true) {
+            SButton(Lang.t("Navigieren", "Navigate"), primary = true) {
                 engine.driveTrack(t.name, com.headunit.launcher.Gpx.load(ctx, t.id))
                 engine.externalTick++
             }
-            SButton("Entfernen", danger = true) {
+            SButton(Lang.t("Entfernen", "Remove"), danger = true) {
                 if (shown == t.id) { shown = null; engine.map.setTrack(emptyList()) }
                 com.headunit.launcher.Gpx.delete(ctx, t.id); refresh()
             }
         }
     }
-    SGroup("GPX-Tracks", footer = "Eine .gpx-Datei aus Komoot, Strava, Garmin oder einer eigenen Aufnahme. „Zeigen“ legt sie auf die Karte, „Fahren“ führt bis zu ihrem Ende mit den üblichen Ansagen. Ordner fassen Tracks zusammen. In der Suche findest du einen Track über seinen Namen.") {
-        SItem("GPX-Datei importieren", note) { SButton("Datei wählen", primary = true) { pick.launch(arrayOf("*/*")) } }
-        if (tracks.isEmpty()) SNote("Noch keine Tracks importiert.")
+    SGroup(Lang.t("GPX-Tracks", "GPX tracks"), footer = Lang.t("Eine .gpx-Datei aus Komoot, Strava, Garmin oder einer eigenen Aufnahme. „Zeigen“ legt sie auf die Karte, „Fahren“ führt bis zu ihrem Ende mit den üblichen Ansagen. Ordner fassen Tracks zusammen. In der Suche findest du einen Track über seinen Namen.", "A .gpx file from Komoot, Strava, Garmin or your own recording. Show puts it on the map, Drive takes you to its end with the usual spoken directions. Folders group tracks. In search you find a track by its name.")) {
+        SItem(Lang.t("GPX-Datei importieren", "Import a GPX file"), note) { SButton(Lang.t("Datei wählen", "Choose file"), primary = true) { pick.launch(arrayOf("*/*")) } }
+        if (tracks.isEmpty()) SNote(Lang.t("Noch keine Tracks importiert.", "No tracks imported yet."))
         val folders = tracks.map { it.group }.filter { it.isNotBlank() }.distinct().sorted()
         for (g in folders) {
             val open = g in openFolders
             SItem("Ordner: $g", "${tracks.count { it.group == g }} Tracks") {
-                SButton(if (open) "Zuklappen" else "Aufklappen") { openFolders = if (open) openFolders - g else openFolders + g }
+                SButton(if (open) Lang.t("Zuklappen", "Fold") else Lang.t("Aufklappen", "Unfold")) { openFolders = if (open) openFolders - g else openFolders + g }
             }
             if (open) tracks.filter { it.group == g }.forEach { trackRow(it) }
         }
@@ -338,12 +338,12 @@ internal fun GpxTracksGroup(engine: NavEngine) {
 @Composable
 internal fun DefaultZoomRow(prefs: Prefs) {
     val c = LocalVw.current
-    SToggle(prefs, "Automatischer Zoom", PreferenceKeys.AUTO_ZOOM, true, "Aus: die Karte bleibt auf einem gleichen Zoom, egal wie schnell man fährt. + und − wirken trotzdem.")
+    SToggle(prefs, Lang.t("Automatischer Zoom", "Automatic zoom"), PreferenceKeys.AUTO_ZOOM, true, Lang.t("Aus: die Karte bleibt auf einem gleichen Zoom, egal wie schnell man fährt. + und − wirken trotzdem.", "Off: the map stays at one steady zoom, however fast you drive. + and − still work."))
     val saved = (prefs.s(PreferenceKeys.DEFAULT_ZOOM, "0").toFloatOrNull() ?: 0f).coerceIn(-2f, 2f)
     var v by remember(saved) { mutableStateOf(saved) }
     fun save(x: Float) = prefs.put(PreferenceKeys.DEFAULT_ZOOM, String.format(java.util.Locale.US, "%.2f", x))
     Column(Modifier.fillMaxWidth().padding(vertical = 6.dp)) {
-        SItem("Standard-Zoom", "Zoom ohne aktive Route") {
+        SItem(Lang.t("Standard-Zoom", "Default zoom"), Lang.t("Zoom ohne aktive Route", "Zoom without an active route")) {
             if (kotlin.math.abs(v) > 0.01f) SButton("Zurücksetzen") { v = 0f; save(0f) }
         }
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
@@ -364,29 +364,29 @@ internal fun PhoneLinkGroup(prefs: Prefs) {
     val code = prefs.s(PreferenceKeys.LINK_CODE, "")
     val role = prefs.s(PreferenceKeys.LINK_ROLE, "")
     var typing by remember { mutableStateOf(false) }
-    SGroup("Orte vom Smartphone senden", footer = "Einmalig koppeln: auf dem Autodisplay „Smartphone koppeln“ wählen.") {
+    SGroup(Lang.t("Orte vom Smartphone senden", "Send places from the phone"), footer = Lang.t("Einmalig koppeln: auf dem Autodisplay „Smartphone koppeln“ wählen.", "Pair once: choose \"Pair phone\" on the car screen.")) {
         when {
             code.isNotBlank() && role == "car" -> {
-                SItem("Dies ist das Auto", "Gekoppelt. Code ${com.headunit.launcher.CarLink.pretty(code)}") {
-                    SButton("Entkoppeln", danger = true) { prefs.put(PreferenceKeys.LINK_CODE, ""); prefs.put(PreferenceKeys.LINK_ROLE, ""); prefs.put(PreferenceKeys.LINK_LAST, "") }
+                SItem(Lang.t("Dies ist das Auto", "This is the car"), "Gekoppelt. Code ${com.headunit.launcher.CarLink.pretty(code)}") {
+                    SButton(Lang.t("Entkoppeln", "Unpair"), danger = true) { prefs.put(PreferenceKeys.LINK_CODE, ""); prefs.put(PreferenceKeys.LINK_ROLE, ""); prefs.put(PreferenceKeys.LINK_LAST, "") }
                 }
                 val qr = remember(code) { qrCode(com.headunit.launcher.CarLink.pretty(code), 300) }
                 if (qr != null) Row(Modifier.fillMaxWidth().padding(vertical = 6.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
                     Box(Modifier.size(110.dp).clip(RoundedCornerShape(12.dp)).background(Color.White).padding(6.dp)) {
-                        androidx.compose.foundation.Image(qr, "Kopplungscode als QR-Code", Modifier.size(98.dp), filterQuality = androidx.compose.ui.graphics.FilterQuality.None)
+                        androidx.compose.foundation.Image(qr, Lang.t("Kopplungscode als QR-Code", "Pairing code as a QR code"), Modifier.size(98.dp), filterQuality = androidx.compose.ui.graphics.FilterQuality.None)
                     }
                     Text(com.headunit.launcher.CarLink.pretty(code), color = LocalVw.current.text, fontSize = 26.sp, fontWeight = FontWeight.Bold, letterSpacing = 2.sp)
                 }
             }
-            code.isNotBlank() && role == "phone" -> SItem("Dies ist das Smartphone", "Mit deinem Auto gekoppelt (${com.headunit.launcher.CarLink.pretty(code)})") {
-                SButton("Entkoppeln", danger = true) { prefs.put(PreferenceKeys.LINK_CODE, ""); prefs.put(PreferenceKeys.LINK_ROLE, "") }
+            code.isNotBlank() && role == "phone" -> SItem(Lang.t("Dies ist das Smartphone", "This is the phone"), "Mit deinem Auto gekoppelt (${com.headunit.launcher.CarLink.pretty(code)})") {
+                SButton(Lang.t("Entkoppeln", "Unpair"), danger = true) { prefs.put(PreferenceKeys.LINK_CODE, ""); prefs.put(PreferenceKeys.LINK_ROLE, "") }
             }
             else -> {
-                SItem("Auf dem Autodisplay", "Erstellt einen Code zum Eingeben auf dem Smartphone") {
-                    SButton("Smartphone koppeln", primary = true) { prefs.put(PreferenceKeys.LINK_CODE, com.headunit.launcher.CarLink.newCode()); prefs.put(PreferenceKeys.LINK_ROLE, "car"); prefs.put(PreferenceKeys.LINK_LAST, "") }
+                SItem(Lang.t("Auf dem Autodisplay", "On the car screen"), Lang.t("Erstellt einen Code zum Eingeben auf dem Smartphone", "Makes a code to enter on the phone")) {
+                    SButton(Lang.t("Smartphone koppeln", "Pair phone"), primary = true) { prefs.put(PreferenceKeys.LINK_CODE, com.headunit.launcher.CarLink.newCode()); prefs.put(PreferenceKeys.LINK_ROLE, "car"); prefs.put(PreferenceKeys.LINK_LAST, "") }
                 }
-                SItem("Auf dem Smartphone", "Code eingeben, den das Autodisplay anzeigt") { SButton("Code eingeben") { typing = true } }
-                if (typing) SFieldItem("Code des Autos", "", "Zum Beispiel K7P-4QX-M2D", placeholder = "K7P-4QX-M2D") { t ->
+                SItem(Lang.t("Auf dem Smartphone", "On the phone"), Lang.t("Code eingeben, den das Autodisplay anzeigt", "Enter the code the car screen shows")) { SButton(Lang.t("Code eingeben", "Enter code")) { typing = true } }
+                if (typing) SFieldItem(Lang.t("Code des Autos", "The car's code"), "", Lang.t("Zum Beispiel K7P-4QX-M2D", "For example K7P-4QX-M2D"), placeholder = "K7P-4QX-M2D") { t ->
                     val ok = com.headunit.launcher.CarLink.clean(t)
                     if (ok != null) { prefs.put(PreferenceKeys.LINK_CODE, ok); prefs.put(PreferenceKeys.LINK_ROLE, "phone"); typing = false }
                 }
@@ -399,13 +399,13 @@ internal fun PhoneLinkGroup(prefs: Prefs) {
 internal fun SharingGroups(prefs: Prefs) {
     val ctx = LocalContext.current
     val pkg = android.net.Uri.parse("package:" + ctx.packageName)
-    SGroup("Ankunftszeit teilen", footer = "Unter Optionen > „Ankunftszeit teilen“: Link zu Position, Ankunftszeit und Restweg. Endet bei Ankunft.") {
-        SFieldItem("Name", prefs.s(PreferenceKeys.TRIP_NAME, ""), "Auf der Webseite, z. B. „Max ist unterwegs“",
-            placeholder = "Name (optional)") { prefs.put(PreferenceKeys.TRIP_NAME, it.trim().take(40)) }
+    SGroup(Lang.t("Ankunftszeit teilen", "Share arrival time"), footer = Lang.t("Unter Optionen > „Ankunftszeit teilen“: Link zu Position, Ankunftszeit und Restweg. Endet bei Ankunft.", "Under Options > \"Share arrival time\": a link to position, arrival time and distance left. Ends on arrival.")) {
+        SFieldItem(Lang.t("Name", "Name"), prefs.s(PreferenceKeys.TRIP_NAME, ""), Lang.t("Auf der Webseite, z. B. „Max ist unterwegs“", "On the web page, e.g. \"Max is on the way\""),
+            placeholder = Lang.t("Name (optional)", "Name (optional)")) { prefs.put(PreferenceKeys.TRIP_NAME, it.trim().take(40)) }
     }
-    SGroup("Orte aus anderen Apps", footer = "Orte aus Google Maps, WhatsApp oder Kontakten teilen.") {
-        SItem("Google Maps Links") {
-            SButton("Standardmäßig öffnen") {
+    SGroup(Lang.t("Orte aus anderen Apps", "Places from other apps"), footer = Lang.t("Orte aus Google Maps, WhatsApp oder Kontakten teilen.", "Share places from Google Maps, WhatsApp or Contacts.")) {
+        SItem(Lang.t("Google Maps Links", "Google Maps links")) {
+            SButton(Lang.t("Standardmäßig öffnen", "Open by default")) {
                 if (android.os.Build.VERSION.SDK_INT >= 31) openSystemSettings(ctx, Settings.ACTION_APP_OPEN_BY_DEFAULT_SETTINGS, pkg)
                 else openSystemSettings(ctx, Settings.ACTION_APPLICATION_DETAILS_SETTINGS, pkg)
             }
@@ -419,10 +419,10 @@ internal fun SharingGroups(prefs: Prefs) {
 internal fun FuelSection(prefs: Prefs, engine: NavEngine) {
     val ctx = LocalContext.current
     val sc = rememberCoroutineScope()
-    SGroup("Kraftstoffpreise") {
-        SChoice("Kraftstoff", listOf("E10" to "Super E10", "E5" to "Super E5", "B7" to "Diesel", "E85" to "Bioethanol (E85)", "EV" to "Elektro", "LPG" to "Autogas (LPG)"), prefs.s(PreferenceKeys.FUEL_TYPE, "E10")) { prefs.put(PreferenceKeys.FUEL_TYPE, it) }
+    SGroup(Lang.t("Kraftstoffpreise", "Fuel prices")) {
+        SChoice(Lang.t("Kraftstoff", "Fuel"), listOf("E10" to "Super E10", "E5" to "Super E5", "B7" to "Diesel", "E85" to "Bioethanol (E85)", "EV" to Lang.t("Elektro", "Electric"), "LPG" to Lang.t("Autogas (LPG)", "LPG (Autogas)")), prefs.s(PreferenceKeys.FUEL_TYPE, "E10")) { prefs.put(PreferenceKeys.FUEL_TYPE, it) }
         // only an electric car gets stops planned on the route: for a combustion car the switch would do nothing, so it is not shown
-        if (prefs.s(PreferenceKeys.FUEL_TYPE, "E10") == "EV") SToggle(prefs, "Ladestopps auf langen Fahrten planen", PreferenceKeys.SMARTFUEL, true, "Wenn der Akku nicht bis zum Ziel reicht")
+        if (prefs.s(PreferenceKeys.FUEL_TYPE, "E10") == "EV") SToggle(prefs, Lang.t("Ladestopps auf langen Fahrten planen", "Plan charging stops on long trips"), PreferenceKeys.SMARTFUEL, true, Lang.t("Wenn der Akku nicht bis zum Ziel reicht", "When the battery won't reach the destination"))
         // the UK government's Fuel Finder (pump prices): only in Great Britain and only for a combustion car
         val ukFuel = engine.countryCode().uppercase() in setOf("GB", "UK") && prefs.s(PreferenceKeys.FUEL_TYPE, "E10") != "EV"
         if (ukFuel) {
@@ -430,10 +430,10 @@ internal fun FuelSection(prefs: Prefs, engine: NavEngine) {
             SFieldItem("Client Secret", prefs.s(PreferenceKeys.FFSECRET, ""), password = true) { prefs.put(PreferenceKeys.FFSECRET, it.trim()) }
             var st by remember { mutableStateOf(FuelFinder.status) }
             var busy by remember { mutableStateOf(false) }
-            SItem("Preise", st.ifBlank { if (FuelFinder.configured(prefs)) "Noch nicht heruntergeladen" else "Zuerst Daten eintragen" }) {
-                SButton(if (busy) "Sucht…" else "Jetzt aktualisieren", primary = true) {
+            SItem(Lang.t("Preise", "Prices"), st.ifBlank { if (FuelFinder.configured(prefs)) Lang.t("Noch nicht heruntergeladen", "Not downloaded yet") else Lang.t("Zuerst Daten eintragen", "Enter the details first") }) {
+                SButton(if (busy) Lang.t("Sucht…", "Searching…") else Lang.t("Jetzt aktualisieren", "Update now"), primary = true) {
                     if (!busy && FuelFinder.configured(prefs)) {
-                        busy = true; st = "Tankstellen und Preise werden heruntergeladen…"
+                        busy = true; st = Lang.t("Tankstellen und Preise werden heruntergeladen…", "Downloading fuel stations and prices…")
                         sc.launch {
                             try { withContext(Dispatchers.IO) { FuelFinder.refresh(ctx, prefs, force = true) } } catch (e: Exception) { softFail(e) }
                             st = FuelFinder.status; busy = false
@@ -441,31 +441,31 @@ internal fun FuelSection(prefs: Prefs, engine: NavEngine) {
                     }
                 }
             }
-            SItem("Falschen Preis entdeckt?") { SButton("Melden") { openSystemSettings(ctx, android.content.Intent.ACTION_VIEW, android.net.Uri.parse(FuelFinder.REPORT_URL)) } }
+            SItem(Lang.t("Falschen Preis entdeckt?", "Spotted a wrong price?")) { SButton(Lang.t("Melden", "Report")) { openSystemSettings(ctx, android.content.Intent.ACTION_VIEW, android.net.Uri.parse(FuelFinder.REPORT_URL)) } }
         }
     }
     if (prefs.s(PreferenceKeys.FUEL_TYPE, "E10") == "EV") CloudAccountGroup(prefs)
-    if (prefs.s(PreferenceKeys.FUEL_TYPE, "E10") == "EV") SGroup("Elektroauto") {
+    if (prefs.s(PreferenceKeys.FUEL_TYPE, "E10") == "EV") SGroup(Lang.t("Elektroauto", "Electric car")) {
         EvCarItem(prefs)
-        SFieldItem("Effizienz (km pro kWh)", prefs.s(PreferenceKeys.EVMPK, ""), placeholder = "z. B. 5.5", number = true) { s -> prefs.put(PreferenceKeys.EVMPK, s.replace(',', '.').filter { it.isDigit() || it == '.' }.take(5)) }
+        SFieldItem(Lang.t("Effizienz (km pro kWh)", "Efficiency (km per kWh)"), prefs.s(PreferenceKeys.EVMPK, ""), placeholder = Lang.t("z. B. 5.5", "e.g. 5.5"), number = true) { s -> prefs.put(PreferenceKeys.EVMPK, s.replace(',', '.').filter { it.isDigit() || it == '.' }.take(5)) }
         // a chosen car brings its own battery size; the typed one is then not used
         val carKwh = if (prefs.s(PreferenceKeys.EV_CAR, "").isNotBlank()) com.headunit.launcher.EvCars.batteryKwh(prefs) else null
-        if (carKwh != null) SItem("Nutzbare Batterie", "${evNum(carKwh)} kWh aus den Fahrzeugdaten")
-        else SFieldItem("Nutzbare Batterie (kWh)", prefs.s(PreferenceKeys.EV_BATTERY_KWH, ""), "Für Akkuschätzung und Ladestopps (Standard: 60 kWh)", placeholder = "z. B. 64", number = true) { s -> prefs.put(PreferenceKeys.EV_BATTERY_KWH, s.replace(',', '.').filter { it.isDigit() || it == '.' }.take(5)) }
+        if (carKwh != null) SItem(Lang.t("Nutzbare Batterie", "Usable battery"), "${evNum(carKwh)} kWh aus den Fahrzeugdaten")
+        else SFieldItem(Lang.t("Nutzbare Batterie (kWh)", "Usable battery (kWh)"), prefs.s(PreferenceKeys.EV_BATTERY_KWH, ""), Lang.t("Für Akkuschätzung und Ladestopps (Standard: 60 kWh)", "For the battery estimate and charging stops (default: 60 kWh)"), placeholder = Lang.t("z. B. 64", "e.g. 64"), number = true) { s -> prefs.put(PreferenceKeys.EV_BATTERY_KWH, s.replace(',', '.').filter { it.isDigit() || it == '.' }.take(5)) }
         SFieldItem("Strompreis (Cent oder Euro pro kWh)", prefs.s(PreferenceKeys.EVPPK, ""), placeholder = "z. B. 38 oder 0,38", number = true) { s -> prefs.put(PreferenceKeys.EVPPK, s.replace(',', '.').filter { it.isDigit() || it == '.' }.take(6)) }
-        SFieldItem("Restreichweite am Ziel (km)", prefs.s(PreferenceKeys.EV_DEST_KM, ""), "Mindestreichweite bei Ankunft (Standard: 50 km)", placeholder = "z. B. 50", number = true) { s -> prefs.put(PreferenceKeys.EV_DEST_KM, s.filter { it.isDigit() }.take(3).toIntOrNull()?.coerceAtMost(500)?.toString() ?: "") }
-        SFieldItem("Restreichweite an der Ladesäule (km)", prefs.s(PreferenceKeys.EV_CHARGER_KM, ""), "Puffer, falls die Säule belegt ist (Standard: 30 km)", placeholder = "z. B. 30", number = true) { s -> prefs.put(PreferenceKeys.EV_CHARGER_KM, s.filter { it.isDigit() }.take(3).toIntOrNull()?.coerceAtMost(500)?.toString() ?: "") }
-        SChoice("Ladesäulen für Ladestopps", listOf("0" to "Alle", "50" to "50 kW", "150" to "150 kW", "300" to "300 kW"), prefs.i(PreferenceKeys.EV_MIN_KW, 50).toString(),
-            "Mindestleistung für Ladestopps. Säulen ohne bekannte Leistung nur als letzte Wahl. Daten: Bundesnetzagentur.de (CC BY 4.0).") { prefs.put(PreferenceKeys.EV_MIN_KW, it.toInt()) }
+        SFieldItem(Lang.t("Restreichweite am Ziel (km)", "Range left at the destination (km)"), prefs.s(PreferenceKeys.EV_DEST_KM, ""), Lang.t("Mindestreichweite bei Ankunft (Standard: 50 km)", "Minimum range on arrival (default: 50 km)"), placeholder = Lang.t("z. B. 50", "e.g. 50"), number = true) { s -> prefs.put(PreferenceKeys.EV_DEST_KM, s.filter { it.isDigit() }.take(3).toIntOrNull()?.coerceAtMost(500)?.toString() ?: "") }
+        SFieldItem(Lang.t("Restreichweite an der Ladesäule (km)", "Range left at the charger (km)"), prefs.s(PreferenceKeys.EV_CHARGER_KM, ""), Lang.t("Puffer, falls die Säule belegt ist (Standard: 30 km)", "Buffer if the charger is busy (default: 30 km)"), placeholder = Lang.t("z. B. 30", "e.g. 30"), number = true) { s -> prefs.put(PreferenceKeys.EV_CHARGER_KM, s.filter { it.isDigit() }.take(3).toIntOrNull()?.coerceAtMost(500)?.toString() ?: "") }
+        SChoice(Lang.t("Ladesäulen für Ladestopps", "Chargers for charging stops"), listOf("0" to Lang.t("Alle", "All"), "50" to "50 kW", "150" to "150 kW", "300" to "300 kW"), prefs.i(PreferenceKeys.EV_MIN_KW, 50).toString(),
+            Lang.t("Mindestleistung für Ladestopps. Säulen ohne bekannte Leistung nur als letzte Wahl. Daten: Bundesnetzagentur.de (CC BY 4.0).", "Minimum power for charging stops. Chargers of unknown power only as a last resort. Data: Bundesnetzagentur.de (CC BY 4.0).")) { prefs.put(PreferenceKeys.EV_MIN_KW, it.toInt()) }
         EvOperatorsItem(prefs)
-        SChoice("Umweg für bevorzugte Anbieter", listOf("5" to "5 Min.", "10" to "10 Min.", "15" to "15 Min.", "20" to "20 Min."), prefs.i(PreferenceKeys.EV_PREF_MIN, 10).toString(),
-            "Maximaler Umweg ohne zusätzlichen Stopp (Standard: 10 Min.)") { prefs.put(PreferenceKeys.EV_PREF_MIN, it.toInt()) }
-        SToggle(prefs, "Ladesäulen-Daten im Ausland laden", PreferenceKeys.FR_CHARGERS, false, "Lädt bei Bedarf Daten für Frankreich (ca. 136 MB/Monat), Niederlande und Brüssel. Quellen: transport.data.gouv.fr (Licence Ouverte 2.0), NDW (CC0), Brussels Mobility (CC BY 4.0).")
+        SChoice(Lang.t("Umweg für bevorzugte Anbieter", "Detour for preferred networks"), listOf("5" to Lang.t("5 Min.", "5 min"), "10" to Lang.t("10 Min.", "10 min"), "15" to Lang.t("15 Min.", "15 min"), "20" to Lang.t("20 Min.", "20 min")), prefs.i(PreferenceKeys.EV_PREF_MIN, 10).toString(),
+            Lang.t("Maximaler Umweg ohne zusätzlichen Stopp (Standard: 10 Min.)", "Maximum detour without an extra stop (default: 10 min)")) { prefs.put(PreferenceKeys.EV_PREF_MIN, it.toInt()) }
+        SToggle(prefs, Lang.t("Ladesäulen-Daten im Ausland laden", "Load charger data abroad"), PreferenceKeys.FR_CHARGERS, false, Lang.t("Lädt bei Bedarf Daten für Frankreich (ca. 136 MB/Monat), Niederlande und Brüssel. Quellen: transport.data.gouv.fr (Licence Ouverte 2.0), NDW (CC0), Brussels Mobility (CC BY 4.0).", "Downloads data for France (about 136 MB/month), the Netherlands and Brussels as needed. Sources: transport.data.gouv.fr (Licence Ouverte 2.0), NDW (CC0), Brussels Mobility (CC BY 4.0)."))
         EvWidgetItem(prefs)
-    } else SGroup("Kraftstoffkosten auf der Route") {
-        SFieldItem("Verbrauch (Liter pro 100 km)", prefs.s(PreferenceKeys.FUELMPG, ""), placeholder = "z. B. 6.5", number = true) { s -> prefs.put(PreferenceKeys.FUELMPG, s.replace(',', '.').filter { it.isDigit() || it == '.' }.take(5)) }
+    } else SGroup(Lang.t("Kraftstoffkosten auf der Route", "Fuel cost on the route")) {
+        SFieldItem(Lang.t("Verbrauch (Liter pro 100 km)", "Consumption (litres per 100 km)"), prefs.s(PreferenceKeys.FUELMPG, ""), placeholder = Lang.t("z. B. 6.5", "e.g. 6.5"), number = true) { s -> prefs.put(PreferenceKeys.FUELMPG, s.replace(',', '.').filter { it.isDigit() || it == '.' }.take(5)) }
         SFieldItem("Kraftstoffpreis (Cent oder Euro pro Liter)", prefs.s(PreferenceKeys.FUELPPL, ""), placeholder = "z. B. 175 oder 1,75", number = true) { s -> prefs.put(PreferenceKeys.FUELPPL, s.replace(',', '.').filter { it.isDigit() || it == '.' }.take(6)) }
-        SFieldItem("Tankinhalt (Liter)", prefs.s(PreferenceKeys.FUEL_TANK_L, ""), "Für die Tank-Reichweite", placeholder = "z. B. 50", number = true) { s -> prefs.put(PreferenceKeys.FUEL_TANK_L, s.filter { it.isDigit() }.take(3)) }
+        SFieldItem(Lang.t("Tankinhalt (Liter)", "Tank size (litres)"), prefs.s(PreferenceKeys.FUEL_TANK_L, ""), Lang.t("Für die Tank-Reichweite", "For the tank range"), placeholder = Lang.t("z. B. 50", "e.g. 50"), number = true) { s -> prefs.put(PreferenceKeys.FUEL_TANK_L, s.filter { it.isDigit() }.take(3)) }
     }
     LearnedGroup(engine)
 }
@@ -474,9 +474,9 @@ internal fun FuelSection(prefs: Prefs, engine: NavEngine) {
 @Composable
 internal fun LearnedGroup(engine: NavEngine) {
     var rows by remember { mutableStateOf(engine.learnedSummary()) }
-    SGroup("Aus Fahrten gelernt", footer = "Verbessert Ankunftszeit und Reichweite") {
+    SGroup(Lang.t("Aus Fahrten gelernt", "Learnt from trips"), footer = Lang.t("Verbessert Ankunftszeit und Reichweite", "Improves arrival time and range")) {
         rows.forEach { (k, v) -> SItem(k, v) }
-        SItem("Gelerntes zurücksetzen") { SButton("Zurücksetzen", danger = true) { engine.resetLearned(); rows = engine.learnedSummary() } }
+        SItem(Lang.t("Gelerntes zurücksetzen", "Reset what was learnt")) { SButton("Zurücksetzen", danger = true) { engine.resetLearned(); rows = engine.learnedSummary() } }
     }
 }
 
@@ -488,13 +488,13 @@ internal fun OfflinePlacesGroup(engine: NavEngine) {
     val sc = rememberCoroutineScope()
     val cc = engine.chosenPack().country.ifBlank { engine.detectedCountry }.ifBlank { "DE" }
     val where = countryName(cc)
-    var state by remember { mutableStateOf(if (OfflinePlaces.installed(ctx)) "Installiert (%.1f MB)".format(OfflinePlaces.sizeMb(ctx)) else "Nicht heruntergeladen") }
+    var state by remember { mutableStateOf(if (OfflinePlaces.installed(ctx)) Lang.t("Installiert (%.1f MB)", "Installed (%.1f MB)").format(OfflinePlaces.sizeMb(ctx)) else Lang.t("Nicht heruntergeladen", "Not downloaded")) }
     var busy by remember { mutableStateOf(false) }
-    SGroup("Ortsnamen", footer = Lang.t("Orte in $where für die Suche ohne Signal.", "Places in $where for search without signal.")) {
-        SItem("Städte und Dörfer", state) {
-            SButton(if (busy) "Lädt…" else if (OfflinePlaces.installed(ctx)) "Aktualisieren" else "Herunterladen", primary = !OfflinePlaces.installed(ctx)) {
+    SGroup(Lang.t("Ortsnamen", "Place names"), footer = Lang.t("Orte in $where für die Suche ohne Signal.", "Places in $where for search without signal.")) {
+        SItem(Lang.t("Städte und Dörfer", "Towns and villages"), state) {
+            SButton(if (busy) Lang.t("Lädt…", "Loading…") else if (OfflinePlaces.installed(ctx)) Lang.t("Aktualisieren", "Update") else Lang.t("Herunterladen", "Download"), primary = !OfflinePlaces.installed(ctx)) {
                 if (!busy) {
-                    busy = true; state = "Lädt herunter (benötigt Verbindung)…"
+                    busy = true; state = Lang.t("Lädt herunter (benötigt Verbindung)…", "Downloading (needs a connection)…")
                     sc.launch {
                         try {
                             val n = withContext(Dispatchers.IO) { OfflinePlaces.download(ctx, cc) }
@@ -503,7 +503,7 @@ internal fun OfflinePlacesGroup(engine: NavEngine) {
                     }
                 }
             }
-            if (OfflinePlaces.installed(ctx) && !busy) SButton("Entfernen", danger = true) { OfflinePlaces.delete(ctx); state = "Nicht heruntergeladen" }
+            if (OfflinePlaces.installed(ctx) && !busy) SButton(Lang.t("Entfernen", "Remove"), danger = true) { OfflinePlaces.delete(ctx); state = Lang.t("Nicht heruntergeladen", "Not downloaded") }
         }
     }
 }

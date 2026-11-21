@@ -101,9 +101,9 @@ internal fun KeyTestGroup(prefs: Prefs) {
     val sc = rememberCoroutineScope()
     var busy by remember { mutableStateOf(false) }
     var results by remember { mutableStateOf<List<com.headunit.launcher.KeyTest.Result>>(emptyList()) }
-    SGroup("Schlüssel testen", footer = "Eine Testabfrage je eingetragenem Schlüssel.") {
-        SItem("Alle Schlüssel testen", if (results.isEmpty()) "Prüft, ob die eingetragenen Schlüssel funktionieren" else null) {
-            SButton(if (busy) "Prüft…" else "Testen", primary = true) {
+    SGroup(Lang.t("Schlüssel testen", "Test keys"), footer = Lang.t("Eine Testabfrage je eingetragenem Schlüssel.", "One test request per key entered.")) {
+        SItem(Lang.t("Alle Schlüssel testen", "Test all keys"), if (results.isEmpty()) Lang.t("Prüft, ob die eingetragenen Schlüssel funktionieren", "Checks whether the keys entered work") else null) {
+            SButton(if (busy) Lang.t("Prüft…", "Checking…") else Lang.t("Testen", "Test"), primary = true) {
                 if (!busy) { busy = true; sc.launch { results = withContext(Dispatchers.IO) { com.headunit.launcher.KeyTest.all(prefs) }; busy = false } }
             }
         }
@@ -114,50 +114,50 @@ internal fun KeyTestGroup(prefs: Prefs) {
 @Composable
 internal fun KeysSection(prefs: Prefs, engine: NavEngine) {
     KeyTestGroup(prefs)
-    SGroup("Kraftstoffpreise außerhalb Großbritanniens", footer = "Deutschland: kostenloser Schlüssel von creativecommons.tankerkoenig.de") {
-        SFieldItem("Tankerkönig-Schlüssel (Deutschland)", prefs.s(PreferenceKeys.TANKERKOENIG_KEY, ""), placeholder = "Schlüssel einfügen", password = true) { prefs.put(PreferenceKeys.TANKERKOENIG_KEY, it.trim()) }
+    SGroup(Lang.t("Kraftstoffpreise außerhalb Großbritanniens", "Fuel prices outside the UK"), footer = Lang.t("Deutschland: kostenloser Schlüssel von creativecommons.tankerkoenig.de", "Germany: free key from creativecommons.tankerkoenig.de")) {
+        SFieldItem(Lang.t("Tankerkönig-Schlüssel (Deutschland)", "Tankerkönig key (Germany)"), prefs.s(PreferenceKeys.TANKERKOENIG_KEY, ""), placeholder = Lang.t("Schlüssel einfügen", "Paste the key"), password = true) { prefs.put(PreferenceKeys.TANKERKOENIG_KEY, it.trim()) }
     }
-    SGroup("Ladesäulen-Daten außerhalb Deutschlands") {
-        SFieldItem("Open Charge Map API-Schlüssel", prefs.s(PreferenceKeys.OCM_KEY, ""), "Optional, kostenlos auf openchargemap.org. Daten: Bundesnetzagentur.de (CC BY 4.0), Open Charge Map (CC BY-SA 4.0), NDW (CC0), Brussels Mobility (CC BY 4.0).", placeholder = "Schlüssel einfügen", password = true) { prefs.put(PreferenceKeys.OCM_KEY, it.trim()) }
+    SGroup(Lang.t("Ladesäulen-Daten außerhalb Deutschlands", "Charger data outside Germany")) {
+        SFieldItem(Lang.t("Open Charge Map API-Schlüssel", "Open Charge Map API key"), prefs.s(PreferenceKeys.OCM_KEY, ""), Lang.t("Optional, kostenlos auf openchargemap.org. Daten: Bundesnetzagentur.de (CC BY 4.0), Open Charge Map (CC BY-SA 4.0), NDW (CC0), Brussels Mobility (CC BY 4.0).", "Optional, free at openchargemap.org. Data: Bundesnetzagentur.de (CC BY 4.0), Open Charge Map (CC BY-SA 4.0), NDW (CC0), Brussels Mobility (CC BY 4.0)."), placeholder = Lang.t("Schlüssel einfügen", "Paste the key"), password = true) { prefs.put(PreferenceKeys.OCM_KEY, it.trim()) }
         OcmTestItem(prefs)
     }
-    SGroup("Suche") {
-        SChoice("Suchergebnisse", searchCountryOptions(engine), searchCountryValue(prefs)) { prefs.put(PreferenceKeys.COUNTRY, it) }
-        if (!engine.hasKey) SNote("Für genaueste Adresssuche: TomTom-Schlüssel eintragen.")
+    SGroup(Lang.t("Suche", "Search")) {
+        SChoice(Lang.t("Suchergebnisse", "Search results"), searchCountryOptions(engine), searchCountryValue(prefs)) { prefs.put(PreferenceKeys.COUNTRY, it) }
+        if (!engine.hasKey) SNote(Lang.t("Für genaueste Adresssuche: TomTom-Schlüssel eintragen.", "For the most accurate address search: enter a TomTom key."))
     }
-    SGroup("Kartenkonten", footer = "Ohne Empfang: Routen und Suche aus dem Offline-Paket.") {
-        SFieldItem("TomTom API-Schlüssel", prefs.s(PreferenceKeys.API_KEY, ""), "Kostenlos erhältlich auf developer.tomtom.com",
-            placeholder = "Schlüssel einfügen") { prefs.setApiKey(it) }
-        SFieldItem("HERE API-Schlüssel", prefs.s(PreferenceKeys.HERE_KEY, ""), "Für genauere Tempolimits. Kostenlos auf platform.here.com",
-            placeholder = "Schlüssel einfügen") { prefs.put(PreferenceKeys.HERE_KEY, it.trim()) }
+    SGroup(Lang.t("Kartenkonten", "Map accounts"), footer = Lang.t("Ohne Empfang: Routen und Suche aus dem Offline-Paket.", "With no signal: routes and search from the offline pack.")) {
+        SFieldItem(Lang.t("TomTom API-Schlüssel", "TomTom API key"), prefs.s(PreferenceKeys.API_KEY, ""), Lang.t("Kostenlos erhältlich auf developer.tomtom.com", "Free from developer.tomtom.com"),
+            placeholder = Lang.t("Schlüssel einfügen", "Paste the key")) { prefs.setApiKey(it) }
+        SFieldItem(Lang.t("HERE API-Schlüssel", "HERE API key"), prefs.s(PreferenceKeys.HERE_KEY, ""), Lang.t("Für genauere Tempolimits. Kostenlos auf platform.here.com", "For more accurate speed limits. Free at platform.here.com"),
+            placeholder = Lang.t("Schlüssel einfügen", "Paste the key")) { prefs.put(PreferenceKeys.HERE_KEY, it.trim()) }
         if (prefs.s(PreferenceKeys.HERE_KEY, "").isNotBlank()) {
             val st = com.headunit.launcher.HereRest.status
-            SNote("HERE: " + st.ifBlank { "noch keine Abfrage" })
+            SNote("HERE: " + st.ifBlank { Lang.t("noch keine Abfrage", "no request yet") })
         }
-        SFieldItem("Mapillary Client-Token", prefs.s(PreferenceKeys.MAPILLARY_KEY, ""), "Tempolimits aus Straßenfotos. Kostenlos auf mapillary.com",
-            placeholder = "Token einfügen (MLY|…)") { prefs.put(PreferenceKeys.MAPILLARY_KEY, it.trim()) }
+        SFieldItem(Lang.t("Mapillary Client-Token", "Mapillary client token"), prefs.s(PreferenceKeys.MAPILLARY_KEY, ""), Lang.t("Tempolimits aus Straßenfotos. Kostenlos auf mapillary.com", "Speed limits from street photos. Free at mapillary.com"),
+            placeholder = Lang.t("Token einfügen (MLY|…)", "Paste the token (MLY|…)")) { prefs.put(PreferenceKeys.MAPILLARY_KEY, it.trim()) }
         if (prefs.s(PreferenceKeys.MAPILLARY_KEY, "").isNotBlank()) {
             val st = com.headunit.launcher.Mapillary.status
-            SNote("Mapillary: " + st.ifBlank { "noch keine Abfrage" })
+            SNote("Mapillary: " + st.ifBlank { Lang.t("noch keine Abfrage", "no request yet") })
         }
-        SFieldItem("Mapbox Zugangstoken", prefs.s(PreferenceKeys.MAPBOX_TOKEN, ""), "Öffentliches Token (beginnt mit pk.) einfügen",
-            placeholder = "Token einfügen") { prefs.put(PreferenceKeys.MAPBOX_TOKEN, com.headunit.launcher.MapboxRest.clean(it)) }
+        SFieldItem(Lang.t("Mapbox Zugangstoken", "Mapbox access token"), prefs.s(PreferenceKeys.MAPBOX_TOKEN, ""), Lang.t("Öffentliches Token (beginnt mit pk.) einfügen", "Paste the public token (starts with pk.)"),
+            placeholder = Lang.t("Token einfügen", "Paste the token")) { prefs.put(PreferenceKeys.MAPBOX_TOKEN, com.headunit.launcher.MapboxRest.clean(it)) }
     }
-    SGroup("Satellitenbilder", footer = "Automatisch: Mapbox, TomTom, Landesamt (DE), Esri, MapTiler, EOX. Anbieter ohne Schlüssel werden übersprungen.") {
-        SChoice("Quelle", listOf("auto" to "Automatisch", "mapbox" to "Mapbox", "landesamt" to "Landesamt", "esri" to "Esri", "maptiler" to "MapTiler", "tomtom" to "TomTom", "eox" to "EOX"),
-            prefs.s(PreferenceKeys.SAT_SOURCE, "auto"), "Landesamt: amtliche Luftbilder (nur Deutschland)") { prefs.put(PreferenceKeys.SAT_SOURCE, it) }
-        SChoice("Straßen über dem Luftbild", listOf("subtle" to "Dezent", "normal" to "Normal", "strong" to "Kräftig"),
+    SGroup(Lang.t("Satellitenbilder", "Satellite images"), footer = Lang.t("Automatisch: Mapbox, TomTom, Landesamt (DE), Esri, MapTiler, EOX. Anbieter ohne Schlüssel werden übersprungen.", "Automatic: Mapbox, TomTom, state survey (DE), Esri, MapTiler, EOX. Providers without a key are skipped.")) {
+        SChoice(Lang.t("Quelle", "Source"), listOf("auto" to Lang.t("Automatisch", "Automatic"), "mapbox" to "Mapbox", "landesamt" to Lang.t("Landesamt", "State survey"), "esri" to "Esri", "maptiler" to "MapTiler", "tomtom" to "TomTom", "eox" to "EOX"),
+            prefs.s(PreferenceKeys.SAT_SOURCE, "auto"), Lang.t("Landesamt: amtliche Luftbilder (nur Deutschland)", "State survey: official aerial photos (Germany only)")) { prefs.put(PreferenceKeys.SAT_SOURCE, it) }
+        SChoice(Lang.t("Straßen über dem Luftbild", "Roads over the satellite image"), listOf("subtle" to Lang.t("Dezent", "Subtle"), "normal" to Lang.t("Normal", "Normal"), "strong" to Lang.t("Kräftig", "Strong")),
             prefs.s(PreferenceKeys.SAT_HYBRID, "normal")) { prefs.put(PreferenceKeys.SAT_HYBRID, it) }
-        SChoice("Luftbilder vorab laden", listOf("wifi" to "Nur WLAN", "always" to "Immer", "off" to "Aus"),
-            prefs.s(PreferenceKeys.SAT_PREFETCH, "wifi"), "Speichert Luftbilder entlang der Route") { prefs.put(PreferenceKeys.SAT_PREFETCH, it) }
+        SChoice(Lang.t("Luftbilder vorab laden", "Preload satellite images"), listOf("wifi" to Lang.t("Nur WLAN", "Wi-Fi only"), "always" to Lang.t("Immer", "Always"), "off" to Lang.t("Aus", "Off")),
+            prefs.s(PreferenceKeys.SAT_PREFETCH, "wifi"), Lang.t("Speichert Luftbilder entlang der Route", "Saves satellite images along the route")) { prefs.put(PreferenceKeys.SAT_PREFETCH, it) }
         SatStoreItem()
-        SFieldItem("Esri API-Schlüssel", prefs.s(PreferenceKeys.ESRI_KEY, ""), "Kostenlos auf location.arcgis.com, mit Zugriff auf Basemaps",
-            placeholder = "Schlüssel einfügen") { prefs.put(PreferenceKeys.ESRI_KEY, it.trim()) }
-        SFieldItem("MapTiler API-Schlüssel", prefs.s(PreferenceKeys.MAPTILER_KEY, ""), "Kostenlos auf cloud.maptiler.com",
-            placeholder = "Schlüssel einfügen") { prefs.put(PreferenceKeys.MAPTILER_KEY, it.trim()) }
+        SFieldItem(Lang.t("Esri API-Schlüssel", "Esri API key"), prefs.s(PreferenceKeys.ESRI_KEY, ""), Lang.t("Kostenlos auf location.arcgis.com, mit Zugriff auf Basemaps", "Free at location.arcgis.com, with access to basemaps"),
+            placeholder = Lang.t("Schlüssel einfügen", "Paste the key")) { prefs.put(PreferenceKeys.ESRI_KEY, it.trim()) }
+        SFieldItem(Lang.t("MapTiler API-Schlüssel", "MapTiler API key"), prefs.s(PreferenceKeys.MAPTILER_KEY, ""), Lang.t("Kostenlos auf cloud.maptiler.com", "Free at cloud.maptiler.com"),
+            placeholder = Lang.t("Schlüssel einfügen", "Paste the key")) { prefs.put(PreferenceKeys.MAPTILER_KEY, it.trim()) }
     }
-    if (engine.hasKey && engine.hasMapbox) SGroup("Routen, Suche und Verkehr") {
-        SChoice("Nutzung", listOf("auto" to "Auto", "tomtom" to "TomTom", "mapbox" to "Mapbox"), prefs.s(PreferenceKeys.DATAPROV, "auto")) { prefs.put(PreferenceKeys.DATAPROV, it) }
+    if (engine.hasKey && engine.hasMapbox) SGroup(Lang.t("Routen, Suche und Verkehr", "Routes, search and traffic")) {
+        SChoice(Lang.t("Nutzung", "Usage"), listOf("auto" to "Auto", "tomtom" to "TomTom", "mapbox" to "Mapbox"), prefs.s(PreferenceKeys.DATAPROV, "auto")) { prefs.put(PreferenceKeys.DATAPROV, it) }
     }
 }
 
@@ -178,44 +178,44 @@ internal fun AboutSection(prefs: Prefs, engine: NavEngine) {
             lastTap = now
             if (taps >= 7) {
                 taps = 0
-                if (!logsOn) { logsOn = true; com.headunit.launcher.DebugLog.unlocked = true; engine.toast("Log-Optionen eingeblendet", 2500) }
+                if (!logsOn) { logsOn = true; com.headunit.launcher.DebugLog.unlocked = true; engine.toast(Lang.t("Log-Optionen eingeblendet", "Log options shown"), 2500) }
             }
         })
         SItem(Lang.t("Was ist neu", "What's new"), Lang.t("Die Neuerungen dieser Version noch einmal ansehen", "See this version's changes again")) {
             SButton(Lang.t("Anzeigen", "Show")) { WhatsNewRequest.count++ }
         }
-        if (logsOn) SItem("Logs", "In die Zwischenablage. Kann Standortdaten enthalten.") {
-            SButton("Kopieren") {
-                engine.toast("Logs werden gesammelt …", 2000)
+        if (logsOn) SItem("Logs", Lang.t("In die Zwischenablage. Kann Standortdaten enthalten.", "To the clipboard. May contain location data.")) {
+            SButton(Lang.t("Kopieren", "Copy")) {
+                engine.toast(Lang.t("Logs werden gesammelt …", "Collecting logs …"), 2000)
                 Thread {
                     val text = com.headunit.launcher.DebugLog.dump()
                     try {
                         val cm = ctx.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as? android.content.ClipboardManager
                         cm?.setPrimaryClip(android.content.ClipData.newPlainText("Horizon Nav Logs", text))
                     } catch (e: Exception) { softFail(e) }
-                    android.os.Handler(android.os.Looper.getMainLooper()).post { engine.toast("Logs kopiert", 3000) }
+                    android.os.Handler(android.os.Looper.getMainLooper()).post { engine.toast(Lang.t("Logs kopiert", "Logs copied"), 3000) }
                 }.start()
             }
         }
         if (com.headunit.launcher.Updater.enabled) {
-            SItem("Nach Updates suchen", engine.updateStatus.ifBlank { null }) {
+            SItem(Lang.t("Nach Updates suchen", "Check for updates"), engine.updateStatus.ifBlank { null }) {
                 val u = engine.appUpdate
                 if (u != null && !engine.updateBusy) SButton("Aktualisieren auf ${u.version}", primary = true) { engine.installAppUpdate() }
-                else SButton(if (engine.updateBusy) "Sucht…" else "Jetzt prüfen") { engine.checkForUpdate(manual = true) }
+                else SButton(if (engine.updateBusy) Lang.t("Sucht…", "Searching…") else Lang.t("Jetzt prüfen", "Check now")) { engine.checkForUpdate(manual = true) }
             }
-            SToggle(prefs, "Automatisch nach Updates suchen", PreferenceKeys.UPDCHECK, true, "Beim Öffnen der App mit Verbindung")
+            SToggle(prefs, Lang.t("Automatisch nach Updates suchen", "Check for updates automatically"), PreferenceKeys.UPDCHECK, true, Lang.t("Beim Öffnen der App mit Verbindung", "When the app opens with a connection"))
         }
-        SItem("Einrichtung", "Ersteinrichtung erneut durchführen") { SButton("Einrichtung starten") { prefs.put(PreferenceKeys.SETUP_DONE, false); prefs.put(PreferenceKeys.FORCESETUP, true) } }
+        SItem(Lang.t("Einrichtung", "Setup"), Lang.t("Ersteinrichtung erneut durchführen", "Run the first-time setup again")) { SButton(Lang.t("Einrichtung starten", "Start setup")) { prefs.put(PreferenceKeys.SETUP_DONE, false); prefs.put(PreferenceKeys.FORCESETUP, true) } }
         var feedback by remember { mutableStateOf(false) }
-        SItem("Feedback oder Problem", "Sende einen Bericht mit App-Version und Gerät") { SButton("Melden", primary = true) { feedback = true } }
+        SItem(Lang.t("Feedback oder Problem", "Feedback or a problem"), Lang.t("Sende einen Bericht mit App-Version und Gerät", "Send a report with the app version and device")) { SButton(Lang.t("Melden", "Report"), primary = true) { feedback = true } }
         if (feedback) FeedbackDialog(engine) { feedback = false }
     }
-    SGroup("Berechtigungen") {
+    SGroup(Lang.t("Berechtigungen", "Permissions")) {
         val hasLoc = ctx.checkSelfPermission(android.Manifest.permission.ACCESS_FINE_LOCATION) == android.content.pm.PackageManager.PERMISSION_GRANTED
-        SItem("Standort", if (hasLoc) "Erlaubt" else "Nicht erlaubt: Navigation benötigt Standort") {
-            SButton("App-Berechtigungen", primary = !hasLoc) { openSystemSettings(ctx, Settings.ACTION_APPLICATION_DETAILS_SETTINGS, pkg) }
+        SItem(Lang.t("Standort", "Location"), if (hasLoc) Lang.t("Erlaubt", "Allowed") else Lang.t("Nicht erlaubt: Navigation benötigt Standort", "Not allowed: navigation needs location")) {
+            SButton(Lang.t("App-Berechtigungen", "App permissions"), primary = !hasLoc) { openSystemSettings(ctx, Settings.ACTION_APPLICATION_DETAILS_SETTINGS, pkg) }
         }
-        SItem("Standortdienste") { SButton("Öffnen") { openSystemSettings(ctx, Settings.ACTION_LOCATION_SOURCE_SETTINGS) } }
+        SItem(Lang.t("Standortdienste", "Location services")) { SButton(Lang.t("Öffnen", "Open")) { openSystemSettings(ctx, Settings.ACTION_LOCATION_SOURCE_SETTINGS) } }
     }
     val exporter = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { uri ->
         if (uri != null) {
@@ -225,12 +225,12 @@ internal fun AboutSection(prefs: Prefs, engine: NavEngine) {
                 ctx.contentResolver.openOutputStream(uri)?.use { it.write(backup.toString(2).toByteArray()) }
                 true
             } catch (e: Exception) { false }
-            android.widget.Toast.makeText(ctx, if (ok) tr("Sicherung gespeichert") else tr("Sicherung konnte nicht gespeichert werden"), android.widget.Toast.LENGTH_SHORT).show()
+            android.widget.Toast.makeText(ctx, if (ok) Lang.t("Sicherung gespeichert", "Backup saved") else Lang.t("Sicherung konnte nicht gespeichert werden", "Couldn't save the backup"), android.widget.Toast.LENGTH_SHORT).show()
         }
     }
     // the folder for the daily backup (see AutoBackup): one file, written over the one before
     val folderPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
-        if (uri != null) { AutoBackup.choose(ctx, uri, prefs); android.widget.Toast.makeText(ctx, tr("Ordner für die tägliche Sicherung gewählt"), android.widget.Toast.LENGTH_SHORT).show() }
+        if (uri != null) { AutoBackup.choose(ctx, uri, prefs); android.widget.Toast.makeText(ctx, Lang.t("Ordner für die tägliche Sicherung gewählt", "Folder for the daily backup chosen"), android.widget.Toast.LENGTH_SHORT).show() }
     }
     // the picker for a restore: the newer one, or the older one on a unit where it is missing (a missing picker used to close the app)
     val onImported: (android.net.Uri?) -> Unit = { uri ->
@@ -242,7 +242,7 @@ internal fun AboutSection(prefs: Prefs, engine: NavEngine) {
                 o.remove("gpx_tracks")
                 val n = prefs.importJson(o.toString())
                 "$n Einstellungen wiederhergestellt" + (tracks?.let { " · ${com.headunit.launcher.Gpx.restoreArray(ctx, it)} Tracks" } ?: "")
-            } catch (e: Exception) { "Datei ist keine gültige Sicherung" }
+            } catch (e: Exception) { Lang.t("Datei ist keine gültige Sicherung", "The file isn't a valid backup") }
             android.widget.Toast.makeText(ctx, msg, android.widget.Toast.LENGTH_LONG).show()
         }
     }
@@ -257,8 +257,8 @@ internal fun AboutSection(prefs: Prefs, engine: NavEngine) {
             val pw = keyPw
             keyToast(try {
                 ctx.contentResolver.openOutputStream(uri)?.use { it.write(KeyBackup.export(prefs, pw).toByteArray()) }
-                "Schlüssel gesichert"
-            } catch (e: Exception) { e.message ?: "Schlüssel konnten nicht gesichert werden" })
+                Lang.t("Schlüssel gesichert", "Keys saved")
+            } catch (e: Exception) { e.message ?: Lang.t("Schlüssel konnten nicht gesichert werden", "Couldn't save the keys") })
         }
         keyPw = ""
     }
@@ -268,16 +268,16 @@ internal fun AboutSection(prefs: Prefs, engine: NavEngine) {
             keyToast(try {
                 val text = ctx.contentResolver.openInputStream(uri)?.bufferedReader()?.use { it.readText() }.orEmpty()
                 KeyBackup.import(prefs, text, pw).let { n -> Lang.t("$n Schlüssel wiederhergestellt", "$n keys restored") }
-            } catch (e: Exception) { e.message ?: "Schlüssel konnten nicht wiederhergestellt werden" })
+            } catch (e: Exception) { e.message ?: Lang.t("Schlüssel konnten nicht wiederhergestellt werden", "Couldn't restore the keys") })
         }
         keyPw = ""
     }
     if (keyDlg.isNotEmpty()) androidx.compose.material3.AlertDialog(
         onDismissRequest = { keyDlg = ""; keyPw = "" },
-        title = { Text(if (keyDlg == "export") tr("Passwort für die Schlüssel-Sicherung") else tr("Passwort der Schlüssel-Sicherung")) },
+        title = { Text(if (keyDlg == "export") Lang.t("Passwort für die Schlüssel-Sicherung", "Password for the key backup") else Lang.t("Passwort der Schlüssel-Sicherung", "Password of the key backup")) },
         text = {
             androidx.compose.material3.OutlinedTextField(value = keyPw, onValueChange = { keyPw = it }, singleLine = true,
-                label = { Text(tr("Passwort (mind. 6 Zeichen)")) },
+                label = { Text(Lang.t("Passwort (mind. 6 Zeichen)", "Password (at least 6 characters)")) },
                 visualTransformation = androidx.compose.ui.text.input.PasswordVisualTransformation())
         },
         confirmButton = {
@@ -285,23 +285,23 @@ internal fun AboutSection(prefs: Prefs, engine: NavEngine) {
                 val mode = keyDlg
                 keyDlg = ""
                 if (mode == "export") keySaver.launch("horizon-nav-keys.json") else keyOpener.launch(arrayOf("application/json", "text/plain", "*/*"))
-            }) { Text(tr("Weiter")) }
+            }) { Text(Lang.t("Weiter", "Continue")) }
         },
-        dismissButton = { androidx.compose.material3.TextButton(onClick = { keyDlg = ""; keyPw = "" }) { Text(tr("Abbrechen")) } },
+        dismissButton = { androidx.compose.material3.TextButton(onClick = { keyDlg = ""; keyPw = "" }) { Text(Lang.t("Abbrechen", "Cancel")) } },
     )
-    SGroup("Sicherung") {
+    SGroup(Lang.t("Sicherung", "Backup")) {
         // the buttons sit under the title: beside it they squeezed the title into a narrow column
-        SItem("Einstellungen und gespeicherte Orte")
+        SItem(Lang.t("Einstellungen und gespeicherte Orte", "Settings and saved places"))
         Row(Modifier.fillMaxWidth().padding(bottom = 8.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            SButton("Sichern") {
+            SButton(Lang.t("Sichern", "Back up")) {
                 try { exporter.launch("horizon-nav-backup.json") } catch (e: android.content.ActivityNotFoundException) {
-                    android.widget.Toast.makeText(ctx, tr("Auf diesem Gerät fehlt die Dateiauswahl zum Speichern"), android.widget.Toast.LENGTH_LONG).show()
+                    android.widget.Toast.makeText(ctx, "Auf diesem Gerät fehlt die Dateiauswahl zum Speichern", android.widget.Toast.LENGTH_LONG).show()
                 }
             }
-            SButton("Wiederherstellen") {
+            SButton(Lang.t("Wiederherstellen", "Restore")) {
                 try { importer.launch(arrayOf("application/json", "text/plain", "*/*")) } catch (e: android.content.ActivityNotFoundException) {
                     try { importerOld.launch("*/*") } catch (e2: android.content.ActivityNotFoundException) {
-                        android.widget.Toast.makeText(ctx, tr("Auf diesem Gerät fehlt die Dateiauswahl zum Wiederherstellen"), android.widget.Toast.LENGTH_LONG).show()
+                        android.widget.Toast.makeText(ctx, "Auf diesem Gerät fehlt die Dateiauswahl zum Wiederherstellen", android.widget.Toast.LENGTH_LONG).show()
                     }
                 }
             }
@@ -309,40 +309,40 @@ internal fun AboutSection(prefs: Prefs, engine: NavEngine) {
         // once a day into a folder you choose; the last file is replaced (see AutoBackup)
         val autoFolder = AutoBackup.folder(prefs)
         val autoLast = AutoBackup.lastMillis(prefs)
-        SItem("Tägliche Sicherung", if (autoFolder.isBlank()) tr("Aus. Einmal am Tag in einen Ordner, die letzte Datei wird ersetzt.")
-            else tr("An. ") + (if (autoLast > 0) tr("Letzte Sicherung: ") + java.text.DateFormat.getDateTimeInstance(java.text.DateFormat.SHORT, java.text.DateFormat.SHORT).format(java.util.Date(autoLast)) else tr("noch keine")))
+        SItem(Lang.t("Tägliche Sicherung", "Daily backup"), if (autoFolder.isBlank()) Lang.t("Aus. Einmal am Tag in einen Ordner, die letzte Datei wird ersetzt.", "Off. Written once a day into a folder; the last file is replaced.")
+            else Lang.t("An. ", "On. ") + (if (autoLast > 0) Lang.t("Letzte Sicherung: ", "Last backup: ") + java.text.DateFormat.getDateTimeInstance(java.text.DateFormat.SHORT, java.text.DateFormat.SHORT).format(java.util.Date(autoLast)) else Lang.t("noch keine", "none yet")))
         Row(Modifier.fillMaxWidth().padding(bottom = 8.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            SButton(if (autoFolder.isBlank()) "Ordner wählen" else "Ordner ändern") {
+            SButton(if (autoFolder.isBlank()) Lang.t("Ordner wählen", "Choose folder") else Lang.t("Ordner ändern", "Change folder")) {
                 try { folderPicker.launch(null) } catch (e: android.content.ActivityNotFoundException) {
-                    android.widget.Toast.makeText(ctx, tr("Auf diesem Gerät fehlt die Ordnerauswahl"), android.widget.Toast.LENGTH_LONG).show()
+                    android.widget.Toast.makeText(ctx, Lang.t("Auf diesem Gerät fehlt die Ordnerauswahl", "This device has no folder picker"), android.widget.Toast.LENGTH_LONG).show()
                 }
             }
-            if (autoFolder.isNotBlank()) SButton("Aus") { AutoBackup.clear(prefs) }
+            if (autoFolder.isNotBlank()) SButton(Lang.t("Aus", "Off")) { AutoBackup.clear(prefs) }
         }
-        SItem("API-Schlüssel", "Eigene Datei, mit Passwort geschützt")
+        SItem(Lang.t("API-Schlüssel", "API keys"), Lang.t("Eigene Datei, mit Passwort geschützt", "Their own file, protected by a password"))
         Row(Modifier.fillMaxWidth().padding(bottom = 8.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            SButton("Schlüssel sichern") { keyDlg = "export" }
-            SButton("Schlüssel wiederherstellen") { keyDlg = "import" }
+            SButton(Lang.t("Schlüssel sichern", "Back up keys")) { keyDlg = "export" }
+            SButton(Lang.t("Schlüssel wiederherstellen", "Restore keys")) { keyDlg = "import" }
         }
     }
     val cf = java.io.File(ctx.filesDir, "lastcrash.txt")
     var rep by remember { mutableStateOf(if (cf.exists()) cf.readText() else "") }
-    if (rep.isNotBlank()) SGroup("Fehlerbericht") {
+    if (rep.isNotBlank()) SGroup(Lang.t("Fehlerbericht", "Problem report")) {
         Text(rep.take(900), color = LocalVw.current.text, fontSize = 10.sp, modifier = Modifier.padding(vertical = 6.dp))
-        SItem("Bericht löschen") { SButton("Löschen") { cf.delete(); rep = "" } }
+        SItem(Lang.t("Bericht löschen", "Delete report")) { SButton("Löschen") { cf.delete(); rep = "" } }
     }
 }
 
-/** Readable name of a country code ("Deutschland", "Österreich"...). */
+/** Readable name of a country code (Lang.t("Deutschland", "Germany"), Lang.t("Österreich", "Austria")...). */
 internal fun countryName(cc: String): String = when (cc.uppercase()) {
-    "DE" -> "Deutschland"; "GB" -> "Großbritannien"; "AT" -> "Österreich"; "CH" -> "Schweiz"; "US" -> "USA"; "" -> ""
+    "DE" -> Lang.t("Deutschland", "Germany"); "GB" -> Lang.t("Großbritannien", "United Kingdom"); "AT" -> Lang.t("Österreich", "Austria"); "CH" -> Lang.t("Schweiz", "Switzerland"); "US" -> "USA"; "" -> ""
     else -> java.util.Locale("", cc).getDisplayCountry(java.util.Locale.GERMAN).ifBlank { cc }
 }
 
 /** Search limited to the country you're in (followed as you travel) or anywhere. */
 internal fun searchCountryOptions(engine: NavEngine): List<Pair<String, String>> {
     val here = engine.detectedCountry
-    return listOf("auto" to (if (here.isNotBlank()) "Nur in ${countryName(here)}" else "Nur in meinem Land"), "" to "Überall")
+    return listOf("auto" to (if (here.isNotBlank()) "Nur in ${countryName(here)}" else Lang.t("Nur in meinem Land", "Only in my country")), "" to Lang.t("Überall", "Everywhere"))
 }
 
 internal fun searchCountryValue(prefs: Prefs): String = if (prefs.s(PreferenceKeys.COUNTRY, "auto").isBlank()) "" else "auto"
@@ -360,16 +360,16 @@ internal fun FeedbackDialog(engine: NavEngine, onClose: () -> Unit) {
         Column(Modifier.widthIn(max = 560.dp).fillMaxWidth().clip(RoundedCornerShape(26.dp)).background(c.panel).padding(22.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Text(Lang.t("Feedback oder Problem", "Feedback or a problem"), color = c.text, fontSize = 22.sp, fontWeight = FontWeight.Bold)
             Text(Lang.t("Was ist passiert oder was wünschst du dir? Hilfreich sind Angaben, wo du warst und worauf du getippt hast.", "What happened, or what would you like? Where you were and what you tapped helps."), color = c.sub, fontSize = 14.sp)
-            SField(note, { note = it.take(600) }, placeholder = "z. B. Falsch umgeleitet bei Frankfurt", width = 516.dp, fill = true)
+            SField(note, { note = it.take(600) }, placeholder = Lang.t("z. B. Falsch umgeleitet bei Frankfurt", "e.g. Wrong reroute near Frankfurt"), width = 516.dp, fill = true)
             Text(Lang.t("Mitgesendet werden: die App-Version, dein Autodisplay, die wichtigsten Einstellungen, deine heruntergeladenen Gebiete und der letzte Absturz (keine Orte oder API-Schlüssel).", "Sent with it: the app version, your head unit, the main settings, your downloaded areas and the last crash (no places or API keys)."), color = c.sub, fontSize = 12.sp)
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)) {
-                SButton("Schließen") { onClose() }
-                SButton("Kopieren") {
+                SButton(Lang.t("Schließen", "Close")) { onClose() }
+                SButton(Lang.t("Kopieren", "Copy")) {
                     val cm = ctx.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as? android.content.ClipboardManager
                     cm?.setPrimaryClip(android.content.ClipData.newPlainText(ctx.Lang.t("Horizon Nav Bericht", "Horizon Nav report"), engine.feedbackReport(note)))
                     engine.toast(engine.Lang.t("Bericht kopiert: In eine Nachricht oder einen Reddit-Kommentar einfügen", "Report copied: paste it into a message or a Reddit comment"), 3500)
                 }
-                SButton("Auf GitHub senden", primary = true) {
+                SButton(Lang.t("Auf GitHub senden", "Send on GitHub"), primary = true) {
                     val title = note.lineSequence().firstOrNull()?.take(80)?.ifBlank { null } ?: "Bericht von Horizon Nav ${com.headunit.launcher.BuildConfig.VERSION_NAME}"
                     val body = engine.feedbackReport(note).take(5000)
                     val url = "https://github.com/${BuildConfig.UPDATE_REPO}/issues/new?title=" + android.net.Uri.encode(title) + "&body=" + android.net.Uri.encode(body)

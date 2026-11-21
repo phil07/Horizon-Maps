@@ -99,17 +99,17 @@ import com.headunit.launcher.softFail
 @Composable
 internal fun VehicleGroup(prefs: Prefs) {
     val kind = prefs.s(PreferenceKeys.VEHICLE, "car")
-    SGroup("Fahrzeug", footer = if (kind == "car") "Höchsttempo, Maße und Gewicht für Wohnmobil, Lkw oder Anhänger." else
-        "Routen meiden zu niedrige, schmale oder zu schwach belastbare Strecken, soweit bekannt. Gilt ab der nächsten Route.") {
-        SChoice("Profil", listOf("car" to "Pkw", "camper" to "Wohnmobil", "lorry" to "Lastkraftwagen"), kind) { prefs.put(PreferenceKeys.VEHICLE, it) }
+    SGroup(Lang.t("Fahrzeug", "Vehicle"), footer = if (kind == "car") Lang.t("Höchsttempo, Maße und Gewicht für Wohnmobil, Lkw oder Anhänger.", "Top speed, size and weight for motorhome, lorry or trailer.") else
+        Lang.t("Routen meiden zu niedrige, schmale oder zu schwach belastbare Strecken, soweit bekannt. Gilt ab der nächsten Route.", "Routes avoid roads that are too low, narrow or weight-limited, as far as known. Applies from the next route.")) {
+        SChoice(Lang.t("Profil", "Profile"), listOf("car" to Lang.t("Pkw", "Car"), "camper" to Lang.t("Wohnmobil", "Motorhome"), "lorry" to Lang.t("Lastkraftwagen", "Lorry")), kind) { prefs.put(PreferenceKeys.VEHICLE, it) }
         if (kind != "car") {
             val d = com.headunit.launcher.Vehicle.defaults(kind)
-            VehicleField(prefs, kind, "max", "Höchsttempo (km/h)", d.maxKmh.toString(), "km/h")
-            VehicleField(prefs, kind, "h", "Höhe (m)", d.heightM.toString(), "m")
-            VehicleField(prefs, kind, "w", "Breite (m)", d.widthM.toString(), "m")
-            VehicleField(prefs, kind, "l", "Länge (m)", d.lengthM.toString(), "m")
-            VehicleField(prefs, kind, "kg", "Gesamtgewicht (kg)", d.weightKg.toString(), "kg")
-            VehicleField(prefs, kind, "axlekg", "Achsgewicht (kg)", d.axleWeightKg.toString(), "kg")
+            VehicleField(prefs, kind, "max", Lang.t("Höchsttempo (km/h)", "Top speed (km/h)"), d.maxKmh.toString(), "km/h")
+            VehicleField(prefs, kind, "h", Lang.t("Höhe (m)", "Height (m)"), d.heightM.toString(), "m")
+            VehicleField(prefs, kind, "w", Lang.t("Breite (m)", "Width (m)"), d.widthM.toString(), "m")
+            VehicleField(prefs, kind, "l", Lang.t("Länge (m)", "Length (m)"), d.lengthM.toString(), "m")
+            VehicleField(prefs, kind, "kg", Lang.t("Gesamtgewicht (kg)", "Total weight (kg)"), d.weightKg.toString(), "kg")
+            VehicleField(prefs, kind, "axlekg", Lang.t("Achsgewicht (kg)", "Axle weight (kg)"), d.axleWeightKg.toString(), "kg")
         }
     }
 }
@@ -130,32 +130,32 @@ internal fun CloudAccountGroup(prefs: Prefs) {
     val prov = com.headunit.launcher.CarCloud.provider(prefs)
     val footer = when (prov) {
         "volvo" -> Lang.t("Entwicklerkonto auf developer.volvocars.com: Anwendung mit Redirect-URI ${com.headunit.launcher.CarCloud.REDIRECT}, Energy API und Connected Vehicle API. Client-ID, Secret und VCC-API-Key einfügen, dann anmelden.", "Developer account at developer.volvocars.com: app with redirect URI ${com.headunit.launcher.CarCloud.REDIRECT}, Energy API and Connected Vehicle API. Paste client ID, secret and VCC API key, then sign in.")
-        "bmw" -> "Auf bmw-cardata.bmwgroup.com CarData aktivieren, einen Client erstellen und die Client-ID hier einfügen. Max. 50 Abrufe pro Tag."
+        "bmw" -> Lang.t("Auf bmw-cardata.bmwgroup.com CarData aktivieren, einen Client erstellen und die Client-ID hier einfügen. Max. 50 Abrufe pro Tag.", "Turn on CarData at bmw-cardata.bmwgroup.com, create a client and paste the client ID here. Max. 50 requests per day.")
         "smartcar" -> Lang.t("Konto auf dashboard.smartcar.com (ein Fahrzeug gratis): Anwendung mit Redirect-URI ${com.headunit.launcher.CarCloud.REDIRECT}. Client-ID und Secret einfügen, anmelden, Fahrzeug freigeben.", "Account at dashboard.smartcar.com (one vehicle free): app with redirect URI ${com.headunit.launcher.CarCloud.REDIRECT}. Paste client ID and secret, sign in, allow the vehicle.")
-        else -> "Akkustand vom Herstellerserver, wenn Android Auto ihn nicht liefert. Zugangsdaten bleiben auf dem Gerät."
+        else -> Lang.t("Akkustand vom Herstellerserver, wenn Android Auto ihn nicht liefert. Zugangsdaten bleiben auf dem Gerät.", "Battery level from the maker's server when Android Auto doesn't provide it. Credentials stay on the device.")
     }
-    SGroup("Akkustand aus der Cloud", footer = footer) {
-        SChoice("Anbieter", listOf("none" to "Aus", "bmw" to "BMW / Mini", "volvo" to "Volvo", "smartcar" to "Smartcar (viele Marken)"), prov,
-            "Smartcar: viele Marken, für ein Fahrzeug kostenlos") { prefs.put(PreferenceKeys.CLOUD, it) }
+    SGroup(Lang.t("Akkustand aus der Cloud", "Battery level from the cloud"), footer = footer) {
+        SChoice(Lang.t("Anbieter", "Provider"), listOf("none" to Lang.t("Aus", "Off"), "bmw" to "BMW / Mini", "volvo" to "Volvo", "smartcar" to Lang.t("Smartcar (viele Marken)", "Smartcar (many brands)")), prov,
+            Lang.t("Smartcar: viele Marken, für ein Fahrzeug kostenlos", "Smartcar: many brands, free for one vehicle")) { prefs.put(PreferenceKeys.CLOUD, it) }
         if (prov != "none") {
-            SFieldItem("Client-ID", prefs.s(PreferenceKeys.CLOUD_ID, ""), placeholder = "aus dem Entwicklerportal") { prefs.put(PreferenceKeys.CLOUD_ID, it.trim()) }
+            SFieldItem("Client-ID", prefs.s(PreferenceKeys.CLOUD_ID, ""), placeholder = Lang.t("aus dem Entwicklerportal", "from the developer portal")) { prefs.put(PreferenceKeys.CLOUD_ID, it.trim()) }
             if (prov != "bmw") SFieldItem("Client-Secret", prefs.s(PreferenceKeys.CLOUD_SECRET, ""), password = true) { prefs.put(PreferenceKeys.CLOUD_SECRET, it.trim()) }
             if (prov == "volvo") SFieldItem("VCC-API-Key", prefs.s(PreferenceKeys.CLOUD_VCC, ""), password = true) { prefs.put(PreferenceKeys.CLOUD_VCC, it.trim()) }
-            SChoice("Abrufrate", listOf("5" to "5 Min.", "10" to "10 Min.", "20" to "20 Min.", "30" to "30 Min.", "60" to "60 Min."), com.headunit.launcher.CarCloud.rateMin(prefs).toString(),
-                "Nur bei offener App, aktiver Route oder Android Auto." +
+            SChoice(Lang.t("Abrufrate", "Request rate"), listOf("5" to Lang.t("5 Min.", "5 min"), "10" to Lang.t("10 Min.", "10 min"), "20" to Lang.t("20 Min.", "20 min"), "30" to Lang.t("30 Min.", "30 min"), "60" to Lang.t("60 Min.", "60 min")), com.headunit.launcher.CarCloud.rateMin(prefs).toString(),
+                Lang.t("Nur bei offener App, aktiver Route oder Android Auto.", "Only with the app open, a route running or Android Auto connected.") +
                     (if (prov == "bmw") Lang.t(" BMW: max. 50 Abrufe pro Tag (heute ${com.headunit.launcher.CarCloud.callsToday(prefs)}), danach Pause bis morgen.", " BMW: max 50 calls a day (today ${com.headunit.launcher.CarCloud.callsToday(prefs)}), then paused until tomorrow.") else "")) {
                 prefs.put(PreferenceKeys.CLOUD_RATE + prov, it)
             }
             val st = com.headunit.launcher.CarCloud.status
             val signed = com.headunit.launcher.CarCloud.signedIn(prefs)
-            SItem("Konto", st.ifBlank { if (signed) "Angemeldet" else "Nicht angemeldet" }) {
-                SButton(if (signed) "Neu anmelden" else "Anmelden", primary = !signed) { com.headunit.launcher.CarCloud.signIn(ctx, prefs) }
+            SItem(Lang.t("Konto", "Account"), st.ifBlank { if (signed) Lang.t("Angemeldet", "Signed in") else Lang.t("Nicht angemeldet", "Not signed in") }) {
+                SButton(if (signed) Lang.t("Neu anmelden", "Sign in again") else Lang.t("Anmelden", "Sign in"), primary = !signed) { com.headunit.launcher.CarCloud.signIn(ctx, prefs) }
             }
             if (signed) {
-                SItem("Akkustand jetzt abrufen") {
-                    SButton("Abrufen", primary = true) { sc.launch(Dispatchers.IO) { com.headunit.launcher.CarCloud.refresh(ctx, prefs, force = true) } }
+                SItem(Lang.t("Akkustand jetzt abrufen", "Get the battery level now")) {
+                    SButton(Lang.t("Abrufen", "Get"), primary = true) { sc.launch(Dispatchers.IO) { com.headunit.launcher.CarCloud.refresh(ctx, prefs, force = true) } }
                 }
-                SButton("Abmelden", danger = true) { com.headunit.launcher.CarCloud.signOut(prefs) }
+                SButton(Lang.t("Abmelden", "Sign out"), danger = true) { com.headunit.launcher.CarCloud.signOut(prefs) }
             }
         }
     }
@@ -170,7 +170,7 @@ internal fun TiltSetting(prefs: Prefs, title: String, key: String) {
         sub = if (own) null else Lang.t("Wie bisher, je nach Tempo und Ansicht", "As before, depending on speed and view")) { pick ->
         prefs.put(key, if (pick == "own") 55 else 0)
     }
-    if (own) SSlider("Neigung", v.toFloat(), 30f..65f, "°", steps = 34, reset = 55f) { prefs.put(key, it.coerceIn(30, 65)) }
+    if (own) SSlider(Lang.t("Neigung", "Tilt"), v.toFloat(), 30f..65f, "°", steps = 34, reset = 55f) { prefs.put(key, it.coerceIn(30, 65)) }
 }
 
 /** Several cars (Android Auto > Fahrzeuge): each car is its Bluetooth device, and keeps its own fuel and electric car settings. */
@@ -198,7 +198,7 @@ internal fun VehiclesGroup(prefs: Prefs) {
             val isActive = c.id == active
             SItem(c.name, if (isActive) "Aktiv · ${if (c.bt.isEmpty()) "kein Bluetooth-Gerät zugeordnet" else c.bt.size.toString() + " Bluetooth-Gerät(e)"}"
                 else "Antippen, um dieses Fahrzeug zu wählen") { com.headunit.launcher.VehicleProfiles.switchTo(prefs, c.id) }
-            SFieldItem("Name", c.name, "Wie das Auto heißt, z. B. „ID.4“") { com.headunit.launcher.VehicleProfiles.rename(prefs, c.id, it) }
+            SFieldItem(Lang.t("Name", "Name"), c.name, "Wie das Auto heißt, z. B. „ID.4“") { com.headunit.launcher.VehicleProfiles.rename(prefs, c.id, it) }
             if (!isActive) SButton("Löschen", danger = true) { com.headunit.launcher.VehicleProfiles.delete(prefs, c.id) }
         }
         SButton("Aktuelle Einstellungen als neues Fahrzeug speichern") {

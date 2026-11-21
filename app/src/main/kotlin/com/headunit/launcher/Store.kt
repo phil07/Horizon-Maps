@@ -136,11 +136,11 @@ class PlaceStore(private val prefs: Prefs) {
         onSavedChanged?.invoke()
     }
 
-    /** Moves every favourite into Your places, in a "Favoriten" folder there. */
+    /** Moves every favourite into Your places, in a Lang.t("Favoriten", "Favourites") folder there. */
     fun moveAllFavouritesToPlaces() {
         for (f in savedFavourites()) {
             addCustom(f.name, f)
-            setFolder(f.name.trim().take(24).ifBlank { f.name.take(24) }, "Favoriten")
+            setFolder(f.name.trim().take(24).ifBlank { f.name.take(24) }, Lang.t("Favoriten", "Favourites"))
         }
         writeList("places_fav", emptyList())
         onSavedChanged?.invoke()

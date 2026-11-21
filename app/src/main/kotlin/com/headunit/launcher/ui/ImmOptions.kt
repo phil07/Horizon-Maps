@@ -196,7 +196,7 @@ internal fun OptionsSheet(engine: NavEngine, shareEta: () -> Unit, voice: () -> 
                 // the map's look: two picture cards, then day and night
                 val sat = p.b(PreferenceKeys.SATELLITE, false)
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    LookCard(Modifier.weight(1f), "Standard", false, !sat) { p.put(PreferenceKeys.SATELLITE, false) }
+                    LookCard(Modifier.weight(1f), Lang.t("Standard", "Standard"), false, !sat) { p.put(PreferenceKeys.SATELLITE, false) }
                     LookCard(Modifier.weight(1f), Lang.t("Satellit", "Satellite"), true, sat) { p.put(PreferenceKeys.SATELLITE, true) }
                 }
                 // Auto covers every automatic choice in Settings (headlights, sun times, your own times): tapping it while one of those

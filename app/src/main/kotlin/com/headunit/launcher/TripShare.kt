@@ -3,7 +3,7 @@ package com.headunit.launcher
 import org.json.JSONObject
 
 /**
- * "Ankunftszeit teilen": a link to a web page (on the reports server) that shows where you are, your arrival time and the
+ * Lang.t("Ankunftszeit teilen", "Share arrival time"): a link to a web page (on the reports server) that shows where you are, your arrival time and the
  * distance left, kept up to date every 30 seconds. The page shows the trip as over once you arrive, stop sharing, or after
  * 30 minutes without an update. Only the app holds the key that can update the trip.
  */

@@ -72,11 +72,11 @@ import com.headunit.launcher.softFail
 private class SetupStep(val title: String, val sub: String, val icon: ImageVector)
 
 private val setupSteps = listOf(
-    SetupStep("Willkommen bei Horizon Nav", "In wenigen Schritten bist du startklar zum Fahren", Icons.Rounded.Navigation),
-    SetupStep("Kartenschlüssel", "Mapbox für Karte und Routen, TomTom für die Suche", Icons.Rounded.VpnKey),
-    SetupStep("Zuhause und Arbeit", "Ein Tipp von der Karte zu deinen Zielen", Icons.Rounded.Home),
-    SetupStep("Offline-Paket", "Routen und Suche auch ohne Empfang", Icons.Rounded.CloudDownload),
-    SetupStep("Berechtigungen", "Deine Position und Benachrichtigungen", Icons.Rounded.Shield),
+    SetupStep(Lang.t("Willkommen bei Horizon Nav", "Welcome to Horizon Nav"), Lang.t("In wenigen Schritten bist du startklar zum Fahren", "Ready to drive in a few steps"), Icons.Rounded.Navigation),
+    SetupStep(Lang.t("Kartenschlüssel", "Map keys"), Lang.t("Mapbox für Karte und Routen, TomTom für die Suche", "Mapbox for map and routes, TomTom for search"), Icons.Rounded.VpnKey),
+    SetupStep(Lang.t("Zuhause und Arbeit", "Home and work"), Lang.t("Ein Tipp von der Karte zu deinen Zielen", "One tap from the map to your places"), Icons.Rounded.Home),
+    SetupStep(Lang.t("Offline-Paket", "Offline pack"), Lang.t("Routen und Suche auch ohne Empfang", "Routes and search without signal"), Icons.Rounded.CloudDownload),
+    SetupStep(Lang.t("Berechtigungen", "Permissions"), Lang.t("Deine Position und Benachrichtigungen", "Location and notifications"), Icons.Rounded.Shield),
 )
 
 /** First-run setup: map key, home and work, the offline pack and permissions, one step at a time. Every step can be skipped. */
@@ -123,8 +123,8 @@ private fun SetupBody(prefs: Prefs, engine: NavEngine, onDone: () -> Unit) {
                             Icon(setupSteps[s].icon, null, tint = c.accent, modifier = Modifier.size(28.dp))
                         }
                         Column(Modifier.padding(start = 16.dp)) {
-                            Text(tr(setupSteps[s].title), color = c.text, fontSize = 26.sp, fontWeight = FontWeight.Bold)
-                            Text(tr(setupSteps[s].sub), color = c.sub, fontSize = 14.sp)
+                            Text(setupSteps[s].title, color = c.text, fontSize = 26.sp, fontWeight = FontWeight.Bold)
+                            Text(setupSteps[s].sub, color = c.sub, fontSize = 14.sp)
                         }
                     }
                     when (s) {
@@ -137,10 +137,10 @@ private fun SetupBody(prefs: Prefs, engine: NavEngine, onDone: () -> Unit) {
                 }
             }
             Row(Modifier.fillMaxWidth().padding(top = 18.dp), verticalAlignment = Alignment.CenterVertically) {
-                if (step > 0) SButton("Zurück") { engine.results = emptyList(); step-- }
+                if (step > 0) SButton(Lang.t("Zurück", "Back")) { engine.results = emptyList(); step-- }
                 Box(Modifier.weight(1f))
-                if (step < last) SButton(if (step == 0) "Starten" else "Weiter", primary = true) { engine.results = emptyList(); step++ }
-                else SButton("Losfahren", primary = true) { finish() }
+                if (step < last) SButton(if (step == 0) Lang.t("Starten", "Start") else Lang.t("Weiter", "Continue"), primary = true) { engine.results = emptyList(); step++ }
+                else SButton(Lang.t("Losfahren", "Let's go"), primary = true) { finish() }
             }
         }
     }
@@ -151,7 +151,7 @@ private fun SetupPoint(text: String) {
     val c = LocalVw.current
     Row(verticalAlignment = Alignment.CenterVertically) {
         Icon(Icons.Rounded.Check, null, tint = Good, modifier = Modifier.size(20.dp))
-        Text(tr(text), color = c.text, fontSize = 15.sp, modifier = Modifier.padding(start = 10.dp))
+        Text(text, color = c.text, fontSize = 15.sp, modifier = Modifier.padding(start = 10.dp))
     }
 }
 
@@ -159,9 +159,9 @@ private fun SetupPoint(text: String) {
 private fun WelcomeStep() {
     val c = LocalVw.current
     Text(Lang.t("Horizon Nav ist fürs Auto gebaut: große, klare Führung auf der 3D-Karte von Mapbox, mit Live-Verkehr, Tempolimits und Blitzerhinweisen (auf Wunsch) sowie Routen und Suche, die auch ohne Empfang funktionieren.", "Horizon Nav is built for the car: big, clear guidance on Mapbox\'s 3D map, with live traffic, UK speed limits and cameras, and routes and search that keep working with no signal."), color = c.text, fontSize = 16.sp)
-    SetupPoint("Live-Verkehr und schnellere Routen während der Fahrt")
-    SetupPoint("Spurführung, Kreuzungsschilder und Geschwindigkeitswarnungen")
-    SetupPoint("Offline-Routen und Suche für Funklöcher")
+    SetupPoint(Lang.t("Live-Verkehr und schnellere Routen während der Fahrt", "Live traffic and faster routes while driving"))
+    SetupPoint(Lang.t("Spurführung, Kreuzungsschilder und Geschwindigkeitswarnungen", "Lane guidance, junction signs and speed warnings"))
+    SetupPoint(Lang.t("Offline-Routen und Suche für Funklöcher", "Offline routes and search for dead spots"))
     Text(Lang.t("Alles hier lässt sich später in den Einstellungen ändern.", "Everything here can be changed later in Settings."), color = c.sub, fontSize = 13.sp)
 }
 
@@ -171,23 +171,23 @@ private fun KeyStep(prefs: Prefs, engine: NavEngine) {
     Text(Lang.t("Horizon Nav nutzt Mapbox für Karte, Live-Verkehr, Suche und Routen. Dafür brauchst du dein eigenes kostenloses Mapbox-Zugangstoken, damit die Karte über dein Mapbox-Konto läuft (für den privaten Gebrauch kostenlos).", "Horizon Nav uses Mapbox for the map, live traffic, search and routes. It needs your own free Mapbox access token, so the map runs on your Mapbox account (it\'s free for personal use)."), color = c.text, fontSize = 15.sp)
     Text(Lang.t("1. Auf account.mapbox.com registrieren oder anmelden\n2. Unter Tokens das Standard-Public-Token kopieren (beginnt mit pk.)\n3. Hier einfügen", "1. Go to account.mapbox.com and sign up or log in\n2. Open Tokens and copy your Default public token (it starts pk.)\n3. Paste it here"), color = c.sub, fontSize = 14.sp)
     var k by remember { mutableStateOf(prefs.s(PreferenceKeys.MAPBOX_TOKEN, "")) }
-    SField(k, { k = it; prefs.put(PreferenceKeys.MAPBOX_TOKEN, com.headunit.launcher.MapboxRest.clean(it)) }, placeholder = "Mapbox Zugangstoken (pk.…)", width = 560.dp, fill = true)
+    SField(k, { k = it; prefs.put(PreferenceKeys.MAPBOX_TOKEN, com.headunit.launcher.MapboxRest.clean(it)) }, placeholder = Lang.t("Mapbox Zugangstoken (pk.…)", "Mapbox access token (pk.…)"), width = 560.dp, fill = true)
     val t = k.trim()
     when {
         t.isEmpty() -> Text(Lang.t("Ohne Token bleibt die Karte leer; Routen können trotzdem aus dem Offline-Paket kommen.", "Without a token the map stays blank; routes can still come from the offline pack."), color = c.sub, fontSize = 13.sp)
         t.startsWith("sk.") -> Text(Lang.t("Das ist ein geheimes Token: Hier bitte das öffentliche (pk.) verwenden.", "That\'s a secret token: use the public one (pk.) here."), color = Warn, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
         !com.headunit.launcher.MapboxRest.looksValid(t) -> Text(Lang.t("Das sieht noch nicht nach einem vollständigen Token aus: Es ist ein langer Code, der mit pk. beginnt.", "That doesn\'t look like a whole token yet: it\'s a long code starting pk."), color = Warn, fontSize = 13.sp)
         !com.headunit.launcher.MapboxRest.looksWhole(com.headunit.launcher.MapboxRest.clean(t)) -> Text(com.headunit.launcher.Lang.t("Ein Teil dieses Schlüssels scheint zu fehlen oder vertippt zu sein. Kopiere ihn noch einmal mit dem Kopieren-Knopf auf account.mapbox.com › Tokens.", "Part of that token looks missing or mistyped. Copy it again with the copy button at account.mapbox.com › Tokens."), color = Warn, fontSize = 13.sp)
-        else -> SetupPoint("Token hinzugefügt: Die Karte wird nach der Einrichtung geladen")
+        else -> SetupPoint(Lang.t("Token hinzugefügt: Die Karte wird nach der Einrichtung geladen", "Token added: the map loads after setup"))
     }
     Spacer(Modifier.height(10.dp))
     Text(Lang.t("TomTom-Schlüssel", "TomTom key"), color = c.text, fontSize = 17.sp, fontWeight = FontWeight.SemiBold)
     Text(Lang.t("Die Adresssuche nutzt TomTom: Dort werden Hausnummern, Postleitzahlen und Firmen am genauesten gefunden. TomTom ist außerdem der Ersatz für Routen und Verkehr. Der Schlüssel ist kostenlos.", "Address search uses TomTom, as Horizon Nav always has: it finds house numbers, postcodes and businesses most accurately. TomTom is also the backup for routes and traffic. The key is free."), color = c.text, fontSize = 15.sp)
     Text(Lang.t("1. Auf developer.tomtom.com registrieren oder anmelden\n2. Dashboard öffnen (Keys) und den API-Schlüssel kopieren\n3. Hier einfügen", "1. Go to developer.tomtom.com and sign up or log in\n2. Open your Dashboard (Keys) and copy your API key\n3. Paste it here"), color = c.sub, fontSize = 14.sp)
     var tk by remember { mutableStateOf(prefs.s(PreferenceKeys.API_KEY, "")) }
-    SField(tk, { tk = it; prefs.setApiKey(it) }, placeholder = "TomTom API-Schlüssel", width = 560.dp, fill = true)
+    SField(tk, { tk = it; prefs.setApiKey(it) }, placeholder = Lang.t("TomTom API-Schlüssel", "TomTom API key"), width = 560.dp, fill = true)
     if (tk.isBlank()) Text(Lang.t("Ohne Schlüssel nutzt die Suche stattdessen Mapbox und OpenStreetMap, die mehr Hausnummern übersehen. Du kannst ihn später unter Einstellungen › Schlüssel & Konten eintragen.", "Without it, search uses Mapbox and OpenStreetMap instead, which miss more house numbers. You can add it later in Settings › Keys & accounts."), color = c.sub, fontSize = 13.sp)
-    else SetupPoint("TomTom-Schlüssel hinzugefügt: Suche nutzt TomTom")
+    else SetupPoint(Lang.t("TomTom-Schlüssel hinzugefügt: Suche nutzt TomTom", "TomTom key added: search uses TomTom"))
 }
 
 @Composable
@@ -204,7 +204,7 @@ private fun HomeWorkStep(engine: NavEngine) {
         Text(Lang.t("Suche in", "Search in"), color = c.sub, fontSize = 14.sp)
         Segmented(searchCountryOptions(engine), searchCountryValue(engine.prefs)) { engine.prefs.put(PreferenceKeys.COUNTRY, it); if (q.length >= 3) engine.search(q) }
     }
-    for ((slot, label, icon) in listOf(Triple("home", "Zuhause", Icons.Rounded.Home), Triple("work", "Arbeit", Icons.Rounded.Work))) {
+    for ((slot, label, icon) in listOf(Triple("home", Lang.t("Zuhause", "Home"), Icons.Rounded.Home), Triple("work", Lang.t("Arbeit", "Work"), Icons.Rounded.Work))) {
         val cur = engine.places.slot(slot)
         Row(
             Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(if (which == slot) c.accent.copy(alpha = 0.14f) else c.tile)
@@ -213,13 +213,13 @@ private fun HomeWorkStep(engine: NavEngine) {
         ) {
             Icon(icon, null, tint = if (cur != null) c.accent else c.sub, modifier = Modifier.size(26.dp))
             Column(Modifier.padding(start = 14.dp).weight(1f)) {
-                Text(tr(label), color = c.text, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
-                Text(cur?.let { it.name + if (it.sub.isNotBlank()) ", " + it.sub else "" } ?: tr("Nicht festgelegt · Tippen zum Suchen"), color = c.sub, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(label, color = c.text, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+                Text(cur?.let { it.name + if (it.sub.isNotBlank()) ", " + it.sub else "" } ?: Lang.t("Nicht festgelegt · Tippen zum Suchen", "Not set · tap to search"), color = c.sub, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
             if (cur != null) Icon(Icons.Rounded.Check, null, tint = Good, modifier = Modifier.size(22.dp))
         }
         if (which == slot) {
-            SField(q, { q = it }, placeholder = "Suche nach deiner Adresse oder Postleitzahl", width = 640.dp, fill = true)
+            SField(q, { q = it }, placeholder = Lang.t("Suche nach deiner Adresse oder Postleitzahl", "Search for an address or postcode"), width = 640.dp, fill = true)
             engine.results.take(5).forEach { p ->
                 Row(
                     Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).clickable {
@@ -248,18 +248,18 @@ private fun PackStep(prefs: Prefs, engine: NavEngine) {
     Text(Lang.t("Lade das Paket einmal über WLAN herunter, dann funktionieren Routen, Suche, Tempolimits und Kameras auch ohne Empfang. Der Download ist groß (einige GB), am besten zu Hause erledigen.", "Download the pack once on Wi-Fi and routes, search, speed limits and cameras keep working with no signal. It\'s a large download (a few GB), so it\'s best done at home."), color = c.text, fontSize = 15.sp)
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
         Text(region.name, color = c.text, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
-        SButton("Gebiet ändern") { picking = true }
+        SButton(Lang.t("Gebiet ändern", "Change area")) { picking = true }
     }
     if (picking) PackPickerDialog(region, { prefs.put(PreferenceKeys.PACK_REGION, it.id) }) { picking = false }
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-        if (installed && !engine.packBusy) SetupPoint("Offline-Paket installiert")
-        else SButton(if (engine.packBusy) "Lädt herunter…" else "Jetzt herunterladen", primary = true) {
+        if (installed && !engine.packBusy) SetupPoint(Lang.t("Offline-Paket installiert", "Offline pack installed"))
+        else SButton(if (engine.packBusy) Lang.t("Lädt herunter…", "Downloading…") else Lang.t("Jetzt herunterladen", "Download now"), primary = true) {
             engine.downloadRegion(region)
         }
         if (!engine.onWifi() && !installed) Text(Lang.t("Du bist nicht im WLAN", "You\'re not on Wi-Fi"), color = Warn, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
     }
     if (engine.packBusy) LinearProgressIndicator(color = c.accent, trackColor = c.tile, modifier = Modifier.fillMaxWidth())
-    if (engine.packStatus.isNotBlank()) Text(engine.packStatus + if (engine.packBusy) tr(" · läuft weiter, wenn du fortfährst") else "", color = c.sub, fontSize = 13.sp)
+    if (engine.packStatus.isNotBlank()) Text(engine.packStatus + if (engine.packBusy) Lang.t(" · läuft weiter, wenn du fortfährst", " · keeps going if you continue") else "", color = c.sub, fontSize = 13.sp)
     Text(Lang.t("Das kannst du später unter Einstellungen › Offline-Karten erledigen.", "You can do this later in Settings › Offline maps."), color = c.sub, fontSize = 13.sp)
 }
 
@@ -277,14 +277,14 @@ private fun PermissionStep() {
     fun row(title: String, sub: String, ok: Boolean, perms: Array<String>) {
         Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(c.tile).padding(horizontal = 16.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
-                Text(tr(title), color = c.text, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
-                Text(tr(sub), color = c.sub, fontSize = 13.sp)
+                Text(title, color = c.text, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+                Text(sub, color = c.sub, fontSize = 13.sp)
             }
-            if (ok) Icon(Icons.Rounded.Check, "Erlaubt", tint = Good, modifier = Modifier.size(24.dp))
-            else SButton("Erlauben", primary = true) { try { ask.launch(perms) } catch (e: Exception) { softFail(e) } }
+            if (ok) Icon(Icons.Rounded.Check, Lang.t("Erlaubt", "Allowed"), tint = Good, modifier = Modifier.size(24.dp))
+            else SButton(Lang.t("Erlauben", "Allow"), primary = true) { try { ask.launch(perms) } catch (e: Exception) { softFail(e) } }
         }
     }
-    row("Standort", "Erforderlich, um deine Position auf der Karte zu zeigen und zu führen", loc, arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION))
-    if (android.os.Build.VERSION.SDK_INT >= 33) row("Benachrichtigungen", "Damit die Navigation beim App-Wechsel weiterläuft", notif, arrayOf(Manifest.permission.POST_NOTIFICATIONS))
+    row(Lang.t("Standort", "Location"), Lang.t("Erforderlich, um deine Position auf der Karte zu zeigen und zu führen", "Needed to show your position and guide you"), loc, arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION))
+    if (android.os.Build.VERSION.SDK_INT >= 33) row(Lang.t("Benachrichtigungen", "Notifications"), Lang.t("Damit die Navigation beim App-Wechsel weiterläuft", "Keeps guidance running when switching apps"), notif, arrayOf(Manifest.permission.POST_NOTIFICATIONS))
     if (!loc) Text(Lang.t("Wenn der Button Erlauben nichts bewirkt, wurde die Berechtigung früher abgelehnt: Erlaube sie unter Einstellungen › Info & Sicherung › App-Berechtigungen.", "If the Allow button does nothing, the permission was turned down before: allow it in Settings › About & backup › App permissions."), color = c.sub, fontSize = 13.sp)
 }

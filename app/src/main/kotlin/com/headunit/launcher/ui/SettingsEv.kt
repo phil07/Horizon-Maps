@@ -126,26 +126,26 @@ internal fun EvWidgetItem(prefs: Prefs) {
     val at = com.headunit.launcher.EvWidget.readAt(prefs)
     val name = remember(id) { com.headunit.launcher.EvWidget.providerLabel(ctx, prefs) }
     val sub = when {
-        id < 0 -> "Ladestand aus dem Widget der Hersteller-App"
-        at > 0 -> (when (com.headunit.launcher.EvWidget.source(prefs)) { "car" -> "Direkt vom Auto"; "cloud" -> "Aus der Cloud des Herstellers"; else -> name }) + " · ${prefs.s(PreferenceKeys.EV_NOW_PCT, "–")} % · ${prefs.s(PreferenceKeys.EV_NOW_KM, "–")} km, gelesen um " + java.text.SimpleDateFormat("HH:mm", java.util.Locale.GERMANY).format(java.util.Date(at))
+        id < 0 -> Lang.t("Ladestand aus dem Widget der Hersteller-App", "Charge level from the maker app's widget")
+        at > 0 -> (when (com.headunit.launcher.EvWidget.source(prefs)) { "car" -> Lang.t("Direkt vom Auto", "Straight from the car"); "cloud" -> Lang.t("Aus der Cloud des Herstellers", "From the maker's cloud"); else -> name }) + " · ${prefs.s(PreferenceKeys.EV_NOW_PCT, "–")} % · ${prefs.s(PreferenceKeys.EV_NOW_KM, "–")} km, gelesen um " + java.text.SimpleDateFormat("HH:mm", java.util.Locale.GERMANY).format(java.util.Date(at))
         else -> "$name · Noch kein Prozentwert gefunden. Das Widget meldet sich, sobald es sich aktualisiert."
     }
     // the buttons sit on their own line: beside the title they squeeze the text into a narrow column
-    SItem("Ladestand aus Widget", sub)
+    SItem(Lang.t("Ladestand aus Widget", "Charge level from a widget"), sub)
     // (scrolls sideways rather than squeezing a button down to one letter on a narrow screen)
     Row(Modifier.fillMaxWidth().padding(bottom = 8.dp).horizontalScroll(androidx.compose.foundation.rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         // short labels, so all three fit on one line on a phone
-        if (id >= 0) SButton("App öffnen") {
+        if (id >= 0) SButton(Lang.t("App öffnen", "Open app")) {
             if (!com.headunit.launcher.EvWidget.openProvider(ctx, prefs))
-                android.widget.Toast.makeText(ctx, tr("Die Auto-App lässt sich nicht öffnen."), android.widget.Toast.LENGTH_LONG).show()
+                android.widget.Toast.makeText(ctx, Lang.t("Die Auto-App lässt sich nicht öffnen.", "The car app can't be opened."), android.widget.Toast.LENGTH_LONG).show()
         }
-        SButton(if (id >= 0) "Ändern" else "Widget wählen", primary = id < 0) { picking = true }
-        if (id >= 0) SButton("Entfernen", danger = true) { com.headunit.launcher.EvWidget.remove(ctx, prefs) }
+        SButton(if (id >= 0) Lang.t("Ändern", "Change") else Lang.t("Widget wählen", "Choose widget"), primary = id < 0) { picking = true }
+        if (id >= 0) SButton(Lang.t("Entfernen", "Remove"), danger = true) { com.headunit.launcher.EvWidget.remove(ctx, prefs) }
     }
     if (id >= 0) {
-        SToggle(prefs, "Widget automatisch aktualisieren", PreferenceKeys.EV_AUTOREFRESH, true, "Aktualisiert das Widget regelmäßig über Android Auto")
+        SToggle(prefs, Lang.t("Widget automatisch aktualisieren", "Refresh the widget automatically"), PreferenceKeys.EV_AUTOREFRESH, true, Lang.t("Aktualisiert das Widget regelmäßig über Android Auto", "Refreshes the widget regularly via Android Auto"))
         if (prefs.b(PreferenceKeys.EV_AUTOREFRESH, true)) {
-            SNote("Achtung: fragt jede Minute den Herstellerserver ab (bei VW wird das Auto geweckt). Kann gegen die AGB verstoßen und zur Sperrung führen. Nutzung auf eigene Verantwortung.")
+            SNote(Lang.t("Achtung: fragt jede Minute den Herstellerserver ab (bei VW wird das Auto geweckt). Kann gegen die AGB verstoßen und zur Sperrung führen. Nutzung auf eigene Verantwortung.", "Note: asks the maker's server every minute (VW wakes the car). May break the terms of use and lead to a block. Use at your own risk."))
         }
         val note = com.headunit.launcher.EvWidget.refreshNote
         if (note.isNotBlank()) Text("Zuletzt: $note", color = LocalVw.current.sub, fontSize = 12.sp, modifier = Modifier.padding(bottom = 10.dp))
@@ -154,8 +154,8 @@ internal fun EvWidgetItem(prefs: Prefs) {
     if (id >= 0 && at == 0L) {
         val texts = com.headunit.launcher.EvWidget.lastTexts
         Text(
-            if (texts.isEmpty()) "Noch kein Text vom Widget. Erst nach „App öffnen“ und Aktualisierung."
-            else "Text im Widget: " + texts.joinToString("  |  "),
+            if (texts.isEmpty()) Lang.t("Noch kein Text vom Widget. Erst nach „App öffnen“ und Aktualisierung.", "No text from the widget yet. Only after \"Open app\" and a refresh.")
+            else Lang.t("Text im Widget: ", "Text in the widget: ") + texts.joinToString("  |  "),
             color = LocalVw.current.sub, fontSize = 12.sp, modifier = Modifier.padding(bottom = 10.dp),
         )
     }
@@ -163,10 +163,10 @@ internal fun EvWidgetItem(prefs: Prefs) {
         val list = remember { com.headunit.launcher.EvWidget.providers(ctx) }
         androidx.compose.ui.window.Dialog(onDismissRequest = { picking = false }) {
             Column(Modifier.widthIn(max = 560.dp).fillMaxWidth().clip(RoundedCornerShape(26.dp)).background(c.panel).padding(22.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                Text(tr("Widget mit dem Ladestand"), color = c.text, fontSize = 22.sp, fontWeight = FontWeight.Bold)
-                Text(tr("Widget der Hersteller-App wählen. Der Prozentwert wird daraus gelesen."), color = c.sub, fontSize = 14.sp)
+                Text(Lang.t("Widget mit dem Ladestand", "Widget with the charge level"), color = c.text, fontSize = 22.sp, fontWeight = FontWeight.Bold)
+                Text(Lang.t("Widget der Hersteller-App wählen. Der Prozentwert wird daraus gelesen.", "Choose the maker app's widget. The percentage is read from it."), color = c.sub, fontSize = 14.sp)
                 Column(Modifier.heightIn(max = 420.dp).verticalScroll(rememberScrollState())) {
-                    if (list.isEmpty()) Text(tr("Keine Widgets gefunden"), color = c.sub, fontSize = 15.sp)
+                    if (list.isEmpty()) Text(Lang.t("Keine Widgets gefunden", "No widgets found"), color = c.sub, fontSize = 15.sp)
                     for (info in list) {
                         val label = remember(info) { com.headunit.launcher.EvWidget.label(ctx, info) }
                         Text(label, color = c.text, fontSize = 16.sp, modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).clickable {
@@ -177,7 +177,7 @@ internal fun EvWidgetItem(prefs: Prefs) {
                         }.padding(horizontal = 10.dp, vertical = 12.dp))
                     }
                 }
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) { SButton("Abbrechen") { picking = false } }
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) { SButton(Lang.t("Abbrechen", "Cancel")) { picking = false } }
             }
         }
     }
@@ -203,14 +203,14 @@ internal fun EvOperatorsItem(prefs: Prefs) {
     val sel = com.headunit.launcher.ChargeOperators.selected(prefs)
     val names = ops.filter { it.id in sel }.map { it.label }
     val summary = when {
-        names.isEmpty() -> "Noch keine ausgewählt"
-        names.size <= 4 -> "Ausgewählt: " + names.joinToString(", ")
+        names.isEmpty() -> Lang.t("Noch keine ausgewählt", "None chosen yet")
+        names.size <= 4 -> Lang.t("Ausgewählt: ", "Chosen: ") + names.joinToString(", ")
         else -> "${names.size} ausgewählt: " + names.take(3).joinToString(", ") + " …"
     }
     Box(Modifier.fillMaxWidth()) {
         // a real button, so it's clear the list opens from here
-        SItem("Bevorzugte Ladeanbieter", Lang.t("$summary. Bevorzugt bei kleinem Umweg.", "$summary. Preferred if the detour is small."), onClick = { open = true }) {
-            SButton(if (names.isEmpty()) "Auswählen ▾" else "Ändern ▾") { open = true }
+        SItem(Lang.t("Bevorzugte Ladeanbieter", "Preferred charging networks"), Lang.t("$summary. Bevorzugt bei kleinem Umweg.", "$summary. Preferred if the detour is small."), onClick = { open = true }) {
+            SButton(if (names.isEmpty()) Lang.t("Auswählen ▾", "Choose ▾") else Lang.t("Ändern ▾", "Change ▾")) { open = true }
         }
         // limited height and scrolling: the car's screen is short
         androidx.compose.material3.DropdownMenu(
@@ -219,7 +219,7 @@ internal fun EvOperatorsItem(prefs: Prefs) {
             containerColor = c.panel,
         ) {
             if (sel.isNotEmpty()) androidx.compose.material3.DropdownMenuItem(
-                text = { Text(tr("Alle abwählen"), color = c.accent, fontSize = 15.sp, fontWeight = FontWeight.SemiBold) },
+                text = { Text(Lang.t("Alle abwählen", "Clear all"), color = c.accent, fontSize = 15.sp, fontWeight = FontWeight.SemiBold) },
                 onClick = { com.headunit.launcher.ChargeOperators.setSelected(prefs, emptySet()) },
             )
             for (o in ops) {
@@ -248,18 +248,18 @@ internal fun EvOperatorsItem(prefs: Prefs) {
 internal fun EvCarItem(prefs: Prefs) {
     var picking by remember { mutableStateOf(false) }
     val label = prefs.s(PreferenceKeys.EV_CAR, "")
-    val sub = if (label.isBlank()) "Für genaue Ladezeiten an Ladestopps"
+    val sub = if (label.isBlank()) Lang.t("Für genaue Ladezeiten an Ladestopps", "For accurate charging times at stops")
     else {
         val kwh = com.headunit.launcher.EvCars.batteryKwh(prefs)
         val kw = prefs.s(PreferenceKeys.EV_CAR_KW, "").toDoubleOrNull()
         label + (kwh?.let { " · ${evNum(it)} kWh" } ?: "") + (kw?.let { " · max. ${evNum(Math.round(it).toDouble())} kW" } ?: "")
     }
     // (the dataset's licence asks for the source to be shown)
-    SItem("Fahrzeug", sub + "\nFahrzeugdaten: " + com.headunit.launcher.EvCars.SOURCE)
+    SItem(Lang.t("Fahrzeug", "Vehicle"), sub + Lang.t("\nFahrzeugdaten: ", "\nVehicle data: ") + com.headunit.launcher.EvCars.SOURCE)
     // the buttons sit on their own line, as for the widget below
     Row(Modifier.fillMaxWidth().padding(bottom = 8.dp).horizontalScroll(androidx.compose.foundation.rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        SButton(if (label.isBlank()) "Wählen" else "Ändern", primary = label.isBlank()) { picking = true }
-        if (label.isNotBlank()) SButton("Entfernen", danger = true) { com.headunit.launcher.EvCars.clear(prefs) }
+        SButton(if (label.isBlank()) Lang.t("Wählen", "Choose") else Lang.t("Ändern", "Change"), primary = label.isBlank()) { picking = true }
+        if (label.isNotBlank()) SButton(Lang.t("Entfernen", "Remove"), danger = true) { com.headunit.launcher.EvCars.clear(prefs) }
     }
     if (picking) EvCarDialog(prefs) { picking = false }
 }
@@ -271,7 +271,7 @@ internal fun EvCarDialog(prefs: Prefs, onClose: () -> Unit) {
     val ctx = LocalContext.current
     var all by remember { mutableStateOf<List<com.headunit.launcher.EvCar>?>(null) }
     var failed by remember { mutableStateOf(false) }
-    // bumped by "Erneut versuchen" to load again
+    // bumped by Lang.t("Erneut versuchen", "Try again") to load again
     var attempt by remember { mutableIntStateOf(0) }
     var query by remember { mutableStateOf("") }
     androidx.compose.runtime.LaunchedEffect(attempt) {
@@ -290,29 +290,29 @@ internal fun EvCarDialog(prefs: Prefs, onClose: () -> Unit) {
     fun pick(car: com.headunit.launcher.EvCar) { com.headunit.launcher.EvCars.select(prefs, car); onClose() }
     androidx.compose.ui.window.Dialog(onDismissRequest = onClose) {
         Column(Modifier.widthIn(max = 560.dp).fillMaxWidth().clip(RoundedCornerShape(26.dp)).background(c.panel).padding(22.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Text(tr("Fahrzeug"), color = c.text, fontSize = 22.sp, fontWeight = FontWeight.Bold)
+            Text(Lang.t("Fahrzeug", "Vehicle"), color = c.text, fontSize = 22.sp, fontWeight = FontWeight.Bold)
             when {
                 failed -> {
-                    Text(tr("Fahrzeugdaten nicht verfügbar. Internetverbindung prüfen."), color = c.sub, fontSize = 15.sp)
-                    SButton("Erneut versuchen", primary = true) { attempt++ }
+                    Text(Lang.t("Fahrzeugdaten nicht verfügbar. Internetverbindung prüfen.", "Vehicle data unavailable. Check the internet connection."), color = c.sub, fontSize = 15.sp)
+                    SButton(Lang.t("Erneut versuchen", "Try again"), primary = true) { attempt++ }
                 }
-                cars == null -> Text(tr("Fahrzeugdaten werden geladen …"), color = c.sub, fontSize = 15.sp)
+                cars == null -> Text(Lang.t("Fahrzeugdaten werden geladen …", "Loading vehicle data …"), color = c.sub, fontSize = 15.sp)
                 else -> {
                     if (suggested.isNotEmpty()) {
-                        Text(tr("Vorschlag aus dem Widget"), color = c.sub, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                        Text(Lang.t("Vorschlag aus dem Widget", "Suggestion from the widget"), color = c.sub, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
                         Column(Modifier.heightIn(max = 160.dp).verticalScroll(rememberScrollState())) {
                             for (car in suggested) EvCarRow(car) { pick(car) }
                         }
                     }
-                    SField(query, { query = it.take(60) }, placeholder = "Suchen, z. B. ID.7 Pro", width = 516.dp, fill = true)
+                    SField(query, { query = it.take(60) }, placeholder = Lang.t("Suchen, z. B. ID.7 Pro", "Search, e.g. ID.7 Pro"), width = 516.dp, fill = true)
                     androidx.compose.foundation.lazy.LazyColumn(Modifier.weight(1f, fill = false).fillMaxWidth().heightIn(max = 360.dp)) {
-                        if (shown.isEmpty()) item { Text(tr("Kein Fahrzeug gefunden"), color = c.sub, fontSize = 15.sp, modifier = Modifier.padding(vertical = 12.dp)) }
+                        if (shown.isEmpty()) item { Text(Lang.t("Kein Fahrzeug gefunden", "No vehicle found"), color = c.sub, fontSize = 15.sp, modifier = Modifier.padding(vertical = 12.dp)) }
                         items(shown.size) { i -> val car = shown[i]; EvCarRow(car) { pick(car) } }
                     }
                 }
             }
-            Text(tr("Fahrzeugdaten: ") + com.headunit.launcher.EvCars.SOURCE, color = c.sub, fontSize = 12.sp)
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) { SButton("Abbrechen") { onClose() } }
+            Text(Lang.t("Fahrzeugdaten: ", "Vehicle data: ") + com.headunit.launcher.EvCars.SOURCE, color = c.sub, fontSize = 12.sp)
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) { SButton(Lang.t("Abbrechen", "Cancel")) { onClose() } }
         }
     }
 }

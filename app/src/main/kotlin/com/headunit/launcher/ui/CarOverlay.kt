@@ -320,7 +320,7 @@ private fun CarScreen(engine: NavEngine, a: android.graphics.Rect?, actions: Car
         // where the speed sits (Settings > Android Auto): bottom left (the default), under the turn card, or top right.
         // "Under the turn card" needs the card showing; without it the speed stays in the bottom corner.
         val speedHere = when (engine.prefs.s(PreferenceKeys.CAR_SPEED_POS, "bottom")) { "turn" -> if (showTurn) "turn" else "bottom"; "top" -> "top"; else -> "bottom" }
-        // which bottom corner: the phone's "Tacho-Seite" setting counts here too. Right (the default) or left; automatic is as it
+        // which bottom corner: the phone's Lang.t("Tacho-Seite", "Speed side") setting counts here too. Right (the default) or left; automatic is as it
         // used to be (right on a wide screen, left on a short one; right above the trip card on a tall one)
         val speedSide = engine.prefs.s(PreferenceKeys.MAIN_SPEED_SIDE, "right")
         val cornerLeft = if (portrait) speedSide == "left" else when (speedSide) { "left" -> true; "right" -> false; else -> shortCar }
@@ -352,7 +352,7 @@ private fun CarScreen(engine: NavEngine, a: android.graphics.Rect?, actions: Car
                             if (incShown || camShown) Column(Modifier.fillMaxWidth().background(GmGreenDeep).padding(horizontal = 14.dp, vertical = 6.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                                 if (incShown && inc != null) CarHazardLine("incident", inc.label, Geo.fmtDist(inc.dist, engine.imperial))
                                 // (the average speed card takes this line's place while it shows)
-                                if (camShown && cam != null && engine.avgInfo == null) CarHazardLine("camera", "Blitzer", Geo.fmtDist(cam.toDouble(), engine.imperial))
+                                if (camShown && cam != null && engine.avgInfo == null) CarHazardLine("camera", Lang.t("Blitzer", "Speed cameras"), Geo.fmtDist(cam.toDouble(), engine.imperial))
                             }
                         })
                 }
@@ -490,7 +490,7 @@ private fun CarScreen(engine: NavEngine, a: android.graphics.Rect?, actions: Car
                 if (radarOn) HazardRadar(engine)
                 else if (!showTurn && (incShown || camShown)) Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     if (incShown && inc != null) HazardBadge("incident", inc.label, Geo.fmtDist(inc.dist, engine.imperial))
-                    if (camShown && cam != null) HazardBadge("camera", "Blitzer", Geo.fmtDist(cam.toDouble(), engine.imperial))
+                    if (camShown && cam != null) HazardBadge("camera", Lang.t("Blitzer", "Speed cameras"), Geo.fmtDist(cam.toDouble(), engine.imperial))
                 }
             }
             // a split-screen tile: the trip strip is a bar along the bottom edge, centred
@@ -750,7 +750,7 @@ private fun SoundPill(engine: NavEngine) {
                 null, tint = tint, modifier = Modifier.size(34.dp),
             )
         }
-        Text(when (sm) { 0 -> "Ton an"; 1 -> "Nur Warnungen"; else -> "Stumm" }, color = c.text, fontSize = 28.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, softWrap = false, modifier = Modifier.padding(start = 14.dp))
+        Text(when (sm) { 0 -> "Ton an"; 1 -> Lang.t("Nur Warnungen", "Alerts only"); else -> "Stumm" }, color = c.text, fontSize = 28.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, softWrap = false, modifier = Modifier.padding(start = 14.dp))
     }
 }
 
@@ -792,7 +792,7 @@ private fun TripCard(engine: NavEngine, fill: Boolean, oneLine: Boolean = false)
         }
         val stats: @Composable () -> Unit = {
             CarStat(Geo.fmtDur(e.secs), if (e.delayMin >= 1) "+${e.delayMin} Min." else "Verbleibend", dc)
-            CarStat(e.arrive, "Ankunft", c.text)
+            CarStat(e.arrive, Lang.t("Ankunft", "Arrival"), c.text)
             // the next stop on the way and when you get there
             engine.via.firstOrNull()?.let { s -> engine.stopArrivalTimes().firstOrNull()?.takeIf { it.isNotBlank() }?.let { tm -> CarStat(tm, Lang.t("Stopp ", "Stop ") + s.name.take(14), c.text) } }
             CarStat(Geo.fmtDist(e.dist, engine.imperial), "Entfernung", c.text)
@@ -1018,7 +1018,7 @@ private fun CarChips(engine: NavEngine, actions: CarActions, rows: Int) {
                 androidx.compose.material3.Icon(icon, null, tint = tint, modifier = Modifier.size(if (slim) 22.dp else 36.dp))
             }
             Column(Modifier.padding(start = if (slim) 8.dp else 14.dp).weight(1f)) {
-                // (the short label even when not set yet: "Setze zuhause" was cut off at this size; the line below says "Festlegen")
+                // (the short label even when not set yet: "Setze zuhause" was cut off at this size; the line below says Lang.t("Festlegen", "Set"))
                 Text(label, color = c.text, fontSize = if (slim) 18.sp else 26.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 Text(sub, color = c.sub, fontSize = if (slim) 15.sp else 21.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
@@ -1087,7 +1087,7 @@ private fun CarChips(engine: NavEngine, actions: CarActions, rows: Int) {
             val customsC = engine.places.customs()
             val favsC = engine.places.favouritesNotIn(customsC)
             val tracksC = com.headunit.launcher.Gpx.list(ctxC)
-            // as many favourites as fit the row (six here); the rest sit behind "Alle"
+            // as many favourites as fit the row (six here); the rest sit behind Lang.t("Alle", "All")
             val shownFavs = favsC.take(6)
             if (customsC.isNotEmpty() || favsC.isNotEmpty() || tracksC.isNotEmpty() || engine.prefs.b(PreferenceKeys.SC_PLACES, false) || engine.prefs.b(PreferenceKeys.SC_TRACKS, false)) {
                 Row(Modifier.fillMaxWidth().horizontalScroll(androidx.compose.foundation.rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
