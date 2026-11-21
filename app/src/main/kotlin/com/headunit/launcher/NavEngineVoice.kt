@@ -288,6 +288,8 @@ internal fun NavEngine.routeExtrasTick(r: Route, progress: Double) {
             finally { jctsSig = js; jctsPlacing = false }
         }
     }
+    // the stop signs belong to one route: when the route changes, the last route's signs go at once
+    if (stopSignsFor !== r) { stopSignsFor = r; map.setStopSigns(emptyList()) }
     // place everything on this route (in the background) whenever the route or what was found changes
     val sig = ((System.identityHashCode(r) * 31 + rawServices.size) * 31 + rawHz.size) * 31 + rawAvg.size * 7 + via.size * 13 + zonesVersion * 17
     if (sig != placedSig && !placing) {
@@ -320,7 +322,8 @@ internal fun NavEngine.routeExtrasTick(r: Route, progress: Double) {
                 map.setCrossings(if (prefs.b(PreferenceKeys.ZEBRAS, true)) pl.hz.filter { it.poi.kind == "crossing" && it.poi.name in setOf("zebra", "marked", "uncontrolled") }
                     .take(300).map { Triple(it.poi.pos, pointAt(r, it.off).second, it.poi.name == "zebra") } else emptyList())
                 // stop signs on the route
-                map.setStopSigns(if (prefs.b(PreferenceKeys.STOP_SIGNS, false)) pl.hz.filter { it.poi.kind == "stop" }.take(300).map { it.poi.pos } else emptyList())
+                // (a late result for a route that is no longer the one shown is left out)
+                if (stopSignsFor === r) map.setStopSigns(if (prefs.b(PreferenceKeys.STOP_SIGNS, false)) pl.hz.filter { it.poi.kind == "stop" }.take(300).map { it.poi.pos } else emptyList())
             } catch (e: Exception) { placedSig = sig } finally { placing = false }
         }
     }

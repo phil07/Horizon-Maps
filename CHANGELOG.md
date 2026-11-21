@@ -1,5 +1,9 @@
 ## Unreleased
 
+### Fixed
+- Haltestellen-Schilder auf der Karte: Nach einer neuen Route verschwinden die Schilder der alten Route sofort, und späte Antworten zur alten Route werden nicht mehr angezeigt.
+  EN: Stop signs on the map: after a new route the old route's signs disappear at once, and late replies for the old route are no longer shown.
+
 ## 1.0.246 — 2026-10-28
 
 ### Improved in-app updates

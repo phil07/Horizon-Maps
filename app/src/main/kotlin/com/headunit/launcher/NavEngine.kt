@@ -464,6 +464,8 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
     internal var placed: Placed? = null
     internal var placing = false
     internal var placedSig = 0
+    /** The route the stop signs on the map were placed for (a late result for another route is left out). */
+    internal var stopSignsFor: Route? = null
     internal var zonesVersion = 0
     internal var avgIn: AvgOnRoute? = null
     internal var avgEnterAt = 0L
