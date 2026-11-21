@@ -12,3 +12,8 @@ object Lang {
     /** The language tag the map and place services take for the app's language (German or English). */
     val serviceTag: String get() = if (de) "de-DE" else "en-GB"
 }
+
+/** A text kept in both languages: shown in the app's language ([s]), found by search in either ([de] and [en]). */
+class Bilingual(val de: String, val en: String) {
+    val s: String get() = Lang.t(de, en)
+}

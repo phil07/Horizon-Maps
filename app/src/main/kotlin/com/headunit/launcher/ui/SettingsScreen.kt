@@ -138,9 +138,9 @@ private fun SettingsBody(prefs: Prefs, engine: NavEngine, onClose: () -> Unit) {
     val words = query.trim().lowercase().split(Regex("\\s+")).filter { it.isNotBlank() }
     val matches = remember(query) {
         if (words.isEmpty()) emptyList() else settingsIndex.filter { r ->
-            val hay = (r.title + " " + r.sub + " " + r.group + " " + sections[r.section].title + " " + r.title + " " + r.sub + " " + r.group + " " + sections[r.section].title).lowercase()
+            val hay = (listOf(r.title, r.sub, r.group).flatMap { listOf(it.de, it.en) } + sections[r.section].title).joinToString(" ").lowercase()
             words.all { hay.contains(it) }
-        }.sortedBy { if (it.title.lowercase().startsWith(words[0])) 0 else if (it.title.lowercase().contains(words[0])) 1 else 2 }.take(40)
+        }.sortedBy { if (it.title.s.lowercase().startsWith(words[0])) 0 else if (it.title.s.lowercase().contains(words[0])) 1 else 2 }.take(40)
     }
     Row(Modifier.fillMaxSize().background(c.bg).padding(16.dp), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
         // the list of sections
@@ -179,11 +179,11 @@ private fun SettingsBody(prefs: Prefs, engine: NavEngine, onClose: () -> Unit) {
                 matches.forEach { r ->
                     Column(
                         Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).clickable {
-                            cat = r.section; highlight = r.title; query = ""; focus.clearFocus(); showList = false
+                            cat = r.section; highlight = r.title.s; query = ""; focus.clearFocus(); showList = false
                         }.padding(horizontal = 12.dp, vertical = 9.dp),
                     ) {
-                        Text(r.title, color = c.text, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, maxLines = 2, overflow = TextOverflow.Ellipsis)
-                        Text(sections[r.section].title + (if (r.group.isNotBlank()) " · " + r.group else ""), color = c.sub, fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        Text(r.title.s, color = c.text, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                        Text(sections[r.section].title + (if (r.group.s.isNotBlank()) " · " + r.group.s else ""), color = c.sub, fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     }
                 }
             } else sections.forEachIndexed { i, s ->
