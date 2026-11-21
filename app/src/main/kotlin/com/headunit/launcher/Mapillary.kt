@@ -59,7 +59,7 @@ internal object Mapillary {
 
     private fun note(s: String) {
         val at = java.text.SimpleDateFormat("HH:mm", java.util.Locale.getDefault()).format(java.util.Date())
-        try { android.os.Handler(android.os.Looper.getMainLooper()).post { status = "$at: $s" } } catch (e: Throwable) { softFail(e) }
+        try { android.os.Handler(android.os.Looper.getMainLooper()).post { status = "$at: $s" } } catch (e: Exception) { softFail(e) }
     }
 
     private fun fetch(token: String, b: DoubleArray, mph: Boolean): List<MlySign> {

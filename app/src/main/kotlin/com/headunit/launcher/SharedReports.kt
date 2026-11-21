@@ -78,7 +78,7 @@ object SharedReports {
             val id = o.optLong("id", 0L)
             ok()
             if (id > 0) id else null
-        } catch (e: Throwable) { fail(e); null }
+        } catch (e: Exception) { fail(e); null }
     }
 
     /**
@@ -110,7 +110,7 @@ object SharedReports {
             }
             ok()
             out
-        } catch (e: Throwable) { fail(e); null }
+        } catch (e: Exception) { fail(e); null }
     }
 
     /** Keeps the last fetched list (all boxes of one refresh together). */
@@ -129,7 +129,7 @@ object SharedReports {
             request("POST", "$base/v1/reports/$id/vote", deviceId(prefs), JSONObject().put("still", still).toString())
             ok()
             true
-        } catch (e: Throwable) {
+        } catch (e: Exception) {
             // (an expired or already removed report answers 404: nothing went wrong with the server)
             if (e.message == "HTTP 404") ok() else fail(e)
             false

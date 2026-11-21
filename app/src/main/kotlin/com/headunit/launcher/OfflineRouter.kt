@@ -280,8 +280,8 @@ object OfflineRouter {
             }
             sb.appendLine("Engine classes in the app: ${names.size}")
             names.filter { !it.contains('$') }.sorted().take(120).forEach { sb.appendLine("  $it") }
-        } catch (e: Throwable) { sb.appendLine("Could not list classes: ${e.javaClass.simpleName} ${e.message}") }
-        val cls = try { Class.forName("com.valhalla.valhalla.Valhalla") } catch (e: Throwable) {
+        } catch (e: Exception) { sb.appendLine("Could not list classes: ${e.javaClass.simpleName} ${e.message}") }
+        val cls = try { Class.forName("com.valhalla.valhalla.Valhalla") } catch (e: Exception) {
             sb.appendLine("Engine class not found: ${e.javaClass.simpleName} ${e.message}"); return sb.toString()
         }
         sb.appendLine("Valhalla constructors:")
@@ -317,12 +317,12 @@ object OfflineRouter {
                     sb.appendLine("Response type: ${resp?.javaClass?.name}")
                     sb.appendLine((resp?.toString() ?: "null").take(700))
                 }
-            } catch (e: Throwable) {
+            } catch (e: Exception) {
                 val c = (e as? java.lang.reflect.InvocationTargetException)?.targetException ?: e
                 sb.appendLine("Route test failed: ${c.javaClass.simpleName}: ${c.message}")
             }
             (engine as? java.io.Closeable)?.close()
-        } catch (e: Throwable) {
+        } catch (e: Exception) {
             val c = (e as? java.lang.reflect.InvocationTargetException)?.targetException ?: e
             sb.appendLine("Engine failed: ${c.javaClass.simpleName}: ${c.message}")
         }
@@ -424,7 +424,7 @@ object OfflineRouter {
                     }
                 }
             }
-        } catch (e: Throwable) { return null }
+        } catch (e: Exception) { return null }
         if (tooMany || !alive()) return null
         val r = out.copyOf(n)
         r.sort()
@@ -544,7 +544,7 @@ object OfflineRouter {
                     if (have >= buf.size) { base += have; have = 0 } // a line longer than the buffer cannot be real: drop it
                 }
             }
-        } catch (e: Throwable) { return top.map { it.place } }
+        } catch (e: Exception) { return top.map { it.place } }
         if (!overflow) placeCaches[f.path] = PlaceCache(f.path, stamp, words, offs, n) else placeCaches.remove(f.path)
         return top.map { it.place }
     }
@@ -649,7 +649,7 @@ object OfflineRouter {
                     }
                 }
             }
-        } catch (e: Throwable) { softFail(e) }
+        } catch (e: Exception) { softFail(e) }
         return out
     }
 
@@ -739,7 +739,7 @@ object OfflineRouter {
                     out += hits.sortedBy { it.first }.take(8).map { it.second }
                 }
             }
-        } catch (e: Throwable) { softFail(e) }
+        } catch (e: Exception) { softFail(e) }
         return out
     }
 

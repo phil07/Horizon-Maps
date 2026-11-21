@@ -61,7 +61,7 @@ internal object SpeedReports {
             }
             lastError = ""
             out
-        } catch (e: Throwable) { lastError = (e.message ?: e.javaClass.simpleName).take(80); null }
+        } catch (e: Exception) { lastError = (e.message ?: e.javaClass.simpleName).take(80); null }
     }
 
     /** Sends your report ([kmh] 0 = no limit) and keeps it at once, so it counts straight away. True when the server took it. */
@@ -78,7 +78,7 @@ internal object SpeedReports {
             SharedReports.request("POST", "$base/v1/limits", SharedReports.deviceId(prefs), body)
             lastError = ""
             true
-        } catch (e: Throwable) { lastError = (e.message ?: e.javaClass.simpleName).take(80); false }
+        } catch (e: Exception) { lastError = (e.message ?: e.javaClass.simpleName).take(80); false }
     }
 
     /**

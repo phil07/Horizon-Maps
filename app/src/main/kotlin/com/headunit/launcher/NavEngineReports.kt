@@ -60,7 +60,7 @@ private fun NavEngine.refreshShared(p: Fix) {
     val car = p.pos
     scope.launch {
         try {
-            val found = withContext(Dispatchers.IO) { try { fetchShared(car, r) } catch (e: Throwable) { null } }
+            val found = withContext(Dispatchers.IO) { try { fetchShared(car, r) } catch (e: Exception) { null } }
             if (found != null) { sharedShown = found; SharedReports.shownCount = found.size; policeSig = 0 }
         } finally { sharedBusy = false }
     }

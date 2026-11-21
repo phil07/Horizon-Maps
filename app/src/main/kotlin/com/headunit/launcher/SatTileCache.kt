@@ -269,7 +269,7 @@ object SatTileCache {
                 pool.shutdown()
                 pool.awaitTermination(6, java.util.concurrent.TimeUnit.HOURS)
                 android.util.Log.w("SatTileCache", "route photos: done ${done.get()} of ${jobs.size}")
-            } catch (e: Throwable) { android.util.Log.w("SatTileCache", "route photos: ${e.message}") }
+            } catch (e: Exception) { android.util.Log.w("SatTileCache", "route photos: ${e.message}") }
             finally { if (generation.get() == gen || generation.get() == gen + 1) { prefetchTotal = 0; prefetchDone = 0 } }
         }, "sat-prefetch-plan").apply { isDaemon = true; priority = Thread.MIN_PRIORITY }.start()
     }
