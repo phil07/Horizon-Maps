@@ -526,24 +526,6 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
         } catch (e: Throwable) { softFail(e) }
     }
 
-    // ---- small helpers for the map's expressions ----
-    private fun lit(v: Number): Expression = Expression.literal(v.toDouble())
-    private fun col(hex: String): Expression = Expression.color(android.graphics.Color.parseColor(hex))
-    /** A value that changes with the zoom: [base] 1.0 = linear, otherwise exponential; pairs of (zoom, value). */
-    private fun zoomed(base: Double, vararg zv: Pair<Number, Number>): Expression {
-        val args = ArrayList<Expression>()
-        args += if (base == 1.0) Expression.linear() else Expression.exponential(base)
-        args += Expression.zoom()
-        for ((z, v) in zv) { args += lit(z); args += lit(v) }
-        return Expression.interpolate(*args.toTypedArray())
-    }
-    private fun zoomedExpr(base: Double, vararg zv: Pair<Number, Expression>): Expression {
-        val args = ArrayList<Expression>()
-        args += if (base == 1.0) Expression.linear() else Expression.exponential(base)
-        args += Expression.zoom()
-        for ((z, v) in zv) { args += lit(z); args += v }
-        return Expression.interpolate(*args.toTypedArray())
-    }
     /** Adds a layer; one that fails is skipped (and logged) instead of stopping the rest of the map's layers being added. */
     private fun addL(st: Style, l: Layer, below: String? = null) {
         try { if (below != null && st.styleLayerExists(below)) st.addLayerBelow(l, below) else st.addLayer(l) }
