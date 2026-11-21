@@ -1178,7 +1178,7 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
     fun testAlert() {
         chime(android.media.ToneGenerator.TONE_PROP_PROMPT)
         raiseAlert("camera", Lang.t("Testwarnung: Blitzer voraus", "Test alert: speed camera ahead"))
-        speak("Blitzer voraus", true)
+        speak(Lang.t("Blitzer voraus", "Speed camera ahead"), true)
     }
 
     fun shutdown() {
