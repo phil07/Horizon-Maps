@@ -140,7 +140,7 @@ class PlaceStore(private val prefs: Prefs) {
     fun moveAllFavouritesToPlaces() {
         for (f in savedFavourites()) {
             addCustom(f.name, f)
-            setFolder(f.name.trim().take(24).ifBlank { f.name.take(24) }, Lang.t("Favoriten", "Favourites"))
+            setFolder(f.name.trim().take(24).ifBlank { f.name.take(24) }, "Favoriten")
         }
         writeList("places_fav", emptyList())
         onSavedChanged?.invoke()

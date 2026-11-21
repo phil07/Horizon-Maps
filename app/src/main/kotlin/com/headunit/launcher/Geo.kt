@@ -383,7 +383,7 @@ object Geo {
 
     /** [spoken] for use without "in" ("Noch 3 Kilometer", not "Noch 3 Kilometern"). */
     fun spokenPlain(m: Double, imperial: Boolean): String =
-        spoken(m, imperial).replace("einem Kilometer", "ein Kilometer").replace("Kilometern", Lang.t("Kilometer", "Kilometres")).replace("Metern", "Meter")
+        spoken(m, imperial).replace("einem Kilometer", "ein Kilometer").replace("Kilometern", "Kilometer").replace("Metern", "Meter")
 
     fun ordinal(n: Int): String = "$n."
 
