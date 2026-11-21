@@ -3121,8 +3121,8 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
     private fun modelCarLike() = modelShape == "car" || modelShape == "own"
     /** Your own model is sized to the car: its own bounds set the factor, then the size chosen. */
     private fun ownFactor(): Double = if (modelShape == "own") (OwnModel.factor(ctx) ?: 1.0) * ownSize / 100.0 else 1.0
-    private fun bodyUri(): String = if (modelShape == "own") (OwnModel.url(ctx) ?: carUri("body")) else if (modelCarLike()) carUri("body") else "asset://models/arrow.glb"
-    private fun partsUri(): String = if (modelCarLike() && modelShape != "own") carUri("parts") else "asset://models/disc.glb"
+    private fun bodyUri(): String = if (modelShape == "own") (OwnModel.url(ctx) ?: carModelUri("body", carModel)) else if (modelCarLike()) carModelUri("body", carModel) else "asset://models/arrow.glb"
+    private fun partsUri(): String = if (modelCarLike() && modelShape != "own") carModelUri("parts", carModel) else "asset://models/disc.glb"
     private fun headingOut(): Double = meHeading + (if (modelShape == "own") ownTurn.toDouble() else 0.0)
     private var modelColour = "#F2F2F6"
     /** Settings > Your arrow > Glow: a soft blue glow on the ground round the model, and the model fully lit. */
@@ -3155,18 +3155,7 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
         return listOf(s, s, s)
     }
 
-    private fun modelSourceValue(uri: String, p: LL?, head: Double): Value {
-        val m = HashMap<String, Value>()
-        m["uri"] = Value(uri)
-        m["position"] = Value(listOf(Value(p?.lon ?: 0.0), Value(p?.lat ?: 0.0)))
-        m["orientation"] = Value(listOf(Value(0.0), Value(0.0), Value(head)))
-        val models = HashMap<String, Value>()
-        models["me"] = Value(m)
-        return Value(models)
-    }
 
-    /** The real 3D car's files for the chosen car type (Settings > Your arrow > Car type); the saloon is the original model. */
-    private fun carUri(part: String): String = if (carModel == "saloon" || carModel !in CAR_MODELS) "asset://models/car_$part.glb" else "asset://models/car_${part}_$carModel.glb"
 
     private fun installModel(st: Style) {
         val car = modelCarLike()
@@ -3245,8 +3234,8 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
             try {
                 val st = style
                 if (st != null && modelOn && modelShape == "car") {
-                    st.setStyleSourceProperty("dl-me-ma", "models", modelSourceValue(carUri("body"), me ?: modelAt, meHeading))
-                    st.setStyleSourceProperty("dl-me-mb", "models", modelSourceValue(carUri("parts"), me ?: modelAt, meHeading))
+                    st.setStyleSourceProperty("dl-me-ma", "models", modelSourceValue(carModelUri("body", carModel), me ?: modelAt, meHeading))
+                    st.setStyleSourceProperty("dl-me-mb", "models", modelSourceValue(carModelUri("parts", carModel), me ?: modelAt, meHeading))
                 }
             } catch (e: Throwable) { softFail(e) }
             try { pushModel(true) } catch (e: Throwable) { softFail(e) }
