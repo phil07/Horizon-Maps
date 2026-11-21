@@ -954,8 +954,6 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
     private var weatherAt = 0L
     private var limitAt = 0L
     private var limitPos: LL? = null
-    private var camAt = 0L
-    private var camPos: LL? = null
     internal var cameras: List<LL> = emptyList()
     private val camAlerted = HashSet<LL>()
     /** The camera the second, nearer beep was sounded for. */
@@ -3797,40 +3795,6 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
         limitOkAt = routeLimitAt; limitOkPos = p.pos
     }
 
-    /**
-     * The speed cameras around the car (6 km), looked up as soon as there is a fix: at the start too, and also while the phone is
-     * quiet with Android Auto connected, where the road check (updateRoadInfo) waits. A failed lookup is tried again after about
-     * half a minute.
-     */
-    private fun lookCamerasAround(p: Fix) {
-        if (!camerasOnMap()) return
-        val now = System.currentTimeMillis()
-        val cp = camPos
-        if (now - camAt <= 120000 || (cp != null && Geo.dist(cp, p.pos) <= 2500)) return
-        camAt = now; camPos = p.pos
-        scope.launch {
-            var src = Lang.t("Offline-Karte", "offline map")
-            val found = withContext(Dispatchers.IO) { localCameras(p.pos, 6000.0) ?: Overpass.cameras(p.pos, 6000).also { src = "OpenStreetMap" } }
-            val at = java.text.SimpleDateFormat("HH:mm", Locale.getDefault()).format(java.util.Date())
-            // a failed lookup (weak signal, busy server) keeps the ones already shown and tries again in about half a minute
-            if (found == null) { camAt = System.currentTimeMillis() - 90_000L; camPos = null; if (aroundCams.isEmpty()) showNoCamData(); camNote = Lang.t("$at: Suche fehlgeschlagen (${Overpass.lastNote.take(60)})", "$at: lookup failed (${Overpass.lastNote.take(60)})") }
-            else { camsFound(); addAroundCams(found); mergeCams(); camNote = Lang.t("$at: ${found.size} Blitzer im Umkreis von 6 km ($src)", "$at: ${found.size} cameras within 6 km ($src)") }
-        }
-    }
-
-    private var noCamJob: kotlinx.coroutines.Job? = null
-    /** Shows the "no camera data" note for 5 seconds, then hides it again. */
-    private fun showNoCamData() {
-        // once: not again with each failed lookup, only after cameras were found and then lost
-        if (noCamShown) return
-        noCamShown = true
-        camNoData = true
-        noCamJob = scope.launch { delay(5000L); camNoData = false }
-    }
-    /** Set once the note has been shown, cleared when cameras are found again. */
-    private var noCamShown = false
-    private fun camsFound() { camNoData = false; noCamShown = false }
-
     private fun updateRoadInfo(p: Fix) {
         val now = System.currentTimeMillis()
         if (simMode == 0) {
@@ -3900,7 +3864,7 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
         try { maybeRefreshChargers() } catch (e: Exception) { softFail(e) }
         try { checkWrongWay(p) } catch (e: Exception) { softFail(e) }
         noteCameraBan()
-        if (!camerasOnMap()) { cameraDist = null; if (cameras.isNotEmpty()) { cameras = emptyList(); map.setCameras(emptyList()) }; camPos = null; return }
+        if (!camerasOnMap()) { cameraDist = null; if (cameras.isNotEmpty()) { cameras = emptyList(); map.setCameras(emptyList()) }; camCache.forgetPosition(); return }
         // the cameras on the map follow the route coming and going, and the ones you've passed drop off
         if (now - camsMergedAt > 4000L) { camsMergedAt = now; mergeCams() }
         val onRoute = camerasOn() && navigatingNow() && onRouteNow
@@ -4624,7 +4588,7 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
             lastPosAt = tNow
             // on foot: the walk's directions, and no speed limit or cameras
             if (walking) try { updateWalk(p) } catch (e: Exception) { android.util.Log.w("NavEngine", "walk failed", e) }
-            if (!walking) try { lookCamerasAround(p) } catch (e: Exception) { softFail(e) }
+            if (!walking) try { camCache.lookAround(p) } catch (e: Exception) { softFail(e) }
             // average speed checks while driving without a destination (on a route they are part of the route's extras)
             if (!walking && route == null && simMode == 0) try { avgFreeTick(p) } catch (e: Exception) { softFail(e) }
             try { if (!walking) updateRoadInfo(p); trackParking(p) } catch (e: Exception) { android.util.Log.w("NavEngine", "road info failed", e) }
@@ -5052,12 +5016,10 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
         return abs(angDiff(d, heading)) <= 75.0
     }
 
-    /** What the last camera search around you found, for Settings (so "none shown" can be told apart from "none found"). */
-    var camNote by mutableStateOf("")
-    /** No camera list could be had here (no offline pack, OpenStreetMap not answering) and none is kept: the map says so. */
-    var camNoData by mutableStateOf(false)
-    /** The cameras from the search around you (route or not). */
-    private var aroundCams: List<LL> = emptyList()
+    /** The camera lookups and what they found (CameraCache.kt). */
+    private val camCache = CameraCache(scope, { camerasOnMap() }, { p, r -> localCameras(p, r) }, { mergeCams() })
+    val camNote: String get() = camCache.note
+    val camNoData: Boolean get() = camCache.noData
 
     /** The cameras shown and warned about: the ones around you plus the ones found along the route, within 10 km. */
     private fun mergeCams() {
@@ -5067,7 +5029,7 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
         // free look: the cameras around the middle of the screen, wherever it is; otherwise around you
         val freeLook = !navigatingNow() && viewCentre != null
         val ref = if (freeLook) viewCentre else here
-        for (c in aroundCams + knownCams) {
+        for (c in camCache.around + camCache.known) {
             if (ref != null && Geo.dist(ref, c) > (if (freeLook) 8_000.0 else 10_000.0)) continue
             if (seen.add(Overpass.camKey(c))) out += c
         }
@@ -5085,11 +5047,9 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
     private var onRouteNow = false
     private fun navigatingNow() = route != null && !previewing
 
-    /** Every speed camera found along routes so far (by the map's search along the route, together with the traffic lights). */
-    @Volatile private var knownCams: List<LL> = emptyList()
     private var camsCount = -1
     init {
-        map.onRouteCameras = { c -> knownCams = c; if (camerasOnMap()) mergeCams() }
+        map.onRouteCameras = { c -> camCache.known = c; if (camerasOnMap()) mergeCams() }
         map.onViewMoved = { c -> viewMoved(c); garagesAt(c, false) }
         map.onGarageTap = { g -> showGarage(g) }
         map.onChainTap = { i ->
@@ -5155,22 +5115,12 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
             // the offline pack's own camera list first (no internet needed), then OpenStreetMap
             val found = withContext(Dispatchers.IO) { localCameras(c, 6000.0) ?: Overpass.cameras(c, 6000) }
             // a failed lookup keeps the cameras already shown; the next drag tries again
-            if (found == null) { viewFetched = null; if (aroundCams.isEmpty()) showNoCamData(); camNote = Lang.t("Suche am Kartenausschnitt fehlgeschlagen (${Overpass.lastNote.take(60)})", "Lookup at the map view failed (${Overpass.lastNote.take(60)})"); return@launch }
-            camsFound()
-            addAroundCams(found)
-            camNote = Lang.t("${found.size} Blitzer am Kartenausschnitt (OpenStreetMap)", "${found.size} cameras at the map view (OpenStreetMap)")
+            if (found == null) { viewFetched = null; camCache.addFailed(Lang.t("Suche am Kartenausschnitt fehlgeschlagen (${Overpass.lastNote.take(60)})", "Lookup at the map view failed (${Overpass.lastNote.take(60)})")); return@launch }
+            camCache.addFound(found, Lang.t("${found.size} Blitzer am Kartenausschnitt (OpenStreetMap)", "${found.size} cameras at the map view (OpenStreetMap)"))
             mergeCams()
         }
     }
 
-    /** Adds cameras found by a lookup to the ones already known: kept for the rest of the drive, so those looked at once stay on the map when the server doesn't answer later. */
-    private fun addAroundCams(found: List<LL>) {
-        val keys = HashSet<Long>(); aroundCams.forEach { keys += Overpass.camKey(it) }
-        val merged = ArrayList(aroundCams)
-        for (f in found) if (keys.add(Overpass.camKey(f))) merged += f
-        while (merged.size > 4000) merged.removeAt(0)
-        aroundCams = merged
-    }
 
 
     /** How far along the route each traffic light on it is (metres, in order), for zooming in as you come up to one. */
@@ -5260,7 +5210,7 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
 
     internal fun updateRouteCams(r: Route, @Suppress("UNUSED_PARAMETER") progress: Double) {
         // (the ones found along the route and the ones from the search around you: either can hold a camera on the route)
-        val cams = (knownCams + aroundCams).distinctBy { Overpass.camKey(it) }.filterNot { atAvgEnd(it) }
+        val cams = (camCache.known + camCache.around).distinctBy { Overpass.camKey(it) }.filterNot { atAvgEnd(it) }
         if (camsRoute === r && camsCount == cams.size) return
         camsRoute = r; camsCount = cams.size
         if (cams.isEmpty()) { routeCams = emptyList(); return }
