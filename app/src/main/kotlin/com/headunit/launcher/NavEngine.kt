@@ -5069,7 +5069,7 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
         val ref = if (freeLook) viewCentre else here
         for (c in aroundCams + knownCams) {
             if (ref != null && Geo.dist(ref, c) > (if (freeLook) 8_000.0 else 10_000.0)) continue
-            if (seen.add(Math.round(c.lat * 1e5) * 1000003L + Math.round(c.lon * 1e5))) out += c
+            if (seen.add(Overpass.camKey(c))) out += c
         }
         // the list the warnings use: empty where they're off, so nothing is announced; the map draws its own list below
         cameras = if (camerasOn()) out else emptyList()
@@ -5165,14 +5165,13 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
 
     /** Adds cameras found by a lookup to the ones already known: kept for the rest of the drive, so those looked at once stay on the map when the server doesn't answer later. */
     private fun addAroundCams(found: List<LL>) {
-        val keys = HashSet<Long>(); aroundCams.forEach { keys += camKeyOf(it) }
+        val keys = HashSet<Long>(); aroundCams.forEach { keys += Overpass.camKey(it) }
         val merged = ArrayList(aroundCams)
-        for (f in found) if (keys.add(camKeyOf(f))) merged += f
+        for (f in found) if (keys.add(Overpass.camKey(f))) merged += f
         while (merged.size > 4000) merged.removeAt(0)
         aroundCams = merged
     }
 
-    private fun camKeyOf(c: LL): Long = Math.round(c.lat * 1e5) * 1000003L + Math.round(c.lon * 1e5)
 
     /** How far along the route each traffic light on it is (metres, in order), for zooming in as you come up to one. */
     @Volatile private var lightOffs = DoubleArray(0)
@@ -5261,7 +5260,7 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
 
     internal fun updateRouteCams(r: Route, @Suppress("UNUSED_PARAMETER") progress: Double) {
         // (the ones found along the route and the ones from the search around you: either can hold a camera on the route)
-        val cams = (knownCams + aroundCams).distinctBy { Math.round(it.lat * 1e5) * 1000003L + Math.round(it.lon * 1e5) }.filterNot { atAvgEnd(it) }
+        val cams = (knownCams + aroundCams).distinctBy { Overpass.camKey(it) }.filterNot { atAvgEnd(it) }
         if (camsRoute === r && camsCount == cams.size) return
         camsRoute = r; camsCount = cams.size
         if (cams.isEmpty()) { routeCams = emptyList(); return }
