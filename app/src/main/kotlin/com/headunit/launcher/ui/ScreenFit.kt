@@ -23,7 +23,7 @@ import kotlin.math.roundToInt
  * inset keeps free.
  */
 @Composable
-fun cutoutPadding(gap: Dp = 8.dp, ownMargin: Dp = 16.dp, fallbackSafe: Boolean = true): PaddingValues {
+fun cutoutPadding(gap: Dp = 8.dp, ownMargin: Dp = 16.dp, fallbackSafe: Boolean = true, withTop: Boolean = true): PaddingValues {
     val density = LocalDensity.current
     val view = LocalView.current
     // read so this is worked out again whenever the insets change (turning the phone)
@@ -52,7 +52,7 @@ fun cutoutPadding(gap: Dp = 8.dp, ownMargin: Dp = 16.dp, fallbackSafe: Boolean =
             else -> r = maxOf(r, w - rc.left)
         }
     }
-    return PaddingValues.Absolute(room(l), room(t), room(r), room(b))
+    return PaddingValues.Absolute(room(l), if (withTop) room(t) else 0.dp, room(r), room(b))
 }
 
 /**
