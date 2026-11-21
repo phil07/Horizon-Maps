@@ -1070,7 +1070,7 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
         // (while you're driving a route, holding adds the place as a stop on the way instead of replacing where you're going)
         map.onLongPress = { p ->
             val t = tappedPoi
-            val place = if (t != null && Geo.dist(t.second, p) < 60.0 && android.os.SystemClock.uptimeMillis() - tappedAt < 120_000L) { tappedPoi = null; Place(t.first, "", t.second) }
+            val place = if (t != null && Geo.within(t.second, p, 60.0) && android.os.SystemClock.uptimeMillis() - tappedAt < 120_000L) { tappedPoi = null; Place(t.first, "", t.second) }
                 else Place(pinName(), "", p)
             if (route != null && !previewing && dest != null) addStop(place) else startRoute(place)
         }
@@ -1941,6 +1941,8 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
             if (crash != null) { appendLine(); appendLine("Last crash:"); appendLine(crash) }
             val ended = try { FreezeWatch.exitFile(ctx).takeIf { it.exists() }?.readText()?.take(300) } catch (e: Exception) { null }
             if (ended != null) { appendLine(); appendLine("How the app last ended (Android's record):"); appendLine(ended) }
+            val ignored = SoftFails.report()
+            if (ignored.isNotBlank()) { appendLine(); appendLine("Failures the app carried on without (count, where, last words):"); appendLine(ignored) }
             val freeze = try { FreezeWatch.file(ctx).takeIf { it.exists() }?.readText()?.take(2500) } catch (e: Exception) { null }
             if (freeze != null) { appendLine(); appendLine("Last freeze:"); appendLine(freeze) }
         }

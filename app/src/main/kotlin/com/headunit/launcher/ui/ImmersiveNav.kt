@@ -1770,7 +1770,7 @@ private fun ImmQuick(engine: NavEngine, showSaved: Boolean = true) {
     val saved: List<Triple<com.headunit.launcher.Place, Int, String>> = remember(rawCustom, rawFav, rawRecent) {
         val mine = engine.places.customs()
         val favs = engine.places.favouritesNotIn(mine)
-        val recents = engine.places.recents().filter { r -> favs.none { Geo.dist(it.pos, r.pos) < 60 } && mine.none { Geo.dist(it.place.pos, r.pos) < 60 } }
+        val recents = engine.places.recents().filter { r -> favs.none { Geo.within(it.pos, r.pos, 60) } && mine.none { Geo.within(it.place.pos, r.pos, 60) } }
         recents.map { Triple(it, 2, it.name) }
     }
     var adding by remember { mutableStateOf(false) }

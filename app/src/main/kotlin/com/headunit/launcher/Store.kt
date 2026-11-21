@@ -35,7 +35,7 @@ class PlaceStore(private val prefs: Prefs) {
         prefs.put(key, a.toString())
     }
 
-    private fun same(a: Place, b: Place) = Geo.dist(a.pos, b.pos) < 60
+    private fun same(a: Place, b: Place) = Geo.within(a.pos, b.pos, 60)
 
     fun slot(name: String): Place? = readOne("place_$name")
     fun setSlot(name: String, p: Place) = prefs.put("place_$name", enc(p).toString())
@@ -96,7 +96,7 @@ class PlaceStore(private val prefs: Prefs) {
     fun isFavourite(p: Place) = favouriteNear(p) != null
     /** The favourites that aren't already in Your places ([customs]), so a place shows once. */
     fun favouritesNotIn(customs: List<LabeledPlace>): List<Place> =
-        favourites().filter { f -> customs.none { Geo.dist(it.place.pos, f.pos) < 60 } }
+        favourites().filter { f -> customs.none { Geo.within(it.place.pos, f.pos, 60) } }
     /** Called when the favourites change (the map's stars follow it). */
     var onFavChanged: (() -> Unit)? = null
 

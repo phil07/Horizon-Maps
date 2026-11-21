@@ -80,29 +80,23 @@ object FreezeWatch {
         else -> "ended (reason $reason)"
     }
 
-    /** Android 11+: keeps Android's record of how the app last ended, for the problem report, and the screen thread's part of a freeze. */
+    /** Android 11+: keeps Android's record of how the app last ended for the problem report, and the screen thread's part of a freeze. */
     fun collectLastExit(ctx: Context) {
         try {
             val last = lastExit(ctx) ?: return
-            val prefs0 = ctx.getSharedPreferences(CrashGuardPrefs.FILE, Context.MODE_PRIVATE)
-            if (prefs0.getLong(CrashGuardPrefs.LAST_EXIT_SEEN, 0L) < last.timestamp) {
-                prefs0.edit().putLong(CrashGuardPrefs.LAST_EXIT_SEEN, last.timestamp).apply()
+            val prefs = ctx.getSharedPreferences(CrashGuardPrefs.FILE, Context.MODE_PRIVATE)
+            if (prefs.getLong(CrashGuardPrefs.LAST_EXIT_SEEN, 0L) < last.timestamp) {
+                prefs.edit().putLong(CrashGuardPrefs.LAST_EXIT_SEEN, last.timestamp).apply()
                 exitFile(ctx).writeText("Ended: ${exitWords(last.reason)} (${java.util.Date(last.timestamp)})${last.description?.let { " · $it" } ?: ""}")
             }
-        } catch (e: Throwable) { softFail(e) }
-        if (Build.VERSION.SDK_INT < 30) return
-        try {
-            val am = ctx.getSystemService(Context.ACTIVITY_SERVICE) as android.app.ActivityManager
-            val last = am.getHistoricalProcessExitReasons(ctx.packageName, 0, 1).firstOrNull() ?: return
-            if (last.reason != android.app.ApplicationExitInfo.REASON_ANR) return
-            val prefs = ctx.getSharedPreferences(CrashGuardPrefs.FILE, Context.MODE_PRIVATE)
-            if (prefs.getLong(CrashGuardPrefs.LAST_ANR_SEEN, 0L) >= last.timestamp) return
-            prefs.edit().putLong(CrashGuardPrefs.LAST_ANR_SEEN, last.timestamp).apply()
-            val text = last.traceInputStream?.bufferedReader()?.use { it.readText() } ?: ""
-            // just the screen thread ("main") from the full dump of every thread
-            val i = text.indexOf("\"main\"")
-            val mainPart = if (i >= 0) text.substring(i).substringBefore("\n\n") else text
-            file(ctx).writeText("Not responding (Android's record, ${java.util.Date(last.timestamp)}): ${last.description ?: ""}\n" + mainPart.take(3500))
+            if (last.reason == android.app.ApplicationExitInfo.REASON_ANR && prefs.getLong(CrashGuardPrefs.LAST_ANR_SEEN, 0L) < last.timestamp) {
+                prefs.edit().putLong(CrashGuardPrefs.LAST_ANR_SEEN, last.timestamp).apply()
+                val text = last.traceInputStream?.bufferedReader()?.use { it.readText() } ?: ""
+                // just the screen thread ("main") from the full dump of every thread
+                val i = text.indexOf("\"main\"")
+                val mainPart = if (i >= 0) text.substring(i).substringBefore("\n\n") else text
+                file(ctx).writeText("Not responding (Android's record, ${java.util.Date(last.timestamp)}): ${last.description ?: ""}\n" + mainPart.take(3500))
+            }
         } catch (e: Throwable) { softFail(e) }
     }
 }
