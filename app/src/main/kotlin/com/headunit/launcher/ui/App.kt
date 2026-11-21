@@ -294,8 +294,7 @@ fun App(prefs: Prefs, engine: NavEngine, map: MapBinding) {
                 // (in a floating or split-screen window the bars and the window's title bar stay: the settings keep clear of them there)
                 val conf = androidx.compose.ui.platform.LocalConfiguration.current
                 val windowed = remember(conf) { findActivity(hostCtx)?.isInMultiWindowMode == true }
-                // (the settings keep no strip at the top at all: their title sits where the status bar was)
-                Box(Modifier.fillMaxSize().padding(if (settings) cutoutPadding(fallbackSafe = false, withTop = false) else cutoutPadding()).then(if (settings && !windowed) Modifier else Modifier.windowInsetsPadding(WindowInsets.systemBars))) {
+                Box(Modifier.fillMaxSize().padding(if (settings) cutoutPadding(fallbackSafe = false) else cutoutPadding()).then(if (settings && !windowed) Modifier else Modifier.windowInsetsPadding(WindowInsets.systemBars))) {
                 if (!setupDone) {
                     // (setup asks for the key itself)
                     LaunchedEffect(Unit) { prefs.put(PreferenceKeys.MAPBOX_PROMPT, false) }

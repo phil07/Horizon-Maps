@@ -1,9 +1,5 @@
 ## Unreleased
 
-### Improved
-- Die Einstellungen beginnen oben ohne Streifen mehr, auch wenn das Gerät eine Kameraaussparung meldet.
-  EN: The settings no longer leave a strip at the top, even when the device reports a camera cutout.
-
 ## 1.0.246 — 2026-10-28
 
 ### Improved in-app updates
