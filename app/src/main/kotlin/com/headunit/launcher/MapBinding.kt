@@ -275,13 +275,13 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
             // zooming across the level where the turn arrow appears or goes: put the route back together (or cut it for the arrow)
             if (turnCut != null && cutZoomOk() != cutActive) try { setLine(main) } catch (e: Exception) { softFail(e) }
             placeAltCards(false)
-            refreshLamps(); refreshSignals(); sizeFurniture()
+            refreshLamps(); lights.refresh(); sizeFurniture()
             // (while you drive the map never stops moving, so the roads on screen are read on the move too, every few seconds)
             refreshRoads()
             // the 3D locator is sized from the zoom: rebuild it when you zoom, even if you are standing still
             if (locatorStyle != "flat") pushModel(false) else placeLocator()
         }
-        subs += mbMap.subscribeMapIdle { placeAltCards(true); refreshLamps(); refreshSignals(); refreshRoads(); viewBox()?.let { onMapIdle?.invoke(it) } }
+        subs += mbMap.subscribeMapIdle { placeAltCards(true); refreshLamps(); lights.refresh(); refreshRoads(); viewBox()?.let { onMapIdle?.invoke(it) } }
         installTapSelect()
     }
 
@@ -349,7 +349,7 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
         destroyed = true
         started = false
         try { lampExec.shutdownNow() } catch (e: Throwable) { softFail(e) }
-        try { signalExec.shutdownNow() } catch (e: Throwable) { softFail(e) }
+        try { lights.close() } catch (e: Throwable) { softFail(e) }
         for (c in subs) try { c.cancel() } catch (e: Throwable) { softFail(e) }
         subs.clear()
         for (c in pendingQueries) try { c.cancel() } catch (e: Throwable) { softFail(e) }
@@ -1014,11 +1014,6 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
     private var weatherCode: Int? = null
     /** The map is drawing the rain or snow itself (so the screen overlay only adds fog). */
     @Volatile var drawsWeather = false
-    /** Which way the route runs at each traffic light (for turning its 3D model to face you). */
-    private val signalHeading = HashMap<LL, Double>()
-    @Volatile private var signalModels: FeatureCollection = FeatureCollection.fromFeatures(ArrayList<Feature>())
-    /** The traffic lights shown on the route (the first one at each junction). */
-    @Volatile private var signalKept: List<LL> = emptyList()
     /** Told the traffic lights on the route each time they change (the engine zooms in as you come up to one). */
     var onRouteSignals: ((List<LL>) -> Unit)? = null
     /** A place on Mapbox's map you tapped (its name and spot): holding on it then routes there by name. */
@@ -1059,7 +1054,7 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
         Sky.atmosphere(st, skyCode, nightStyle)
         if (furnitureOn && MapStylePolicy.supportsFullDetailFeatures(mapDetail)) {
             Furniture.addModels(st)
-            addS(st, GeoJsonSource.Builder("dl-signals-m").featureCollection(signalModels).build())
+            addS(st, GeoJsonSource.Builder("dl-signals-m").featureCollection(empty()).build())
             // sized by the zoom so they stay easy to see (see Furniture.SIGNAL_SIZE)
             addL(st, Furniture.layer("dl-sig-model", "dl-signals-m", Furniture.SIGNAL, 0.35, 14.0, sigSize()).inSlot(TOP))
             addL(st, Furniture.layer("dl-sig-lens", "dl-signals-m", Furniture.SIGNAL_LENS, 1.0, 14.0, sigSize()).inSlot(TOP))
@@ -1577,7 +1572,7 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
         if (lampsBusy) return
         val st = style ?: return
         val wantLamps = prefs.b(PreferenceKeys.LAMPS, false) && st.styleSourceExists("dl-lamps")
-        val wantLights = signalsOn && st.styleSourceExists("dl-signals-near")
+        val wantLights = lights.on && st.styleSourceExists("dl-signals-near")
         if (!wantLamps && !wantLights) return
         val cam = try { mbMap.cameraState } catch (e: Throwable) { return }
         if (cam.zoom < 14.0) { if (wantLamps) lampStage = Lang.t("näher heranzoomen, um sie zu sehen", "zoom in closer to see them"); return }
@@ -1681,7 +1676,7 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
         if (!OfflineRouter.hasSignals(ctx)) return emptyList()
         val dLat = 0.008; val dLon = dLat / Math.cos(Math.toRadians(c.lat))
         val pts = OfflineRouter.lamps(ctx, c.lat - dLat, c.lon - dLon, c.lat + dLat, c.lon + dLon, file = "signals.tsv", maxTiles = 64)
-        val onRoute = signalKept
+        val onRoute = lights.kept
         val out = ArrayList<Feature>()
         for (q in pts.sortedBy { Geo.dist(LL(it[0], it[1]), c) }) {
             val p = LL(q[0], q[1])
@@ -1740,22 +1735,12 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
 
 
 
-    // ---- traffic lights (OpenStreetMap), fetched along the whole route (ahead first) so every light on it shows at any zoom ----
-    var signalsOn = true
-    @Volatile private var signalPts: List<LL> = emptyList()
-    @Volatile private var signalErr = ""
-    @Volatile private var signalStage = Lang.t("nicht gestartet", "not started")
-    @Volatile private var signalToken = 0
-    @Volatile private var signalBusy = false
-    private var sigRoute: List<LL>? = null
-    /** Every light found so far (kept across reroutes, so a new route only fetches the roads not already covered). */
-    private val sigAll = LinkedHashMap<Long, LL>()
-    /** Small grid cells (about 20 m) of road that have already been searched for lights. */
-    private val sigCovered = HashSet<Long>()
-    private val sigLock = Any()
-    private val routeGrid = RouteGrid()
-    /** Speed cameras found along the route by the same search (the engine turns them into alerts and map badges). */
-    private val camAll = LinkedHashMap<Long, LL>()
+    // ---- traffic lights (OpenStreetMap or the offline pack, along the whole route; the search is in TrafficLights.kt) ----
+    private val lights = TrafficLights(ctx, main0, { main }, { destroyed }, { fc, models, kept ->
+        src("dl-signals")?.featureCollection(fc)
+        src("dl-signals-m")?.featureCollection(models)
+        try { onRouteSignals?.invoke(kept) } catch (e: Throwable) { softFail(e) }
+    }, { cams -> try { onRouteCameras?.invoke(cams) } catch (e: Throwable) { softFail(e) } })
     /** Gets every speed camera found along routes so far, each time more arrive. */
     var onRouteCameras: ((List<LL>) -> Unit)? = null
     /** The map was dragged to a new place: where its middle is now (so the speed cameras there can be looked up). */
@@ -1763,246 +1748,24 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
 
     /** One line for the settings page: how many lights are known and whether the last fetch worked. */
     fun signalInfo(): String {
-        if (!signalsOn) return "off"
+        if (!lights.on) return "off"
         if (main.size < 2) return Lang.t("keine Route (Ampeln erscheinen nur auf deiner Route)", "no route (lights only show on your route)")
-        val onR = signalShown
-        return "$onR on the drawn route, ${signalPts.size} found along it" + (if (signalErr.isNotEmpty()) ", last error: $signalErr" else "") + ", status: $signalStage"
+        return "${lights.shown} on the drawn route, ${lights.found} found along it" + (if (lights.error.isNotEmpty()) ", last error: ${lights.error}" else "") + ", status: ${lights.stage}"
     }
 
     /** A short version for the performance meter. */
     fun signalShort(): String {
-        if (!signalsOn) return "off"
+        if (!lights.on) return "off"
         if (main.size < 2) return Lang.t("keine Route", "no route")
-        val onR = signalShown
-        return "$onR shown/${signalPts.size} found" + (if (signalErr.isNotEmpty()) " ($signalErr)" else "") + " · $signalStage"
+        return "${lights.shown} shown/${lights.found} found" + (if (lights.error.isNotEmpty()) " (${lights.error})" else "") + " · ${lights.stage}"
     }
 
     fun signalsEnabled(on: Boolean) {
-        signalsOn = on
+        lights.on = on
         // (the search along the route carries on either way: it also finds the speed cameras)
-        pushSignals()
+        lights.push()
         if (!on) try { src("dl-signals-near")?.featureCollection(empty()) } catch (e: Throwable) { softFail(e) }
         else main0.post { lampsCentre = null; refreshLamps(true) }
-    }
-
-    /**
-     * A traffic light the way Google Maps draws them on your route: a small, upright, dark-grey light with a crisp white outline,
-     * a soft shadow and three little lamps (red, amber, green), sitting right on the road. Drawn at 3x and shown small.
-     */
-
-    // only the lights on the road you are following are drawn: the route is turned into a grid of small cells, each knowing which
-    // bits of the route pass through it, so finding the route near a light is a quick look at its own and neighbouring cells
-    private fun signalFeatures(): FeatureCollection {
-        val r = main
-        signalModels = empty(); signalKept = emptyList()
-        if (r.size < 2) return empty()
-        routeGrid.ensure(r)
-        // only lights that stand on the route's own road (within ~10 m of the line), and at each junction only the first one you reach:
-        // a junction usually has a light on every arm, but only the one on your approach matters
-        val near = signalPts.filter { routeGrid.onRoute(it) }
-        if (near.isEmpty()) return empty()
-        val cum = DoubleArray(r.size)
-        for (i in 1 until r.size) cum[i] = cum[i - 1] + Geo.dist(r[i - 1], r[i])
-        val placed = ArrayList<Pair<Double, LL>>()
-        val segs = HashSet<Int>()
-        signalHeading.clear()
-        for (p in near) {
-            segs.clear()
-            routeGrid.segmentsNear(p, segs)
-            val kx = Math.cos(Math.toRadians(p.lat)) * 111320.0; val ky = 110574.0
-            var bd = 10.0; var bo = -1.0; var bi = -1
-            for (i in segs) {
-                val ax = (r[i].lon - p.lon) * kx; val ay = (r[i].lat - p.lat) * ky
-                val bx = (r[i + 1].lon - p.lon) * kx; val by = (r[i + 1].lat - p.lat) * ky
-                val dx = bx - ax; val dy = by - ay
-                val l2 = dx * dx + dy * dy
-                val t = if (l2 > 0) (-(ax * dx + ay * dy) / l2).coerceIn(0.0, 1.0) else 0.0
-                val d = Math.hypot(ax + dx * t, ay + dy * t)
-                if (d < bd) { bd = d; bo = cum[i] + (cum[i + 1] - cum[i]) * t; bi = i }
-            }
-            if (bo >= 0) { placed += bo to p; signalHeading[p] = Geo.bearing(r[bi], r[bi + 1]) }
-        }
-        placed.sortBy { it.first }
-        val keep = ArrayList<Feature>()
-        val keepPts = ArrayList<LL>()
-        val models = ArrayList<Feature>()
-        var lastOff = -1e9
-        for ((off, p) in placed) {
-            if (off - lastOff < 70.0) { lastOff = off; continue }   // same junction: you have already passed its first light
-            lastOff = off
-            keep += Feature.fromGeometry(Point.fromLngLat(p.lon, p.lat))
-            keepPts += p
-            // the 3D light: at the left kerb, facing you as you come up to it
-            val hd = signalHeading[p]
-            if (hd != null && models.size < 400) { val at = Furniture.offset(p, hd - 90.0, 4.5); models += Furniture.point(at.lat, at.lon, hd) }
-            if (keep.size >= 3000) break
-        }
-        signalModels = FeatureCollection.fromFeatures(models)
-        signalKept = keepPts
-        return FeatureCollection.fromFeatures(keep)
-    }
-
-    /** How many lights the last update put on the map (for the settings page and the performance meter, without working it out again). */
-    @Volatile private var signalShown = 0
-
-    /** Working out which lights sit on the route is done on its own thread (a long route can have thousands to check). */
-    private val signalExec = java.util.concurrent.Executors.newSingleThreadExecutor { r -> Thread(r, "lights").apply { isDaemon = true; priority = Thread.MIN_PRIORITY } }
-    @Volatile private var signalJob = false
-    @Volatile private var signalDirty = false
-
-    private fun pushSignals() {
-        if (destroyed) return
-        // one at a time; changes that arrive meanwhile are folded into one more pass when it finishes
-        if (signalJob) { signalDirty = true; return }
-        signalJob = true; signalDirty = false
-        val on = signalsOn
-        try {
-            signalExec.execute {
-                val fc = try { if (on) signalFeatures() else empty() } catch (e: Throwable) { empty() }
-                main0.post {
-                    if (destroyed) { signalJob = false; return@post }
-                    try {
-                        signalShown = fc.features()?.size ?: 0
-                        src("dl-signals")?.featureCollection(fc)
-                        src("dl-signals-m")?.featureCollection(if (on) signalModels else empty())
-                        try { onRouteSignals?.invoke(signalKept) } catch (e: Throwable) { softFail(e) }
-                    } catch (e: Throwable) { softFail(e) }
-                    signalJob = false
-                    if (signalDirty) pushSignals()
-                }
-            }
-        } catch (e: Throwable) { signalJob = false }
-    }
-
-    /** Called as the map moves: only restarts the search along the route if an earlier one gave up (no signal). */
-    private fun refreshSignals() {
-        if (signalBusy) return
-        val r = sigRoute ?: return
-        if (signalErr.isNotEmpty() && android.os.SystemClock.uptimeMillis() - sigFailAt > 30_000L) { sigRoute = null; loadSignalsAlong(r) }
-    }
-    @Volatile private var sigFailAt = 0L
-
-    /**
-     * Finds every traffic light along [route] in the background: the route is cut into stretches of about 20 km (the first one
-     * starting where you are), and each is asked for in one go as a corridor 30 m either side of the road. Roads already searched
-     * (from an earlier route) are skipped, so a reroute usually needs little or nothing new.
-     */
-    private fun loadSignalsAlong(route: List<LL>) {
-        if (route.size < 2 || route === sigRoute) return
-        sigRoute = route
-        val token = ++signalToken
-        signalBusy = true; signalErr = ""; signalStage = Lang.t("suche Ampeln entlang der Route…", "finding lights along the route…")
-        Thread {
-            try {
-                // points every ~50 m along the route
-                val pts = ArrayList<LL>()
-                pts += route[0]
-                var acc = 0.0
-                for (i in 1 until route.size) {
-                    acc += Geo.dist(route[i - 1], route[i])
-                    if (acc >= 50.0 || i == route.size - 1) { pts += route[i]; acc = 0.0 }
-                }
-                fun cellsAlong(a: LL, b: LL, into: MutableCollection<Long>) {
-                    val steps = (Geo.dist(a, b) / 15.0).toInt()
-                    for (k in 0..steps + 1) { val t = k / (steps + 1.0); into += RouteGrid.key(a.lat + (b.lat - a.lat) * t, a.lon + (b.lon - a.lon) * t) }
-                }
-                // stretches of route not searched yet, at most 400 points (~20 km) each
-                val chunks = ArrayList<List<LL>>()
-                var cur = ArrayList<LL>()
-                for (i in pts.indices) {
-                    val covered = synchronized(sigLock) { sigCovered.contains(RouteGrid.key(pts[i].lat, pts[i].lon)) }
-                    if (covered) { if (cur.size >= 2) chunks += cur; cur = ArrayList(); continue }
-                    if (cur.isEmpty() && i > 0) cur += pts[i - 1]
-                    cur += pts[i]
-                    // about 7.5 km per request: long enough to be few requests, short enough for a busy server to manage
-                    if (cur.size >= 150) { chunks += cur; cur = arrayListOf(pts[i]) }
-                }
-                if (cur.size >= 2) chunks += cur
-                var usedPack = false
-                var n = 0
-                // stretches that couldn't be searched (a busy server): the search is tried again later (see refreshSignals)
-                var gaps = 0
-                for (ch in chunks) {
-                    if (token != signalToken) return@Thread
-                    n++
-                    signalStage = Lang.t("suche Ampeln entlang der Route ($n von ${chunks.size})…", "finding lights along the route ($n of ${chunks.size})…")
-                    val cells = HashSet<Long>()
-                    for (i in 0 until ch.size - 1) cellsAlong(ch[i], ch[i + 1], cells)
-                    var found: List<LL>? = null
-                    var foundCams: List<LL> = emptyList()
-                    var camsMissed = false
-                    // a downloaded area covering this stretch: its traffic lights and cameras, straight from the files
-                    val area = OfflineRouter.areaFor(ctx, ch.first(), ch.last()) ?: OfflineRouter.areaFor(ctx, ch[ch.size / 2])
-                    val pd = area?.let { OfflineRouter.packDir(ctx, it) }
-                    var s0 = 90.0; var n0 = -90.0; var w0 = 180.0; var e0 = -180.0
-                    for (p in ch) { s0 = minOf(s0, p.lat); n0 = maxOf(n0, p.lat); w0 = minOf(w0, p.lon); e0 = maxOf(e0, p.lon) }
-                    fun fromPack(name: String): List<LL>? {
-                        if (pd == null || !java.io.File(pd, name).let { it.exists() && it.length() > 8 }) return null
-                        return OfflineRouter.lamps(ctx, s0 - 0.0005, w0 - 0.0005, n0 + 0.0005, e0 + 0.0005, name, pd, 5000).map { a ->
-                            LL(a[0], a[1]).also { c -> if (a.size > 2) Overpass.camDir[Overpass.camKey(c)] = a[2] }
-                        }
-                    }
-                    val packLights = fromPack("signals.tsv")
-                    val packCams = fromPack("cameras.tsv")
-                    if (packLights != null || packCams != null) usedPack = true
-                    if (packLights != null && packCams != null) { found = packLights; foundCams = packCams }
-                    else for (attempt in 0 until 5) {
-                        if (token != signalToken) return@Thread
-                        try {
-                            val online = Overpass.routeFeatures(ch, 30)
-                            found = packLights ?: online.first
-                            foundCams = packCams ?: online.second
-                            break
-                        } catch (e: Throwable) {
-                            signalErr = (e.message ?: e.javaClass.simpleName).take(80)
-                            // with the lights from the pack, only the cameras were missing: carry on without them (searched again later)
-                            if (packLights != null) { found = packLights; camsMissed = true; break }
-                            // a busy server: back off for longer each time (5, 10, 20, 30 s)
-                            Thread.sleep(longArrayOf(5000L, 10000L, 20000L, 30000L, 30000L)[attempt])
-                        }
-                    }
-                    if (found == null) { gaps++; sigFailAt = android.os.SystemClock.uptimeMillis(); continue }
-                    // keep only lights near this stretch (the offline search is a box, and the corridor search is a little generous)
-                    val keep = found.filter { p ->
-                        val k = RouteGrid.key(p.lat, p.lon)
-                        var hit = false
-                        for (dy in -1..1) for (dx in -1..1) if (cells.contains(k + dy * 1000003L + dx)) hit = true
-                        hit
-                    }
-                    val snap: List<LL>
-                    val camSnap: List<LL>
-                    synchronized(sigLock) {
-                        for (p in keep) sigAll[Math.round(p.lat * 1e6) * 1000003L + Math.round(p.lon * 1e6)] = p
-                        for (p in foundCams) camAll[Math.round(p.lat * 1e6) * 1000003L + Math.round(p.lon * 1e6)] = p
-                        while (camAll.size > 5000) camAll.remove(camAll.keys.first())
-                        camSnap = ArrayList(camAll.values)
-                        while (sigAll.size > 20000) sigAll.remove(sigAll.keys.first())
-                        // (when the cameras couldn't be fetched, the stretch is searched again next time)
-                        if (!camsMissed) sigCovered.addAll(cells)
-                        if (sigCovered.size > 400_000) sigCovered.clear()
-                        snap = ArrayList(sigAll.values)
-                    }
-                    if (token != signalToken) return@Thread
-                    if (camsMissed) { gaps++; sigFailAt = android.os.SystemClock.uptimeMillis() }
-                    if (gaps == 0) signalErr = ""
-                    main0.post {
-                        if (token == signalToken) { signalPts = snap; pushSignals() }
-                        try { onRouteCameras?.invoke(camSnap) } catch (e: Throwable) { softFail(e) }
-                    }
-                }
-                if (gaps > 0) { if (signalErr.isEmpty()) signalErr = "some stretches not searched"; sigFailAt = android.os.SystemClock.uptimeMillis() }
-                val snap = synchronized(sigLock) { ArrayList(sigAll.values) }
-                main0.post {
-                    if (token == signalToken) {
-                        signalPts = snap; pushSignals(); signalBusy = false
-                        signalStage = if (signalErr.isEmpty()) "route searched (${if (usedPack) "downloaded area" else Overpass.lastNote})" else Lang.t("ein Teil der Route konnte nicht durchsucht werden, neuer Versuch folgt", "some of the route couldn't be searched, will retry")
-                    }
-                }
-            } catch (e: Throwable) {
-                signalErr = "internal: " + (e.message ?: e.javaClass.simpleName).take(60); sigFailAt = android.os.SystemClock.uptimeMillis()
-                main0.post { if (token == signalToken) signalBusy = false }
-            }
-        }.apply { priority = Thread.MIN_PRIORITY; isDaemon = true }.start()
     }
 
 
@@ -2656,7 +2419,7 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
 
     private fun pushAll() {
         pushLive(); pushRadar(); pushTurn()
-        pushRoute(); pushDest(); pushVia(); pushChargers(); pushMe(); pushHazards(); pushCams(); pushAlpr(); pushSignals(); pushGarages()
+        pushRoute(); pushDest(); pushVia(); pushChargers(); pushMe(); pushHazards(); pushCams(); pushAlpr(); lights.push(); pushGarages()
     }
 
     // ---- car parks with their free spaces ----
@@ -3282,9 +3045,9 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
 
     // ---- data from the engine ----
     fun setRoute(mainPts: List<LL>, altPts: List<List<LL>>, sev: IntArray? = null) {
-        main = mainPts; alts = altPts; mainSev = sev; mainOff = 0; pushRoute(); pushSignals()
+        main = mainPts; alts = altPts; mainSev = sev; mainOff = 0; pushRoute(); lights.push()
         if (mainPts.isEmpty()) { setAvgZones(emptyList(), emptyList()); setTunnels(emptyList()); setSharpBends(emptyList()); setCrossings(emptyList()); setStopSigns(emptyList()) }
-        if (mainPts.size >= 2) loadSignalsAlong(mainPts) else { sigRoute = null; signalToken++; signalBusy = false; signalStage = Lang.t("keine Route", "no route") }
+        if (mainPts.size >= 2) lights.start(mainPts) else lights.clearRoute()
         val on = mainPts.isNotEmpty()
         if (on != routing) { routing = on; applyTraffic(); applyNearLook() }
         syncFlow()
@@ -4359,7 +4122,7 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
         main = mainPts; mainSev = sev; mainOff = firstSeg; setLine(main)
         // the lights are picked against the route: as the drawn stretch of route moves on, pick them again (they used to stay as
         // they were for the first stretch, so lights further along never appeared)
-        pushSignals()
+        lights.push()
     }
     fun setDest(p: LL?) { dest = p; pushDest(); pushFlags() }
     /** The stops on the way, in order; true = a charging stop. Kept, so they're drawn again after a style change. */

@@ -1,9 +1,5 @@
 ## Unreleased
 
-### Improved
-- Die Einstellungssuche findet einen Eintrag auch über seinen deutschen Titel, wenn die App auf Englisch läuft.
-  EN: Settings search also finds an entry by its German title when the app is in English.
-
 ## 1.0.246 — 2026-10-28
 
 ### Improved in-app updates
