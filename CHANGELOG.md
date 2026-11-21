@@ -1,8 +1,8 @@
 ## Unreleased
 
-### Fixed
-- Abgelehnter TomTom-Schlüssel: Weist TomTom den Schlüssel bei Suche oder Route mit 401/403 ab, wird TomTom mit diesem Schlüssel für den restlichen Lauf nicht mehr gefragt.
-  EN: Rejected TomTom key: when TomTom turns the key away with 401/403 for search or routing, TomTom isn't asked again with that key for the rest of the run.
+### Improved
+- Android Auto während der Fahrt: Der Beenden-Knopf (✕) steht jetzt in der linken Knopfspalte über Melden, in einer Linie mit den anderen Knöpfen. Oben in der Android-Auto-Leiste sitzt stattdessen der Ton-Knopf.
+  EN: Android Auto while driving: the end button (✕) now sits in the left button column above Report, in line with the other buttons. Android Auto's bar at the top shows the sound button instead.
 
 ## 1.0.246 — 2026-10-28
 
