@@ -1,14 +1,12 @@
 ## Unreleased
 
-### New
-- Zuhause, Arbeit und markierte Orte aus Deine Orte erscheinen auf der Karte: Zuhause als blaues Haus, Arbeit als gelber Koffer, markierte Orte als Stern. Ein Tipp öffnet den Ort mit „Los“. Die Größe lässt sich unter Einstellungen › Karte › Symbole gespeicherter Orte einstellen.
-  EN: Home, Work and starred places from Your places now show on the map: Home as a house on blue, Work as a briefcase on amber, starred places as a star. A tap opens the place with "Go". The size is under Settings › Map › Saved places icons.
+### Improved
+- Akku: Auf dem Handy geht der Bildschirm wie üblich aus, solange du nur die Karte ansiehst. Er bleibt nur an, während eine Route geführt wird. Head Units bleiben wie bisher an.
+  EN: Battery: on a phone the screen goes off as usual while you only look at the map, and stays on only while a route is guided. Head units stay on as before.
 
 ### Fixed
-- Die grauen Straßen am Abbiegepfeil stehen jetzt auf 45 Grad genau, auf der Seite, auf der sie wirklich liegen, statt in einem schiefen Winkel neben dem Pfeil.
-  EN: The faded roads beside the turn arrow now sit at 45 degrees, on the side they really are, instead of at an odd angle beside the arrow.
-- Der Pfeil bleibt in der Mitte, wenn die Suchliste eingeklappt ist: Was oberhalb des Pfeils endet, schiebt ihn nicht mehr zur Seite.
-  EN: The arrow stays in the middle when the recents panel folds away: anything that ends above the arrow no longer pushes it to the side.
+- Die Karte „nächste 3 km“ wird nicht mehr hoch: Die Angabe bleibt in einer Zeile, und ein langer Name wird stattdessen gekürzt.
+  EN: The "next 3 km" hazard card no longer grows tall: the distance stays on one line, and a long name is cut short instead.
 
 ## 1.0.246 — 2026-10-28
 

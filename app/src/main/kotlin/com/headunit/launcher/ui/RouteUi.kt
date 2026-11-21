@@ -794,10 +794,10 @@ fun HazardRadar(engine: NavEngine, modifier: Modifier = Modifier) {
     Column(modifier.widthIn(max = 540.dp).fillMaxWidth().panel(8.dp, shape, c.surface).padding(start = 16.dp, end = 16.dp, top = 9.dp, bottom = 10.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Icon(radarIcon(near.kind), null, tint = radarColor(near.kind), modifier = Modifier.size(20.dp).graphicsFlip(near.kind == "bend" && (near.label.endsWith("left") || near.label.startsWith("Links"))))
-            Text(near.label, color = c.text, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(start = 8.dp), maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(near.label, color = c.text, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(start = 8.dp).weight(1f, fill = false), maxLines = 1, overflow = TextOverflow.Ellipsis)
             Text(" · " + (if (near.dist < 20) Lang.t("jetzt", "now") else Lang.t("in ", "in ") + Geo.fmtDist(near.dist, engine.imperial)), color = c.sub, fontSize = 14.sp, maxLines = 1)
             Box(Modifier.weight(1f))
-            Text(if (engine.imperial) Lang.t("nächste 2 mi", "next 2 mi") else Lang.t("nächste 3 km", "next 3 km"), color = c.sub, fontSize = 11.sp)
+            Text(if (engine.imperial) Lang.t("nächste 2 mi", "next 2 mi") else Lang.t("nächste 3 km", "next 3 km"), color = c.sub, fontSize = 11.sp, maxLines = 1, softWrap = false)
         }
         BoxWithConstraints(Modifier.fillMaxWidth().padding(top = 8.dp).height(30.dp)) {
             val w = maxWidth

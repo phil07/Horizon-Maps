@@ -64,7 +64,6 @@ class MainActivity : ComponentActivity() {
         }
         // running fine for 25 seconds: clear the counts and the "starting" marker
         window.decorView.postDelayed({ try { boot.edit().putInt(CrashGuardPrefs.START_FAILURES, 0).putBoolean(CrashGuardPrefs.STARTING, false).putInt(CrashGuardPrefs.BAD_STARTS, 0).apply() } catch (x: Throwable) { softFail(x) } }, 25_000L)
-        window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         window.statusBarColor = android.graphics.Color.TRANSPARENT
         window.navigationBarColor = android.graphics.Color.TRANSPARENT
         hideBars()
