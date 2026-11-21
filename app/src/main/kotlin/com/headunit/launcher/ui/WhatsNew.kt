@@ -143,7 +143,7 @@ internal fun WhatsNewList(notes: String, dark: Boolean, columns: Int = 1, maxHei
     Column(Modifier.fillMaxWidth().heightIn(max = capH).verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(8.dp)) {
         if (items.isEmpty()) {
-            Text(if (notes.isBlank()) com.headunit.launcher.Lang.t("Diese Version ist installiert und bereit.", "This version is installed and ready.") else notes,
+            Text(if (notes.isBlank()) Lang.t("Diese Version ist installiert und bereit.", "This version is installed and ready.") else notes,
                 color = v.text, fontSize = 14.sp, lineHeight = 20.sp, modifier = Modifier.padding(4.dp))
             return@Column
         }

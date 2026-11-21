@@ -486,10 +486,10 @@ internal fun ImmChips(engine: NavEngine, focusSearch: () -> Unit) {
         val showHome = engine.prefs.b(PreferenceKeys.HOME_TILE, true); val showWork = engine.prefs.b(PreferenceKeys.WORK_TILE, true)
         if (showHome || showWork) Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             if (showHome) PlaceTile(engine, Modifier.weight(1f), Icons.Rounded.Home, Color(0xFF4C8DFF), Lang.t("Zuhause", "Home"), home, engine.slotMins["home"]) {
-                if (home != null) engine.startRoute(home) else { engine.pendingSave = "home"; engine.toast(engine.Lang.t("Suche deine Heimadresse", "Search for your home address"), 3500); focusSearch() }
+                if (home != null) engine.startRoute(home) else { engine.pendingSave = "home"; engine.toast(Lang.t("Suche deine Heimadresse", "Search for your home address"), 3500); focusSearch() }
             }
             if (showWork) PlaceTile(engine, Modifier.weight(1f), Icons.Rounded.Work, Color(0xFFF29900), Lang.t("Arbeit", "Work"), work, engine.slotMins["work"]) {
-                if (work != null) engine.startRoute(work) else { engine.pendingSave = "work"; engine.toast(engine.Lang.t("Suche deine Arbeitsadresse", "Search for your work address"), 3500); focusSearch() }
+                if (work != null) engine.startRoute(work) else { engine.pendingSave = "work"; engine.toast(Lang.t("Suche deine Arbeitsadresse", "Search for your work address"), 3500); focusSearch() }
             }
         }
         Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -711,9 +711,9 @@ internal fun ImmQuick(engine: NavEngine, showSaved: Boolean = true) {
                             detectHorizontalDragGestures(
                                 onDragEnd = {
                                     if (kotlin.math.abs(dx) > w * 0.35f) when (kind) {
-                                        0 -> { engine.places.removeCustom(label); engine.toast(engine.Lang.f("%1\$s entfernt", "Removed %1\$s", label), 2000) }
-                                        1 -> { engine.places.toggleFavourite(p); engine.toast(engine.Lang.t("Aus den Favoriten entfernt", "Removed from favourites"), 2000) }
-                                        else -> { engine.places.removeRecent(p); engine.toast(engine.Lang.t("Aus den letzten Orten entfernt", "Removed from recent places"), 2000) }
+                                        0 -> { engine.places.removeCustom(label); engine.toast(Lang.f("%1\$s entfernt", "Removed %1\$s", label), 2000) }
+                                        1 -> { engine.places.toggleFavourite(p); engine.toast(Lang.t("Aus den Favoriten entfernt", "Removed from favourites"), 2000) }
+                                        else -> { engine.places.removeRecent(p); engine.toast(Lang.t("Aus den letzten Orten entfernt", "Removed from recent places"), 2000) }
                                     }
                                     dx = 0f
                                 },

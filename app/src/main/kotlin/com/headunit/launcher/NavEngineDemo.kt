@@ -38,7 +38,7 @@ import androidx.compose.ui.res.stringResource
 // a tap on the demo's speed: 1x, 2x, 4x and back to 1x (it keeps going, no restart)
 fun NavEngine.cycleSim() {
     val r = route
-    if (r == null) { toast(ctx.Lang.t("Wähle zuerst ein Ziel, dann starte die Demofahrt", "Pick a destination first, then start the demo drive")); return }
+    if (r == null) { toast(Lang.t("Wähle zuerst ein Ziel, dann starte die Demofahrt", "Pick a destination first, then start the demo drive")); return }
     when (simMode) {
         0 -> { simMode = 1; startSim(r) }
         1 -> simMode = 2

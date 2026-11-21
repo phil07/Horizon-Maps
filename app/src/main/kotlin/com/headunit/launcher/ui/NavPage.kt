@@ -344,11 +344,11 @@ internal fun BoxScope.RoutePreview(engine: NavEngine) {
                 if (d != null) Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 val fav = engine.places.isFavourite(d)
                 Icon(if (fav) Icons.Rounded.Star else Icons.Rounded.StarBorder, Lang.t("Favorit", "Favourite"), tint = if (fav) Warn else c.sub,
-                    modifier = Modifier.size(22.dp).clickable { engine.toast(if (engine.places.toggleFavourite(d)) engine.Lang.t("Zu Favoriten hinzugefügt", "Saved to favourites") else engine.Lang.t("Aus den Favoriten entfernt", "Removed from favourites"), 2000) })
+                    modifier = Modifier.size(22.dp).clickable { engine.toast(if (engine.places.toggleFavourite(d)) Lang.t("Zu Favoriten hinzugefügt", "Saved to favourites") else Lang.t("Aus den Favoriten entfernt", "Removed from favourites"), 2000) })
                 Icon(Icons.Rounded.Home, Lang.t("Als Zuhause festlegen", "Set as home"), tint = c.sub,
-                    modifier = Modifier.size(22.dp).clickable { engine.places.setSlot("home", d); engine.toast(engine.Lang.f("Zuhause gesetzt auf %1\$s", "Home set to %1\$s", d.name), 2500) })
+                    modifier = Modifier.size(22.dp).clickable { engine.places.setSlot("home", d); engine.toast(Lang.f("Zuhause gesetzt auf %1\$s", "Home set to %1\$s", d.name), 2500) })
                 Icon(Icons.Rounded.Work, Lang.t("Als Arbeit festlegen", "Set as work"), tint = c.sub,
-                    modifier = Modifier.size(22.dp).clickable { engine.places.setSlot("work", d); engine.toast(engine.Lang.f("Arbeit gesetzt auf %1\$s", "Work set to %1\$s", d.name), 2500) })
+                    modifier = Modifier.size(22.dp).clickable { engine.places.setSlot("work", d); engine.toast(Lang.f("Arbeit gesetzt auf %1\$s", "Work set to %1\$s", d.name), 2500) })
                 var saving by remember { mutableStateOf(false) }
                 val mine = engine.places.customAt(d) != null
                 Icon(Icons.Rounded.BookmarkAdd, Lang.t("Mit Namen speichern", "Save with a name"), tint = if (mine) c.accent else c.sub, modifier = Modifier.size(26.dp).clickable { saving = true })

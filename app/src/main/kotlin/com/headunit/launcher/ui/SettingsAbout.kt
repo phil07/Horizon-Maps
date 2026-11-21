@@ -366,15 +366,15 @@ internal fun FeedbackDialog(engine: NavEngine, onClose: () -> Unit) {
                 SButton(Lang.t("Schließen", "Close")) { onClose() }
                 SButton(Lang.t("Kopieren", "Copy")) {
                     val cm = ctx.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as? android.content.ClipboardManager
-                    cm?.setPrimaryClip(android.content.ClipData.newPlainText(ctx.Lang.t("Horizon Nav Bericht", "Horizon Nav report"), engine.feedbackReport(note)))
-                    engine.toast(engine.Lang.t("Bericht kopiert: In eine Nachricht oder einen Reddit-Kommentar einfügen", "Report copied: paste it into a message or a Reddit comment"), 3500)
+                    cm?.setPrimaryClip(android.content.ClipData.newPlainText(Lang.t("Horizon Nav Bericht", "Horizon Nav report"), engine.feedbackReport(note)))
+                    engine.toast(Lang.t("Bericht kopiert: In eine Nachricht oder einen Reddit-Kommentar einfügen", "Report copied: paste it into a message or a Reddit comment"), 3500)
                 }
                 SButton(Lang.t("Auf GitHub senden", "Send on GitHub"), primary = true) {
                     val title = note.lineSequence().firstOrNull()?.take(80)?.ifBlank { null } ?: "Bericht von Horizon Nav ${com.headunit.launcher.BuildConfig.VERSION_NAME}"
                     val body = engine.feedbackReport(note).take(5000)
                     val url = "https://github.com/${BuildConfig.UPDATE_REPO}/issues/new?title=" + android.net.Uri.encode(title) + "&body=" + android.net.Uri.encode(body)
                     try { ctx.startActivity(android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(url)).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)) }
-                    catch (e: Exception) { engine.toast(engine.Lang.t("Kein Browser auf diesem Gerät: stattdessen Kopieren nutzen", "No browser on this unit: use Copy instead"), 3500) }
+                    catch (e: Exception) { engine.toast(Lang.t("Kein Browser auf diesem Gerät: stattdessen Kopieren nutzen", "No browser on this unit: use Copy instead"), 3500) }
                     onClose()
                 }
             }

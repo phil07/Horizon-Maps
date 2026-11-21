@@ -214,8 +214,8 @@ internal fun PlacesSection(engine: NavEngine) {
                     }
                 }
                 slotFor == f -> SItem("${f.name} festlegen als…") {
-                    SButton(Lang.t("Zuhause", "Home"), primary = true) { pl.setSlot("home", f); slotFor = null; engine.toast(engine.Lang.f("%1\$s ist jetzt Zuhause", "%1\$s is now Home", f.name), 2500) }
-                    SButton(Lang.t("Arbeitsplatz", "Work"), primary = true) { pl.setSlot("work", f); slotFor = null; engine.toast(engine.Lang.f("%1\$s ist jetzt Arbeit", "%1\$s is now Work", f.name), 2500) }
+                    SButton(Lang.t("Zuhause", "Home"), primary = true) { pl.setSlot("home", f); slotFor = null; engine.toast(Lang.f("%1\$s ist jetzt Zuhause", "%1\$s is now Home", f.name), 2500) }
+                    SButton(Lang.t("Arbeitsplatz", "Work"), primary = true) { pl.setSlot("work", f); slotFor = null; engine.toast(Lang.f("%1\$s ist jetzt Arbeit", "%1\$s is now Work", f.name), 2500) }
                     SButton(Lang.t("Abbrechen", "Cancel")) { slotFor = null }
                 }
                 else -> SItem(f.name, listOf(pl.favTag(f).let { if (it.isBlank()) "" else "#$it" }, f.sub).filter { it.isNotBlank() }.joinToString(" · ")) {
@@ -233,7 +233,7 @@ internal fun PlacesSection(engine: NavEngine) {
     SGroup(Lang.t("Verlauf", "History"), footer = Lang.t("Zum Entfernen zur Seite wischen.", "Swipe aside to remove.")) {
         SToggle(engine.prefs, Lang.t("Gespeichert & Zuletzt unter der Suchleiste", "Saved & Recent under the search bar"), PreferenceKeys.QUICKLIST, true, Lang.t("Die Liste der Favoriten und letzten Orte auf der Karte", "The list of favourites and recent places on the map"))
         SItem(Lang.t("Letzte Ziele", "Recent destinations"), "${pl.recents().size} letzte Ziele") {
-            SButton("Löschen", danger = true) { pl.clearHistory(); engine.toast(engine.Lang.t("Verlauf gelöscht", "History cleared"), 2000) }
+            SButton("Löschen", danger = true) { pl.clearHistory(); engine.toast(Lang.t("Verlauf gelöscht", "History cleared"), 2000) }
         }
     }
     TripsGroup(engine)
@@ -498,7 +498,7 @@ internal fun OfflinePlacesGroup(engine: NavEngine) {
                     sc.launch {
                         try {
                             val n = withContext(Dispatchers.IO) { OfflinePlaces.download(ctx, cc) }
-                            state = "Installiert: $n Orte"; engine.toast(engine.Lang.t("Offline-Orte bereit", "Offline places ready"), 3000)
+                            state = "Installiert: $n Orte"; engine.toast(Lang.t("Offline-Orte bereit", "Offline places ready"), 3000)
                         } catch (e: Exception) { state = "Fehlgeschlagen: ${e.message}" } finally { busy = false }
                     }
                 }

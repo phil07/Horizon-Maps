@@ -983,7 +983,7 @@ fun AddPlaceDialog(engine: NavEngine, preset: Place?, slot: String? = null, onCl
                 Pill(Lang.t("Speichern", "Save"), pk != null, {
                     val p = picked
                     if (p != null && slot != null) { engine.places.setSlot(slot, p); engine.toast(if (slot == "home") Lang.t("Zuhause gespeichert", "Home saved") else Lang.t("Arbeit gespeichert", "Work saved"), 2500); close() }
-                    else if (p != null) { engine.places.addCustom(label, p); engine.toast(engine.Lang.f("Gespeichert als %1\$s", "Saved as %1\$s", label.trim().ifBlank { p.name }), 2500); close() }
+                    else if (p != null) { engine.places.addCustom(label, p); engine.toast(Lang.f("Gespeichert als %1\$s", "Saved as %1\$s", label.trim().ifBlank { p.name }), 2500); close() }
                 })
                 Pill(Lang.t("Abbrechen", "Cancel"), false, { close() })
             }

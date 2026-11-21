@@ -228,7 +228,7 @@ class MainActivity : ComponentActivity() {
             if (mode == "w") {
                 lifecycleScope.launch {
                     val t = try { kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { ExternalLinks.parse(text) } } catch (e: Exception) { null }
-                    t?.pos?.let { engine.startWalk(it) } ?: engine.toast(engine.Lang.t("Aus dieser Eingabe konnte kein Ort gelesen werden", "Couldn\'t read a place from that"), 3500)
+                    t?.pos?.let { engine.startWalk(it) } ?: engine.toast(Lang.t("Aus dieser Eingabe konnte kein Ort gelesen werden", "Couldn\'t read a place from that"), 3500)
                 }
                 return
             }
@@ -238,7 +238,7 @@ class MainActivity : ComponentActivity() {
             // wait (briefly) for a first position so the route can start from where you are
             var n = 0
             while (t?.pos != null && engine.fix == null && n < 20) { kotlinx.coroutines.delay(500); n++ }
-            if (t != null) engine.openShared(t) else engine.toast(engine.Lang.t("Aus dieser Eingabe konnte kein Ort gelesen werden", "Couldn\'t read a place from that"), 3500)
+            if (t != null) engine.openShared(t) else engine.toast(Lang.t("Aus dieser Eingabe konnte kein Ort gelesen werden", "Couldn\'t read a place from that"), 3500)
         }
     }
 
@@ -340,12 +340,12 @@ private fun StartupCrashPage(report: String, onRetry: () -> Unit) {
             androidx.compose.material3.Button({
                 val url = "https://github.com/${BuildConfig.UPDATE_REPO}/issues/new?title=" + android.net.Uri.encode("Crash on start: ${Build.MANUFACTURER} ${Build.MODEL}") + "&body=" + android.net.Uri.encode(report.take(5000))
                 try { ctx.startActivity(android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(url)).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)) }
-                catch (e: Exception) { android.widget.Toast.makeText(ctx, ctx.Lang.t("Kein Browser auf diesem Gerät: Stattdessen Kopieren nutzen", "No browser on this unit: use Copy instead"), android.widget.Toast.LENGTH_LONG).show() }
+                catch (e: Exception) { android.widget.Toast.makeText(ctx, Lang.t("Kein Browser auf diesem Gerät: Stattdessen Kopieren nutzen", "No browser on this unit: use Copy instead"), android.widget.Toast.LENGTH_LONG).show() }
             }) { androidx.compose.material3.Text(Lang.t("Auf GitHub senden", "Send on GitHub")) }
             androidx.compose.material3.Button({
                 val cm = ctx.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as? android.content.ClipboardManager
-                cm?.setPrimaryClip(android.content.ClipData.newPlainText(ctx.Lang.t("Horizon Nav Absturz", "Horizon Nav crash"), report))
-                android.widget.Toast.makeText(ctx, ctx.Lang.t("Bericht kopiert: In eine Nachricht oder einen Reddit-Kommentar einfügen", "Report copied: paste it into a message or a Reddit comment"), android.widget.Toast.LENGTH_LONG).show()
+                cm?.setPrimaryClip(android.content.ClipData.newPlainText(Lang.t("Horizon Nav Absturz", "Horizon Nav crash"), report))
+                android.widget.Toast.makeText(ctx, Lang.t("Bericht kopiert: In eine Nachricht oder einen Reddit-Kommentar einfügen", "Report copied: paste it into a message or a Reddit comment"), android.widget.Toast.LENGTH_LONG).show()
             }) { androidx.compose.material3.Text(Lang.t("Kopieren", "Copy")) }
             androidx.compose.material3.OutlinedButton(onRetry) { androidx.compose.material3.Text(Lang.t("Erneut versuchen", "Try again"), color = fg) }
         }

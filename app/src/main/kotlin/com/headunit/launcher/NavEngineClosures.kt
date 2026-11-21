@@ -345,5 +345,5 @@ fun NavEngine.acceptFaster() {
     said.clear(); offCount = 0; lastIdx = 0; trustProg = -1.0
     faster = null
     drawRoutes()
-    toast(ctx.Lang.t("Auf die schnellere Route gewechselt", "Switched to the faster route"), 2500)
+    toast(Lang.t("Auf die schnellere Route gewechselt", "Switched to the faster route"), 2500)
 }
