@@ -209,7 +209,8 @@ private fun SpeedBlock(engine: NavEngine) {
     // the big limit sign: the sign where the speedometer was, your speed small beside it (it turns amber and red as before)
     if (sign && engine.prefs.b(PreferenceKeys.SPEED_SIGN_BIG, false)) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            SpeedLimitSign(engine, 120.dp)
+            // the size comes from Settings › Android Auto › Sizes (100 % is the usual 120 dp)
+            SpeedLimitSign(engine, 120.dp * (engine.prefs.i(PreferenceKeys.CAR_LIMIT_SIGN_SIZE, 100).coerceIn(70, 200) / 100f))
             if (show) Column(Modifier.panel(8.dp, RoundedCornerShape(18.dp), c.surface).padding(horizontal = 12.dp, vertical = 6.dp),
                 horizontalAlignment = Alignment.CenterHorizontally) {
                 Text("${Math.round(engine.shownSpeed * k)}", color = speedTint(engine) ?: c.text, fontSize = 22.sp, fontWeight = FontWeight.Bold, maxLines = 1)

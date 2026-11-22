@@ -1,8 +1,8 @@
 ## Unreleased
 
 ### New
-- Schalter „Baustellen-Warnungen“ unter Einstellungen › Unterwegs: Ausgeschaltet verschwinden Baustellen und Spur-Sperrungen von der Route, von der Abbiegekarte und aus der Ansage. Unfälle und Sperrungen warnen weiter.
-  EN: New switch "Roadworks warnings" under Settings › On the way: when off, roadworks and lane closures no longer show on the route, on the turn card or in the voice. Accidents and closures still warn.
+- Android Auto: neuer Schieberegler „Limit-Schild-Größe“ unter Android Auto › Größen (erweitert), für das große Tempolimit-Schild neben dem Tacho. Wirkt nur, wenn „Großes Limit-Schild“ an ist.
+  EN: New "Speed-limit sign size" slider under Android Auto › Sizes (advanced), for the big speed-limit sign beside the speedometer. Only has an effect when "Large limit sign" is on.
 
 ## 1.0.246 — 2026-10-28
 

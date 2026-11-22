@@ -88,6 +88,7 @@ internal object PreferenceKeys {
     /** where the car screen's speed sits: "bottom" (bottom left corner), "turn" (under the turn card) or "top" (top right) */
     const val CAR_SPEED_POS = "carspeedpos"
     const val CAR_BUTTON_SIZE = "carbuttonsize"
+    const val CAR_LIMIT_SIGN_SIZE = "carlimitsignsize"
     const val CAR_ARROW_SIZE = "cararrowsize"
     const val MAP_THEME = "maptheme"
     const val MAP_COLOURS = "mapcolours"
