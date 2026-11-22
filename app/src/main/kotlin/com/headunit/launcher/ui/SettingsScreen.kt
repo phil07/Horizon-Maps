@@ -656,6 +656,7 @@ private fun AlertsSection(prefs: Prefs, engine: NavEngine) {
     }
     SGroup(Lang.t("Unterwegs", "On the way"), footer = Lang.t("Informationen stammen aus OpenStreetMap.", "Information comes from OpenStreetMap.")) {
         SToggle(prefs, Lang.t("Baustellen und Ereignisse", "Roadworks and events"), PreferenceKeys.INCIDENTS, true, Lang.t("Baustellen und Sperrungen auf Autobahnen. Daten: Autobahn GmbH. In Spanien: Unfälle, Baustellen, Sperrungen, Gefahren und V16-Pannenbaken der DGT (nap.dgt.es)", "Roadworks and closures on motorways. Data: Autobahn GmbH. In Spain: accidents, roadworks, closures, hazards and V16 breakdown beacons from the DGT (nap.dgt.es)"))
+        SToggle(prefs, Lang.t("Baustellen-Warnungen", "Roadworks warnings"), PreferenceKeys.ROADWORKS_WARN, true, Lang.t("Baustellen und Spuren-Sperrungen auf der Route: Zeile auf der Abbiegekarte und Ansage. Unfälle und Sperrungen warnen weiter", "Roadworks and lane closures on the route: the line on the turn card and the voice. Accidents and closures still warn"))
         SToggle(prefs, Lang.t("Einbahnstraßen-Warnung", "One-way warning"), PreferenceKeys.WRONGWAY, false, Lang.t("Bei falscher Fahrtrichtung; Fehlalarme möglich", "On wrong direction; false alarms possible"))
         SToggle(prefs, Lang.t("Bremsschwellen", "Speed bumps"), PreferenceKeys.BUMPS, false)
         SToggle(prefs, Lang.t("Schulen zu Schulzeiten", "Schools at school times"), PreferenceKeys.SCHOOLS, false)

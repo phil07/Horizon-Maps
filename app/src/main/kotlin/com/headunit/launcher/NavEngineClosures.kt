@@ -122,7 +122,10 @@ internal fun NavEngine.checkIncidents(r: Route, progress: Double) {
                     if (!any) emptyList() else {
                         val tt = if (fromRoute) r.incidents else if (hasKey) TomTomRest.incidents(apiKey, minLon - 0.01, minLat - 0.01, maxLon + 0.01, maxLat + 0.01) else emptyList<Incident>()
                         // (what TomTom already has is not repeated from the DGT)
-                        val list = tt + ab + when (countryCode()) { "ES" -> DgtRest.notIn(tt); "NL" -> NdwRest.notIn(tt); else -> emptyList() }
+                        // roadworks and lane closures can be switched off (Settings > Unterwegs): then they neither show nor are spoken
+                        val roadworksOn = prefs.b(PreferenceKeys.ROADWORKS_WARN, true)
+                        val list = (tt + ab + when (countryCode()) { "ES" -> DgtRest.notIn(tt); "NL" -> NdwRest.notIn(tt); else -> emptyList() })
+                            .filter { roadworksOn || it.cat.lowercase() !in setOf("roadworks", "laneclosed") }
                         noteClosures(list)
                         val out = ArrayList<Triple<Incident, Double, String>>()
                         for (inc in list) {

@@ -1,8 +1,8 @@
 ## Unreleased
 
-### Improved
-- Bodenwelle-Warnung: Sie kommt jetzt mindestens 100 m vorher, auch bei Stadttempo (vorher 70 bis 85 m).
-  EN: Speed bump warning: it now comes at least 100 m before the bump, also at town speeds (it was 70 to 85 m).
+### New
+- Schalter „Baustellen-Warnungen“ unter Einstellungen › Unterwegs: Ausgeschaltet verschwinden Baustellen und Spur-Sperrungen von der Route, von der Abbiegekarte und aus der Ansage. Unfälle und Sperrungen warnen weiter.
+  EN: New switch "Roadworks warnings" under Settings › On the way: when off, roadworks and lane closures no longer show on the route, on the turn card or in the voice. Accidents and closures still warn.
 
 ## 1.0.246 — 2026-10-28
 

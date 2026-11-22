@@ -225,6 +225,7 @@ internal object PreferenceKeys {
     const val HABITS = "habits"
     const val HAZARDRADAR = "hazardradar"
     const val INCIDENTS = "incidents"
+    const val ROADWORKS_WARN = "roadworksWarn"
     const val KEEPON = "keepon"
     const val LAMPGAP = "lampgap"
     const val LANDMARKS3D = "landmarks3d"
