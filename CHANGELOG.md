@@ -1,8 +1,8 @@
 ## Unreleased
 
 ### Improved
-- Android Auto während der Fahrt: Der Beenden-Knopf (✕) steht jetzt in der linken Knopfspalte über Melden, in einer Linie mit den anderen Knöpfen. Oben in der Android-Auto-Leiste sitzt stattdessen der Ton-Knopf.
-  EN: Android Auto while driving: the end button (✕) now sits in the left button column above Report, in line with the other buttons. Android Auto's bar at the top shows the sound button instead.
+- Bodenwelle-Warnung: Sie kommt jetzt mindestens 100 m vorher, auch bei Stadttempo (vorher 70 bis 85 m).
+  EN: Speed bump warning: it now comes at least 100 m before the bump, also at town speeds (it was 70 to 85 m).
 
 ## 1.0.246 — 2026-10-28
 
