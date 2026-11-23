@@ -785,7 +785,13 @@ private fun TripCard(engine: NavEngine, fill: Boolean, oneLine: Boolean = false)
     val w = if (fill) Modifier.fillMaxWidth() else Modifier.width(if (rowW > 0) with(dens) { rowW.toDp() } else 460.dp)
     Column((if (fill) Modifier.fillMaxWidth() else Modifier).panel(10.dp, RoundedCornerShape(22.dp), c.surface)) {
         // a slim bar: the full-height one took up nearly half the card
-        if (engine.showRouteBar) RouteBar(engine, w.padding(start = 16.dp, end = 16.dp, top = 6.dp), thin = true)
+        if (engine.showRouteBar) Row(Modifier.padding(start = 16.dp, end = 16.dp, top = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+            RouteBar(engine, Modifier.weight(1f), thin = true)
+            // a pin at the end of the bar: the stops card (fuel, charging, food, coffee along the route, one tap to add)
+            Box(Modifier.padding(start = 10.dp).size(34.dp).clip(androidx.compose.foundation.shape.CircleShape).background(c.accent).carTap("trip-pin") { engine.stopsScreen = true }, contentAlignment = Alignment.Center) {
+                androidx.compose.material3.Icon(androidx.compose.material.icons.Icons.Rounded.Place, null, tint = Color.White, modifier = Modifier.size(20.dp))
+            }
+        }
         val end: @Composable (androidx.compose.ui.unit.Dp) -> Unit = { sz ->
             // end the route, as in the app
             Box(Modifier.size(sz).clip(androidx.compose.foundation.shape.CircleShape).background(Bad).carTap("end") { engine.endRoute() }, contentAlignment = Alignment.Center) {

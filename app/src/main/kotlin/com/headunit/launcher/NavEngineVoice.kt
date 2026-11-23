@@ -347,7 +347,9 @@ internal fun NavEngine.routeExtrasTick(r: Route, progress: Double) {
             val k = if (imperial) 2.23694 else 3.6
             val v = max(5L, Math.round(b.safeMs * k / 5.0) * 5L)
             chime(android.media.ToneGenerator.TONE_PROP_PROMPT)
-            raiseAlert("bend", Lang.t("Scharfe Kurve · mit $v ${if (imperial) "mph" else "km/h"} nehmen", "Sharp bend · take it at $v ${if (imperial) "mph" else "km/h"}"), 5000)
+            // the sign stays until the bend is behind you (at the speed you are going), and at least 5 s
+            val untilEnd = ((b.end - progress) / max(sp, 1.0) * 1000.0).toLong()
+            raiseAlert("bend", Lang.t("Scharfe Kurve · mit $v ${if (imperial) "mph" else "km/h"} nehmen", "Sharp bend · take it at $v ${if (imperial) "mph" else "km/h"}"), max(5000L, untilEnd))
         }
     }
 
