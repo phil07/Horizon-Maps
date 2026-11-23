@@ -362,6 +362,8 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
     /** Where the trip under way goes: a restart to the same place (new stops) continues the trip instead of starting a new one. */
     private var navTripDest: LL? = null
     private var navStartDist = 0.0
+    /** How far you've driven on this trip so far (metres): for the live fuel cost. */
+    fun drivenOnTrip(): Double = max(0.0, tripDist - navStartDist)
     var brakeFlash by mutableStateOf(false)
     /** True for a few seconds after the speed limit changes, so the sign can pulse. */
     var limitPulse by mutableStateOf(false)

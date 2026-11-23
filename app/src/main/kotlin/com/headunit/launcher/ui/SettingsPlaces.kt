@@ -467,6 +467,10 @@ internal fun FuelSection(prefs: Prefs, engine: NavEngine) {
         SFieldItem("Kraftstoffpreis (Cent oder Euro pro Liter)", prefs.s(PreferenceKeys.FUELPPL, ""), placeholder = "z. B. 175 oder 1,75", number = true) { s -> prefs.put(PreferenceKeys.FUELPPL, s.replace(',', '.').filter { it.isDigit() || it == '.' }.take(6)) }
         SFieldItem(Lang.t("Tankinhalt (Liter)", "Tank size (litres)"), prefs.s(PreferenceKeys.FUEL_TANK_L, ""), Lang.t("Für die Tank-Reichweite", "For the tank range"), placeholder = Lang.t("z. B. 50", "e.g. 50"), number = true) { s -> prefs.put(PreferenceKeys.FUEL_TANK_L, s.filter { it.isDigit() }.take(3)) }
     }
+    SGroup(Lang.t("Live-Kosten", "Live cost")) {
+        SToggle(prefs, Lang.t("Live-Spritkosten", "Live fuel cost"), PreferenceKeys.LIVE_FUEL_COST, false,
+            Lang.t("Was die Fahrt bisher gekostet hat, als Zeile unter der Fahrtkarte, und die Summe auf der Ankunftskarte. Nutzt Verbrauch und Preis von oben", "What the trip has cost so far, as a line under the trip card, and the total on the arrival card. Uses the economy and price above"))
+    }
     LearnedGroup(engine)
 }
 

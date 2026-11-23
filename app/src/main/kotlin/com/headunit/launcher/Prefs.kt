@@ -199,6 +199,8 @@ internal object PreferenceKeys {
     const val FLYOVER = "flyover"
     const val FORCESETUP = "forcesetup"
     const val FUELMPG = "fuelmpg"
+    /** Settings › Fuel & charging › Live fuel cost (off by default). */
+    const val LIVE_FUEL_COST = "liveFuelCost"
     /** A petrol or diesel car: the tank's size in litres, and the fill level and range the car last sent (with when). */
     const val FUEL_TANK_L = "fueltankl"
     const val FUEL_NOW_PCT = "fuelnowpct"

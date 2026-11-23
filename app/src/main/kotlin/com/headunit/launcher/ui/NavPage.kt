@@ -532,6 +532,10 @@ internal fun ArrivalCard(engine: NavEngine, a: ArrivalInfo, modifier: Modifier =
             // (the short unit: the spoken "Kilometer pro Stunde" made the figure too wide for the card)
             ArrivalStat("${Math.round(a.avgMs * k)} ${if (imp) "mph" else "km/h"}", Lang.t("Durchschnitt", "Average"))
         }
+        // the live fuel cost (Settings › Fuel & charging): the whole trip's
+        if (engine.prefs.b(PreferenceKeys.LIVE_FUEL_COST, false)) routeCostText(engine, a.dist)?.removePrefix("≈ ")?.let {
+            Text(Lang.t("Kosten der Fahrt: $it", "Trip cost: $it"), color = c.text, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+        }
         engine.arrivalParking?.let { pk ->
             Row(
                 Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(c.tile).tap("park") { engine.dismissArrival(); engine.startRoute(pk.place) }.clickable { engine.dismissArrival(); engine.startRoute(pk.place) }.padding(horizontal = 14.dp, vertical = 10.dp),
@@ -813,6 +817,17 @@ private fun StepPill(text: String, onStep: () -> Unit) {
             .padding(horizontal = 18.dp, vertical = 10.dp),
         contentAlignment = Alignment.Center,
     ) { Text(text, color = c.text, fontSize = 15.sp, fontWeight = FontWeight.Medium) }
+}
+
+/**
+ * Settings › Fuel & charging › Live fuel cost: what the trip has really cost so far, from the distance driven and the economy and
+ * price set for the estimate ("Bisher 3,40 €"). Null when it's off, those aren't set, or hardly anything has been driven yet.
+ */
+fun liveCostText(engine: NavEngine): String? {
+    if (!engine.prefs.b(PreferenceKeys.LIVE_FUEL_COST, false)) return null
+    val d = engine.drivenOnTrip()
+    if (d < 100.0) return null
+    return routeCostText(engine, d)?.removePrefix("≈ ")?.let { Lang.t("Bisher $it", "So far $it") }
 }
 
 /** What a route costs in fuel (or charging), with the car's own settings, as its text ("Sprit etwa 12,30 €"); null when not set. */

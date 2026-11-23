@@ -807,6 +807,8 @@ private fun TripCard(engine: NavEngine, fill: Boolean, oneLine: Boolean = false)
             if (fill) engine.ev.evNowKm()?.let { k -> CarStat("$k km", "Reichweite", c.text) }
             engine.evArrivalPct()?.let { p -> CarStat("$p%", "Akku Ankunft", if (p < 10) Bad else if (p < 20) Warn else Good) }
         }
+        // the live fuel cost (Settings › Fuel & charging), a line under the figures
+        liveCostText(engine)?.let { Text(it, color = c.sub, fontSize = 16.sp, maxLines = 1, modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 4.dp)) }
         // the whole route at a glance (a text button), and the voice guidance (round: all, alerts only, off; one tap steps on)
         val pill: @Composable (String, Dp, () -> Unit) -> Unit = { label, h, action ->
             Box(Modifier.height(h).clip(androidx.compose.foundation.shape.CircleShape).background(c.line).carTap("trip-$label") { action() }
