@@ -1080,7 +1080,8 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
                 tts?.setAudioAttributes(speechAttrs)
                 tts?.setOnUtteranceProgressListener(object : android.speech.tts.UtteranceProgressListener() {
                     override fun onStart(id: String?) {}
-                    override fun onDone(id: String?) { if (id?.startsWith("nav") == true) uttDone(id) else unduck() }
+                    // ("navf": read into a file, which the app now plays itself, see NavEngineVoiceOut)
+                    override fun onDone(id: String?) { if (id?.startsWith("navf") == true) playVoiceFile(id) else if (id?.startsWith("nav") == true) uttDone(id) else unduck() }
                     override fun onStop(id: String?, interrupted: Boolean) { if (id?.startsWith("nav") == true) uttDone(id) }
                     @Deprecated("Deprecated in Java") override fun onError(id: String?) { if (id?.startsWith("nav") == true) uttDone(id) else unduck() }
                 })
@@ -1728,6 +1729,8 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
                 .setAudioFormat(android.media.AudioFormat.Builder().setSampleRate(rate)
                     .setEncoding(android.media.AudioFormat.ENCODING_PCM_16BIT).setChannelMask(android.media.AudioFormat.CHANNEL_OUT_MONO).build())
                 .setBufferSizeInBytes(n * 2).setTransferMode(android.media.AudioTrack.MODE_STATIC).build()
+            // Settings › Sound & voice › Voice comes out of › Phone speaker: the chimes stay on the phone too
+            if (speakerOut()) phoneSpeaker()?.let { track.setPreferredDevice(it) }
             track.write(buf, 0, n)
             track.play()
             scope.launch { delay(400); try { track.release() } catch (e: Exception) { softFail(e) } }
@@ -3142,7 +3145,7 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
         map.highlightDestination(null)
         stopSim()
         speechQ.clear(); speechSegs.clear(); playing = null; playingId = ""
-        tts?.stop()
+        stopVoice()
         // a stopped announcement never reports done: put the music back up here
         spoken = 0; unduck()
         glideRoute = null; glideOnRoute = false
@@ -7049,6 +7052,8 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
     internal var inForeignVoice = false
     internal var uttSeq = 0
     internal val speechMain = android.os.Handler(android.os.Looper.getMainLooper())
+    /** The app's own player while it plays the voice itself (see NavEngineVoiceOut). */
+    internal var voicePlayer: android.media.MediaPlayer? = null
 
     /** [turn]: a turn-by-turn call ("In 500 m, take the exit"), which has to be on time. */
     fun speak(text: String, alert: Boolean = false, turn: Boolean = false) {

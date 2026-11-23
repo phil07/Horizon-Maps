@@ -363,6 +363,10 @@ internal object PreferenceKeys {
     const val ZONEWARN = "zonewarn"
     const val TT_MAP_FIX = "ttmapfix"
     const val VOICE_CHANNEL = "voicechan"
+    /** Where the voice and chimes come out: "auto" (as the phone routes them) or "speaker" (the phone's own speaker). */
+    const val VOICE_OUT = "voiceOut"
+    /** The app plays the voice itself, the way it plays the chimes (for head units that only lower the music for those). */
+    const val VOICE_AS_CHIME = "voiceAsChime"
     /** The system speech voice chosen in Settings (its name); empty = the best installed one. */
     const val TTS_VOICE = "ttsvoice"
     const val TANKERKOENIG_KEY = "tkkey"

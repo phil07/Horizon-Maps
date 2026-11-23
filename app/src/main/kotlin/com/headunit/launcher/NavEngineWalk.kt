@@ -165,7 +165,7 @@ internal fun NavEngine.enqueue(u: Utt) {
         val p = playing
         // a plain note being read out is cut short; a warning or a turn call is finished first (cutting a turn call off mid
         // sentence left half a direction)
-        if (p != null && p.kind == 0) { playing = null; playingId = ""; speechSegs.clear(); try { tts?.stop() } catch (e: Exception) { softFail(e) } }
+        if (p != null && p.kind == 0) { playing = null; playingId = ""; speechSegs.clear(); stopVoice() }
     } else speechQ.addLast(u)
     playNext()
 }
@@ -256,9 +256,11 @@ internal fun NavEngine.speakNextSegment(): Boolean {
             if (voice != null) { if (!inForeignVoice) homeVoice = t.voice; t.voice = voice; inForeignVoice = true }
             else restoreHomeVoice()
         } catch (e: Exception) { softFail(e) }
-        val id = "nav${++uttSeq}"
+        // played by the app itself (like the chimes, or on the phone speaker): read into a file first, see NavEngineVoiceOut
+        val self = selfPlayVoice()
+        val id = (if (self) "navf" else "nav") + "${++uttSeq}"
         playingId = id
-        if (t.speak(text, TextToSpeech.QUEUE_ADD, null, id) != TextToSpeech.ERROR) return true
+        if (if (self) synthToFile(t, text, id) else t.speak(text, TextToSpeech.QUEUE_ADD, null, id) != TextToSpeech.ERROR) return true
         playingId = ""
     }
 }
