@@ -215,7 +215,11 @@ private fun SettingsBody(prefs: Prefs, engine: NavEngine, onClose: () -> Unit) {
         // so each change shows as you make it. The map moves here from the map screen (which is off while the settings are open).
         if (narrowS && !showList && cat <= 2) Box(
             Modifier.fillMaxWidth().height((androidx.compose.ui.platform.LocalConfiguration.current.screenHeightDp / 3).dp).padding(horizontal = 4.dp, vertical = 4.dp),
-        ) { MapHost(engine.map, Modifier.fillMaxSize(), cornerDp = 18) }
+        ) {
+            // the preview starts on your own position (not wherever the map was moved to on the map screen)
+            androidx.compose.runtime.LaunchedEffect(Unit) { engine.recenter(byUser = true) }
+            MapHost(engine.map, Modifier.fillMaxSize(), cornerDp = 18)
+        }
         androidx.compose.animation.AnimatedContent(
             targetState = cat,
             modifier = Modifier.weight(1f).fillMaxWidth(),
