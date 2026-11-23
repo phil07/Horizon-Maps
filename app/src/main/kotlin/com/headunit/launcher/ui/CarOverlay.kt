@@ -186,6 +186,9 @@ interface CarActions {
 object CarTaps {
     /** Set when the car passes taps on (Android Auto API 5 and up): only then can the app's own buttons be used. */
     @Volatile var available = false
+    /** When the car screen was last touched (a tap, a drag or a pinch): for hiding the search bar and places after a while. */
+    var touchedAt by androidx.compose.runtime.mutableLongStateOf(0L)
+    fun touched() { touchedAt = android.os.SystemClock.uptimeMillis() }
     private val regions = java.util.LinkedHashMap<String, Pair<androidx.compose.ui.geometry.Rect, () -> Unit>>()
     fun set(id: String, r: androidx.compose.ui.geometry.Rect, a: () -> Unit) { synchronized(regions) { regions.remove(id); regions[id] = r to a } }
     fun remove(id: String) { synchronized(regions) { regions.remove(id) } }
@@ -373,7 +376,15 @@ private fun CarScreen(engine: NavEngine, a: android.graphics.Rect?, actions: Car
         val savedRows = ((maxHeight - top - bottom - 330.dp - 150.dp) / 86.dp).toInt().coerceIn(0, 3)
         // the search bar alone (Home, Work and Saved folded away) is no card beside the arrow: only the block with the chips counts
         val searchBarDp = if (engine.carShort) 56.dp else 80.dp
-        if (engine.route == null && !arriving && !tile) Column(Modifier.padding(start = left, top = top).width(topW).onSizeChanged { topBlockH = it.height }.onGloballyPositioned {
+        // Settings › Android Auto › Hide them after: the search bar and places go after a while without a touch (a touch brings them back)
+        val hideAfter = engine.prefs.i(PreferenceKeys.CAR_HIDE_AFTER, 0)
+        var idleHidden by remember { mutableStateOf(false) }
+        LaunchedEffect(CarTaps.touchedAt, hideAfter, engine.route == null) {
+            idleHidden = false
+            if (hideAfter > 0 && engine.route == null) { kotlinx.coroutines.delay(hideAfter * 1000L); idleHidden = true }
+        }
+        if (idleHidden && topShown && engine.route == null) androidx.compose.runtime.SideEffect { engine.setPanel(0, 0f, 0f, 0f, 0f) }
+        if (engine.route == null && !arriving && !tile && !idleHidden) Column(Modifier.padding(start = left, top = top).width(topW).onSizeChanged { topBlockH = it.height }.onGloballyPositioned {
                 if (topShown) report(0, if (it.size.height > with(dens) { (searchBarDp + 24.dp).roundToPx() }) it.boundsInRoot() else androidx.compose.ui.geometry.Rect.Zero)
             },
             verticalArrangement = Arrangement.spacedBy(10.dp)) {

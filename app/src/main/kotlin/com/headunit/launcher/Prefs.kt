@@ -395,6 +395,8 @@ internal object PreferenceKeys {
     const val SPEED_SIGN_BIG = "speed_sign_big"
     /** Android Auto: the search bar, Home and Work, the shortcut buttons and the suggestion card left off the map when not navigating (rotary-knob cars). */
     const val CAR_HIDE_SEARCH = "car_hide_search"
+    /** Android Auto: seconds without a touch before the search bar and places go (0 = never). */
+    const val CAR_HIDE_AFTER = "carHideAfter"
     /** Android Auto: the sound button stays on the map when not navigating (off: only while navigating, for more room). */
     const val CAR_SOUND_IDLE = "car_sound_idle"
     const val TRIP_BTN_SOUND = "tripbtn_sound"

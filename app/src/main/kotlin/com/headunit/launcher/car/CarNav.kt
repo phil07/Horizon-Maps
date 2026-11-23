@@ -473,6 +473,7 @@ class CarSurface(private val carContext: CarContext, private val onReady: (MapBi
     override fun onStableAreaChanged(stableArea: Rect) {}
 
     override fun onScroll(distanceX: Float, distanceY: Float) {
+        com.headunit.launcher.ui.CarTaps.touched()
         val m = map ?: return
         m.onUserGesture?.invoke()
         engine?.onCarGesture()
@@ -483,6 +484,7 @@ class CarSurface(private val carContext: CarContext, private val onReady: (MapBi
 
     // a tap on the car screen (newer cars): the app's own cards and buttons react, as in the app
     override fun onClick(x: Float, y: Float) {
+        com.headunit.launcher.ui.CarTaps.touched()
         try {
             // the app's cards and buttons first, then the map itself (alternative route cards and lines, skipping the fly-through)
             // (a tap on an empty spot of the map picks it, with a card to go there: Android Auto passes no long press)
@@ -496,6 +498,7 @@ class CarSurface(private val carContext: CarContext, private val onReady: (MapBi
     }
 
     override fun onScale(focusX: Float, focusY: Float, scaleFactor: Float) {
+        com.headunit.launcher.ui.CarTaps.touched()
         val m = map ?: return
         m.onUserGesture?.invoke()
         engine?.onCarGesture()
