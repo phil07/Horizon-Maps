@@ -560,6 +560,15 @@ private fun MapScreen(engine: NavEngine, onSettings: () -> Unit) {
                         Icon(Icons.Rounded.Close, Lang.t("Route beenden", "End route"), tint = Color.White, modifier = Modifier.size(24.dp))
                     }
                 }
+                // the last stretch: which side the destination is on (from where you are and the way you are heading)
+                val lastSide = run {
+                    val from = engine.fix ?: return@run null
+                    val to = engine.dest?.pos ?: return@run null
+                    if (pe == null || pe.dist > 400.0) return@run null
+                    val d = ((com.headunit.launcher.Geo.bearing(from.pos, to) - from.heading + 540.0) % 360.0) - 180.0
+                    when { d > 25.0 -> Lang.t("Ziel rechts", "Destination on the right"); d < -25.0 -> Lang.t("Ziel links", "Destination on the left"); else -> Lang.t("Ziel geradeaus", "Destination straight ahead") }
+                }
+                lastSide?.let { Text(it, color = pc.text, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, modifier = Modifier.padding(top = 4.dp)) }
                 if (portraitTripUp) TripArea(engine, shareEta, narrow, voice)
             }
         }
