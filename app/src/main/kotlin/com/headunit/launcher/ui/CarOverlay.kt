@@ -475,6 +475,10 @@ private fun CarScreen(engine: NavEngine, a: android.graphics.Rect?, actions: Car
             else Modifier.align(Alignment.TopCenter).padding(top = top, start = if (guiding) maxWidth * 0.42f else left, end = maxOf(rightTop, maxWidth * 0.30f))
         AnimatedVisibility(alert != null, modifier = alertMod, enter = fadeIn(), exit = fadeOut()) { alert?.let { AlertBanner(it) } }
 
+        // a trip that ended by itself while you were stopped on the way: "Carry on to …", starting by itself after 10 s
+        if (engine.route == null && !arriving && engine.resume != null) Box(Modifier.align(Alignment.BottomCenter).padding(bottom = 24.dp, start = left, end = rightTop)) {
+            CompositionLocalProvider(LocalDensity provides Density(dens.density * cardScale, dens.fontScale)) { CarResumeCard(engine, Modifier.widthIn(max = 560.dp)) }
+        }
         // a quicker way: a card at the top to take or leave (it goes again by itself)
         if (guiding && engine.stopPause != null) Box(Modifier.align(Alignment.TopCenter).padding(top = top + below, start = left, end = rightTop)) {
             CompositionLocalProvider(LocalDensity provides Density(dens.density * cardScale, dens.fontScale)) { StopCard(engine, Modifier.widthIn(max = 560.dp)) }
@@ -645,6 +649,35 @@ private fun PickCard(engine: NavEngine) {
         }
         Box(Modifier.carTap("pick-go") { engine.goPick() }) { ImmPill(if (guiding) Lang.t("Als Stopp", "Add stop") else Lang.t("Hierhin fahren", "Go here"), {}, filled = true) }
         Box(Modifier.carTap("pick-no") { engine.clearPick() }) { ImmPill(Lang.t("Abbrechen", "Cancel"), {}) }
+    }
+}
+
+/**
+ * Back in the car after a trip ended by itself on the way (a stop at a shop): "Weiter nach …" with a 10 second countdown, then the
+ * route starts by itself, like Waze. "Nicht jetzt" leaves it.
+ */
+@Composable
+private fun CarResumeCard(engine: NavEngine, modifier: Modifier) {
+    val rp = engine.resume ?: return
+    val c = LocalVw.current
+    var left by remember(rp) { mutableStateOf(10) }
+    LaunchedEffect(rp) {
+        while (left > 0) { kotlinx.coroutines.delay(1000); left-- }
+        if (engine.resume === rp && engine.route == null) engine.resumeTrip(startNow = true)
+    }
+    Row(
+        modifier.panel(10.dp, RoundedCornerShape(24.dp), c.surface).padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Box(Modifier.size(44.dp).clip(androidx.compose.foundation.shape.CircleShape).background(c.accent.copy(alpha = 0.18f)), contentAlignment = Alignment.Center) {
+            androidx.compose.material3.Icon(androidx.compose.material.icons.Icons.Rounded.Route, null, tint = c.accent, modifier = Modifier.size(24.dp))
+        }
+        Column(Modifier.weight(1f, fill = false)) {
+            Text(Lang.t("Weiter nach ${rp.name}", "Carry on to ${rp.name}"), color = c.text, fontSize = 18.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(Lang.t("Startet in $left s", "Starts in $left s"), color = c.sub, fontSize = 14.sp, maxLines = 1)
+        }
+        Box(Modifier.carTap("resume-no") { engine.dismissResume() }) { ImmPill(Lang.t("Nicht jetzt", "Not now"), {}) }
+        Box(Modifier.carTap("resume-go") { engine.resumeTrip(startNow = true) }) { ImmPill(Lang.t("Los", "Go"), {}, filled = true) }
     }
 }
 

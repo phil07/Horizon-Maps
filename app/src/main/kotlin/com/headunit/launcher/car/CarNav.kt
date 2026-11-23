@@ -779,6 +779,8 @@ class MapScreen(carContext: CarContext, private val holder: CarHolder) : Screen(
             }
 
         } else if (taps) {
+            // a trip that ended by itself on the way: Carry on, also in Android Auto's own row (for rotary knobs)
+            if (e?.resume != null) strip.addAction(Action.Builder().setTitle(Lang.t("Weiter", "Carry on")).setOnClickListener { e.resumeTrip(startNow = true); invalidate() }.build())
             // cars that pass taps on use the app's own search bar, chips and button column on the map (Melden, zoom and re-centre are
             // there). The bar can't be empty: Settings, which the column doesn't have, stays as its one button
             // (with the search bar left off the map, Places (★) comes up here too: Search, Home, Work and the saved places)
@@ -786,6 +788,7 @@ class MapScreen(carContext: CarContext, private val holder: CarHolder) : Screen(
                 strip.addAction(Action.Builder().setIcon(icon(R.drawable.ic_car_star)).setOnClickListener { screenManager.push(PlacesScreen(carContext, holder)) }.build())
             strip.addAction(Action.Builder().setIcon(icon(R.drawable.ic_car_settings)).setOnClickListener { openSettings() }.build())
         } else {
+            if (e?.resume != null) strip.addAction(Action.Builder().setTitle(Lang.t("Weiter", "Carry on")).setOnClickListener { e.resumeTrip(startNow = true); invalidate() }.build())
             // cars that don't pass taps on: Melden has the Search button's place, and Suche is the first row in Orte
             strip.addAction(reportAction())
             strip.addAction(if (e?.carShort == true) Action.Builder().setIcon(icon(R.drawable.ic_car_star)).setOnClickListener { screenManager.push(PlacesScreen(carContext, holder)) }.build()

@@ -358,6 +358,8 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
     internal var lastFasterCheck = 0L
     /** Destination of a trip that was still running when the app last closed. */
     var resume by mutableStateOf<Place?>(null)
+    /** How long a trip that ended by itself is offered again. */
+    private val RESUME_KEEP_MS = 3 * 60 * 60_000L
     internal var navStartMs = 0L
     /** Where the trip under way goes: a restart to the same place (new stops) continues the trip instead of starting a new one. */
     private var navTripDest: LL? = null
@@ -1037,7 +1039,9 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
         try {
             val o = org.json.JSONObject(prefs.s(PreferenceKeys.RESUME, "{}"))
             val age = System.currentTimeMillis() - o.optLong("b", o.optLong("t"))
-            if (o.has("la") && age < 4 * 60_000L) {
+            // a trip that ended by itself while you were stopped on the way (see endRouteKeepingResume)
+            val autoEnded = o.optBoolean("auto", false)
+            if (o.has("la") && !autoEnded && age < 4 * 60_000L) {
                 // the app was navigating a moment ago (Android restarted it, e.g. when the screen switched between day and night):
                 // carry straight on, stops included, without asking
                 val d = Place(o.optString("n"), o.optString("s"), LL(o.getDouble("la"), o.getDouble("lo")))
@@ -1060,8 +1064,8 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
                     toast(Lang.f("Weiter zu %1\$s", "Carrying on to %1\$s", d.name), 3500)
                     startRoute(d, 0, keepVia = true, startNow = true)
                 }
-            } else if (o.has("la") && age < 15 * 60_000L && !o.optBoolean("near", false))
-                // stopped navigating 4 to 15 minutes ago: offer to carry on with the "Resume trip" card
+            } else if (o.has("la") && age < (if (autoEnded) RESUME_KEEP_MS else 15 * 60_000L) && !o.optBoolean("near", false))
+                // stopped navigating 4 to 15 minutes ago (or, ended by itself, up to 3 hours): offer to carry on with the "Resume trip" card
                 resume = Place(o.optString("n"), o.optString("s"), LL(o.getDouble("la"), o.getDouble("lo")))
         } catch (e: Exception) { softFail(e) }
         tts = TextToSpeech(ctx) { status ->
@@ -3117,6 +3121,32 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
         }
     }
 
+    /**
+     * A route left running while parked ends by itself after half an hour (a stop at a shop, say). The trip is kept for 3 hours, so
+     * back in the car it's offered again: "Resume trip" on the phone, and on Android Auto a "Carry on to …" card that starts by itself.
+     */
+    private fun endRouteKeepingResume() {
+        val d = dest
+        val kept = try { org.json.JSONObject(prefs.s(PreferenceKeys.RESUME, "{}")) } catch (e: Exception) { org.json.JSONObject() }
+        endRoute()
+        if (d == null) return
+        val now = System.currentTimeMillis()
+        try { prefs.put(PreferenceKeys.RESUME, kept.put("n", d.name).put("s", d.sub).put("la", d.pos.lat).put("lo", d.pos.lon).put("b", now).put("auto", true).toString()) } catch (e: Exception) { softFail(e) }
+        resume = d
+        scope.launch { delay(RESUME_KEEP_MS); if (resume === d) resume = null }
+    }
+
+    /** Carries on to the trip offered by the "Resume trip" card (on Android Auto it starts straight away). */
+    fun resumeTrip(startNow: Boolean = false) {
+        val rp = resume ?: return
+        resume = null
+        prefs.put(PreferenceKeys.RESUME, "{}")
+        startRoute(rp, startNow = startNow)
+    }
+
+    /** "Not now" on the "Resume trip" card. */
+    fun dismissResume() { resume = null; prefs.put(PreferenceKeys.RESUME, "{}") }
+
     fun endRoute() {
         scope.launch { pushFavourites() }
         try { noteRouteEnd() } catch (e: Exception) { softFail(e) }
@@ -3993,7 +4023,7 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
         // a route left running while parked: after half an hour it ends by itself, and with the app put away the GPS stops
         if (route != null && !previewing && p.speed < 0.8) {
             if (parkedRouteSince == 0L) parkedRouteSince = now
-            else if (now - parkedRouteSince > 30 * 60_000L) { parkedRouteSince = 0L; endRoute(); if (!appVisible && !RouteSync.carConnected()) stopLocation() }
+            else if (now - parkedRouteSince > 30 * 60_000L) { parkedRouteSince = 0L; endRouteKeepingResume(); if (!appVisible && !RouteSync.carConnected()) stopLocation() }
         } else parkedRouteSince = 0L
         // ---- end of trip (stopped for two minutes) ----
         if (p.speed > 4.0) { drove = true; stillSince = 0L }
