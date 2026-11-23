@@ -535,6 +535,35 @@ object Overpass {
     private val bgGate = java.util.concurrent.Semaphore(1, true)
 
     /** Traffic lights and speed cameras within [radius] metres of the line through [pts], in one request. Throws on failure. */
+    /**
+     * The point on the named street [street] nearest to [p] (within about 200 m), for a house address: the route ends on the street
+     * the house is on, not in the middle of its plot. Null when no such street is mapped there.
+     */
+    fun nearestNamedRoadPoint(p: LL, street: String): LL? {
+        val safe = street.replace("\\", "\\\\").replace("\"", "\\\"")
+        val q = "[out:json][timeout:20];way(around:200,${String.format(java.util.Locale.US, "%.6f,%.6f", p.lat, p.lon)})[\"highway\"][\"name\"=\"$safe\"];out geom 40;"
+        bgGate.acquire()
+        val els = try { run(q, 10000, 25000) } finally { bgGate.release() }
+        val k = Math.cos(Math.toRadians(p.lat)) * 111320.0; val k2 = 111320.0
+        var best: LL? = null; var bd = 200.0
+        for (i in 0 until els.length()) {
+            val geo = els.getJSONObject(i).optJSONArray("geometry") ?: continue
+            for (j in 0 until geo.length() - 1) {
+                val a = geo.getJSONObject(j); val b = geo.getJSONObject(j + 1)
+                val ax = (a.getDouble("lon") - p.lon) * k; val ay = (a.getDouble("lat") - p.lat) * k2
+                val dx = (b.getDouble("lon") - p.lon) * k - ax; val dy = (b.getDouble("lat") - p.lat) * k2 - ay
+                val l2 = dx * dx + dy * dy
+                val t = if (l2 < 0.01) 0.0 else (-(ax * dx + ay * dy) / l2).coerceIn(0.0, 1.0)
+                val d = Math.hypot(ax + dx * t, ay + dy * t)
+                if (d < bd) {
+                    bd = d
+                    best = LL(a.getDouble("lat") + (b.getDouble("lat") - a.getDouble("lat")) * t, a.getDouble("lon") + (b.getDouble("lon") - a.getDouble("lon")) * t)
+                }
+            }
+        }
+        return best
+    }
+
     fun routeFeatures(pts: List<LL>, radius: Int): Pair<List<LL>, List<LL>> {
         val line = pts.joinToString(",") { String.format(java.util.Locale.US, "%.6f,%.6f", it.lat, it.lon) }
         val q = "[out:json][timeout:25];(node(around:$radius,$line)[\"highway\"=\"traffic_signals\"];node(around:$radius,$line)[\"highway\"=\"speed_camera\"];);out 3000;"

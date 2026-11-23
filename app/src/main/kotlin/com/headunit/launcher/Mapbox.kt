@@ -676,7 +676,9 @@ object MapboxRest {
         val name = pr.optString("name").ifBlank { pr.optString("full_address").substringBefore(',') }.ifBlank { q }
         val sub = pr.optString("full_address").takeIf { it.isNotBlank() && it != name && pr.optString("feature_type") == "poi" }
             ?: pr.optString("place_formatted")
-        return Place(name, sub, LL(lat, lon)).town(pr.optString("feature_type") in SearchRank.MAPBOX_TOWNS)
+        // a house address with no routable point: its street, so the route can end on the street (Overpass.nearestNamedRoadPoint)
+        val streetName = if (rp == null && pr.optString("feature_type") == "address") pr.optJSONObject("context")?.optJSONObject("street")?.optString("name")?.takeIf { it.isNotBlank() } else null
+        return Place(name, sub, LL(lat, lon)).town(pr.optString("feature_type") in SearchRank.MAPBOX_TOWNS).also { it.street = streetName }
     }
 
     /** Why the last Mapbox search failed (both of its searches), or null: shown instead of "no matches". */

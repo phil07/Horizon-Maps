@@ -55,6 +55,8 @@ data class Place(val name: String, val sub: String, val pos: LL) {
     var brand: String? = null
     /** "Geöffnet bis 20:00" or "Geschlossen · öffnet 08:00" when the search gave opening times (see OpenHours). Not saved, not compared. */
     var hours: String? = null
+    /** The street of a house address the search gave without a routable point: the route ends on that street (see Overpass). Not saved, not compared. */
+    var street: String? = null
     /** The shop's phone number when the search gave one (for the card's Call button). Not saved, not compared. */
     var phone: String? = null
 }

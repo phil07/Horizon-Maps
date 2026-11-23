@@ -2735,22 +2735,24 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
         if (fix == null) toast(Lang.t("Noch kein GPS-Signal: Route ab der Kartenmitte. Die Demofahrt simuliert die Fahrt.", "No GPS fix yet: routing from the map centre. Use the demo drive to simulate."), 5000)
         busy = true
         scope.launch {
+            // a house address with no routable point: the route ends on its street (the nearest point on the named street), else on the place
+            val toPos = to.street?.let { st -> withContext(Dispatchers.IO) { try { Overpass.nearestNamedRoadPoint(to.pos, st) } catch (e: Exception) { null } } } ?: to.pos
             try {
                 val departMs = if (departInMin > 0) System.currentTimeMillis() + departInMin * 60_000L else 0L
                 var usedOffline = false
                 val rs0 = withContext(Dispatchers.IO) {
                     val haveOffline = OfflineRouter.installed(ctx)
                     val hd = driveHeading(from)
-                    if (haveOffline && (!hasOnline || !online())) { usedOffline = true; typicalOffline(ctx, from, to.pos, via.map { it.pos }, hd) }
-                    else try { netRoutes(from, to.pos, true, departMs, via.map { it.pos }, hd, askBoth = true) }
+                    if (haveOffline && (!hasOnline || !online())) { usedOffline = true; typicalOffline(ctx, from, toPos, via.map { it.pos }, hd) }
+                    else try { netRoutes(from, toPos, true, departMs, via.map { it.pos }, hd, askBoth = true) }
                     catch (e: Exception) {
-                        if (haveOffline && NavigationFallbackPolicy.shouldUseOffline(e)) { usedOffline = true; typicalOffline(ctx, from, to.pos, via.map { it.pos }, hd) } else throw e
+                        if (haveOffline && NavigationFallbackPolicy.shouldUseOffline(e)) { usedOffline = true; typicalOffline(ctx, from, toPos, via.map { it.pos }, hd) } else throw e
                     }
                 }
                 if (rs0.isEmpty()) throw IllegalStateException("No route found")
-                var rs = if (usedOffline) rs0 else avoidVignette(rs0, from, to.pos, departMs)
+                var rs = if (usedOffline) rs0 else avoidVignette(rs0, from, toPos, departMs)
                 // a way off to one side can be quicker than the services' own few choices, which all run close to the direct line
-                if (!usedOffline && via.isEmpty()) try { rs = rs + neighbourDetours(rs, from, to.pos, departMs, driveHeading(from)) } catch (e: Exception) { softFail(e) }
+                if (!usedOffline && via.isEmpty()) try { rs = rs + neighbourDetours(rs, from, toPos, departMs, driveHeading(from)) } catch (e: Exception) { softFail(e) }
                 if (usedOffline) toast(Lang.t("Offline-Route: kein Verkehr oder Live-Daten", "Offline route: no traffic or live data"), 4000)
                 // the fastest route is the one chosen first: everything planned for the trip (rain, weather, charging stops) is for it
                 // except when the charging stops went onto the trip as it started: then the way that follows the route you chose
@@ -2793,7 +2795,7 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
                 updateRouteZones()
                 said.clear(); offCount = 0; lastIdx = 0; trustProg = -1.0
                 turn = null; eta = null; routeFrac = 0f
-                map.setDest(to.pos); pushVia()
+                map.setDest(toPos); pushVia()
                 drawRoutes()
                 following = false
                 previewing = true
