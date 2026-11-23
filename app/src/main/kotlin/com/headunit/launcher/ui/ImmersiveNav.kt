@@ -496,6 +496,8 @@ private fun MapScreen(engine: NavEngine, onSettings: () -> Unit) {
                         PortraitChips(engine)
                         LeaveByChips(engine)
                         OutsideMapsChip(engine)
+                        if (engine.driving && engine.onRoad.isNotBlank()) Text(engine.onRoad, color = LocalVw.current.text, fontSize = 16.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp))
+                        MediaBar(engine)
                         if (portraitSheetUp) ImmQuick(engine)
                     }
                 }
