@@ -293,7 +293,13 @@ private fun MapScreen(engine: NavEngine, onSettings: () -> Unit) {
         // ---- top left: search while idle; the turn card and its companions while navigating
         // the panels' outlines (as parts of the screen) go to the camera, so your arrow is moved clear of whatever is beside it
         val boxW = constraints.maxWidth.toFloat().coerceAtLeast(1f); val boxH = constraints.maxHeight.toFloat().coerceAtLeast(1f)
-        fun report(i: Int, r: androidx.compose.ui.geometry.Rect) { engine.setPanel(i, r.left / boxW, r.top / boxH, r.right / boxW, r.bottom / boxH) }
+        // with the saved & recent list folded away and no route, the arrow still moves a third as far as with the list down (its height
+        // is estimated: about four rows and a heading, 260 dp)
+        val listThird = with(LocalDensity.current) { (260.dp / 3).toPx() }
+        fun report(i: Int, r: androidx.compose.ui.geometry.Rect) {
+            val folded = i == 0 && !routing && !engine.prefs.b(PreferenceKeys.QUICKLIST, true)
+            engine.setPanel(i, r.left / boxW, r.top / boxH, r.right / boxW, (r.bottom + if (folded) listThird else 0f) / boxH)
+        }
         // a place tapped on the map: its card floats over everything else (also over the route options while choosing a route)
         // docked like Add a stop: along the bottom, or down the driver's side when the screen is held sideways (a head unit too)
         engine.favNaming?.let { FavNameDialog(engine, it) }
