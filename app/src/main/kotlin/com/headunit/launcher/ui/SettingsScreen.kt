@@ -216,8 +216,14 @@ private fun SettingsBody(prefs: Prefs, engine: NavEngine, onClose: () -> Unit) {
         if (narrowS && !showList && cat <= 2) Box(
             Modifier.fillMaxWidth().height((androidx.compose.ui.platform.LocalConfiguration.current.screenHeightDp / 3).dp).padding(horizontal = 4.dp, vertical = 4.dp),
         ) {
-            // the preview starts on your own position (not wherever the map was moved to on the map screen)
-            androidx.compose.runtime.LaunchedEffect(Unit) { engine.recenter(byUser = true) }
+            // the preview starts on your own position (not wherever the map was moved to on the map screen), a step further out
+            // than the map (so the 3D buildings still show, and more of the map round you); the map's own zoom comes back when it closes
+            androidx.compose.runtime.DisposableEffect(Unit) {
+                val before = engine.zoomOffset
+                engine.recenter(byUser = true)
+                engine.zoomOffset = (engine.zoomOffset - 1.0).coerceIn(-4.0, 3.0)
+                onDispose { engine.zoomOffset = before }
+            }
             MapHost(engine.map, Modifier.fillMaxSize(), cornerDp = 18)
         }
         androidx.compose.animation.AnimatedContent(
