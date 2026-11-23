@@ -548,6 +548,7 @@ private fun MapScreen(engine: NavEngine, onSettings: () -> Unit) {
                 horizontalAlignment = Alignment.CenterHorizontally) {
                 Box(Modifier.padding(top = 8.dp, bottom = 6.dp).clip(RoundedCornerShape(3.dp)).background(pc.sub.copy(alpha = 0.5f)).size(width = 44.dp, height = 5.dp)
                     .clickable { portraitTripUp = !portraitTripUp })
+                FasterStrip(engine, Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp))
                 if (pe != null) Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically) {
                     Column { Text(Geo.fmtDur(pe.secs), color = pc.accent, fontSize = 26.sp, fontWeight = FontWeight.Bold, maxLines = 1); Text(Lang.t("Verbleibend", "Left"), color = pc.sub, fontSize = 12.sp, maxLines = 1) }
                     Spacer(Modifier.weight(1f))
@@ -652,22 +653,6 @@ private fun MapScreen(engine: NavEngine, onSettings: () -> Unit) {
             }
         }
 
-        engine.faster?.let { fr ->
-            Row(
-                // at the top, under the turn card, where it's seen at a glance
-                Modifier.align(Alignment.TopCenter).statusBarsPadding().padding(start = 16.dp, end = 16.dp, top = 150.dp).widthIn(max = 540.dp).panel(10.dp, RoundedCornerShape(24.dp), c.surface).padding(horizontal = 18.dp, vertical = 14.dp),
-                verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp),
-            ) {
-                Box(Modifier.size(44.dp).clip(CircleShape).background(Good.copy(alpha = 0.18f)), contentAlignment = Alignment.Center) { Icon(Icons.Rounded.Route, null, tint = Good, modifier = Modifier.size(24.dp)) }
-                Column {
-                    Text(Lang.t("Schnellere Route gefunden", "Faster route found"), color = c.text, fontSize = 18.sp, fontWeight = FontWeight.Bold)
-                    Text(Lang.t("Spart etwa ${fr.savedMin} Min.", "Saves about ${fr.savedMin} min"), color = Good, fontSize = 14.sp, fontWeight = FontWeight.Medium)
-                }
-                ImmPill(Lang.t("Wechseln", "Switch"), { engine.acceptFaster() }, filled = true)
-                ImmPill(Lang.t("Behalten", "Keep"), { engine.dismissFaster() })
-            }
-        }
-
         // passing another driver's shared report: "Stau noch da?" with Noch da / Weg (it goes by itself after 12 s; above the faster
         // route card when that is up too)
         engine.votePrompt?.takeIf { !previewing && engine.arrival == null }?.let { vp ->
@@ -715,6 +700,22 @@ private fun MapScreen(engine: NavEngine, onSettings: () -> Unit) {
     }
 }
 
+/** A faster route on offer, as a strip on the trip card: its saving, then switch or keep. */
+@Composable
+private fun FasterStrip(engine: NavEngine, modifier: Modifier) {
+    val c = LocalVw.current
+    val fr = engine.faster ?: return
+    Row(modifier, verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        Box(Modifier.size(36.dp).clip(CircleShape).background(Good.copy(alpha = 0.18f)), contentAlignment = Alignment.Center) { Icon(Icons.Rounded.Route, null, tint = Good, modifier = Modifier.size(20.dp)) }
+        Column(Modifier.weight(1f)) {
+            Text(Lang.t("Schnellere Route gefunden", "Faster route found"), color = c.text, fontSize = 15.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(Lang.t("Spart etwa ${fr.savedMin} Min.", "Saves about ${fr.savedMin} min"), color = Good, fontSize = 13.sp, fontWeight = FontWeight.Medium, maxLines = 1)
+        }
+        ImmPill(Lang.t("Wechseln", "Switch"), { engine.acceptFaster() }, filled = true)
+        ImmPill(Lang.t("Behalten", "Keep"), { engine.dismissFaster() })
+    }
+}
+
 /** Bottom left: hazard badges, then the trip card with the route bar, arrival, time and distance left, and the trip buttons. */
 @Composable
 private fun TripArea(engine: NavEngine, shareEta: () -> Unit, narrow: Boolean = false, voice: () -> Unit = {}) {
@@ -747,6 +748,11 @@ private fun TripArea(engine: NavEngine, shareEta: () -> Unit, narrow: Boolean = 
             val rowW = with(dens) { rowPx.toDp() }
             Column(Modifier.then(if (narrow) Modifier.fillMaxWidth() else Modifier).panel(10.dp, shape, c.surface).animateContentSize()) {
                 val barMod = if (narrow) Modifier.fillMaxWidth() else Modifier.width(rowW)
+                // a faster route on offer: a strip across the top of the card, switch or keep
+                if (engine.faster != null && (narrow || rowPx > 0)) {
+                    FasterStrip(engine, barMod.padding(start = if (narrow) 16.dp else 18.dp, end = if (narrow) 16.dp else 18.dp, top = if (narrow) 8.dp else 9.dp, bottom = 8.dp))
+                    Box(barMod.padding(horizontal = 18.dp).height(1.dp).background(c.line))
+                }
                 // the route bar across the top of the card, with room to breathe
                 if (engine.showRouteBar && (narrow || rowPx > 0)) {
                     RouteBar(engine, barMod.padding(start = if (narrow) 16.dp else 18.dp, end = if (narrow) 16.dp else 18.dp, top = if (narrow) 7.dp else 9.dp, bottom = if (narrow) 2.dp else 4.dp))
