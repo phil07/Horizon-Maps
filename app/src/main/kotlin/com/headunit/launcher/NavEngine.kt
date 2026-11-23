@@ -1136,8 +1136,16 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
      *  head units have the navigation channel turned right down or not wired to the speakers, so the beeps (on the media channel)
      *  sounded but the spoken directions never did. */
     internal var voiceChan = "nav"
+    /** The audio usage of the voice channel chosen in Settings › Sound. */
+    internal fun voiceUsage(ch: String): Int = when (ch) {
+        "media" -> android.media.AudioAttributes.USAGE_MEDIA
+        "notification" -> android.media.AudioAttributes.USAGE_NOTIFICATION
+        "alarm" -> android.media.AudioAttributes.USAGE_ALARM
+        "ringtone" -> android.media.AudioAttributes.USAGE_NOTIFICATION_RINGTONE
+        else -> android.media.AudioAttributes.USAGE_ASSISTANCE_NAVIGATION_GUIDANCE
+    }
     internal val speechAttrs: android.media.AudioAttributes get() = android.media.AudioAttributes.Builder()
-        .setUsage(if (voiceChan == "media") android.media.AudioAttributes.USAGE_MEDIA else android.media.AudioAttributes.USAGE_ASSISTANCE_NAVIGATION_GUIDANCE)
+        .setUsage(voiceUsage(voiceChan))
         .setContentType(android.media.AudioAttributes.CONTENT_TYPE_SPEECH).build()
     private val audioMgr = ctx.getSystemService(Context.AUDIO_SERVICE) as android.media.AudioManager
     private var focusReq: android.media.AudioFocusRequest? = null
@@ -1712,7 +1720,7 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
                 .setAudioAttributes(android.media.AudioAttributes.Builder()
                     // the same channel as the spoken directions (Settings > Sound & voice > Voice channel), so the head unit's volume
                     // during a direction turns the chimes down too
-                    .setUsage(if (voiceChan == "media") android.media.AudioAttributes.USAGE_MEDIA else android.media.AudioAttributes.USAGE_ASSISTANCE_NAVIGATION_GUIDANCE)
+                    .setUsage(voiceUsage(voiceChan))
                     .setContentType(android.media.AudioAttributes.CONTENT_TYPE_SONIFICATION).build())
                 .setAudioFormat(android.media.AudioFormat.Builder().setSampleRate(rate)
                     .setEncoding(android.media.AudioFormat.ENCODING_PCM_16BIT).setChannelMask(android.media.AudioFormat.CHANNEL_OUT_MONO).build())

@@ -49,7 +49,7 @@ internal object LampPlacement {
                         val dir = Math.toDegrees(Math.atan2(bx - ax, by - ay))
                         // at the left kerb, about 5.5 m from the middle of the road, arm reaching back over it
                         val at = Furniture.offset(LL(lat, lon), dir - 90.0, 5.5)
-                        if (taken.add(key(at.lat, at.lon)) && Geo.dist(at, c) < 900.0) spots += doubleArrayOf(at.lat, at.lon, dir + 90.0)
+                        if (taken.add(key(at.lat, at.lon)) && Geo.dist(at, c) < 900.0 && clearOfStreets(at.lat, at.lon, roads, 4.0)) spots += doubleArrayOf(at.lat, at.lon, dir + 90.0)
                         d += gap
                     }
                     carry = d - len
@@ -112,6 +112,20 @@ internal object LampPlacement {
             }
         }
         return dir
+    }
+
+    /** True when [lat], [lon] is at least [clear] m from every street (the middle line of each road). */
+    private fun clearOfStreets(lat: Double, lon: Double, roads: List<List<Point>>, clear: Double): Boolean {
+        val k = Math.cos(Math.toRadians(lat)) * 111320.0; val k2 = 111320.0
+        for (pts in roads) for (i in 0 until pts.size - 1) {
+            val ax = (pts[i].longitude() - lon) * k; val ay = (pts[i].latitude() - lat) * k2
+            val cx = (pts[i + 1].longitude() - lon) * k; val cy = (pts[i + 1].latitude() - lat) * k2
+            val dx = cx - ax; val dy = cy - ay
+            val l2 = dx * dx + dy * dy
+            val t = if (l2 < 0.01) 0.0 else (-(ax * dx + ay * dy) / l2).coerceIn(0.0, 1.0)
+            if (Math.hypot(ax + dx * t, ay + dy * t) < clear) return false
+        }
+        return true
     }
 
     /** The way a mapped lamp's arm points: towards the nearest street within 25 m (else north). */
