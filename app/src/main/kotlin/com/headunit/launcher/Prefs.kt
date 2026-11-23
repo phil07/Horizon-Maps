@@ -399,6 +399,8 @@ internal object PreferenceKeys {
     const val CAR_HIDE_AFTER = "carHideAfter"
     /** Android Auto › Cool running: "off", "auto" (when the phone gets hot) or "always". */
     const val CAR_COOL = "carCool"
+    /** Settings › On the map › Blend traffic colours on the route line and the route bar (on by default). */
+    const val TRAFFIC_BLEND = "trafficBlend"
     /** The turn card's arrow, width and height in percent (100 = as designed), on the phone and on the car screen. */
     const val TURN_ARROW_SIZE = "turnArrowSize"
     const val TURN_CARD_WIDTH = "turnCardWidth"

@@ -417,6 +417,7 @@ private fun OnTheMapSection(prefs: Prefs, engine: NavEngine) {
         SToggle(prefs, Lang.t("Verkehrsübersicht beim Halt", "Traffic overview when stopped"), PreferenceKeys.STOPPED_OVERVIEW, true, Lang.t("Zoomt nach 30 s Stillstand heraus", "Zooms out after 30 s standing still"))
         SToggle(prefs, Lang.t("Verkehr nur auf der Route anzeigen", "Show traffic on the route only"), PreferenceKeys.ROUTETRAFFICONLY, false, Lang.t("Aus zeigt auch Verkehr auf umliegenden Straßen", "Off also shows traffic on nearby roads"))
         SToggle(prefs, Lang.t("Grüner Verkehr bei freier Fahrt", "Green traffic when clear"), PreferenceKeys.TRAFFIC_GREEN, false, Lang.t("Frei fließende Hauptstraßen grün anzeigen", "Show free-flowing main roads in green"))
+        SToggle(prefs, Lang.t("Verkehrsfarben fließend", "Blend traffic colours"), PreferenceKeys.TRAFFIC_BLEND, true, Lang.t("Die Verkehrsfarben auf der Route und der Routenleiste gehen ineinander über, statt hart zu wechseln", "The traffic colours on the route and the route bar run into each other instead of changing in one step"))
     }
     SGroup(Lang.t("Auf der Route", "On the route")) {
         SToggle(prefs, Lang.t("Ampeln", "Traffic lights"), PreferenceKeys.SIGNALS, true, if (prefs.b(PreferenceKeys.SIGNALS, true)) Lang.t("Nur Ampeln auf deiner Route. Aktuell: ", "Only traffic lights on your route. Now: ") + engine.map.signalInfo() else null)

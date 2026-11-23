@@ -153,6 +153,18 @@ fun RouteBar(engine: NavEngine, modifier: Modifier = Modifier, thin: Boolean = f
         }
         out
     }
+    // Settings › On the map › Blend traffic colours: each level is averaged with its neighbours (two either side), so the colours
+    // run into each other where the traffic changes; a long stretch of one level keeps its colour
+    val blend = engine.prefs.b(PreferenceKeys.TRAFFIC_BLEND, true)
+    val smooth = remember(levels, blend) {
+        FloatArray(bins) { b ->
+            if (!blend) levels[b].toFloat() else {
+                var s = 0f; var n = 0
+                for (k in -2..2) { val j = b + k; if (j in 0 until bins) { s += levels[j]; n++ } }
+                s / n
+            }
+        }
+    }
     val accent = c.accent
     val theme = engine.map.theme
     // the locator is scaled down in steps (halving), so its edges stay smooth on the bar (one big step looked jagged)
@@ -175,7 +187,8 @@ fun RouteBar(engine: NavEngine, modifier: Modifier = Modifier, thin: Boolean = f
             clipPath(track) {
                 for (b in 0 until bins) {
                     val done = (b + 1f) / bins <= frac
-                    val col = when (levels[b]) { 2 -> Bad; 1 -> Warn; else -> accent }
+                    val l = smooth[b]
+                    val col = if (l <= 1f) androidx.compose.ui.graphics.lerp(accent, Warn, l) else androidx.compose.ui.graphics.lerp(Warn, Bad, l - 1f)
                     drawRect(if (done) Color(0xFF8A8F99) else col, Offset(b * bw, y0), Size(bw + 0.6f, th))
                 }
             }

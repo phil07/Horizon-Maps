@@ -2121,7 +2121,7 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
     private fun line(p: List<LL>): Feature =
         Feature.fromGeometry(LineString.fromLngLats(p.map { Point.fromLngLat(it.lon, it.lat) }))
 
-    private fun lineSev(p: List<LL>, level: Int): Feature {
+    private fun lineSev(p: List<LL>, level: Double): Feature {
         val f = line(p)
         f.addNumberProperty("sev", level)
         return f
@@ -2134,10 +2134,12 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
     /** The neon look's yellow as the route's colour (the route line is drawn in it where traffic flows), else null. */
     private fun neonRoute(): String? = if (colours == "neon") "#FCEE0A" else null
 
-    private fun sevColor(im: Boolean = false, day: Boolean = false): Expression = Expression.switchCase(
-        Expression.eq(Expression.get("sev"), lit(2)), col(if (im) "#D93025" else "#FF4D4D"),
-        Expression.eq(Expression.get("sev"), lit(1)), col(if (im) "#F9AB00" else "#FFB020"),
-        col(neonRoute() ?: ownRoute() ?: if (day) "#2A7BE4" else if (im) "#2FC4F5" else "#4CC9FF"),
+    // (interpolated, so the in-between levels where traffic changes blend the colours, see RouteBlend; a whole level keeps its colour)
+    private fun sevColor(im: Boolean = false, day: Boolean = false): Expression = Expression.interpolate(
+        Expression.linear(), Expression.get("sev"),
+        lit(0), col(neonRoute() ?: ownRoute() ?: if (day) "#2A7BE4" else if (im) "#2FC4F5" else "#4CC9FF"),
+        lit(1), col(if (im) "#F9AB00" else "#FFB020"),
+        lit(2), col(if (im) "#D93025" else "#FF4D4D"),
     )
 
     /** Settings > Map > Own design: the route colour picked there (empty = the usual blue). */
@@ -2377,14 +2379,10 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
         val cut = if (cutZoomOk()) turnCut else null
         cutActive = cut != null
         val feats = ArrayList<Feature>()
+        // one piece per traffic level; where it changes the colours run into each other (Settings › On the map › Blend traffic colours)
+        val blend = prefs.b(PreferenceKeys.TRAFFIC_BLEND, true)
         fun addRun(seg: List<LL>, firstIdx: Int) {
-            if (seg.size < 2) return
-            var start = 0; var cur = level(firstIdx)
-            for (j in 1 until seg.size - 1) {
-                val l = level(firstIdx + j)
-                if (l != cur) { feats += lineSev(seg.subList(start, j + 1), cur); start = j; cur = l }
-            }
-            feats += lineSev(seg.subList(start, seg.size), cur)
+            for (p in RouteBlend.pieces(seg, { j -> level(firstIdx + j) }, blend)) feats += lineSev(p.pts, p.level)
         }
         val pa = cut?.firstOrNull()?.let { MapRouteGeometry.projectOn(pts, it) }
         val pb = cut?.lastOrNull()?.let { MapRouteGeometry.projectOn(pts, it) }
