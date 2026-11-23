@@ -91,6 +91,7 @@ import androidx.compose.ui.window.DialogProperties
 import androidx.compose.material.icons.rounded.KeyboardArrowDown
 import androidx.compose.material.icons.rounded.KeyboardArrowUp
 import androidx.compose.material.icons.rounded.DirectionsCar
+import androidx.compose.material.icons.rounded.Map
 import androidx.compose.material.icons.rounded.DoNotDisturbOn
 import androidx.compose.material.icons.rounded.EvStation
 import androidx.compose.material.icons.rounded.History
@@ -494,6 +495,7 @@ private fun MapScreen(engine: NavEngine, onSettings: () -> Unit) {
                         ImmChips(engine, focusSearch = {})
                         PortraitChips(engine)
                         LeaveByChips(engine)
+                        OutsideMapsChip(engine)
                         if (portraitSheetUp) ImmQuick(engine)
                     }
                 }
@@ -859,4 +861,16 @@ private fun LeaveByChips(engine: NavEngine) {
         val hhmm = String.format(java.util.Locale.US, "%02d:%02d", dep / 60, dep % 60)
         ImmChip(Icons.Rounded.DirectionsCar, Color(0xFF2EC27E), Lang.t("Abfahren $hhmm zur $de", "Leave by $hhmm for $en")) { engine.startRoute(place) }
     }
+}
+
+/**
+ * A line when you're outside every map you've downloaded (there are some, and none covers where you are): so you know to get this
+ * area while you still have a connection. Shown only with a GPS fix.
+ */
+@Composable
+private fun OutsideMapsChip(engine: NavEngine) {
+    val ctx = androidx.compose.ui.platform.LocalContext.current
+    val p = engine.fix?.pos ?: return
+    if (!com.headunit.launcher.MapboxOffline.hasAreas(ctx) || com.headunit.launcher.MapboxOffline.covers(ctx, p)) return
+    ImmChip(Icons.Rounded.Map, Color(0xFFEA4335), Lang.t("Außerhalb deiner Karten", "Outside your maps")) { }
 }

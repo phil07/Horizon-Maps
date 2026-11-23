@@ -54,6 +54,9 @@ object MapboxOffline {
         MapboxOptions.mapsOptions.tileStore ?: TileStore.create().also { MapboxOptions.mapsOptions.tileStore = it }
 
     private fun names(ctx: Context): JSONObject = try { JSONObject(Prefs(ctx).s(PreferenceKeys.MBREGIONS, "{}")) } catch (e: Exception) { JSONObject() }
+
+    /** Whether any map area has been downloaded at all. */
+    fun hasAreas(ctx: Context): Boolean = names(ctx).length() > 0
     private fun saveNames(ctx: Context, j: JSONObject) = Prefs(ctx).put("mbregions", j.toString())
 
     /** Roughly how big a saved area is, in MB (Standard at street detail is about 0.12 MB per km²). */
