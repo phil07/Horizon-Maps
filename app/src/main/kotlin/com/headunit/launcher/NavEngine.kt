@@ -4461,7 +4461,7 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
 
     private fun glideTick(frameNs: Long) {
         // never do more work than the map can actually draw: on a slow head unit this frees the CPU for rendering
-        if (frameNs - fpsReadNs > 1_000_000_000L) { fpsReadNs = frameNs; val p = prefs.s(PreferenceKeys.MAP_FPS, "auto"); glideFps = if (p == "auto") autoFps else (p.toIntOrNull() ?: 30).coerceIn(15, 60) }
+        if (frameNs - fpsReadNs > 1_000_000_000L) { fpsReadNs = frameNs; val p = prefs.s(PreferenceKeys.MAP_FPS, "auto"); glideFps = if (p == "auto") autoFps else (p.toIntOrNull() ?: 30).coerceIn(15, 60); if (isCar && CarCool.on) glideFps = minOf(glideFps, 30) }
         // with another app in front (guidance carrying on in the background) a few updates a second is plenty: nobody sees the map
         val fps = if (appVisible) glideFps else 5
         // update on a steady beat of whole screen frames (every frame at 60, every 2nd at 30, ...), so the map draws at perfectly even

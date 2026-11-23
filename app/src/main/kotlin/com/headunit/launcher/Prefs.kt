@@ -397,6 +397,8 @@ internal object PreferenceKeys {
     const val CAR_HIDE_SEARCH = "car_hide_search"
     /** Android Auto: seconds without a touch before the search bar and places go (0 = never). */
     const val CAR_HIDE_AFTER = "carHideAfter"
+    /** Android Auto › Cool running: "off", "auto" (when the phone gets hot) or "always". */
+    const val CAR_COOL = "carCool"
     /** Android Auto: the sound button stays on the map when not navigating (off: only while navigating, for more room). */
     const val CAR_SOUND_IDLE = "car_sound_idle"
     const val TRIP_BTN_SOUND = "tripbtn_sound"

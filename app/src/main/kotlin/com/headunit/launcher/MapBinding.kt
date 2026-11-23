@@ -3241,6 +3241,9 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
      */
     fun setMaxFps(n: Int) { try { mapView.setMaximumFps(60) } catch (e: Exception) { softFail(e) } } // (deliberately not [n]: see above)
 
+    /** A hard cap on how often the map draws: only for Cool running on the car screen (30), and back to 60 when it's off. */
+    fun capFps(n: Int) { try { mapView.setMaximumFps(n.coerceIn(15, 60)) } catch (e: Exception) { softFail(e) } }
+
     private var doneEmpty = true
 
     /** The driven stretch of the route (a short trail behind the car), drawn in grey. */

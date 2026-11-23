@@ -191,7 +191,8 @@ class CarNavSession : Session() {
     private fun weatherTick() {
         val e = holder.engine ?: return
         val m = holder.map ?: return
-        val on = try { Prefs(carContext.applicationContext).b(PreferenceKeys.RAIN_EFFECTS, false) } catch (x: Exception) { false }
+        // (none while Cool running is on, see CarCool)
+        val on = !com.headunit.launcher.CarCool.on && try { Prefs(carContext.applicationContext).b(PreferenceKeys.RAIN_EFFECTS, false) } catch (x: Exception) { false }
         val sky = try { Prefs(carContext.applicationContext).b(PreferenceKeys.SKYWEATHER, true) } catch (x: Exception) { true }
         val code = if (on) try { weatherKindOn(Prefs(carContext.applicationContext), e.weather?.code) } catch (x: Exception) { e.weather?.code } else null
         val skyCode = if (sky) e.weather?.code else null
@@ -270,7 +271,7 @@ class CarNavSession : Session() {
         // Android Auto uses a smaller map surface than the main head-unit app. Keep the
         // user preference, but normalise it so the 240% main-app default doesn't create an enormous car-screen locator.
         map.setArrowScale(((prefs.s(PreferenceKeys.ARROW_PERCENT, "240").toIntOrNull() ?: 240) / 100f).coerceIn(1f, 5f) * 0.9f * (prefs.i(PreferenceKeys.CAR_ARROW_SIZE, 70).coerceIn(30, 180) / 100f))
-        map.setMapDetail(prefs.mapDetail())
+        map.setMapDetail(if (com.headunit.launcher.CarCool.on) "lite" else prefs.mapDetail())
         map.setTrafficGreen(prefs.b(PreferenceKeys.TRAFFIC_GREEN, false))
         map.setCarModel(prefs.s(PreferenceKeys.CAR_MODEL, "saloon"))
         map.setRoadNameScale(prefs.i(PreferenceKeys.CAR_ROAD_NAME_SIZE, 100).coerceIn(70, 200) / 100f)

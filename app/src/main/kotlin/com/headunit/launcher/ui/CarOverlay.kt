@@ -118,7 +118,13 @@ fun CarOverlay(engine: NavEngine, area: State<android.graphics.Rect?>, dark: Sta
     val (carLoc, carLocCol) = engine.prefs.locatorSpec().let { if (it.first == "custom") "arrow" to engine.prefs.s(PreferenceKeys.ARROW_COLOUR, "#F2F2F6") else it }
     LaunchedEffect(carLoc, carLocCol, Neon.accentId) { engine.map.setLocator(carLoc, carLocCol) }
     // the rest of the car's map settings follow Settings live too (they used to be read only when Android Auto connected)
-    val carDetail = engine.prefs.mapDetail()
+    // Settings › Android Auto › Cool running: checked every half minute (the phone's temperature), see CarCool
+    val coolMode = engine.prefs.s(PreferenceKeys.CAR_COOL, "off")
+    val ctxCool = androidx.compose.ui.platform.LocalContext.current
+    LaunchedEffect(coolMode) { while (true) { com.headunit.launcher.CarCool.update(ctxCool, engine.prefs); kotlinx.coroutines.delay(30_000L) } }
+    val cool = com.headunit.launcher.CarCool.on
+    LaunchedEffect(cool) { engine.map.capFps(if (cool) 30 else 60) }
+    val carDetail = if (cool) "lite" else engine.prefs.mapDetail()
     LaunchedEffect(carDetail) { engine.map.setMapDetail(carDetail) }
     val carArrowPct = engine.prefs.s(PreferenceKeys.ARROW_PERCENT, "240").toIntOrNull() ?: 240
     val carArrowSize = engine.prefs.i(PreferenceKeys.CAR_ARROW_SIZE, 70).coerceIn(30, 180)
@@ -129,7 +135,7 @@ fun CarOverlay(engine: NavEngine, area: State<android.graphics.Rect?>, dark: Sta
     LaunchedEffect(carRoadName) { engine.map.setRoadNameScale(carRoadName / 100f) }
     val carFlags = engine.prefs.b(PreferenceKeys.FLAGS_3D, true); val carWave = engine.prefs.b(PreferenceKeys.FLAGS_WAVE, true)
     LaunchedEffect(carFlags, carWave) { engine.map.refreshFlags() }
-    val carLamps = engine.prefs.b(PreferenceKeys.LAMPS, false)
+    val carLamps = engine.prefs.b(PreferenceKeys.LAMPS, false) && !cool
     LaunchedEffect(carLamps) { engine.map.lampsEnabled(carLamps) }
     val carTrees = engine.prefs.b(PreferenceKeys.TREES, true)
     LaunchedEffect(carTrees) { engine.map.treesEnabled(carTrees) }

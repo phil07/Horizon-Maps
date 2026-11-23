@@ -103,6 +103,8 @@ internal fun AndroidAutoSection(prefs: Prefs) {
             listOf("0" to Lang.t("Nie", "Never"), "30" to Lang.t("30 s", "30 s"), "60" to Lang.t("1 Min.", "1 min"), "120" to Lang.t("2 Min.", "2 min"), "300" to Lang.t("5 Min.", "5 min")),
             prefs.i(PreferenceKeys.CAR_HIDE_AFTER, 0).toString(),
             Lang.t("Suchleiste und Orte verschwinden nach dieser Zeit ohne Berührung, für eine freie Karte. Eine Berührung irgendwo holt sie zurück", "The search bar and places go after this long without a touch, for a clean map. A touch anywhere brings them back")) { prefs.put(PreferenceKeys.CAR_HIDE_AFTER, it.toInt()) }
+        SChoice(Lang.t("Cool Running", "Cool running"), listOf("off" to Lang.t("Aus", "Off"), "auto" to Lang.t("Automatisch", "Automatic"), "always" to Lang.t("Immer", "Always")), prefs.s(PreferenceKeys.CAR_COOL, "off"),
+            Lang.t("Für Handys, die heiß werden: 30 Bilder pro Sekunde, flache Karte mit weniger Details, keine Laternen, kein Regen oder Schnee. Automatisch schaltet es ein, wenn das Handy warm wird, und aus, sobald es abgekühlt ist", "For phones that get hot: 30 frames a second, a flat map with the lighter detail, no street lamps and no falling rain or snow. Automatic turns it on when the phone gets hot and off once it's cool")) { prefs.put(PreferenceKeys.CAR_COOL, it) }
     }
     SGroup(Lang.t("Autodisplay", "Car screen")) {
         val gh = "com.google.android.projection.gearhead"
