@@ -63,6 +63,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.rounded.SkipPrevious
 import androidx.compose.material.icons.rounded.SkipNext
 import androidx.compose.material.icons.rounded.Pause
+import androidx.compose.material.icons.rounded.Cloud
+import androidx.compose.material.icons.rounded.LocalGasStation
+import androidx.compose.material.icons.rounded.LocalParking
 import androidx.compose.material.icons.rounded.PropaneTank
 import androidx.compose.material.icons.rounded.RvHookup
 import androidx.compose.material.icons.rounded.Park
@@ -489,6 +492,7 @@ private fun MapScreen(engine: NavEngine, onSettings: () -> Unit) {
                         Box(Modifier.padding(top = 8.dp, bottom = 6.dp).clip(RoundedCornerShape(3.dp)).background(LocalVw.current.sub.copy(alpha = 0.5f)).size(width = 44.dp, height = 5.dp)
                             .clickable { portraitSheetUp = !portraitSheetUp })
                         ImmChips(engine, focusSearch = {})
+                        PortraitChips(engine)
                         if (portraitSheetUp) ImmQuick(engine)
                     }
                 }
@@ -815,4 +819,26 @@ internal fun delayColour(delayMin: Int, dark: Boolean): androidx.compose.ui.grap
     delayMin >= 10 -> if (dark) Bad else androidx.compose.ui.graphics.Color(0xFFC62828)
     delayMin >= 1 -> if (dark) Warn else androidx.compose.ui.graphics.Color(0xFFB45309)
     else -> if (dark) Good else androidx.compose.ui.graphics.Color(0xFF15803D)
+}
+
+/**
+ * The sheet's small chips: the weather now, the cheapest of your fuel nearby (tap to go there) and where you parked (tap to walk or
+ * drive back). Each one only when there is something to show.
+ */
+@Composable
+private fun PortraitChips(engine: NavEngine) {
+    val w = engine.weather
+    val cheap = engine.nearby.filter { it.price != null }.minByOrNull { it.price ?: Double.MAX_VALUE }
+    val parked = engine.prefs.s(PreferenceKeys.PARKED_SPOT, "").split(',')
+    val parkedPos = parked.getOrNull(0)?.toDoubleOrNull()?.let { la -> parked.getOrNull(1)?.toDoubleOrNull()?.let { lo -> LL(la, lo) } }
+    if (w == null && cheap == null && parkedPos == null) return
+    Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        w?.let { ImmChip(Icons.Rounded.Cloud, Color(0xFF4A90E2), "${Math.round(it.tempC)} °C", {}) }
+        cheap?.let { n ->
+            ImmChip(Icons.Rounded.LocalGasStation, Color(0xFF34A853), com.headunit.launcher.fmtFuelPrice(n.price ?: 0.0, n.unit)) { engine.startRoute(n.place) }
+        }
+        parkedPos?.let { spot ->
+            ImmChip(Icons.Rounded.LocalParking, Color(0xFFFBBC04), Lang.t("Geparkt", "Parked")) { engine.startRoute(Place(Lang.t("Auto", "Car"), "", spot)) }
+        }
+    }
 }
