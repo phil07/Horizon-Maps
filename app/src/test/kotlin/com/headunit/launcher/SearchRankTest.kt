@@ -23,6 +23,17 @@ class SearchRankTest {
         assertEquals(listOf(1.3, 3.7, 5.6, 480.0), out.map { it.km })
     }
 
+    // (these two pass metres: the far limit is 100 km)
+    @Test fun farTownAfterNearPlaceThatMatchesAsWell() {
+        val out = ranked("lindenhof", R("Lindenhof", true, 700_000.0), R("Lindenhof", false, 1_500.0))
+        assertEquals(listOf(1_500.0, 700_000.0), out.map { it.km })
+    }
+
+    @Test fun withTheTownTypedTownsStillComeFirst() {
+        val out = ranked("lindenhof, mannheim", R("Lindenhof, Mannheim", true, 700_000.0), R("Lindenhof, Mannheim", false, 1_500.0))
+        assertEquals(listOf(700_000.0, 1_500.0), out.map { it.km })
+    }
+
     @Test fun exactTownsNearestFirst() {
         val out = ranked("neustadt", R("Neustadt", true, 200.0), R("Neustadt", true, 20.0), R("Neustadtweg", false, 1.0))
         assertEquals(listOf(20.0, 200.0, 1.0), out.map { it.km })

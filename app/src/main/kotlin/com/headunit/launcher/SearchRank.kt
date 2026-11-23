@@ -9,6 +9,9 @@ import org.json.JSONObject
  */
 internal object SearchRank {
 
+    /** Beyond this (metres) a search result counts as far away, see [rank]. */
+    private const val FAR_M = 100_000.0
+
     /** Mapbox's kinds of result that are a town, city or region. */
     val MAPBOX_TOWNS = setOf("place", "locality", "district", "region", "country")
 
@@ -86,16 +89,21 @@ internal object SearchRank {
         fun prefix(t: T) = name(t).lowercase().startsWith(full)
         val byDist = compareBy<Pair<T, Int>> { dist(it.first) }
         val byOrder = compareBy<Pair<T, Int>> { it.second }
+        // a result over 100 km off goes after the nearer ones that match as well (a city 700 km away came before the street round the
+        // corner); with the town typed in ("Hauptstraße, Bensheim") the service's own order is kept
+        val withTown = full.contains(',')
+        fun far(p: Pair<T, Int>) = !withTown && dist(p.first) > FAR_M
+        val nearFirst = compareBy<Pair<T, Int>> { far(it) }
         val ex = all.filter { exact(it.first) }
         val pre = all.filter { !exact(it.first) && prefix(it.first) }
-        val rest = all.filter { !exact(it.first) && !prefix(it.first) }.sortedWith(byOrder)
+        val rest = all.filter { !exact(it.first) && !prefix(it.first) }.sortedWith(byOrder).sortedWith(nearFirst)
         val ordered = if (streety(q)) {
             ex.sortedWith(byDist) + pre.sortedWith(byDist)
         } else {
             // towns of exactly that name nearest first (the nearest Neustadt); towns that only start with it in the service's order
             // (Frankfurt before Frankenberg); other places nearest first
-            ex.filter { town(it.first) }.sortedWith(byDist) + ex.filter { !town(it.first) }.sortedWith(byDist) +
-                pre.filter { town(it.first) }.sortedWith(byOrder) + pre.filter { !town(it.first) }.sortedWith(byDist)
+            (ex.filter { town(it.first) }.sortedWith(byDist) + ex.filter { !town(it.first) }.sortedWith(byDist)).sortedWith(nearFirst) +
+                (pre.filter { town(it.first) }.sortedWith(byOrder) + pre.filter { !town(it.first) }.sortedWith(byDist)).sortedWith(nearFirst)
         }
         return (ordered + rest).map { it.first }
     }
