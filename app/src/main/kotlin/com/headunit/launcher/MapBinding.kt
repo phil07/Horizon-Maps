@@ -3054,11 +3054,15 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
 
     /** Your locator picture (saved small by the settings page), loaded once per version. */
     private fun customImage(ver: String): Bitmap? {
-        if (customVer == ver) return customBase
+        // (the white-background switch is part of the key, so turning it on or off shows at once)
+        val keepWhite = Prefs(ctx).b(PreferenceKeys.LOCATOR_REMOVE_WHITE, true)
+        val key = "$ver|$keepWhite"
+        if (customVer == key) return customBase
         val f = java.io.File(ctx.filesDir, "locator.png")
         val b = try { if (f.exists()) android.graphics.BitmapFactory.decodeFile(f.path) else null } catch (e: Throwable) { null }
-        customBase = b; customVer = ver
-        return b
+        val out = if (b != null && keepWhite) try { stripWhiteEdge(b) } catch (e: Throwable) { b } else b
+        customBase = out; customVer = key
+        return out
     }
 
 

@@ -89,6 +89,7 @@ internal object PreferenceKeys {
     const val CAR_SPEED_POS = "carspeedpos"
     const val CAR_BUTTON_SIZE = "carbuttonsize"
     const val CAR_LIMIT_SIGN_SIZE = "carlimitsignsize"
+    const val LOCATOR_REMOVE_WHITE = "locatorRemoveWhite"
     const val CAR_ARROW_SIZE = "cararrowsize"
     const val MAP_THEME = "maptheme"
     const val MAP_COLOURS = "mapcolours"

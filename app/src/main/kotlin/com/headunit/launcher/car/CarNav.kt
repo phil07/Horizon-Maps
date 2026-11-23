@@ -1403,7 +1403,11 @@ class NearbyScreen(carContext: CarContext, private val holder: CarHolder, privat
         for (n in items.take(limit.coerceIn(1, 12))) {
             // the shop's or brand's logo when it is on the unit (fuel brands, restaurant chains), else the kind's icon
             val logo = com.headunit.launcher.BrandLogos.domainFor(n.place)?.let { com.headunit.launcher.BrandLogos.cached(carContext, it) }
-            val r = Row.Builder().setTitle(n.place.name).setImage(if (logo != null) CarIcon.Builder(IconCompat.createWithBitmap(logo)).build() else rowIcon(carContext, iconRes, tint))
+            // a long name goes onto a second line (cut at a space near 24 characters), so names that start alike can be told apart
+            val nm = n.place.name
+            val cut = if (nm.length > 24) nm.lastIndexOf(' ', 24).takeIf { it > 8 } ?: 24 else nm.length
+            val r = Row.Builder().setTitle(nm.take(cut).trim()).also { if (cut < nm.length) it.addText(nm.substring(cut).trim()) }
+                .setImage(if (logo != null) CarIcon.Builder(IconCompat.createWithBitmap(logo)).build() else rowIcon(carContext, iconRes, tint))
             val bits = ArrayList<String>()
             bits += com.headunit.launcher.Geo.fmtDist(n.dist, e?.imperial ?: false)
             // the price the local way ("1,789 €" in Germany), as on the phone: it was always shown in pence ("178.9p")

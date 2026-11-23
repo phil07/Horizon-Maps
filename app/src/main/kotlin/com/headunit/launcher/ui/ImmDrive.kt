@@ -185,14 +185,16 @@ private fun CompactSpeed(engine: NavEngine) {
     val sign = lim != null || engine.noLimit
     if (!sign && !show) return
     val k = if (engine.imperial) 2.23694 else 3.6
+    // the day and night colours of the car screen (the panel was always black)
+    val c = LocalVw.current
     Row(
-        Modifier.clip(RoundedCornerShape(50)).background(Color(0xE6101418)).padding(start = 8.dp, end = 14.dp, top = 6.dp, bottom = 6.dp),
+        Modifier.clip(RoundedCornerShape(50)).background(c.surface).padding(start = 8.dp, end = 14.dp, top = 6.dp, bottom = 6.dp),
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         if (sign) SpeedLimitSign(engine, 44.dp)
         if (show) Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text("${Math.round(engine.shownSpeed * k)}", color = speedTint(engine) ?: Color.White, fontSize = 28.sp, fontWeight = FontWeight.Bold, maxLines = 1)
-            Text(if (engine.imperial) "mph" else "km/h", color = Color.White.copy(alpha = 0.7f), fontSize = 12.sp, maxLines = 1, modifier = Modifier.padding(bottom = 4.dp))
+            Text("${Math.round(engine.shownSpeed * k)}", color = speedTint(engine) ?: c.text, fontSize = 28.sp, fontWeight = FontWeight.Bold, maxLines = 1)
+            Text(if (engine.imperial) "mph" else "km/h", color = c.sub, fontSize = 12.sp, maxLines = 1, modifier = Modifier.padding(bottom = 4.dp))
         }
     }
 }

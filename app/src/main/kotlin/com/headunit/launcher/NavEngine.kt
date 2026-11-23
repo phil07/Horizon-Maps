@@ -49,6 +49,9 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
     var dest by mutableStateOf<Place?>(null)
     var turn by mutableStateOf<TurnInfo?>(null)
     var eta by mutableStateOf<EtaInfo?>(null)
+    // the time left shown is smoothed over about half a minute (a traffic figure that flips between route refreshes must not swing the arrival)
+    private var etaSmooth: Double? = null
+    private var etaSmoothAt = 0L
     var following by mutableStateOf(true)
     // (remembered: it used to start in 3D every time, even if you'd left it in 2D)
     // the phone's own choice (2D or 3D); on Android Auto the map is always 3D, which looks better there
@@ -3142,6 +3145,8 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
         searchTucked = false
         val wasFollowing = following
         following = true
+        // a re-centre while stopped gives the usual 3D view: the 30 seconds of the flat traffic view start again from now
+        if (byUser && stoppedSince > 0L) stoppedSince = android.os.SystemClock.elapsedRealtime()
         val resetZoom = route != null || (byUser && wasFollowing)
         zoomOffset = if (resetZoom) 0.0 else savedFreeZoom()
         if (route == null && resetZoom) rememberFreeZoom()
@@ -5602,8 +5607,13 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
             val secs = if (usual != null && usual > 0 && elapsedS < usual * 1.3) max(60.0, usual - elapsedS) + charge
                 else r.freeFlow * frac * etaPace() + ahead + Vehicle.extraSecs(r.limits, progress, Vehicle.active.maxMs) + charge
             val delayMin = Math.round(ahead / 60.0).toInt()
-            val arrive = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date(System.currentTimeMillis() + (secs * 1000).toLong()))
-            eta = EtaInfo(arrive, rem, secs, delayMin, charge)
+            val now = System.currentTimeMillis()
+            val prevS = etaSmooth; val dt = (now - etaSmoothAt) / 1000.0
+            // (a fresh start, or no update for 2 minutes: the figure is taken as it is)
+            val shown = if (prevS == null || dt < 0 || dt > 120) secs else prevS + (secs - prevS) * (1 - Math.exp(-dt / 30.0))
+            etaSmooth = shown; etaSmoothAt = now
+            val arrive = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date(now + (shown * 1000).toLong()))
+            eta = EtaInfo(arrive, rem, shown, delayMin, charge)
             routeFrac = (1.0 - frac).toFloat().coerceIn(0f, 1f)
             pruneLiveAlts(progress)
             saveResumeBeat()

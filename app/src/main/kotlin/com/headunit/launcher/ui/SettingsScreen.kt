@@ -457,6 +457,7 @@ private fun ArrowSection(prefs: Prefs, engine: NavEngine) {
             SItem(Lang.t("Bild", "Picture"), Lang.t("Am besten PNG mit transparentem Hintergrund", "Best as a PNG with a transparent background")) { SButton(if (hasPic) Lang.t("Ändern", "Change") else Lang.t("Wählen", "Choose")) { choosePic() } }
             SToggle(prefs, Lang.t("Dreht sich mit", "Turns with you"), PreferenceKeys.LOCATOR_IMAGE_TURNS, true, Lang.t("Dreht sich beim Fahren wie der Pfeil", "Turns as you drive, like the arrow"))
             SToggle(prefs, Lang.t("Rund zugeschnitten", "Round crop"), PreferenceKeys.LOCATOR_IMAGE_CIRCLE, false, Lang.t("Schneidet das Bild kreisförmig zu", "Crops the picture to a circle"))
+            SToggle(prefs, Lang.t("Weißen Hintergrund entfernen", "Remove white background"), PreferenceKeys.LOCATOR_REMOVE_WHITE, true, Lang.t("Ein Bild mit weißem Hintergrund wird am Rand durchsichtig", "A picture with a white background becomes see-through at its edge"))
         }
         if (shapeCar) {
             val cur = prefs.s(PreferenceKeys.CAR_MODEL, "saloon")
