@@ -798,7 +798,7 @@ private fun TripCard(engine: NavEngine, fill: Boolean, oneLine: Boolean = false)
                 androidx.compose.material3.Icon(androidx.compose.material.icons.Icons.Rounded.Close, null, tint = Color.White, modifier = Modifier.size(sz * 0.52f))
             }
         }
-        val stats: @Composable () -> Unit = {
+        val stats: @Composable androidx.compose.foundation.layout.RowScope.() -> Unit = {
             CarStat(Geo.fmtDur(e.secs), if (e.delayMin >= 1) "+${e.delayMin} Min." else "Verbleibend", dc)
             CarStat(e.arrive, Lang.t("Ankunft", "Arrival"), c.text)
             // the next stop on the way and when you get there
@@ -864,11 +864,16 @@ private fun TripCard(engine: NavEngine, fill: Boolean, oneLine: Boolean = false)
 
 /** A figure on the car trip card, with a label big enough to read at a glance (the app's own labels were tiny on a car screen). */
 @Composable
-private fun CarStat(value: String, label: String, color: Color) {
+// the figures share the card's width (each takes what it needs, a long one shrinks a little), so "19:20" and "6.2" no longer run together
+private fun androidx.compose.foundation.layout.RowScope.CarStat(value: String, label: String, color: Color) {
     val c = LocalVw.current
-    Column {
-        Text(value, color = color, fontSize = 30.sp, fontWeight = FontWeight.Bold, maxLines = 1, softWrap = false)
-        Text(label, color = c.sub, fontSize = 18.sp, maxLines = 1, softWrap = false)
+    BoxWithConstraints(Modifier.weight(1f, fill = false)) {
+        val big = (maxWidth.value / (0.62f * value.length.coerceAtLeast(1))).coerceIn(14f, 30f)
+        val small = (maxWidth.value / (0.55f * label.length.coerceAtLeast(1))).coerceIn(11f, 18f)
+        Column {
+            Text(value, color = color, fontSize = big.sp, fontWeight = FontWeight.Bold, maxLines = 1, softWrap = false)
+            Text(label, color = c.sub, fontSize = small.sp, maxLines = 1, softWrap = false)
+        }
     }
 }
 

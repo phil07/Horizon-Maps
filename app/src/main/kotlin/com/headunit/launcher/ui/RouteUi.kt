@@ -11,6 +11,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -155,7 +156,11 @@ fun RouteBar(engine: NavEngine, modifier: Modifier = Modifier, thin: Boolean = f
     }
     val accent = c.accent
     val theme = engine.map.theme
-    val locator = remember(theme, Neon.accentId) { engine.map.locatorBitmap().asImageBitmap() }
+    // the locator is scaled down in steps (halving), so its edges stay smooth on the bar (one big step looked jagged)
+    val density = LocalDensity.current
+    val locator = remember(theme, Neon.accentId, thin, density.density) {
+        halvedBitmap(engine.map.locatorBitmap(), ((if (thin) 38f else 32f) * density.density).toInt()).asImageBitmap()
+    }
     // [thin]: the slimmer bar on the car screen (smaller markers, a thinner track and a smaller arrow)
     val dot = if (thin) 30.dp else 20.dp
     BoxWithConstraints(modifier.height(if (thin) 58.dp else 48.dp)) {
@@ -1170,4 +1175,11 @@ fun AdvicePill(text: String, modifier: Modifier = Modifier) {
         Icon(Icons.Rounded.WaterDrop, null, tint = Color(0xFF4C8DFF), modifier = Modifier.size(18.dp))
         Text(text, color = c.text, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(start = 8.dp), maxLines = 1, overflow = TextOverflow.Ellipsis)
     }
+}
+
+/** [src] shrunk to about [target] pixels in halving steps (each step a bilinear half), so the picture keeps smooth edges. */
+private fun halvedBitmap(src: android.graphics.Bitmap, target: Int): android.graphics.Bitmap {
+    var b = src
+    while (b.width >= target * 2 && b.height >= target * 2) b = android.graphics.Bitmap.createScaledBitmap(b, b.width / 2, b.height / 2, true)
+    return b
 }
