@@ -156,7 +156,8 @@ internal fun NavEngine.checkIncidents(r: Route, progress: Double) {
     val d = max(0.0, next.second - progress)
     if (d > 15_000) { incidentAhead = null; return }
     incidentAhead = IncidentAhead(next.third, d, next.first.delaySec)
-    if (d < 8000 && incAlerted.add(next.first.id)) {
+    // roadworks and lane closures are the line on the turn card only: no second warning or spoken line for them
+    if (d < 8000 && incAlerted.add(next.first.id) && next.first.cat.lowercase() !in setOf("roadworks", "laneclosed")) {
         val mins = next.first.delaySec / 60
         val extra = if (mins >= 2) Lang.t(", etwa $mins Minuten Verzögerung", ", about $mins minutes delay") else ""
         raiseAlert("incident", Lang.t("${next.third} in ${Geo.fmtDist(d, imperial)}$extra", "${next.third} ahead, ${Geo.fmtDist(d, imperial)}$extra"), 7000)

@@ -391,7 +391,14 @@ internal fun ImmTurnCard(
                         Text(t.sign, color = sc.second, fontSize = chipSp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis,
                             modifier = Modifier.widthIn(max = 130.dp).clip(RoundedCornerShape(6.dp)).background(sc.first).padding(horizontal = 7.dp, vertical = 2.dp))
                     }
-                    Text(t.street, color = Color.White, fontSize = streetSp, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    // a road number with a letter (B 44, E39) beside the name as a small badge; outside the UK (its road signs do that)
+                    val refM = if (com.headunit.launcher.RoadRefs.country.uppercase() != "GB") roadBadgeRx.find(t.street) else null
+                    val nameOnly = refM?.let { t.street.replaceRange(it.range, "").trim().trim(':', '-', ' ') }?.takeIf { it.isNotBlank() }
+                    if (refM != null && nameOnly != null) {
+                        Text(refM.value, color = Color.White, fontSize = chipSp, fontWeight = FontWeight.Bold, maxLines = 1,
+                            modifier = Modifier.clip(RoundedCornerShape(6.dp)).background(Color.White.copy(alpha = 0.18f)).padding(horizontal = 7.dp, vertical = 2.dp))
+                        Text(nameOnly, color = Color.White, fontSize = streetSp, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    } else Text(t.street, color = Color.White, fontSize = streetSp, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
             }
             // the turn straight after, as a small arrow (the "Then" line below is used instead when that style is chosen)
@@ -442,3 +449,6 @@ internal fun ImmTurnCard(
         }
     }
 }
+
+/** A road number with a letter in a street name: "B 44", "E39", "A5". Plain numbers (169) and house numbers are not matched. */
+private val roadBadgeRx = Regex("\\b([A-Z]{1,2})\\s?([0-9]{1,4})\\b")
