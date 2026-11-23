@@ -357,7 +357,9 @@ internal fun FeedbackDialog(engine: NavEngine, onClose: () -> Unit) {
     val ctx = LocalContext.current
     var note by remember { mutableStateOf("") }
     androidx.compose.ui.window.Dialog(onDismissRequest = onClose) {
-        Column(Modifier.widthIn(max = 560.dp).fillMaxWidth().clip(RoundedCornerShape(26.dp)).background(c.panel).padding(22.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        // (it scrolls: on a short, wide head unit screen Send and Copy were below the bottom of the screen)
+        Column(Modifier.widthIn(max = 560.dp).fillMaxWidth().clip(RoundedCornerShape(26.dp)).background(c.panel)
+            .verticalScroll(androidx.compose.foundation.rememberScrollState()).padding(22.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Text(Lang.t("Feedback oder Problem", "Feedback or a problem"), color = c.text, fontSize = 22.sp, fontWeight = FontWeight.Bold)
             Text(Lang.t("Was ist passiert oder was wünschst du dir? Hilfreich sind Angaben, wo du warst und worauf du getippt hast.", "What happened, or what would you like? Where you were and what you tapped helps."), color = c.sub, fontSize = 14.sp)
             SField(note, { note = it.take(600) }, placeholder = Lang.t("z. B. Falsch umgeleitet bei Frankfurt", "e.g. Wrong reroute near Frankfurt"), width = 516.dp, fill = true)

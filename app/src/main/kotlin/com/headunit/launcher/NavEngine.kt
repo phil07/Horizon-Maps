@@ -1622,8 +1622,11 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
         if (simMode != 0) return
         detectCountry(l.latitude, l.longitude)
         val now = System.currentTimeMillis()
-        if (l.provider == LocationManager.GPS_PROVIDER) lastGpsTime = now
-        else if (now - lastGpsTime < 10000) return
+        // an old remembered GPS position (the last drive's, handed over at start) is no live GPS: it must not hold off the phone's
+        // network position, or the arrow stays where the phone last was until the GPS itself answers (late, indoors)
+        val ageMs = (android.os.SystemClock.elapsedRealtimeNanos() - l.elapsedRealtimeNanos) / 1_000_000L
+        if (l.provider == LocationManager.GPS_PROVIDER && ageMs < 30_000L) lastGpsTime = now
+        else if (l.provider != LocationManager.GPS_PROVIDER && now - lastGpsTime < 10000) return
         // with the GPS gone (a tunnel) a rough mobile-network position would throw the route off: keep estimating along the route instead
         else if (route != null && !previewing && glideOnRoute && now - lastGpsTime < 120_000 && (!l.hasAccuracy() || l.accuracy > 30f)) return
         val cur = LL(l.latitude, l.longitude)
@@ -1978,12 +1981,15 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
     // ---- parking near the destination ----
     /** A few car parks close to where you're going, offered about a mile before you arrive. */
     var parkingNear by mutableStateOf<List<Nearby>>(emptyList())
-    private var parkingFor: Route? = null
+    /** Where the car parks were looked for: once per destination, so a reroute or a traffic refresh (a new route to the same place)
+     *  doesn't look again; that made the car park lines under the turn card open and close over and over. */
+    private var parkingFor: LL? = null
 
     private fun checkParking(r: Route, rem: Double) {
-        if (parkingFor === r || rem > 1700.0 || rem < 150.0 || r.len < 3000.0 || previewing || !prefs.b(PreferenceKeys.PARKPROMPT, false)) return
+        if (rem > 1700.0 || rem < 150.0 || r.len < 3000.0 || previewing || !prefs.b(PreferenceKeys.PARKPROMPT, false)) return
         val d = dest ?: return
-        parkingFor = r
+        if (parkingFor == d.pos) return
+        parkingFor = d.pos
         // going to a car park already: nothing to offer
         val nm = d.name.lowercase()
         if (nm.contains("parking") || nm.contains("car park") || nm.contains("multi-storey") || nm.contains("multistorey")) return
@@ -1996,7 +2002,8 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
                 // car parks with live free spaces: the nearest with room first, full ones at the end
                 ParkingLive.sortNearby(ParkingLive.enrich(found, live.await().orEmpty(), d.pos, 800.0)).take(3)
             }
-            if (route === r && dest === d) parkingNear = list
+            // (an empty answer leaves what's shown; the same destination keeps its list through reroutes)
+            if (dest?.pos == d.pos && list.isNotEmpty()) parkingNear = list
         }
     }
 
@@ -2005,7 +2012,7 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
         val d = dest
         parkingNear = emptyList()
         startRoute(Place(n.place.name, Lang.t("Parkplatz", "Car park") + (if (d != null) Lang.t(" bei ${d.name}", " near ${d.name}") else ""), n.place.pos), startNow = true)
-        parkingFor = route
+        parkingFor = n.place.pos
     }
 
     // ---- the list of turns (tap the turn card) ----

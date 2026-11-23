@@ -1236,7 +1236,8 @@ class SearchScreen(carContext: CarContext, private val holder: CarHolder, initia
                     val pick = if (r.size == 1) r[0] else if (exact.size == 1 && r[0] === exact[0]) r[0] else null
                     if (pick != null) {
                         // driving: the place is asked about (as a stop, or as the new destination), not taken over at once
-                        holder.engine?.askNewDest(pick)
+                        // (Set home / Set work: it is saved instead)
+                        holder.engine?.let { en -> if (en.pendingSave != null) en.pickPlace(pick) else en.askNewDest(pick) }
                         screenManager.popToRoot(); return
                     }
                 }
@@ -1260,6 +1261,8 @@ class SearchScreen(carContext: CarContext, private val holder: CarHolder, initia
         lifecycle.addObserver(object : DefaultLifecycleObserver {
             override fun onStart(owner: LifecycleOwner) { handler.post(poll) }
             override fun onStop(owner: LifecycleOwner) { handler.removeCallbacks(poll); handler.removeCallbacks(typed) }
+            // left without picking a place: Set home / Set work is off again, so a later search doesn't save over it
+            override fun onDestroy(owner: LifecycleOwner) { holder.engine?.pendingSave = null }
         })
     }
 
@@ -1292,7 +1295,8 @@ class SearchScreen(carContext: CarContext, private val holder: CarHolder, initia
                 if (line.isNotBlank()) r.addText(line)
                 p.hours?.let { r.addText(it) }
                 r.setOnClickListener {
-                    e?.askNewDest(p)
+                    // Set home / Set work (from the tile): the place is saved there, no route
+                    if (e?.pendingSave != null) e.pickPlace(p) else e?.askNewDest(p)
                     screenManager.popToRoot()
                 }
                 list.addItem(r.build())

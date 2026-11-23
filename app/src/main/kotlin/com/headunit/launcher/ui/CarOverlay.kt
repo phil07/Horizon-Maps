@@ -1022,7 +1022,7 @@ private fun CarChips(engine: NavEngine, actions: CarActions, rows: Int) {
             else -> place.sub
         }
         // a short screen: slim pills (the same two lines, smaller)
-        Row(m.height(if (slim) 52.dp else 86.dp).panel(6.dp, RoundedCornerShape(if (slim) 26.dp else 30.dp), c.surface).carTap(id) { if (place != null) engine.startRoute(place) else actions.search() }
+        Row(m.height(if (slim) 52.dp else 86.dp).panel(6.dp, RoundedCornerShape(if (slim) 26.dp else 30.dp), c.surface).carTap(id) { if (place != null) engine.startRoute(place) else { engine.pendingSave = id; actions.search() } }
             .padding(horizontal = if (slim) 8.dp else 14.dp), verticalAlignment = Alignment.CenterVertically) {
             Box(Modifier.size(if (slim) 36.dp else 60.dp).clip(androidx.compose.foundation.shape.CircleShape).background(tint.copy(alpha = 0.18f)), contentAlignment = Alignment.Center) {
                 androidx.compose.material3.Icon(icon, null, tint = tint, modifier = Modifier.size(if (slim) 22.dp else 36.dp))
