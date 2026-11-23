@@ -214,9 +214,10 @@ private fun SettingsBody(prefs: Prefs, engine: NavEngine, startAt: Int?, onClose
         if (!narrowS || !showList) Column(Modifier.weight(1f).fillMaxHeight()) {
         // the neon look: the sections as a bar of tabs at the top
         if (Neon.on) NeonTabs(sections.map { it.title }, cat, { cat = it; highlight = null })
-        // on a phone, the map pages (Map style, On the map, Your arrow) keep the live map at the top while you scroll the settings,
-        // so each change shows as you make it. The map moves here from the map screen (which is off while the settings are open).
-        if (narrowS && !showList && cat <= 2) Box(
+        // on a phone, the map pages (On the map, Your arrow, and Map style's own design below its look) keep the live map at the top
+        // while you scroll the settings, so each change shows as you make it. The map moves here from the map screen (which is off
+        // while the settings are open). Map style shows it inside its own design instead (see LiveDesignPreview).
+        if (narrowS && !showList && cat in 1..2) Box(
             Modifier.fillMaxWidth().height((androidx.compose.ui.platform.LocalConfiguration.current.screenHeightDp / 3).dp).padding(horizontal = 4.dp, vertical = 4.dp),
         ) {
             // the preview starts on your own position (not wherever the map was moved to on the map screen), a step further out
@@ -292,32 +293,13 @@ private fun SettingsBody(prefs: Prefs, engine: NavEngine, startAt: Int?, onClose
 
 /** Own design: route, arrow and accent colour and a lighter or darker map, with a preview that changes as you pick. */
 @Composable
-private fun OwnDesignGroup(prefs: Prefs) {
-    val c = LocalVw.current
+private fun OwnDesignGroup(prefs: Prefs, engine: NavEngine) {
     val route = prefs.s(PreferenceKeys.ROUTE_COLOUR, "")
     val arrow = prefs.s(PreferenceKeys.ARROW_COLOUR, "#F2F2F6")
     val accentHex = prefs.s(PreferenceKeys.ACCENT_COLOUR, "")
     val light = (prefs.s(PreferenceKeys.MAP_LIGHT, "0").toFloatOrNull() ?: 0f).toInt()
     SGroup(Lang.t("Eigenes Design", "Own design"), footer = Lang.t("Wirkt sofort. Standard stellt die übliche Farbe wieder her.", "Applies right away. Standard restores the usual colour.")) {
-        val routeCol = CustomLook.parse(route) ?: if (c.dark) Color(0xFF4CC9FF) else Color(0xFF2A7BE4)
-        val arrowCol = CustomLook.parse(arrow) ?: Color(0xFFF2F2F6)
-        val accentCol = CustomLook.parse(accentHex) ?: c.accent
-        val mapBg = if (c.dark) Color(0xFF1B1F2B) else Color(0xFFE9ECF1)
-        val road = if (c.dark) Color(0xFF353B4D) else Color(0xFFFFFFFF)
-        val wash = CustomLook.wash(light)
-        androidx.compose.foundation.Canvas(Modifier.fillMaxWidth().padding(vertical = 8.dp).height(150.dp).clip(RoundedCornerShape(18.dp))) {
-            val w = size.width; val h = size.height
-            drawRect(mapBg)
-            drawLine(road, androidx.compose.ui.geometry.Offset(0f, h * 0.3f), androidx.compose.ui.geometry.Offset(w, h * 0.42f), 14f)
-            drawLine(road, androidx.compose.ui.geometry.Offset(w * 0.75f, 0f), androidx.compose.ui.geometry.Offset(w * 0.62f, h), 12f)
-            val p = androidx.compose.ui.graphics.Path().apply { moveTo(w * 0.12f, h * 1.0f); cubicTo(w * 0.2f, h * 0.55f, w * 0.45f, h * 0.7f, w * 0.68f, h * 0.38f); lineTo(w * 0.73f, 0f) }
-            drawPath(p, routeCol, style = androidx.compose.ui.graphics.drawscope.Stroke(width = 22f, cap = androidx.compose.ui.graphics.StrokeCap.Round))
-            val ax = w * 0.17f; val ay = h * 0.78f
-            val tri = androidx.compose.ui.graphics.Path().apply { moveTo(ax, ay - 26f); lineTo(ax + 18f, ay + 18f); lineTo(ax, ay + 8f); lineTo(ax - 18f, ay + 18f); close() }
-            drawPath(tri, arrowCol); drawPath(tri, Color.Black.copy(alpha = 0.5f), style = androidx.compose.ui.graphics.drawscope.Stroke(3f))
-            if (wash.alpha > 0f) drawRect(wash)
-            drawRoundRect(accentCol, androidx.compose.ui.geometry.Offset(w - 150f, h - 70f), androidx.compose.ui.geometry.Size(130f, 50f), androidx.compose.ui.geometry.CornerRadius(25f))
-        }
+        LiveDesignPreview(engine)
         val std = "" to Lang.t("Standard", "Standard")
         SColours(Lang.t("Routenfarbe", "Route colour"), listOf(std, "#4CC9FF" to Lang.t("Hellblau", "Light blue"), "#2A7BE4" to Lang.t("Blau", "Blue"), "#7B4FC9" to Lang.t("Violett", "Purple"), "#A56BFF" to Lang.t("Lila", "Purple"), "#1FC7A6" to Lang.t("Türkis", "Turquoise"),
             "#3DDC84" to Lang.t("Grün", "Green"), "#FFD54A" to Lang.t("Gelb", "Yellow"), "#FF9A3C" to Lang.t("Orange", "Orange"), "#FF6FB5" to Lang.t("Rosa", "Pink"), "#FFFFFF" to Lang.t("Weiß", "White")), route) { prefs.put(PreferenceKeys.ROUTE_COLOUR, it) }
@@ -329,6 +311,36 @@ private fun OwnDesignGroup(prefs: Prefs) {
     }
 }
 
+/**
+ * The own-design preview is the real map (as at the top of this page on a phone), with a short sample route when no trip is on, so
+ * the route colour shows. The map view moves here and back, and the map screen takes it again when the settings close.
+ */
+@Composable
+private fun LiveDesignPreview(engine: NavEngine) {
+    androidx.compose.runtime.DisposableEffect(Unit) {
+        val before = engine.zoomOffset
+        engine.recenter(byUser = true)
+        engine.zoomOffset = (engine.zoomOffset - 1.0).coerceIn(-4.0, 3.0)
+        val here = engine.fix?.pos
+        val sample = engine.route == null && here != null
+        if (sample && here != null) engine.map.setRoute(sampleRoute(here), emptyList())
+        onDispose {
+            engine.zoomOffset = before
+            if (sample) { if (engine.route != null) engine.drawRoutes() else engine.map.setRoute(emptyList(), emptyList()) }
+        }
+    }
+    Box(Modifier.fillMaxWidth().padding(vertical = 8.dp).height(200.dp).clip(RoundedCornerShape(18.dp))) {
+        MapHost(engine.map, Modifier.fillMaxSize(), cornerDp = 18)
+    }
+}
+
+/** A short bent line ahead of [p] (about 200 m), only to show the route colour in the preview. */
+private fun sampleRoute(p: com.headunit.launcher.LL): List<com.headunit.launcher.LL> = listOf(
+    com.headunit.launcher.LL(p.lat - 0.0010, p.lon - 0.0012), com.headunit.launcher.LL(p.lat - 0.0002, p.lon - 0.0004),
+    com.headunit.launcher.LL(p.lat + 0.0006, p.lon), com.headunit.launcher.LL(p.lat + 0.0010, p.lon + 0.0008),
+    com.headunit.launcher.LL(p.lat + 0.0022, p.lon + 0.0012),
+)
+
 @Composable
 private fun MapLookSection(prefs: Prefs, engine: NavEngine) {
     SGroup("Design", footer = if (prefs.s(PreferenceKeys.LOOK, "standard") == "neon") Lang.t("Neon ist immer ein Nachtdesign und ändert nur das Aussehen. Schrift: Rajdhani (SIL Open Font License).", "Neon is always a night look and only changes the appearance. Font: Rajdhani (SIL Open Font License).") else null) {
@@ -338,7 +350,7 @@ private fun MapLookSection(prefs: Prefs, engine: NavEngine) {
             SChoice(Lang.t("Neonfarbe", "Neon colour"), listOf("yellow" to Lang.t("Gelb", "Yellow"), "cyan" to "Cyan", "magenta" to "Magenta"), prefs.s(PreferenceKeys.NEON_ACCENT, "yellow"),
                 Lang.t("Farbe von Menüs und Hervorhebungen", "Colour of menus and highlights")) { prefs.put(PreferenceKeys.NEON_ACCENT, it) }
     }
-    if (prefs.s(PreferenceKeys.LOOK, "standard") != "neon") OwnDesignGroup(prefs)
+    if (prefs.s(PreferenceKeys.LOOK, "standard") != "neon") OwnDesignGroup(prefs, engine)
     SGroup(Lang.t("Tag und Nacht", "Day and night")) {
         SChoice(Lang.t("Tag und Nacht", "Day and night"), listOf("auto" to "Auto", "lights" to Lang.t("Scheinwerfer", "Headlights"), "sun" to Lang.t("Sonnenstand", "Sunrise/sunset"), "times" to Lang.t("Feste Zeiten", "Set times"), "day" to Lang.t("Tag", "Day"), "night" to Lang.t("Nacht", "Night"), "phone" to Lang.t("Dunkelmodus des Telefons", "Phone's dark mode")), prefs.s(PreferenceKeys.THEME, "auto"),
             Lang.t("Auto folgt dem Nachtmodus des Geräts", "Auto follows the device's dark mode")) { prefs.put(PreferenceKeys.THEME, it) }

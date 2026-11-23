@@ -1,14 +1,8 @@
 ## Unreleased
 
-### New
-- Schnellere Route: Das Angebot „Schnellere Route gefunden“ steht als Streifen oben auf der Fahrtkarte, mit Wechseln und Behalten in einer Zeile. Im Hochformat steht es oben im Fahrt-Blatt.
-  EN: A faster route on offer is a strip across the top of the trip card, with Switch and Keep on one line. Upright, it is at the top of the trip sheet.
-- Warnungen auf der Route stehen als eine kurze Zeile unter der Abbiegekarte statt als großes Banner. Außerhalb der Route bleibt das Banner.
-  EN: On a route, alerts are one short line under the turn card instead of the big banner. Off the route the banner stays.
-- Android Auto: Die Hinweise unter der Abbiegekarte sind kleine Zeilen wie auf dem Telefon, statt Karten.
-  EN: Android Auto: the hints under the turn card are small chips in one line, as on the phone, instead of cards.
-- „Außerhalb deiner Karten“ ist antippbar und öffnet die Offline-Karten in den Einstellungen.
-  EN: "Outside your maps" is tappable and opens Offline maps in Settings.
+### Improved
+- Eigenes Design: Unter Kartenansicht zeigt die Vorschau jetzt die echte Karte mit einer Beispielroute, damit du Routenfarbe und Kartenfarbe sofort siehst. Auf dem Telefon steht die Karte dafür nicht mehr zusätzlich oben auf der Seite.
+  EN: Own design: under Map view the preview is now the real map with a sample route, so you see the route colour and the map tint at once. On the phone the map is no longer also at the top of the page.
 
 ## 1.0.246 — 2026-10-28
 
