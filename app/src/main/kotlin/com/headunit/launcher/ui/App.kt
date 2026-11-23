@@ -315,7 +315,8 @@ fun App(prefs: Prefs, engine: NavEngine, map: MapBinding) {
                         SettingsScreen(prefs, engine, startAt = engine.settingsOpenAt, onClose = { settings = false })
                     }
                 } else {
-                    NavOverlays(engine, onSettings = { settings = true })
+                    // picture in picture: only the next turn and the time left over the map (see Pip)
+                    if (Pip.on) PipOverlay(engine) else NavOverlays(engine, onSettings = { settings = true })
                     if (prefs.b(PreferenceKeys.PERFORMANCE_METER, false) && engine.perfLine.isNotEmpty()) Text(engine.perfLine, color = Color.White, fontSize = 12.sp,
                         modifier = Modifier.align(Alignment.TopCenter).padding(top = 12.dp).background(Color.Black.copy(alpha = 0.6f), RoundedCornerShape(8.dp)).padding(horizontal = 10.dp, vertical = 4.dp))
                     if (engine.deadReckoning) DeadReckoningChip(Modifier.align(Alignment.BottomCenter).padding(bottom = 84.dp))

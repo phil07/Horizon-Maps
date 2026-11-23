@@ -4589,6 +4589,8 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
     private var movingNow = false
     /** In portrait: the share of the screen height covered by the trip card at the bottom (the locator is kept above it). */
     var bottomCover = 0.0
+    /** The app shows as the small picture-in-picture window: your arrow sits low in it, clear of the time along the bottom. */
+    @Volatile var pipMode = false
 
     // Standing still (parked, at lights): the first position while stopped, kept until you've clearly moved off. GPS (and the
     // car's own GPS over Android Auto) wanders a few metres and reports small made-up speeds while stopped; following that
@@ -4924,6 +4926,8 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
         else for (pn in panels) {
             if (pn[2] - pn[0] > 0.55f && pn[3] > 0.85f && pn[1] > 0.3f) pad = minOf(pad, 2.0 * (pn[1] - 0.08) - 1.0).coerceAtLeast(0.0)
         }
+        // picture in picture: the arrow low in the small window (more of the road ahead), clear of the time along the bottom
+        if (pipMode) pad = 0.4
         tBMode = if (northUp) 0 else if (navigating || sp > 2.0) 1 else 2
         // stopped for 30 s (lights, a queue): a flat top-down view of the traffic round you, back to normal as soon as you move.
         // Not when you've moved the map yourself, nor in the last 400 m of a route

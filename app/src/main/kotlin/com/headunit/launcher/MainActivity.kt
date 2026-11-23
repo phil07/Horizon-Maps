@@ -242,6 +242,20 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    // picture in picture (phones, on a route): going to the home screen or another app keeps the map in a small window, see ui.Pip
+    override fun onUserLeaveHint() {
+        super.onUserLeaveHint()
+        if (!::engine.isInitialized || isInPictureInPictureMode) return
+        if (com.headunit.launcher.ui.Pip.allowed(this, engine)) try {
+            enterPictureInPictureMode(android.app.PictureInPictureParams.Builder().setAspectRatio(android.util.Rational(3, 4)).build())
+        } catch (e: Exception) { softFail(e) }
+    }
+
+    override fun onPictureInPictureModeChanged(isInPictureInPictureMode: Boolean, newConfig: android.content.res.Configuration) {
+        super.onPictureInPictureModeChanged(isInPictureInPictureMode, newConfig)
+        com.headunit.launcher.ui.Pip.on = isInPictureInPictureMode
+    }
+
     override fun onResume() {
         super.onResume()
         hideBars()

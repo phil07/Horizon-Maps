@@ -828,6 +828,9 @@ private fun ScreenSection(prefs: Prefs, engine: NavEngine) {
 /** Beim Fahren: its own page (road name, arrow, tunnels, media controls, locking). */
 @Composable
 private fun WhileDrivingSection(prefs: Prefs, engine: NavEngine) {
+    if (isPhoneDevice(LocalContext.current)) SGroup(Lang.t("Bild im Bild", "Picture in picture")) {
+        SToggle(prefs, Lang.t("Bild im Bild", "Picture in picture"), PreferenceKeys.PIP, true, Lang.t("Auf einer Route läuft die Karte beim Wechsel zum Startbildschirm oder einer anderen App in einem kleinen Fenster weiter, mit der nächsten Abbiegung und der Restzeit. Antippen holt die App zurück. Nicht mit Android Auto", "On a route, going to the home screen or another app keeps the map going in a small window, with the next turn and the time left. Tap it to come back. Not with Android Auto"))
+    }
     SGroup(Lang.t("Song und Cover", "Song and cover"), footer = "Zurück, Pause und Weiter unten auf dem Fahrbildschirm, solange auf dem Autodisplay Musik oder Radio läuft, aus jeder App. Mit Benachrichtigungszugriff stehen auch Titel, Interpret und Cover dabei.") {
         val ctx = LocalContext.current
         val access = com.headunit.launcher.MediaHub.hasAccess(ctx)

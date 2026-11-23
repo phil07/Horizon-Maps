@@ -401,6 +401,8 @@ internal object PreferenceKeys {
     const val CAR_COOL = "carCool"
     /** Settings › On the map › Blend traffic colours on the route line and the route bar (on by default). */
     const val TRAFFIC_BLEND = "trafficBlend"
+    /** Settings › While driving › Picture in picture on phones (on by default). */
+    const val PIP = "pip"
     /** The turn card's arrow, width and height in percent (100 = as designed), on the phone and on the car screen. */
     const val TURN_ARROW_SIZE = "turnArrowSize"
     const val TURN_CARD_WIDTH = "turnCardWidth"
