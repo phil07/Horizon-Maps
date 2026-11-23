@@ -397,6 +397,13 @@ private fun MapScreen(engine: NavEngine, onSettings: () -> Unit) {
                     }
                     TurnLineChips(engine)
                 }
+                // an alert on the route: one line under the turn card (the big banner is off on the route, see App)
+                val curAlert = engine.alert
+                val lastAlert = remember { mutableStateOf(curAlert) }
+                if (curAlert != null) lastAlert.value = curAlert
+                AnimatedVisibility(curAlert != null, enter = fadeIn(tween(200)) + androidx.compose.animation.expandVertically(tween(220)), exit = fadeOut(tween(160)) + androidx.compose.animation.shrinkVertically(tween(180))) {
+                    lastAlert.value?.let { AlertLine(it) }
+                }
             }
             // (adding a stop upright: the list sits along the bottom instead, see below)
             if (engine.nearbyKind != null && (!previewing || engine.stopMode) && !(narrow && engine.stopMode) && !(engine.stopsEditor && !narrow)) NearbyCard(engine)

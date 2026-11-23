@@ -244,6 +244,18 @@ fun AlertBanner(a: AlertInfo, modifier: Modifier = Modifier) {
     }
 }
 
+/** The same alert as one short line under the turn card: its road sign and what it is, no banner or countdown. */
+@Composable
+fun AlertLine(a: AlertInfo, modifier: Modifier = Modifier) {
+    val c = navVw(LocalVw.current)
+    val shape = RoundedCornerShape(50)
+    Row(modifier.fillMaxWidth().panel(6.dp, shape, c.surface).border(1.dp, alertColor(a.kind).copy(alpha = 0.6f), shape)
+        .padding(start = 8.dp, end = 14.dp, top = 6.dp, bottom = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+        AlertSign(a, 26.dp)
+        Text(a.text, color = c.text, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(start = 10.dp).weight(1f, fill = false))
+    }
+}
+
 /**
  * Compact hazard pill for hazards ahead on the map: the road sign and the distance side by side, in the map cards' own day / night
  * colours. Kept small and low so it never runs into the cards above it (the parking card used to slide under the old tall badge).

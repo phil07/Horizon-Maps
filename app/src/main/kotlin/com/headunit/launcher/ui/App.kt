@@ -342,8 +342,9 @@ fun App(prefs: Prefs, engine: NavEngine, map: MapBinding) {
                         Modifier.shadow(10.dp, RoundedCornerShape(50)).clip(RoundedCornerShape(50)).background(navVw(c).surface).border(1.dp, navVw(c).line, RoundedCornerShape(50)).padding(horizontal = 22.dp, vertical = 11.dp),
                     ) { Text(lastMsg.value ?: "", color = navVw(c).text, fontSize = 15.sp, fontWeight = androidx.compose.ui.text.font.FontWeight.Medium) }
                 }
-                // alerts (camera, speed limit, incident, rain, break) get a large banner that is hard to miss
-                if (!settings) {
+                // alerts (camera, speed limit, incident, rain, break) get a large banner that is hard to miss; on a route they are a
+                // line under the turn card instead (ImmersiveNav)
+                if (!settings && !(engine.route != null && !engine.previewing)) {
                     val curAlert = engine.alert
                     val lastAlert = remember { mutableStateOf(curAlert) }
                     if (curAlert != null) lastAlert.value = curAlert
