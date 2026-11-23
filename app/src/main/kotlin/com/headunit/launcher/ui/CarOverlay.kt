@@ -801,7 +801,8 @@ private fun TripCard(engine: NavEngine, fill: Boolean, oneLine: Boolean = false)
     val w = if (fill) Modifier.fillMaxWidth() else Modifier.width(if (rowW > 0) with(dens) { rowW.toDp() } else 460.dp)
     Column((if (fill) Modifier.fillMaxWidth() else Modifier).panel(10.dp, RoundedCornerShape(22.dp), c.surface)) {
         // a slim bar: the full-height one took up nearly half the card
-        if (engine.showRouteBar) Row(Modifier.padding(start = 16.dp, end = 16.dp, top = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+        // (as wide as the figures below, like the card: with only the bar's own weight the row reached across the whole car screen)
+        if (engine.showRouteBar && (fill || rowW > 0)) Row(w.padding(start = 16.dp, end = 16.dp, top = 6.dp), verticalAlignment = Alignment.CenterVertically) {
             RouteBar(engine, Modifier.weight(1f), thin = true)
             // a pin at the end of the bar: the stops card (fuel, charging, food, coffee along the route, one tap to add)
             Box(Modifier.padding(start = 10.dp).size(34.dp).clip(androidx.compose.foundation.shape.CircleShape).background(c.accent).carTap("trip-pin") { engine.stopsScreen = true }, contentAlignment = Alignment.Center) {
@@ -826,8 +827,6 @@ private fun TripCard(engine: NavEngine, fill: Boolean, oneLine: Boolean = false)
             if (fill) engine.ev.evNowKm()?.let { k -> CarStat("$k km", "Reichweite", c.text) }
             engine.evArrivalPct()?.let { p -> CarStat("$p%", "Akku Ankunft", if (p < 10) Bad else if (p < 20) Warn else Good) }
         }
-        // the live fuel cost (Settings › Fuel & charging), a line under the figures
-        liveCostText(engine)?.let { Text(it, color = c.sub, fontSize = 16.sp, maxLines = 1, modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 4.dp)) }
         // the whole route at a glance (a text button), and the voice guidance (round: all, alerts only, off; one tap steps on)
         val pill: @Composable (String, Dp, () -> Unit) -> Unit = { label, h, action ->
             Box(Modifier.height(h).clip(androidx.compose.foundation.shape.CircleShape).background(c.line).carTap("trip-$label") { action() }
@@ -877,6 +876,8 @@ private fun TripCard(engine: NavEngine, fill: Boolean, oneLine: Boolean = false)
                 if (showEnd) end(54.dp * sizeK)
             }
         }
+        // the live fuel cost (Settings › Fuel & charging), a line under the figures
+        liveCostText(engine)?.let { Text(it, color = c.sub, fontSize = 16.sp, maxLines = 1, modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 8.dp)) }
     }
 }
 
