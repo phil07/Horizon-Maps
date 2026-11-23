@@ -44,7 +44,7 @@ internal fun NavEngine.playVoiceFile(id: String) {
             val like = prefs.b(PreferenceKeys.VOICE_AS_CHIME, false)
             mp.setAudioAttributes(AudioAttributes.Builder().setUsage(voiceUsage(voiceChan))
                 .setContentType(if (like) AudioAttributes.CONTENT_TYPE_SONIFICATION else AudioAttributes.CONTENT_TYPE_SPEECH).build())
-            if (speakerOut()) phoneSpeaker()?.let { mp.setPreferredDevice(it) }
+            if (android.os.Build.VERSION.SDK_INT >= 28 && speakerOut()) phoneSpeaker()?.let { mp.setPreferredDevice(it) }
             mp.setDataSource(f.path)
             fun done() {
                 if (voicePlayer === mp) voicePlayer = null
