@@ -1,22 +1,20 @@
 ## Unreleased
 
 ### New
-- Straßennummer auf der Abbiegekarte: Eine Nummer mit Buchstabe wie „B 44“ oder „E39“ steht als kleines Badge neben dem Straßennamen (außerhalb des Vereinigten Königreichs).
-  EN: Road number on the turn card: a number with a letter, such as "B 44" or "E39", shows as a small badge beside the street name (outside the United Kingdom).
+- Sprachkanal unter Einstellungen › Ton: neu Benachrichtigung, Wecker und Klingelton, für Head-Units, die den Navi-Kanal mit der Musiklautstärke abspielen.
+  EN: Voice channel under Settings › Sound: new Notification, Alarm and Ringtone choices, for head units that play the navigation channel at the music volume.
 
 ### Improved
-- Baustellen und Spur-Sperrungen erscheinen nur als Zeile auf der Abbiegekarte, ohne zusätzliche Warnung und Ansage.
-  EN: Roadworks and lane closures show only as the line on the turn card, without an extra warning or spoken line.
-- Zahlen auf der Android-Auto-Fahrtkarte teilen sich die Breite, eine lange Zahl wird etwas kleiner, statt in die nächste zu laufen.
-  EN: The figures on the Android Auto trip card share the width; a long figure shrinks a little instead of running into the next.
-- Der Pfeil auf der Karte ohne Route wird leicht aus der Mitte geschoben, wenn die Liste „Gespeichert & zuletzt“ eingeklappt ist (etwa ein Drittel der Verschiebung bei aufgeklappter Liste).
-  EN: With no route and the "Saved & recent" list folded away, the arrow is moved slightly off centre (about a third of the shift with the list open).
+- Routen zu einer Hausadresse enden auf der Straße, an der das Haus liegt, nicht in der Mitte des Grundstücks. Mapbox' Punkt auf der Straße wird genutzt; fehlt er, der nächste Punkt auf der benannten Straße.
+  EN: Routes to a house address end on the street the house is on, not in the middle of the plot. Mapbox's point on the street is used; if it gives none, the nearest point on the named street.
+- Die Vorschau in den Einstellungen zentriert beim Öffnen auf dich und zeigt einen Schritt weiter heraus, damit mehr von deiner Umgebung sichtbar ist. Der Zoom der Karte kommt beim Schließen zurück.
+  EN: The settings map preview centres on you when it opens and shows a step further out, so more of your area is visible. The map's zoom comes back when it closes.
+- Die Was-ist-neu-Karte zeigt nur Änderungen, die du noch nicht gesehen hast. Jede Änderung wird beim Schließen der Karte gemerkt.
+  EN: The what's-new card only shows changes you haven't seen yet. Each change is remembered when the card is closed.
 
 ### Fixed
-- Die Kanten des Pfeils auf der Routenleiste sind wieder glatt: Das Bild wird in Stufen verkleinert.
-  EN: The arrow on the route bar has smooth edges again: the picture is scaled down in steps.
-- Die Karte nutzt die 16-KB-Seitengröße, die Google Play verlangt: Mapbox wird in der 16-KB-Variante derselben Version (11.32.1) eingebunden.
-  EN: The map uses the 16 KB page size that Google Play requires: Mapbox is built in the 16 KB variant of the same version (11.32.1).
+- Straßenlampen, die die App entlang von Straßen setzt, stehen nicht mehr auf der Fahrbahn: Eine Lampe wird nur gesetzt, wenn sie mindestens 4 m von jeder Straßenmitte entfernt ist.
+  EN: Street lamps the app places along streets no longer stand in the road: a lamp is only placed at least 4 m away from every street's middle line.
 
 ## 1.0.246 — 2026-10-28
 
