@@ -1,8 +1,8 @@
 ## Unreleased
 
-### Improved
-- Hochformat: Das Blatt unten ist weg. Zuhause, Arbeit, Wetter, günstiger Sprit, Geparkt und die Abfahrtszeit stehen wieder oben unter der Suche, wie früher. „Außerhalb deiner Karten“ bleibt antippbar.
-  EN: Portrait: the sheet along the bottom is gone. Home, Work, weather, cheapest fuel, where you parked and the leave-by time are back at the top under the search, as before. "Outside your maps" stays tappable.
+### Fixed
+- Hochformat: Die Suche mit Zuhause, Arbeit und deinen Orten bleibt oben stehen, auch wenn du die Karte berührst. Sie klappt sich nicht mehr zu einem Knopf zusammen.
+  EN: Portrait: the search with Home, Work and your places stays at the top even when you touch the map. It no longer folds into a single button.
 
 ## 1.0.246 — 2026-10-28
 

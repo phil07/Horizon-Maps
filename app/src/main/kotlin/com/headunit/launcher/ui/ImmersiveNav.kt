@@ -263,7 +263,9 @@ private fun MapScreen(engine: NavEngine, onSettings: () -> Unit) {
     // Search as a button (Settings › Places & trips › Search bar): with no route, the bar and its buttons fold into one round button
     var searchOpen by remember { mutableStateOf(false) }
     val foldOn = engine.prefs.b(PreferenceKeys.SEARCH_FOLD, false)
-    val foldSearch = (foldOn || engine.searchTucked) && !routing && !engine.previewing && !engine.walking && !searchOpen
+    // (touching the map tucks the search away too, but not on an upright screen: the bar with Home, Work and your places stays there)
+    val uprightScreen = androidx.compose.ui.platform.LocalConfiguration.current.let { it.screenHeightDp > it.screenWidthDp } && engine.prefs.b(PreferenceKeys.PORTRAIT_LAYOUT, true)
+    val foldSearch = (foldOn || (engine.searchTucked && !uprightScreen)) && !routing && !engine.previewing && !engine.walking && !searchOpen
     BackHandler(enabled = foldOn && searchOpen && !routing) { searchOpen = false }
     LaunchedEffect(searchOpen) { if (searchOpen) { engine.searchTucked = false; try { focus.requestFocus() } catch (e: Exception) { softFail(e) } } }
     LaunchedEffect(routing) { if (routing) searchOpen = false }
