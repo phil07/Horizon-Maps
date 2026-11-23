@@ -274,7 +274,6 @@ private fun MapScreen(engine: NavEngine, onSettings: () -> Unit) {
         // portrait (or any narrow window): cards use the full width, the round buttons stack down the right-hand side,
         // and your speed and the re-centre button sit just above the trip card instead of beside it
         val narrow = maxWidth < 720.dp
-        var portraitSheetUp by remember { mutableStateOf(false) }
         var portraitTripUp by remember { mutableStateOf(false) }
         val dens = androidx.compose.ui.platform.LocalDensity.current
         var tripPx by remember { mutableStateOf(0) }
@@ -357,6 +356,9 @@ private fun MapScreen(engine: NavEngine, onSettings: () -> Unit) {
                         val chipsDensity = LocalDensity.current
                         CompositionLocalProvider(LocalDensity provides Density(chipsDensity.density * (if (sidewaysPhone(engine)) 0.85f else 1f), chipsDensity.fontScale)) {
                             ImmChips(engine) { try { focus.requestFocus() } catch (e: Exception) { softFail(e) } }
+                            // upright: the weather, the cheapest fuel, the parked car and the leave-by times under your places
+                            if (maxHeight > maxWidth) { PortraitChips(engine); LeaveByChips(engine) }
+                            OutsideMapsChip(engine)
                         }
                         PredictionCard(engine)
                         NoticeCard(engine)
@@ -489,26 +491,7 @@ private fun MapScreen(engine: NavEngine, onSettings: () -> Unit) {
                     }
                 }
                 // (its outline goes to the camera too, so with no route your arrow sits in the middle of the clear map)
-                // the new portrait layout: upright, no route: Settings at the top beside the search, the map buttons about half-way down
-                val newPortrait = engine.prefs.b(PreferenceKeys.PORTRAIT_LAYOUT, true) && maxHeight > maxWidth && !routing && !previewing
-                if (newPortrait) {
-                    Column(Modifier.align(side(Alignment.TopEnd)).padding(16.dp).onGloballyPositioned { report(2, it.boundsInParent()) }, horizontalAlignment = if (mir) Alignment.Start else Alignment.End) { settings() }
-                    Box(Modifier.align(side(Alignment.CenterEnd)).padding(16.dp)) { panelAndZoom() }
-                    // the sheet along the bottom: Home, Work and your places; pulled up (or its handle tapped) for your recent places
-                    Column(Modifier.align(Alignment.BottomCenter).fillMaxWidth().padding(start = 16.dp, end = 16.dp, bottom = 16.dp).panel(10.dp, RoundedCornerShape(24.dp), LocalVw.current.surface).padding(bottom = 8.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally) {
-                        Box(Modifier.padding(top = 8.dp, bottom = 6.dp).clip(RoundedCornerShape(3.dp)).background(LocalVw.current.sub.copy(alpha = 0.5f)).size(width = 44.dp, height = 5.dp)
-                            .clickable { portraitSheetUp = !portraitSheetUp })
-                        ImmChips(engine, focusSearch = {})
-                        PortraitChips(engine)
-                        LeaveByChips(engine)
-                        OutsideMapsChip(engine)
-                        if (engine.driving && engine.onRoad.isNotBlank()) Text(engine.onRoad, color = LocalVw.current.text, fontSize = 16.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp))
-                        MediaBar(engine)
-                        if (portraitSheetUp) ImmQuick(engine)
-                    }
-                }
-                else if (settingsAbove) Column(Modifier.align(side(Alignment.TopEnd)).padding(16.dp).onGloballyPositioned { report(2, it.boundsInParent()) }, verticalArrangement = Arrangement.spacedBy(10.dp), horizontalAlignment = if (mir) Alignment.Start else Alignment.End) {
+                if (settingsAbove) Column(Modifier.align(side(Alignment.TopEnd)).padding(16.dp).onGloballyPositioned { report(2, it.boundsInParent()) }, verticalArrangement = Arrangement.spacedBy(10.dp), horizontalAlignment = if (mir) Alignment.Start else Alignment.End) {
                     settings(); panelAndZoom()
                 }
                 else Row(Modifier.align(side(Alignment.TopEnd)).padding(16.dp).onGloballyPositioned { report(2, it.boundsInParent()) }, horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.Top) {

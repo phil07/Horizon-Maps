@@ -1,8 +1,8 @@
 ## Unreleased
 
 ### Improved
-- Eigenes Design: Unter Kartenansicht zeigt die Vorschau jetzt die echte Karte mit einer Beispielroute, damit du Routenfarbe und Kartenfarbe sofort siehst. Auf dem Telefon steht die Karte dafür nicht mehr zusätzlich oben auf der Seite.
-  EN: Own design: under Map view the preview is now the real map with a sample route, so you see the route colour and the map tint at once. On the phone the map is no longer also at the top of the page.
+- Hochformat: Das Blatt unten ist weg. Zuhause, Arbeit, Wetter, günstiger Sprit, Geparkt und die Abfahrtszeit stehen wieder oben unter der Suche, wie früher. „Außerhalb deiner Karten“ bleibt antippbar.
+  EN: Portrait: the sheet along the bottom is gone. Home, Work, weather, cheapest fuel, where you parked and the leave-by time are back at the top under the search, as before. "Outside your maps" stays tappable.
 
 ## 1.0.246 — 2026-10-28
 
