@@ -477,7 +477,13 @@ private fun MapScreen(engine: NavEngine, onSettings: () -> Unit) {
                     }
                 }
                 // (its outline goes to the camera too, so with no route your arrow sits in the middle of the clear map)
-                if (settingsAbove) Column(Modifier.align(side(Alignment.TopEnd)).padding(16.dp).onGloballyPositioned { report(2, it.boundsInParent()) }, verticalArrangement = Arrangement.spacedBy(10.dp), horizontalAlignment = if (mir) Alignment.Start else Alignment.End) {
+                // the new portrait layout: upright, no route: Settings at the top beside the search, the map buttons about half-way down
+                val newPortrait = engine.prefs.b(PreferenceKeys.PORTRAIT_LAYOUT, true) && maxHeight > maxWidth && !routing && !previewing
+                if (newPortrait) {
+                    Column(Modifier.align(side(Alignment.TopEnd)).padding(16.dp).onGloballyPositioned { report(2, it.boundsInParent()) }, horizontalAlignment = if (mir) Alignment.Start else Alignment.End) { settings() }
+                    Box(Modifier.align(side(Alignment.CenterEnd)).padding(16.dp)) { panelAndZoom() }
+                }
+                else if (settingsAbove) Column(Modifier.align(side(Alignment.TopEnd)).padding(16.dp).onGloballyPositioned { report(2, it.boundsInParent()) }, verticalArrangement = Arrangement.spacedBy(10.dp), horizontalAlignment = if (mir) Alignment.Start else Alignment.End) {
                     settings(); panelAndZoom()
                 }
                 else Row(Modifier.align(side(Alignment.TopEnd)).padding(16.dp).onGloballyPositioned { report(2, it.boundsInParent()) }, horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.Top) {

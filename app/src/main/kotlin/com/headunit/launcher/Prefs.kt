@@ -90,6 +90,8 @@ internal object PreferenceKeys {
     const val CAR_BUTTON_SIZE = "carbuttonsize"
     const val CAR_LIMIT_SIGN_SIZE = "carlimitsignsize"
     const val LOCATOR_REMOVE_WHITE = "locatorRemoveWhite"
+    /** The new portrait layout (on by default): with no route on an upright screen, the map buttons sit half-way down the clear map. */
+    const val PORTRAIT_LAYOUT = "portraitLayout"
     const val CAR_ARROW_SIZE = "cararrowsize"
     const val MAP_THEME = "maptheme"
     const val MAP_COLOURS = "mapcolours"

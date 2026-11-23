@@ -752,6 +752,7 @@ private fun SoundSection(prefs: Prefs, engine: NavEngine) {
 private fun ScreenSection(prefs: Prefs, engine: NavEngine) {
     SGroup(Lang.t("Bildschirm", "Screen")) {
         SSlider(Lang.t("Helligkeit", "Brightness"), prefs.i(PreferenceKeys.BRIGHT, 100).toFloat(), 10f..100f, "%", sub = Lang.t("100% überlässt die Steuerung dem System", "100% leaves it to the system"), live = true) { prefs.put(PreferenceKeys.BRIGHT, it) }
+        SToggle(prefs, Lang.t("Neues Hochformat-Layout", "New portrait layout"), PreferenceKeys.PORTRAIT_LAYOUT, true, Lang.t("Auf dem hochkant stehenden Bildschirm ohne Route: oben nur die Suche mit Einstellungen daneben, die Kartenknöpfe etwa auf halber Höhe", "On an upright screen with no route: just the search at the top with Settings beside it, the map buttons about half-way down"))
         SToggle(prefs, Lang.t("Bildschirm nachts dimmen", "Dim the screen at night"), PreferenceKeys.DIMNIGHT, false)
         SToggle(prefs, Lang.t("Bildschirm eingeschaltet lassen", "Keep the screen on"), PreferenceKeys.KEEPON, true)
         val screenConfig = androidx.compose.ui.platform.LocalConfiguration.current
