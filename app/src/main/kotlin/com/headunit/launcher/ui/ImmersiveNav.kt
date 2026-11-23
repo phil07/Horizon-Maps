@@ -569,6 +569,8 @@ private fun MapScreen(engine: NavEngine, onSettings: () -> Unit) {
                     when { d > 25.0 -> Lang.t("Ziel rechts", "Destination on the right"); d < -25.0 -> Lang.t("Ziel links", "Destination on the left"); else -> Lang.t("Ziel geradeaus", "Destination straight ahead") }
                 }
                 lastSide?.let { Text(it, color = pc.text, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, modifier = Modifier.padding(top = 4.dp)) }
+                // car parks near the destination (found on the last stretch, see NavEngine): the nearest one, tap to go there
+                engine.parkingNear.firstOrNull()?.let { np -> ImmChip(Icons.Rounded.LocalParking, Color(0xFFFBBC04), "${np.place.name.take(22)} · ${Geo.fmtDist(np.dist, engine.imperial)}") { engine.startRoute(np.place) } }
                 if (portraitTripUp) TripArea(engine, shareEta, narrow, voice)
             }
         }
