@@ -667,7 +667,9 @@ private fun AlertsSection(prefs: Prefs, engine: NavEngine) {
     SGroup(Lang.t("Geschwindigkeit", "Speed")) {
         SToggle(prefs, Lang.t("Warnen bei Überschreitung", "Warn when speeding"), PreferenceKeys.SPEEDWARN, false)
         if (prefs.b(PreferenceKeys.SPEEDWARN, false)) SChoice(Lang.t("Warnen ab Überschreitung um", "Warn when over by"), listOf("0", "5", "10").map { it to it + if (engine.imperial) " mph" else " km/h" }, prefs.s(PreferenceKeys.TRAFFIC_WARNING, "5")) { prefs.put(PreferenceKeys.TRAFFIC_WARNING, it) }
+        SToggle(prefs, Lang.t("Tempolimit-Töne", "Speed limit sounds"), PreferenceKeys.LIMIT_SOUNDS, true, Lang.t("Aus: keine Töne und keine Stimme zum Tempolimit (zu schnell, Wechsel). Blitzer, Gefahren und andere Warnungen bleiben", "Off: no beeps or voice for the speed limit (over it, or a change). Cameras, hazards and other alerts still sound"))
         SToggle(prefs, Lang.t("Limitänderung ansagen", "Announce limit changes"), PreferenceKeys.LIMITCHANGE, false)
+        if (prefs.b(PreferenceKeys.LIMITCHANGE, false)) SToggle(prefs, Lang.t("Pop-up beim Tempowechsel", "Pop-up when the limit changes"), PreferenceKeys.LIMIT_POPUP, true, Lang.t("Aus: kein Hinweis auf der Karte, das Schild am Tacho pulsiert trotzdem", "Off: no banner on the map; the sign by the speedometer still pulses"))
         if (prefs.b(PreferenceKeys.LIMITCHANGE, false)) SChoice("Wie", listOf("both" to "Gong und Stimme", "voice" to "Nur Stimme", "chime" to "Nur Gong"), prefs.s(PreferenceKeys.LIMIT_HOW, "both"),
             "Mit Gong kommt die Stimme erst, wenn der Gong vorbei ist") { prefs.put(PreferenceKeys.LIMIT_HOW, it) }
         SToggle(prefs, Lang.t("Geschätzte Limits anzeigen", "Show estimated limits"), PreferenceKeys.LIMITEST, false, Lang.t("Übliches Limit anzeigen, wo keins kartiert ist", "Show the usual limit where none is mapped"))

@@ -1752,9 +1752,10 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
         if (candidateHits >= 2 && (fix?.speed ?: 0.0) > 3.0) {
             announcedLimit = n; candidateHits = 0; limitCandidate = -1
             // how it's told (Settings > Alerts > Speed): gong and voice (the voice waits for the gong), voice only, or gong only
-            val how = prefs.s(PreferenceKeys.LIMIT_HOW, "both")
-            if (how != "voice") chime()
-            raiseAlert("limit", "Tempolimit $n")
+            // (Settings › Alerts › Speed limit sounds off: silent; Pop-up when the limit changes off: no banner, the sign still pulses)
+            val how = if (prefs.b(PreferenceKeys.LIMIT_SOUNDS, true)) prefs.s(PreferenceKeys.LIMIT_HOW, "both") else "none"
+            if (how == "both" || how == "chime") chime()
+            if (prefs.b(PreferenceKeys.LIMIT_POPUP, true)) raiseAlert("limit", "Tempolimit $n")
             if (how == "both") scope.launch { delay(500); speak("Tempolimit $n", true) }
             else if (how == "voice") speak("Tempolimit $n", true)
             limitPulse = true
@@ -3491,7 +3492,7 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
             pendHits = 0; pendLimit = -2.0
             if (v <= 0.0) {
                 // the end of a posted limit is announced like a change (when limit announcements are on)
-                if (none && speedLimit != null && !limitEstimated && prefs.b(PreferenceKeys.LIMITCHANGE, false))
+                if (none && speedLimit != null && !limitEstimated && prefs.b(PreferenceKeys.LIMITCHANGE, false) && prefs.b(PreferenceKeys.LIMIT_SOUNDS, true))
                     speak(Lang.t("Tempolimit aufgehoben", "Speed limit lifted"), true)
                 speedLimit = null; limitEstimated = false; noLimit = none
             }
@@ -3870,7 +3871,8 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
             val overVehicle = vmax != null && (lim == null || vmax < lim) && p.speed > vmax + tol
             val over = prefs.b(PreferenceKeys.SPEEDWARN, false) && p.speed > 4.0 && ((lim != null && !limitEstimated && p.speed > lim + tol) || overVehicle)
             overLimit = over
-            if (over && soundMode != 2 && now - lastBeep > 9000) {
+            // (Settings › Alerts › Speed limit sounds off: no beep; cameras, hazards and other alerts still sound)
+            if (over && soundMode != 2 && prefs.b(PreferenceKeys.LIMIT_SOUNDS, true) && now - lastBeep > 9000) {
                 lastBeep = now
                 chime(android.media.ToneGenerator.TONE_PROP_BEEP2)
             }

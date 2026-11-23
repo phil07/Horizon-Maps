@@ -403,6 +403,10 @@ internal object PreferenceKeys {
     const val TRAFFIC_BLEND = "trafficBlend"
     /** Settings › While driving › Picture in picture on phones (on by default). */
     const val PIP = "pip"
+    /** Settings › Alerts: the speed limit's own beeps and voice (over the limit, and when it changes); off leaves other alerts. */
+    const val LIMIT_SOUNDS = "limitSounds"
+    /** Settings › Alerts: the pop-up when the limit changes (the sign by the speedometer pulses either way). */
+    const val LIMIT_POPUP = "limitPopup"
     /** The turn card's arrow, width and height in percent (100 = as designed), on the phone and on the car screen. */
     const val TURN_ARROW_SIZE = "turnArrowSize"
     const val TURN_CARD_WIDTH = "turnCardWidth"
