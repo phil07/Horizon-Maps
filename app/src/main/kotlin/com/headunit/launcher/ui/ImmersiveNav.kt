@@ -92,6 +92,9 @@ import androidx.compose.material.icons.rounded.KeyboardArrowDown
 import androidx.compose.material.icons.rounded.KeyboardArrowUp
 import androidx.compose.material.icons.rounded.DirectionsCar
 import androidx.compose.material.icons.rounded.Map
+import androidx.compose.material.icons.rounded.Speed
+import androidx.compose.material.icons.rounded.Info
+import androidx.compose.material.icons.rounded.Lightbulb
 import androidx.compose.material.icons.rounded.DoNotDisturbOn
 import androidx.compose.material.icons.rounded.EvStation
 import androidx.compose.material.icons.rounded.History
@@ -392,11 +395,7 @@ private fun MapScreen(engine: NavEngine, onSettings: () -> Unit) {
                             }
                         }
                     }
-                    engine.advice?.let { AdvicePill(it) }
-                    NoticeCard(engine)
-                    AvgSpeedCard(engine)
-                    ServicesCard(engine)
-                    ParkingCard(engine)
+                    TurnLineChips(engine)
                 }
             }
             // (adding a stop upright: the list sits along the bottom instead, see below)
@@ -911,4 +910,30 @@ private fun OutsideMapsChip(engine: NavEngine) {
     val p = engine.fix?.pos ?: return
     if (!com.headunit.launcher.MapboxOffline.hasAreas(ctx) || com.headunit.launcher.MapboxOffline.covers(ctx, p)) return
     ImmChip(Icons.Rounded.Map, Color(0xFFEA4335), Lang.t("Außerhalb deiner Karten", "Outside your maps")) { }
+}
+
+/**
+ * The hints under the turn card as small chips in one line (it scrolls sideways when it's too long): the average speed (red when
+ * over the limit), the next service, the car park nearest the destination (tap to go there), the advice for the conditions and
+ * the notice (tap to dismiss it). Each one only when there is something to show.
+ */
+@Composable
+private fun TurnLineChips(engine: NavEngine) {
+    val k = if (engine.imperial) 2.23694 else 3.6
+    val unit = if (engine.imperial) "mph" else "km/h"
+    val avg = engine.avgInfo
+    val svc = engine.servicesAhead.firstOrNull()
+    val park = engine.parkingNear.firstOrNull()
+    val advice = engine.advice
+    val notice = engine.notice
+    if (avg == null && svc == null && park == null && advice == null && notice == null) return
+    Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 12.dp, vertical = 4.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        avg?.let { a ->
+            ImmChip(Icons.Rounded.Speed, if (a.over) Color(0xFFD32F2F) else Color(0xFF34A853), "Ø ${Math.round(a.avgMs * k)} $unit") { }
+        }
+        notice?.let { n -> ImmChip(Icons.Rounded.Info, Color(0xFF8E24AA), n.title.take(24)) { engine.dismissNotice() } }
+        advice?.let { ImmChip(Icons.Rounded.Lightbulb, Color(0xFFFBBC04), it.take(28)) { } }
+        svc?.let { ImmChip(Icons.Rounded.LocalGasStation, Color(0xFF34A853), "${it.name.take(14)} · ${Geo.fmtDist(it.dist, engine.imperial)}") { } }
+        park?.let { np -> ImmChip(Icons.Rounded.LocalParking, Color(0xFFFBBC04), "${np.place.name.take(14)} · ${Geo.fmtDist(np.dist, engine.imperial)}") { engine.startRoute(np.place) } }
+    }
 }
