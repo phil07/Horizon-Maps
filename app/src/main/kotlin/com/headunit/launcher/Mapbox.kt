@@ -668,8 +668,10 @@ object MapboxRest {
         val g = x.optJSONObject("geometry")?.optJSONArray("coordinates")
         val pr = x.optJSONObject("properties") ?: JSONObject()
         val co = pr.optJSONObject("coordinates")
-        val lat = co?.optDouble("latitude") ?: g?.optDouble(1) ?: return null
-        val lon = co?.optDouble("longitude") ?: g?.optDouble(0) ?: return null
+        // a house address: the route ends on the street it's on (Mapbox's routable point), not the middle of the plot
+        val rp = co?.optJSONArray("routable_points")?.optJSONObject(0)?.takeIf { pr.optString("feature_type") == "address" }
+        val lat = rp?.optDouble("latitude")?.takeIf { !it.isNaN() } ?: co?.optDouble("latitude") ?: g?.optDouble(1) ?: return null
+        val lon = rp?.optDouble("longitude")?.takeIf { !it.isNaN() } ?: co?.optDouble("longitude") ?: g?.optDouble(0) ?: return null
         if (lat.isNaN() || lon.isNaN()) return null
         val name = pr.optString("name").ifBlank { pr.optString("full_address").substringBefore(',') }.ifBlank { q }
         val sub = pr.optString("full_address").takeIf { it.isNotBlank() && it != name && pr.optString("feature_type") == "poi" }
