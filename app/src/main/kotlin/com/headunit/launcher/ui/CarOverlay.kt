@@ -350,7 +350,9 @@ private fun CarScreen(engine: NavEngine, a: android.graphics.Rect?, actions: Car
         // one slim line while the turn is far off (about 2 km), the full card as it comes up (a little either side, so it can't flicker)
         val slimHold = remember { booleanArrayOf(false) }
         if (t != null) slimHold[0] = if (t.dist > 2100.0) true else if (t.dist < 1900.0) false else slimHold[0]
-        if (showTurn && t != null) Box(Modifier.padding(start = left, top = top).width(if (portrait) topW else if (engine.carShort) minOf(380.dp, maxWidth * 0.36f) else if (slimHold[0]) minOf(560.dp, maxWidth * 0.44f) else minOf(520.dp, maxWidth * 0.42f))
+        // Settings › Android Auto › Advanced sizes › Turn card width
+        val carTurnW = engine.prefs.i(PreferenceKeys.CAR_TURN_CARD_WIDTH, 100).coerceIn(60, 150) / 100f
+        if (showTurn && t != null) Box(Modifier.padding(start = left, top = top).width((if (portrait) topW else if (engine.carShort) minOf(380.dp, maxWidth * 0.36f) else if (slimHold[0]) minOf(560.dp, maxWidth * 0.44f) else minOf(520.dp, maxWidth * 0.42f)) * carTurnW)
             .onSizeChanged { turnH = it.height }.onGloballyPositioned { if (topShown) report(0, it.boundsInRoot()) }) {
             // the turn card, with the junction sign or roundabout diagram under it and any advice for the conditions, as on the head unit
             Column(verticalArrangement = Arrangement.spacedBy(if (compact) 4.dp else 8.dp)) {

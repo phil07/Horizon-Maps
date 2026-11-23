@@ -134,6 +134,9 @@ internal fun AndroidAutoSection(prefs: Prefs) {
         }
         if (carAdvanced) {
             SSlider(Lang.t("Karten-Größe", "Card size"), prefs.i(PreferenceKeys.CAR_CARD_SIZE, 100).toFloat(), 70f..150f, "%", steps = 16, reset = 100f) { prefs.put(PreferenceKeys.CAR_CARD_SIZE, it) }
+            SSlider(Lang.t("Pfeilgröße der Abbiegekarte", "Turn arrow size"), prefs.i(PreferenceKeys.CAR_TURN_ARROW_SIZE, 100).toFloat(), 70f..200f, "%", sub = Lang.t("Nur der Pfeil, bis doppelt so groß", "The arrow on its own, up to twice as big"), reset = 100f) { prefs.put(PreferenceKeys.CAR_TURN_ARROW_SIZE, it) }
+            SSlider(Lang.t("Breite der Abbiegekarte", "Turn card width"), prefs.i(PreferenceKeys.CAR_TURN_CARD_WIDTH, 100).toFloat(), 60f..150f, "%", sub = Lang.t("Wie weit die Karte über die Karte reicht", "How far the card reaches across the map"), reset = 100f) { prefs.put(PreferenceKeys.CAR_TURN_CARD_WIDTH, it) }
+            SSlider(Lang.t("Höhe der Abbiegekarte", "Turn card height"), prefs.i(PreferenceKeys.CAR_TURN_CARD_HEIGHT, 100).toFloat(), 50f..200f, "%", sub = Lang.t("Der Platz über und unter der Schrift", "The room above and below the writing"), reset = 100f) { prefs.put(PreferenceKeys.CAR_TURN_CARD_HEIGHT, it) }
             SSlider(Lang.t("Button-Größe", "Button size"), prefs.i(PreferenceKeys.CAR_BUTTON_SIZE, 100).toFloat(), 70f..150f, "%", steps = 16, reset = 100f) { prefs.put(PreferenceKeys.CAR_BUTTON_SIZE, it) }
             SSlider(Lang.t("Limit-Schild-Größe", "Speed-limit sign size"), prefs.i(PreferenceKeys.CAR_LIMIT_SIGN_SIZE, 100).toFloat(), 70f..200f, "%", steps = 26, reset = 100f) { prefs.put(PreferenceKeys.CAR_LIMIT_SIGN_SIZE, it) }
             SSlider(Lang.t("Textgröße", "Text size"), prefs.i(PreferenceKeys.CAR_TEXT_SIZE, 100).toFloat(), 70f..150f, "%", steps = 16, reset = 100f) { prefs.put(PreferenceKeys.CAR_TEXT_SIZE, it) }

@@ -332,7 +332,9 @@ private fun MapScreen(engine: NavEngine, onSettings: () -> Unit) {
         }
         // upright on a route the turn card takes the full width; the map buttons then sit under it (see the rail's top)
         val turnFull = narrow && routing && engine.turn != null
-        Column(Modifier.align(side(Alignment.TopStart)).padding(16.dp).then(if (narrow && !turnFull) Modifier.fillMaxWidth().sides(end = 52.dp * mainButtonScale + 10.dp) else if (turnFull) Modifier.fillMaxWidth() else Modifier.width(380.dp))
+        // Settings › Advanced screen sizes › Turn card width (upright the card can only be narrower than the screen)
+        val turnW = engine.prefs.i(PreferenceKeys.TURN_CARD_WIDTH, 100).coerceIn(60, 150) / 100f
+        Column(Modifier.align(side(Alignment.TopStart)).padding(16.dp).then(if (narrow && !turnFull) Modifier.fillMaxWidth().sides(end = 52.dp * mainButtonScale + 10.dp) else if (turnFull) Modifier.fillMaxWidth(turnW.coerceAtMost(1f)) else Modifier.width(380.dp * (if (routing) turnW else 1f)))
             .onGloballyPositioned { report(0, it.boundsInParent()) }
             // the turn list opens over the trip card below it
             .zIndex(if (engine.itineraryOpen) 2f else 0f), verticalArrangement = Arrangement.spacedBy(10.dp)) {
