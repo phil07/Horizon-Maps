@@ -127,7 +127,11 @@ fun App(prefs: Prefs, engine: NavEngine, map: MapBinding) {
     LaunchedEffect(bright, dimNight, dark, screenHeld) {
         val win = findActivity(hostCtx)?.window ?: return@LaunchedEffect
         val dim = dimNight && dark
-        val v = if (bright >= 100 && !dim) -1f else (bright / 100f * (if (dim) 0.5f else 1f)).coerceIn(0.03f, 1f)
+        // dimmed at night: half of what the screen is at, never brighter (it used to be a fixed 50 %, brighter than most screens at
+        // night). With the app's own brightness at 100 % the screen's own setting is the starting point
+        val sysLevel = try { android.provider.Settings.System.getInt(hostCtx.contentResolver, android.provider.Settings.System.SCREEN_BRIGHTNESS) / 255f } catch (e: Exception) { 0.5f }
+        val base = if (bright >= 100) sysLevel else bright / 100f
+        val v = if (bright >= 100 && !dim) -1f else (base * (if (dim) 0.5f else 1f)).coerceIn(0.01f, 1f)
         val lp = win.attributes
         lp.screenBrightness = v
         win.attributes = lp

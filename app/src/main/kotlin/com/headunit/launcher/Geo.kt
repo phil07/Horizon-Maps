@@ -1001,17 +1001,24 @@ object Weather {
         val c = URL(url).openConnection() as HttpURLConnection
         c.connectTimeout = 10000; c.readTimeout = 10000
         val cur = JSONObject(c.inputStream.bufferedReader().readText()).getJSONObject("current")
-        val code = cur.getInt("weather_code")
-        // the hour's summary often says "cloudy" during showers: when rain or snow is actually falling this quarter hour, it's shown as such
-        val rainNow = cur.optDouble("rain", 0.0) > 0.0
-        val snowNow = cur.optDouble("snowfall", 0.0) > 0.0
-        val effective = when {
+        Now(cur.getDouble("temperature_2m"), effectiveCode(cur.getInt("weather_code"), cur.optDouble("rain", 0.0), cur.optDouble("snowfall", 0.0)))
+    } catch (e: Exception) { null }
+
+    /**
+     * The hour's summary often says "cloudy" during showers: when rain or snow is really falling this quarter hour, it's shown as
+     * such. But a clear sky (0, 1) is taken as dry, and it takes more than a trace: outside Europe and North America the rainfall
+     * figures are estimates, and a trace of forecast drizzle put rain on the map in sunshine.
+     */
+    fun effectiveCode(code: Int, rainMm: Double, snowCm: Double): Int {
+        if (code <= 1) return code
+        val snowNow = snowCm >= 0.2
+        val rainNow = rainMm >= 0.3
+        return when {
             snowNow && code !in 71..77 && code !in 85..86 -> 71
             rainNow && code !in 51..67 && code !in 80..82 && code !in 95..99 && code !in 71..77 && code !in 85..86 -> 61
             else -> code
         }
-        Now(cur.getDouble("temperature_2m"), effective)
-    } catch (e: Exception) { null }
+    }
 
     class Hour(val label: String, val temp: Double, val code: Int, val rain: Int, val windKmh: Double = 0.0, val windFrom: Double = 0.0)
     class Day(val label: String, val code: Int, val max: Double, val min: Double)
