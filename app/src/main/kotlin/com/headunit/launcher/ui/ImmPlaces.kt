@@ -163,7 +163,7 @@ import com.headunit.launcher.PreferenceKeys
 import com.headunit.launcher.softFail
 
 @Composable
-internal fun ImmSearch(engine: NavEngine, q: String, onQ: (String) -> Unit, locked: Boolean, focus: FocusRequester, voice: () -> Unit) {
+internal fun ImmSearch(engine: NavEngine, q: String, onQ: (String) -> Unit, locked: Boolean, focus: FocusRequester, voice: () -> Unit, onFold: (() -> Unit)? = null) {
     val c = LocalVw.current
     val shape = RoundedCornerShape(30.dp)
     Box(Modifier.fillMaxWidth().height(60.dp).panel(10.dp, shape, c.surface)) {
@@ -174,10 +174,15 @@ internal fun ImmSearch(engine: NavEngine, q: String, onQ: (String) -> Unit, lock
             trailingIcon = {
                 if (q.isNotEmpty()) Icon(Icons.Rounded.Close, Lang.t("Löschen", "Clear"), tint = c.sub, modifier = Modifier.padding(end = 8.dp).clickable { onQ(""); engine.results = emptyList() })
                 else Row(verticalAlignment = Alignment.CenterVertically) {
-                    // folds Saved & recent up under the bar, and back down again
-                    val open = engine.prefs.b(PreferenceKeys.QUICKLIST, true)
-                    Box(Modifier.padding(end = 4.dp).size(40.dp).clip(CircleShape).clickable { engine.prefs.put(PreferenceKeys.QUICKLIST, !open) }, contentAlignment = Alignment.Center) {
-                        Icon(if (open) Icons.Rounded.KeyboardArrowUp else Icons.Rounded.KeyboardArrowDown, if (open) Lang.t("Gespeichert & zuletzt ausblenden", "Hide saved and recent") else Lang.t("Gespeichert & zuletzt einblenden", "Show saved and recent"), tint = c.sub, modifier = Modifier.size(26.dp))
+                    // search as a button: the arrow folds the bar (and everything under it) back into the button.
+                    // Otherwise it folds Saved & recent up under the bar, and back down again
+                    if (onFold != null) Box(Modifier.padding(end = 4.dp).size(40.dp).clip(CircleShape).clickable { onFold() }, contentAlignment = Alignment.Center) {
+                        Icon(Icons.Rounded.KeyboardArrowUp, Lang.t("Suche zuklappen", "Fold the search away"), tint = c.sub, modifier = Modifier.size(26.dp))
+                    } else {
+                        val open = engine.prefs.b(PreferenceKeys.QUICKLIST, true)
+                        Box(Modifier.padding(end = 4.dp).size(40.dp).clip(CircleShape).clickable { engine.prefs.put(PreferenceKeys.QUICKLIST, !open) }, contentAlignment = Alignment.Center) {
+                            Icon(if (open) Icons.Rounded.KeyboardArrowUp else Icons.Rounded.KeyboardArrowDown, if (open) Lang.t("Gespeichert & zuletzt ausblenden", "Hide saved and recent") else Lang.t("Gespeichert & zuletzt einblenden", "Show saved and recent"), tint = c.sub, modifier = Modifier.size(26.dp))
+                        }
                     }
                     Box(Modifier.padding(end = 8.dp).size(44.dp).clip(CircleShape).background(c.accent).pressClick { voice() }, contentAlignment = Alignment.Center) {
                         Icon(Icons.Rounded.Mic, Lang.t("Sprachsuche", "Voice search"), tint = Color.White, modifier = Modifier.size(23.dp))
@@ -600,38 +605,6 @@ internal fun WalkCard(engine: NavEngine) {
     }
 }
 
-/** Where you parked (saved on the phone when Android Auto disconnects): walk there, or clear it. Shown for 2 days. */
-@Composable
-private fun ParkedCard(engine: NavEngine) {
-    val c = LocalVw.current
-    val raw = engine.prefs.s(PreferenceKeys.PARKED_SPOT, "")
-    val parts = raw.split(',')
-    val spot = parts.getOrNull(0)?.toDoubleOrNull()?.let { la -> parts.getOrNull(1)?.toDoubleOrNull()?.let { lo -> LL(la, lo) } } ?: return
-    val at = parts.getOrNull(2)?.toLongOrNull() ?: return
-    val ageMin = ((System.currentTimeMillis() - at) / 60_000L).coerceAtLeast(0L)
-    if (ageMin > 48 * 60) return
-    // (while walking there, the walk card shows the way instead)
-    if (engine.walking) return
-    val ctx = androidx.compose.ui.platform.LocalContext.current
-    val here = engine.fix?.pos
-    val ago = when { ageMin < 1 -> Lang.t("gerade eben", "just now"); ageMin < 60 -> Lang.t("vor $ageMin Min.", "$ageMin min ago"); ageMin < 24 * 60 -> Lang.t("vor ${ageMin / 60} Std.", "${ageMin / 60} h ago"); else -> Lang.t("gestern", "yesterday") }
-    Row(Modifier.fillMaxWidth().panel(10.dp, RoundedCornerShape(22.dp), c.surface).padding(start = 14.dp, end = 8.dp, top = 10.dp, bottom = 10.dp),
-        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-        Box(Modifier.size(38.dp).clip(CircleShape).background(c.accent.copy(alpha = 0.18f)), contentAlignment = Alignment.Center) {
-            Icon(Icons.Rounded.DirectionsCar, null, tint = c.accent, modifier = Modifier.size(21.dp))
-        }
-        Column(Modifier.weight(1f)) {
-            Text(Lang.t("Dein Auto", "Your car"), color = c.text, fontSize = 16.sp, fontWeight = FontWeight.Bold)
-            Text(Lang.t("Geparkt $ago", "Parked $ago") + (if (here != null) " · " + Geo.fmtDist(Geo.dist(here, spot), engine.imperial) else ""), color = c.sub, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
-        }
-        // the way on foot, in the app (it used to hand a walking link to the phone, which this app took itself and planned on the roads)
-        ImmPill(Lang.t("Zu Fuß", "Walk"), { engine.startWalkToCar() }, filled = true)
-        Box(Modifier.size(40.dp).clip(CircleShape).clickable { engine.prefs.put(PreferenceKeys.PARKED_SPOT, "") }, contentAlignment = Alignment.Center) {
-            Icon(Icons.Rounded.Close, Lang.t("Parkplatz vergessen", "Forget where you parked"), tint = c.sub, modifier = Modifier.size(22.dp))
-        }
-    }
-}
-
 /** Where you're probably heading (a place you often drive to at this time, with its drive time): a green card with Go. */
 @Composable
 internal fun PredictionCard(engine: NavEngine) {
@@ -666,7 +639,6 @@ internal fun ImmQuick(engine: NavEngine, showSaved: Boolean = true) {
     if (adding) AddPlaceDialog(engine, null) { adding = false }
     val here = engine.fix?.pos
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        ParkedCard(engine)
         engine.resume?.let { rp ->
             Row(
                 Modifier.fillMaxWidth().shadow(8.dp, RoundedCornerShape(22.dp)).clip(RoundedCornerShape(22.dp)).background(TealDeep).clickable { engine.startRoute(rp) }.padding(horizontal = 16.dp, vertical = 13.dp),

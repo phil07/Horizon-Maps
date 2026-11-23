@@ -64,8 +64,6 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
     var busy by mutableStateOf(false)
     /** Saved & recent under the search bar starts folded on every start (app or car connection); a tap unfolds it until the next one. */
     var quickFolded by mutableStateOf(true)
-    // the search bar folded away after the map was moved by hand with no route (the round button or re-centre brings it back)
-    var searchTucked by mutableStateOf(false)
     var previewing by mutableStateOf(false)
     var northUp by mutableStateOf(false)
     var results by mutableStateOf<List<Place>>(emptyList())
@@ -1098,7 +1096,7 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
         }
 // a place tapped on the map: a card with its name, "Los" and "Als Stopp" (holding on it still goes there straight away)
         map.onPoiTap = { name, p -> tappedPoi = name to p; tappedAt = android.os.SystemClock.uptimeMillis(); showPick(p, name) }
-        map.onUserGesture = { if (following) { following = false }; if (route == null && !previewing && !walking) searchTucked = true; scheduleRecentre(12_000) }
+        map.onUserGesture = { if (following) { following = false }; scheduleRecentre(12_000) }
         map.onMapIdle = { box -> refreshChargerLayer(box) }
         map.onAltTap = { i -> switchToAlt(i) }
         map.onPreviewTap = { k -> onPreviewRouteTap(k) }
@@ -3154,7 +3152,6 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
      * back to automatic. On a route the zoom is always automatic.
      */
     fun recenter(byUser: Boolean = false) {
-        searchTucked = false
         val wasFollowing = following
         following = true
         // a re-centre while stopped gives the usual 3D view: the 30 seconds of the flat traffic view start again from now

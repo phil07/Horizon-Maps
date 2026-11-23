@@ -132,7 +132,7 @@ internal fun PlacesSection(engine: NavEngine) {
             "camp" to "Stellplätze", "dump" to "Entsorgung", "lpg" to "Autogas")) {
             SToggle(engine.prefs, label, "find_$kind", true, "Knopf „$label in der Nähe“")
         }
-        SToggle(engine.prefs, Lang.t("Suche als Knopf", "Search as a button"), PreferenceKeys.SEARCH_FOLD, false, Lang.t("Ohne Route nur ein runder Knopf in der Ecke", "With no route, just one round button in the corner"))
+        SToggle(engine.prefs, Lang.t("Suche als Knopf", "Search as a button"), PreferenceKeys.SEARCH_FOLD, true, Lang.t("Ohne Route nur ein runder Knopf in der Ecke. Aus: die Suchleiste mit ihren Knöpfen ist immer da", "With no route, just one round button in the corner. Off: the search bar with its buttons is always there"))
         SToggle(engine.prefs, Lang.t("Zuhause", "Home"), PreferenceKeys.HOME_TILE, true, Lang.t("Die Kachel Zuhause mit der Fahrtzeit", "The Home tile with the drive time"))
         SToggle(engine.prefs, Lang.t("Arbeit", "Work"), PreferenceKeys.WORK_TILE, true, Lang.t("Die Kachel Arbeit mit der Fahrtzeit", "The Work tile with the drive time"))
         SToggle(engine.prefs, Lang.t("Markierte Orte unter der Suche", "Starred places under the search"), PreferenceKeys.STARRED_ROW, true, Lang.t("Aus: alle markierten Orte sind ausgeblendet. Sie bleiben in der Suche und in „Meine Orte“.", "Off: all starred places are hidden. They stay in search and in My places."))

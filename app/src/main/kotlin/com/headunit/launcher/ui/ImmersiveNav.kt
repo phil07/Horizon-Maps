@@ -262,12 +262,14 @@ private fun MapScreen(engine: NavEngine, onSettings: () -> Unit) {
     val routing = engine.route != null && !engine.previewing
     // Search as a button (Settings › Places & trips › Search bar): with no route, the bar and its buttons fold into one round button
     var searchOpen by remember { mutableStateOf(false) }
-    val foldOn = engine.prefs.b(PreferenceKeys.SEARCH_FOLD, false)
-    // (touching the map tucks the search away too, but not on an upright screen: the bar with Home, Work and your places stays there)
-    val uprightScreen = androidx.compose.ui.platform.LocalConfiguration.current.let { it.screenHeightDp > it.screenWidthDp } && engine.prefs.b(PreferenceKeys.PORTRAIT_LAYOUT, true)
-    val foldSearch = (foldOn || (engine.searchTucked && !uprightScreen)) && !routing && !engine.previewing && !engine.walking && !searchOpen
-    BackHandler(enabled = foldOn && searchOpen && !routing) { searchOpen = false }
-    LaunchedEffect(searchOpen) { if (searchOpen) { engine.searchTucked = false; try { focus.requestFocus() } catch (e: Exception) { softFail(e) } } }
+    // (on by default; off, the bar with its buttons is always there)
+    val foldOn = engine.prefs.b(PreferenceKeys.SEARCH_FOLD, true)
+    val foldSearch = foldOn && !routing && !engine.previewing && !engine.walking && !searchOpen
+    val focusMgr = androidx.compose.ui.platform.LocalFocusManager.current
+    // folds the open bar back into the button (its arrow, or Back), and the places and buttons under it with it
+    val foldUp = { searchOpen = false; q = ""; engine.results = emptyList(); focusMgr.clearFocus() }
+    BackHandler(enabled = foldOn && searchOpen && !routing) { foldUp() }
+    LaunchedEffect(searchOpen) { if (searchOpen) { try { focus.requestFocus() } catch (e: Exception) { softFail(e) } } }
     LaunchedEffect(routing) { if (routing) searchOpen = false }
     val previewing = engine.previewing
     val simple by remember { derivedStateOf { engine.driving && engine.prefs.b(PreferenceKeys.DRIVESIMPLE, true) } }
@@ -335,17 +337,11 @@ private fun MapScreen(engine: NavEngine, onSettings: () -> Unit) {
             // the turn list opens over the trip card below it
             .zIndex(if (engine.itineraryOpen) 2f else 0f), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             // every block slides and fades in and out instead of popping, so the screen changes feel like one piece
-            // search as a button, upright: Home, Work and your places still show at the top, under the button
-            if (foldSearch && upright) Column(Modifier.padding(top = 66.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                ImmChips(engine) { searchOpen = true }
-                PortraitChips(engine); LeaveByChips(engine)
-                OutsideMapsChip(engine)
-            }
             AnimatedVisibility(!routing && !previewing && !foldSearch, enter = fadeIn(tween(220)) + androidx.compose.animation.expandVertically(tween(260)), exit = fadeOut(tween(160)) + androidx.compose.animation.shrinkVertically(tween(220))) {
               Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 // on foot to the parked car: the next instruction and what is left, over the search bar
                 if (engine.walking) WalkCard(engine)
-                ImmSearch(engine, q, { q = it }, typingLocked, focus, voice)
+                ImmSearch(engine, q, { q = it }, typingLocked, focus, voice, onFold = if (foldOn) foldUp else null)
                 // adding a stop: the matches along the rest of the route (the keyboard's search key does the same)
                 if (engine.stopMode && q.trim().length >= 2 && !engine.alongOpen) ImmPill(Lang.t("Entlang der Route suchen", "See them along your route"), { engine.searchAlong(q) }, icon = Icons.Rounded.Route, filled = true)
                 if (engine.alongOpen) AlongPanel(engine)
@@ -877,7 +873,7 @@ private fun PortraitChips(engine: NavEngine) {
     val parked = engine.prefs.s(PreferenceKeys.PARKED_SPOT, "").split(',')
     val parkedPos = parked.getOrNull(0)?.toDoubleOrNull()?.let { la -> parked.getOrNull(1)?.toDoubleOrNull()?.let { lo -> LL(la, lo) } }
     if (w == null && cheap == null && parkedPos == null) return
-    Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+    Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         w?.let { ImmChip(Icons.Rounded.Cloud, Color(0xFF4A90E2), "${Math.round(it.tempC)} °C", {}) }
         cheap?.let { n ->
             ImmChip(Icons.Rounded.LocalGasStation, Color(0xFF34A853), com.headunit.launcher.fmtFuelPrice(n.price ?: 0.0, n.unit)) { engine.startRoute(n.place) }

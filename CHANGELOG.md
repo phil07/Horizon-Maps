@@ -1,8 +1,12 @@
 ## Unreleased
 
-### Fixed
-- Hochformat mit „Suche als Knopf“: Zuhause, Arbeit, deine Orte, Wetter, Sprit, Geparkt und die Abfahrtszeit stehen wieder oben unter dem Such-Knopf.
-  EN: Portrait with "Search as a button": Home, Work, your places, weather, fuel, where you parked and the leave-by time are back at the top under the search button.
+### Improved
+- Suche als Knopf ist jetzt standardmäßig an. Zugeklappt zeigt die Karte nur den Such-Knopf. Aufgeklappt stehen unter der Suchleiste Zuhause, Arbeit, deine Orte, Laden oder Tanken, Essen, Kaffee, Parken und Geparkt. Mit dem Pfeil in der Suchleiste klappst du alles wieder zu.
+  EN: Search as a button is now on by default. Folded, the map only shows the search button. Open, the search bar has Home, Work, your places, charging or fuel, food, coffee, parking and Parked under it. The arrow in the search bar folds it all away again.
+- Ist Suche als Knopf aus, ist die Suchleiste mit ihren Knöpfen immer da. Sie klappt sich beim Verschieben der Karte nicht mehr weg.
+  EN: With Search as a button off, the search bar and its buttons are always there. It no longer folds away when you move the map.
+- Die Karte „Dein Auto“ mit „Zu Fuß“ ist weg, Geparkt übernimmt das. Geparkt steht jetzt bündig mit den Knöpfen darüber.
+  EN: The "Your car" card with "Walk" is gone; Parked does that now. Parked now lines up with the buttons above it.
 
 ## 1.0.246 — 2026-10-28
 
