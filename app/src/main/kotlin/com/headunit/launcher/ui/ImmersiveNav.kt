@@ -274,6 +274,7 @@ private fun MapScreen(engine: NavEngine, onSettings: () -> Unit) {
         // portrait (or any narrow window): cards use the full width, the round buttons stack down the right-hand side,
         // and your speed and the re-centre button sit just above the trip card instead of beside it
         val narrow = maxWidth < 720.dp
+        val upright = maxHeight > maxWidth
         var portraitTripUp by remember { mutableStateOf(false) }
         val dens = androidx.compose.ui.platform.LocalDensity.current
         var tripPx by remember { mutableStateOf(0) }
@@ -357,7 +358,7 @@ private fun MapScreen(engine: NavEngine, onSettings: () -> Unit) {
                         CompositionLocalProvider(LocalDensity provides Density(chipsDensity.density * (if (sidewaysPhone(engine)) 0.85f else 1f), chipsDensity.fontScale)) {
                             ImmChips(engine) { try { focus.requestFocus() } catch (e: Exception) { softFail(e) } }
                             // upright: the weather, the cheapest fuel, the parked car and the leave-by times under your places
-                            if (maxHeight > maxWidth) { PortraitChips(engine); LeaveByChips(engine) }
+                            if (upright) { PortraitChips(engine); LeaveByChips(engine) }
                             OutsideMapsChip(engine)
                         }
                         PredictionCard(engine)
