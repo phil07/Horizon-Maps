@@ -187,3 +187,44 @@ internal fun notesSummary(notes: String): String {
     if (items.isEmpty()) return ""
     return listOf(0, 1, 2).mapNotNull { k -> items.count { it.kind == k }.takeIf { it > 0 }?.let { "$it ${kindNames[k].lowercase()}" } }.joinToString(" · ")
 }
+/**
+ * The notes without the changes already seen: each bullet is remembered once its card was closed (by its own text), so a build
+ * installed in between, or two builds the same day, don't bring the same changes back. A heading stays only with a bullet under it.
+ */
+internal fun unseenNotes(notes: String, seen: Set<String>): String {
+    val out = StringBuilder()
+    var head: String? = null
+    var headUsed = false
+    var keep = false
+    for (raw in notes.lines()) {
+        val l = raw.trim()
+        if (l.isEmpty()) continue
+        if (l.startsWith("#")) { head = raw; headUsed = false; keep = false; continue }
+        if (l.startsWith("-")) {
+            keep = l !in seen
+            if (keep) {
+                if (head != null && !headUsed) { out.append(head).append('\n'); headUsed = true }
+                out.append(raw).append('\n')
+            }
+            continue
+        }
+        // a line that doesn't start with a dash belongs to the bullet before it (the English line)
+        if (keep) out.append(raw).append('\n')
+    }
+    return out.toString().trimEnd()
+}
+
+/** The bullets of [notes] (trimmed, as they are compared), for [unseenNotes]. */
+internal fun bulletsOf(notes: String): List<String> = notes.lines().map { it.trim() }.filter { it.startsWith("-") }
+
+private const val SEEN_SEP = "\u001F"
+
+/** The bullets already seen (saved when a card closes). */
+internal fun seenWhatsNewLines(prefs: com.headunit.launcher.Prefs): Set<String> =
+    prefs.s(com.headunit.launcher.PreferenceKeys.WHATS_NEW_SEEN_LINES, "").split(SEEN_SEP).filter { it.isNotBlank() }.toSet()
+
+/** Remembers the bullets of a card that was closed (the newest last, at most 300). */
+internal fun markWhatsNewSeen(prefs: com.headunit.launcher.Prefs, shown: String) {
+    val all = (prefs.s(com.headunit.launcher.PreferenceKeys.WHATS_NEW_SEEN_LINES, "").split(SEEN_SEP).filter { it.isNotBlank() } + bulletsOf(shown)).distinct()
+    prefs.put(com.headunit.launcher.PreferenceKeys.WHATS_NEW_SEEN_LINES, all.takeLast(300).joinToString(SEEN_SEP))
+}

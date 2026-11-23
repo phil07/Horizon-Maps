@@ -143,6 +143,8 @@ internal object PreferenceKeys {
     const val PERFORMANCE_METER = "perfmeter"
     const val UPDATE_LAST_CHECK = "updlast"
     const val WHATS_NEW_SEEN_VERSION = "whatsnew_seen_version"
+    /** The bullets of the what's-new card already seen (joined by a unit separator, the newest last, at most 300). */
+    const val WHATS_NEW_SEEN_LINES = "whatsnew_seen_lines"
     const val AUTO_START_ROUTE = "autostartroute"
     const val AUTO_START_SECONDS = "autostartseconds"
     // Additional legacy keys centralised without changing their persisted names.

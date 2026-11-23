@@ -99,9 +99,9 @@ fun App(prefs: Prefs, engine: NavEngine, map: MapBinding) {
         if (com.headunit.launcher.BuildConfig.UPDATE_REPO.isNotBlank() && prefs.s(PreferenceKeys.WHATS_NEW_SEEN_VERSION, "") != installedVersion) {
             val previousVersion = prefs.s(PreferenceKeys.WHATS_NEW_SEEN_VERSION, "")
             val notes = try { kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { com.headunit.launcher.Updater.installedReleaseNotes(installedVersion, previousVersion, appCtx) } } catch (_: Exception) { "" }
-            whatsNewNotes = notes
-            // the card comes up only when there is something new to tell (an update with no notes shows nothing)
-            whatsNewVisible = notes.isNotBlank()
+            // only the changes not seen before (see unseenNotes); the card comes up only when there is something new to tell
+            whatsNewNotes = unseenNotes(notes, seenWhatsNewLines(prefs))
+            whatsNewVisible = whatsNewNotes.isNotBlank()
         }
     }
     LaunchedEffect(Unit) { while (true) { delay(60_000); nowMs = System.currentTimeMillis() } }
@@ -390,7 +390,7 @@ fun App(prefs: Prefs, engine: NavEngine, map: MapBinding) {
         // landscape (wide and short, like most head units): a wide card with the title and button on the left and the changes in
         // two columns on the right, so more of them show at once; portrait keeps the tall single-column card
         val wideCard = conf.screenWidthDp > conf.screenHeightDp && conf.screenWidthDp >= 640
-        val dismissWhatsNew = { prefs.put(PreferenceKeys.WHATS_NEW_SEEN_VERSION, installedVersion); whatsNewVisible = false }
+        val dismissWhatsNew = { prefs.put(PreferenceKeys.WHATS_NEW_SEEN_VERSION, installedVersion); markWhatsNewSeen(prefs, whatsNewNotes); whatsNewVisible = false }
         androidx.compose.ui.window.Dialog(onDismissRequest = dismissWhatsNew,
             properties = androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = !wideCard)) {
             val shape = RoundedCornerShape(28.dp)
