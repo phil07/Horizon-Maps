@@ -922,7 +922,7 @@ private fun OutsideMapsChip(engine: NavEngine) {
     val ctx = androidx.compose.ui.platform.LocalContext.current
     val p = engine.fix?.pos ?: return
     if (!com.headunit.launcher.MapboxOffline.hasAreas(ctx) || com.headunit.launcher.MapboxOffline.covers(ctx, p)) return
-    ImmChip(Icons.Rounded.Map, Color(0xFFEA4335), Lang.t("Außerhalb deiner Karten", "Outside your maps")) { }
+    ImmChip(Icons.Rounded.Map, Color(0xFFEA4335), Lang.t("Außerhalb deiner Karten", "Outside your maps")) { engine.settingsOpenAt = SECTION_OFFLINE_MAPS }
 }
 
 /**
@@ -931,7 +931,7 @@ private fun OutsideMapsChip(engine: NavEngine) {
  * the notice (tap to dismiss it). Each one only when there is something to show.
  */
 @Composable
-private fun TurnLineChips(engine: NavEngine) {
+internal fun TurnLineChips(engine: NavEngine) {
     val k = if (engine.imperial) 2.23694 else 3.6
     val unit = if (engine.imperial) "mph" else "km/h"
     val avg = engine.avgInfo

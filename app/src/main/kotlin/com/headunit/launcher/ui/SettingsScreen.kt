@@ -118,19 +118,22 @@ private val sections = listOf(
 
 /** Every setting in one screen: sections on the left, the chosen section on the right, in the map screen's soft style. */
 @Composable
-fun SettingsScreen(prefs: Prefs, engine: NavEngine, onClose: () -> Unit) {
+fun SettingsScreen(prefs: Prefs, engine: NavEngine, startAt: Int? = null, onClose: () -> Unit) {
     val base = LocalVw.current
     val v = remember(base) { navVw(base) }
-    CompositionLocalProvider(LocalVw provides v) { SettingsBody(prefs, engine, onClose) }
+    CompositionLocalProvider(LocalVw provides v) { SettingsBody(prefs, engine, startAt, onClose) }
 }
 
+/** The index of the Offline maps section (see [sections]): the "Außerhalb deiner Karten" tap opens it. */
+internal const val SECTION_OFFLINE_MAPS = 9
+
 @Composable
-private fun SettingsBody(prefs: Prefs, engine: NavEngine, onClose: () -> Unit) {
+private fun SettingsBody(prefs: Prefs, engine: NavEngine, startAt: Int?, onClose: () -> Unit) {
     val c = LocalVw.current
-    var cat by rememberSaveable { mutableIntStateOf(0) }
+    var cat by rememberSaveable { mutableIntStateOf(startAt ?: 0) }
     // portrait / narrow: one pane at a time (the section list, or the open section with a back arrow)
     val narrowS = androidx.compose.ui.platform.LocalConfiguration.current.screenWidthDp < 720
-    var showList by rememberSaveable { mutableStateOf(true) }
+    var showList by rememberSaveable { mutableStateOf(startAt == null) }
     androidx.activity.compose.BackHandler(enabled = narrowS && !showList) { showList = true }
     var query by remember { mutableStateOf("") }
     var highlight by remember { mutableStateOf<String?>(null) }

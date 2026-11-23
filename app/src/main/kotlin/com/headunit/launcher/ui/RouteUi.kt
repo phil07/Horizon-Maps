@@ -80,7 +80,6 @@ import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.clipPath
-import androidx.compose.material.icons.rounded.WaterDrop
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
@@ -208,106 +207,6 @@ fun RouteBar(engine: NavEngine, modifier: Modifier = Modifier, thin: Boolean = f
             Modifier.offset(x = w - dot / 2, y = 0.dp).size(dot).shadow(3.dp, CircleShape).clip(CircleShape).background(Color.White),
             contentAlignment = Alignment.Center,
         ) { Icon(Icons.Rounded.Flag, null, tint = Color(0xFFEA4335), modifier = Modifier.size(dot * 0.8f)) }
-    }
-}
-
-/** Card for an average speed check: your average so far against the limit, and how much is left. */
-@Composable
-fun AvgSpeedCard(engine: NavEngine, modifier: Modifier = Modifier) {
-    val a = engine.avgInfo ?: return
-    val c = LocalVw.current
-    val k = if (engine.imperial) 2.23694 else 3.6
-    val unit = if (engine.imperial) "mph" else "km/h"
-    val shape = RoundedCornerShape(22.dp)
-    // deeper red and amber on a light card, so they stand out against white
-    val red = if (c.dark) Bad else Color(0xFFC62828)
-    val amber = if (c.dark) Warn else Color(0xFFB45309)
-    Row(
-        modifier.fillMaxWidth().panel(8.dp, shape, c.surface).border(2.dp, if (a.over) red else Color.Transparent, shape).padding(horizontal = 16.dp, vertical = 10.dp),
-        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp),
-    ) {
-        val lim = a.limitMs?.let { (Math.round(it * k / 5.0) * 5).toInt() }
-        Box(Modifier.size(46.dp).clip(CircleShape).background(Color.White).border(5.dp, red, CircleShape), contentAlignment = Alignment.Center) {
-            Text(lim?.toString() ?: "?", color = Color.Black, fontSize = 17.sp, fontWeight = FontWeight.Bold)
-        }
-        Column(Modifier.weight(1f)) {
-            Text(if (a.ahead) Lang.t("ABSCHNITTSKONTROLLE VORAUS", "AVERAGE SPEED CHECK AHEAD") else Lang.t("ABSCHNITTSKONTROLLE", "AVERAGE SPEED CHECK"), color = red, fontSize = 11.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
-            if (a.ahead) Text(Lang.t("Beginnt in ${Geo.fmtDist(a.toStartM, engine.imperial)} · ${Geo.fmtDist(a.leftM, engine.imperial)} lang", "Starts in ${Geo.fmtDist(a.toStartM, engine.imperial)} · ${Geo.fmtDist(a.leftM, engine.imperial)} long"), color = c.text, fontSize = 15.sp, fontWeight = FontWeight.Medium)
-            else {
-                Text(Lang.t("noch ${Geo.fmtDist(a.leftM, engine.imperial)}", "${Geo.fmtDist(a.leftM, engine.imperial)} left"), color = c.sub, fontSize = 13.sp)
-                // what you can do from here and still come out under the limit (only worth saying once it differs from the limit)
-                val safe = a.safeMs
-                val lm = a.limitMs
-                if (safe != null && lm != null) {
-                    val sv = Math.floor(safe * k).toInt()
-                    val lv = Math.round(lm * k).toInt()
-                    when {
-                        safe <= 0.5 || sv < lv - 25 -> Text(Lang.t("Langsamer fahren, damit dein Durchschnitt wieder unter das Limit fällt", "Slow down to bring your average back under"), color = red, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
-                        sv < lv -> Text(Lang.t("Bleib für den Rest unter $sv $unit", "Keep under $sv $unit for the rest"), color = amber, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
-                        sv > lv -> Text(Lang.t("Bis ${minOf(sv, lv + 15)} $unit bleibst du darunter", "Up to ${minOf(sv, lv + 15)} $unit keeps you under"), color = c.sub, fontSize = 13.sp)
-                        else -> {}
-                    }
-                }
-            }
-        }
-        if (!a.ahead) Column(horizontalAlignment = Alignment.End) {
-            Text("${Math.round(a.avgMs * k)}", color = if (a.over) Bad else Good, fontSize = 28.sp, fontWeight = FontWeight.Bold)
-            Text(Lang.t("Ø $unit", "avg $unit"), color = c.sub, fontSize = 11.sp)
-        }
-    }
-}
-
-/** The next motorway services on the route, with the fuel price there when Fuel Finder is set up. */
-@Composable
-fun ServicesCard(engine: NavEngine, modifier: Modifier = Modifier) {
-    val list = engine.servicesAhead
-    if (list.isEmpty() || engine.avgInfo != null || !engine.prefs.b(PreferenceKeys.SERVICESCARD, true)) return
-    val c = LocalVw.current
-    val shape = RoundedCornerShape(20.dp)
-    Column(modifier.fillMaxWidth().panel(6.dp, shape, c.surface).padding(horizontal = 14.dp, vertical = 8.dp)) {
-        // only the next services (the one after it is shown once you've passed this one)
-        list.take(1).forEachIndexed { i, s ->
-            Row(Modifier.fillMaxWidth().padding(vertical = 3.dp), verticalAlignment = Alignment.CenterVertically) {
-                Box(Modifier.size(26.dp).clip(RoundedCornerShape(7.dp)).background(Color(0xFF4C8DFF)), contentAlignment = Alignment.Center) {
-                    Icon(Icons.Rounded.LocalCafe, null, tint = Color.White, modifier = Modifier.size(16.dp))
-                }
-                Column(Modifier.weight(1f).padding(start = 10.dp)) {
-                    Text(s.name, color = c.text, fontSize = if (i == 0) 15.sp else 13.sp, fontWeight = if (i == 0) FontWeight.SemiBold else FontWeight.Normal, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                    if (s.fuel.isNotBlank()) Text(s.fuel, color = c.sub, fontSize = 11.sp)
-                }
-                Text(Geo.fmtDist(s.dist, engine.imperial), color = c.text, fontSize = if (i == 0) 15.sp else 13.sp, fontWeight = FontWeight.Bold)
-            }
-        }
-    }
-}
-
-/** About a mile from the end: car parks close to your destination, with how far each is to walk. Tap one to drive there instead. */
-@Composable
-fun ParkingCard(engine: NavEngine, modifier: Modifier = Modifier) {
-    val list = engine.parkingNear
-    if (list.isEmpty()) return
-    val c = LocalVw.current
-    val shape = RoundedCornerShape(20.dp)
-    Column(modifier.fillMaxWidth().panel(6.dp, shape, c.surface).padding(start = 14.dp, end = 6.dp, top = 6.dp, bottom = 8.dp)) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(if (Lang.de) "Parken bei ${engine.dest?.name ?: "deinem Ziel"}" else "Parking near ${engine.dest?.name ?: "your destination"}", color = c.sub, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, maxLines = 1,
-                overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
-            Box(Modifier.size(32.dp).clip(CircleShape).clickable { engine.parkingNear = emptyList() }, contentAlignment = Alignment.Center) {
-                Icon(Icons.Rounded.Close, Lang.t("Schließen", "Close"), tint = c.sub, modifier = Modifier.size(16.dp))
-            }
-        }
-        list.forEach { n ->
-            Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).clickable { engine.parkAt(n) }.padding(vertical = 5.dp), verticalAlignment = Alignment.CenterVertically) {
-                Box(Modifier.size(26.dp).clip(RoundedCornerShape(7.dp)).background(Color(0xFF2E6FD8)), contentAlignment = Alignment.Center) {
-                    Text("P", color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.Black)
-                }
-                Text(n.place.name, color = c.text, fontSize = 14.sp, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f).padding(start = 10.dp))
-                ParkSpaces(n)
-                // a walk at about 80 m a minute
-                Text(maxOf(1, Math.round(n.dist / 80.0).toInt()).let { Lang.t("$it Min. zu Fuß", "$it min walk") }, color = c.sub, fontSize = 12.sp, modifier = Modifier.padding(start = 8.dp, end = 8.dp))
-            }
-        }
     }
 }
 
@@ -1163,17 +1062,6 @@ private fun RescueLaneIcon(size: androidx.compose.ui.unit.Dp) {
         // the gap: a dashed line down the middle
         var y = 0f
         while (y < h) { drawLine(Color.White.copy(alpha = 0.8f), androidx.compose.ui.geometry.Offset(w * 0.4f, y), androidx.compose.ui.geometry.Offset(w * 0.4f, y + h * 0.1f), strokeWidth = w * 0.04f); y += h * 0.2f }
-    }
-}
-
-/** A short, quiet note about the conditions (Lang.t("Starkregen · vorsichtig fahren, Tempo 50", "Heavy rain · take it steady, 50 limit")). */
-@Composable
-fun AdvicePill(text: String, modifier: Modifier = Modifier) {
-    val c = navVw(LocalVw.current)
-    val shape = RoundedCornerShape(50)
-    Row(modifier.panel(6.dp, shape, c.surface).border(1.dp, c.line, shape).padding(horizontal = 14.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-        Icon(Icons.Rounded.WaterDrop, null, tint = Color(0xFF4C8DFF), modifier = Modifier.size(18.dp))
-        Text(text, color = c.text, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(start = 8.dp), maxLines = 1, overflow = TextOverflow.Ellipsis)
     }
 }
 

@@ -243,6 +243,10 @@ fun App(prefs: Prefs, engine: NavEngine, map: MapBinding) {
             // a destination shared from another app brings the map back
             val tick = engine.externalTick
             LaunchedEffect(tick) { if (tick > 0) settings = false }
+            // a tap on the map can open the settings at one section; closing them forgets it
+            val openAt = engine.settingsOpenAt
+            LaunchedEffect(openAt) { if (openAt != null) settings = true }
+            LaunchedEffect(settings) { if (!settings) engine.settingsOpenAt = null }
             // Back closes the settings; on the map it sends the app to the background instead of closing it,
             // so a route in progress keeps going (and the map is ready straight away when you come back).
             BackHandler(enabled = settings) { settings = false }
@@ -308,7 +312,7 @@ fun App(prefs: Prefs, engine: NavEngine, map: MapBinding) {
                     val inA = remember { androidx.compose.animation.core.Animatable(0f) }
                     LaunchedEffect(Unit) { inA.animateTo(1f, androidx.compose.animation.core.tween(240, easing = androidx.compose.animation.core.FastOutSlowInEasing)) }
                     Box(Modifier.fillMaxSize().graphicsLayer { alpha = inA.value; val s = 0.97f + 0.03f * inA.value; scaleX = s; scaleY = s }) {
-                        SettingsScreen(prefs, engine, onClose = { settings = false })
+                        SettingsScreen(prefs, engine, startAt = engine.settingsOpenAt, onClose = { settings = false })
                     }
                 } else {
                     NavOverlays(engine, onSettings = { settings = true })

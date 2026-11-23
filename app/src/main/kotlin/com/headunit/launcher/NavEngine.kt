@@ -391,6 +391,8 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
     var externalTick by mutableIntStateOf(0)
     /** The stops editor is open. */
     var stopsEditor by mutableStateOf(false)
+    /** A tap on the map asks for the settings at this section (its index in the list); the app opens them there, then clears it. */
+    var settingsOpenAt by mutableStateOf<Int?>(null)
     /** How the fuel list is sorted: "near" or "cheap". */
     var nearbySort by mutableStateOf("near")
     /** Name of the road you are on (route or map data), for the free-driving card. */

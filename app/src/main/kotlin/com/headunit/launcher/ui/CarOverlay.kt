@@ -356,11 +356,8 @@ private fun CarScreen(engine: NavEngine, a: android.graphics.Rect?, actions: Car
                             }
                         })
                 }
-                if (!compact) engine.advice?.let { AdvicePill(it) }
-                NoticeCard(engine, big = true)
-                CompositionLocalProvider(LocalDensity provides Density(dens.density * cardScale, dens.fontScale)) {
-                    AvgSpeedCard(engine); ServicesCard(engine); ParkingCard(engine)
-                }
+                // the hints under it as small chips in one line, as on the phone (see TurnLineChips)
+                CompositionLocalProvider(LocalDensity provides Density(dens.density * cardScale, dens.fontScale)) { TurnLineChips(engine) }
             }
         }
 
