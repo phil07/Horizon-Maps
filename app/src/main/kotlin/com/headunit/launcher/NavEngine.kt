@@ -2970,7 +2970,7 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
         // them, so the battery driven down so far and the trip's time and distance are not forgotten
         val continuing = navStartMs > 0 && navTripDest?.let { a -> dest?.let { Geo.dist(a, it.pos) < 50.0 } } == true
         if (!continuing) {
-            navStartMs = System.currentTimeMillis(); navStartDist = tripDist; ev.evSinceNav = 0.0; ev.evChargeRefPct = -1.0; ev.evChargeRefAt = 0L; ev.evSinceCharge = 0.0
+            navStartMs = System.currentTimeMillis(); dest?.name?.let { LearnedTrips.recordDeparture(prefs, it, navStartMs) }; navStartDist = tripDist; ev.evSinceNav = 0.0; ev.evChargeRefPct = -1.0; ev.evChargeRefAt = 0L; ev.evSinceCharge = 0.0
             navTripDest = dest?.pos
             evKmAtPlan = null
         }

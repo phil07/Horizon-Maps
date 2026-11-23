@@ -31,6 +31,28 @@ object LearnedTrips {
         prefs.put(PreferenceKeys.LEARNED_TRIPS, o.toString())
     }
 
+    /** When a trip to [dest] started (the minute of the day), the last eight kept. */
+    fun recordDeparture(prefs: Prefs, dest: String, startMs: Long) {
+        if (dest.isBlank() || startMs <= 0L) return
+        val cal = Calendar.getInstance().apply { timeInMillis = startMs }
+        val minute = cal.get(Calendar.HOUR_OF_DAY) * 60 + cal.get(Calendar.MINUTE)
+        val o = load(prefs)
+        val old = o.optJSONArray("dep|$dest") ?: JSONArray()
+        val kept = JSONArray()
+        for (i in maxOf(0, old.length() - 7) until old.length()) kept.put(old.optInt(i))
+        kept.put(minute)
+        o.put("dep|$dest", kept)
+        prefs.put(PreferenceKeys.LEARNED_TRIPS, o.toString())
+    }
+
+    /** The minute of the day you usually set off for [dest] (the median), once you have gone there at least three times; else null. */
+    fun usualDeparture(prefs: Prefs, dest: String): Int? {
+        val a = load(prefs).optJSONArray("dep|$dest") ?: return null
+        if (a.length() < 3) return null
+        val v = (0 until a.length()).map { a.optInt(it) }.sorted()
+        return v[v.size / 2]
+    }
+
     /** The usual total time of a trip to [dest] started at [startMs] (the median), once it has been made twice; else null. */
     fun usual(prefs: Prefs, dest: String, startMs: Long): Double? {
         val a = load(prefs).optJSONArray(key(dest, startMs)) ?: return null

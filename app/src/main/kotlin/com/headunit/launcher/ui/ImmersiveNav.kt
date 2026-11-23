@@ -493,6 +493,7 @@ private fun MapScreen(engine: NavEngine, onSettings: () -> Unit) {
                             .clickable { portraitSheetUp = !portraitSheetUp })
                         ImmChips(engine, focusSearch = {})
                         PortraitChips(engine)
+                        LeaveByChips(engine)
                         if (portraitSheetUp) ImmQuick(engine)
                     }
                 }
@@ -840,5 +841,22 @@ private fun PortraitChips(engine: NavEngine) {
         parkedPos?.let { spot ->
             ImmChip(Icons.Rounded.LocalParking, Color(0xFFFBBC04), Lang.t("Geparkt", "Parked")) { engine.startRoute(Place(Lang.t("Auto", "Car"), "", spot)) }
         }
+    }
+}
+
+/**
+ * "Abfahren um 08:04 zur Arbeit": from 45 minutes before the time you usually set off for Home or Work (learnt from at least
+ * three trips there) until then. Tap to go.
+ */
+@Composable
+private fun LeaveByChips(engine: NavEngine) {
+    val cal = java.util.Calendar.getInstance()
+    val now = cal.get(java.util.Calendar.HOUR_OF_DAY) * 60 + cal.get(java.util.Calendar.MINUTE)
+    for ((slot, de, en) in listOf(Triple("home", "Zuhause", "Home"), Triple("work", "Arbeit", "Work"))) {
+        val place = engine.places.slot(slot) ?: continue
+        val dep = com.headunit.launcher.LearnedTrips.usualDeparture(engine.prefs, place.name) ?: continue
+        if (now < dep - 45 || now >= dep) continue
+        val hhmm = String.format(java.util.Locale.US, "%02d:%02d", dep / 60, dep % 60)
+        ImmChip(Icons.Rounded.DirectionsCar, Color(0xFF2EC27E), Lang.t("Abfahren $hhmm zur $de", "Leave by $hhmm for $en")) { engine.startRoute(place) }
     }
 }
