@@ -202,7 +202,7 @@ internal fun NavEngine.checkFaster(cur: Route, remainingSecs: Double) {
     val f = fix ?: return
     val d = dest ?: return
     val live = prefs.b(PreferenceKeys.LIVE_ALTERNATIVES, true)
-    if (previewing || simMode != 0 || faster != null || !prefs.b(PreferenceKeys.FASTER_ROUTE, true) || shadow()) return
+    if (previewing || simMode != 0 || faster != null || !prefs.b(PreferenceKeys.FASTER_ROUTE, true) || shadow() || onMyRoute()) return
     // live: every 2 minutes up to the last 5 minutes, in slow traffic too (a jam is when another way matters most)
     if (remainingSecs < (if (live) 300 else 900) || now - lastFasterCheck < (if (!live) 240_000L else if (f.speed < 0.5) 360_000L else 120_000L) || (!live && f.speed < 3.0)) return
     lastFasterCheck = now

@@ -44,6 +44,15 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
     var routes by mutableStateOf<List<Route>>(emptyList())
     /** The route picked as the simpler one (fewer turns), or -1: shown as "Einfachste" rather than "Kürzeste". */
     var simplerIdx by mutableStateOf(-1)
+    /** My routes (see NavEngineMyRoutes): which of [routes] is your saved way ("Your route", -1: none) and how it compares with the
+     *  fastest of the others in minutes (negative: faster). */
+    var myRouteIdx by mutableStateOf(-1)
+    var myRouteDiffMin by mutableStateOf(0)
+    /** The saved way's points while you drive it (a reroute brings you back onto it); empty otherwise. */
+    internal var myRouteVias: List<LL> = emptyList()
+    /** The way driven on this trip so far, for "Save as my route" on the arrival card, and whether it was saved already. */
+    internal val drivenTrack = ArrayList<LL>()
+    var myRouteSaved by mutableStateOf(false)
     var routeFrac by mutableStateOf(0f)
     var active by mutableIntStateOf(0)
     var dest by mutableStateOf<Place?>(null)
@@ -2770,6 +2779,14 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
                 var rs = if (usedOffline) rs0 else avoidVignette(rs0, from, toPos, departMs)
                 // a way off to one side can be quicker than the services' own few choices, which all run close to the direct line
                 if (!usedOffline && via.isEmpty()) try { rs = rs + neighbourDetours(rs, from, toPos, departMs, driveHeading(from)) } catch (e: Exception) { softFail(e) }
+                // My routes: a way you saved for this trip comes first, picked, as "Your route" (Settings › Places & trips › My routes)
+                val mine = if (!usedOffline && via.isEmpty() && !keepVia) try { myRouteOption(from, toPos, departMs, driveHeading(from)) } catch (e: Exception) { softFail(e); null } else null
+                if (mine != null) {
+                    myRouteDiffMin = Math.round((mine.first.time - rs.minOf { it.time }) / 60.0).toInt()
+                    rs = listOf(mine.first) + rs
+                }
+                myRouteIdx = if (mine != null) 0 else -1
+                myRouteVias = emptyList()
                 if (usedOffline) toast(Lang.t("Offline-Route: kein Verkehr oder Live-Daten", "Offline route: no traffic or live data"), 4000)
                 // the fastest route is the one chosen first: everything planned for the trip (rain, weather, charging stops) is for it
                 // except when the charging stops went onto the trip as it started: then the way that follows the route you chose
@@ -2780,7 +2797,7 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
                 // a trip sent from the phone: the way that follows the one picked there most closely
                 val track = preferTrack; preferTrack = emptyList()
                 val sent = if (track.isNotEmpty() && rs.size > 1) rs.indices.maxByOrNull { i -> track.count { RouteExtras.project(rs[i], it, 300.0) != null } } else null
-                val pick = (if (prefer != null && keepVia && rs.size > 1) rs.indices.maxByOrNull { routeOverlap(rs[it], prefer) } else null)
+                val pick = if (mine != null) 0 else (if (prefer != null && keepVia && rs.size > 1) rs.indices.maxByOrNull { routeOverlap(rs[it], prefer) } else null)
                     ?: sent ?: simplerPick(rs)
                 // (a way taken over from the other screen counts as picked by hand; the app's own pick only when clearly slower)
                 pickedSlower = rs.size > 1 && (if (prefer != null && keepVia) rs[pick] !== rs.minByOrNull { it.time } else rs[pick].time > rs.minOf { it.time } + 60.0)
@@ -2802,7 +2819,7 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
                 if (TomTomRest.avoidDropped && !usedOffline) toast(Lang.t("Keine Umfahrung der vermiedenen Gebiete gefunden, die Route führt deshalb hindurch", "Couldn\'t find a way round the areas you\'re avoiding, so the route goes through them"), 5000)
                 // (the way sent from the phone was picked by hand there: it is kept like one picked here)
                 // the simpler route (fewer turns, about as quick) is labelled as such; none when the fastest was picked
-                simplerIdx = if (prefer == null && sent == null && rs.size > 1 && pick != rs.indices.minByOrNull { rs[it].time }) pick else -1
+                simplerIdx = if (mine == null && prefer == null && sent == null && rs.size > 1 && pick != rs.indices.minByOrNull { rs[it].time }) pick else -1
                 dest = to; routes = rs; active = pick
                 // a way picked by hand stays picked when the same trip is worked out again (the charging stops go on as the trip
                 // starts): it used to count as the app's own pick then, and a quicker way took it away at the start
@@ -2827,7 +2844,8 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
                 } else map.fit(allPts)
                 waitingFor = null; waitJob?.cancel()
                 // changing stops while already driving carries straight on, without the route options in between
-                if (startNow) beginNavigation()
+                // (a saved way set to "start straight away" in My routes goes off at once too)
+                if (startNow || mine?.second?.mode == "auto") beginNavigation()
             } catch (e: Exception) {
                 val m = e.message ?: ""
                 if (m.contains("signal")) {
@@ -2951,6 +2969,8 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
     fun beginNavigation() {
         scope.launch { pushFavourites() }
         if (!previewing) return
+        drivenTrack.clear(); myRouteSaved = false
+        myRouteVias = if (myRouteIdx >= 0 && active == myRouteIdx) routes.getOrNull(active)?.let { r -> MyRoutes.viaPoints(r.pts, 8) } ?: emptyList() else emptyList()
         // electric: the charging plan of the chosen route is still being worked out. Starting now would set off without its stops
         // (they would only come a little later, with the route worked out again on the way): wait for the plan, then start
         if (ev.isEv && via.isEmpty() && evPlanningFor != null && prefs.b(PreferenceKeys.SMARTFUEL, true)) {
@@ -3060,7 +3080,7 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
         val d = dest ?: return
         if (rerouting || previewing) return
         val hd = fix?.let { if (it.speed > 2.0) it.heading else -1.0 } ?: -1.0
-        val vias = via.map { it.pos }
+        val vias = rerouteVias()
         earlyReroute = from to scope.async(Dispatchers.IO) {
             try { netRoutes(from, d.pos, false, 0L, vias, hd, true, askBoth = true) } catch (e: Exception) { emptyList() }
         }
@@ -3087,7 +3107,7 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
                         suspend fun fetchNow(): List<Route> = withContext(Dispatchers.IO) {
                             val haveOffline = OfflineRouter.installed(ctx)
                             if (haveOffline && (!hasOnline || !online())) typicalOffline(ctx, f.pos, d.pos, via.map { it.pos }, hd)
-                            else try { netRoutes(f.pos, d.pos, false, 0L, via.map { it.pos }, hd, true, askBoth = true) }
+                            else try { netRoutes(f.pos, d.pos, false, 0L, rerouteVias(), hd, true, askBoth = true) }
                             catch (e: Exception) {
                                 if (haveOffline && NavigationFallbackPolicy.shouldUseOffline(e)) typicalOffline(ctx, f.pos, d.pos, via.map { it.pos }, hd) else throw e
                             }
@@ -3167,7 +3187,7 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
         routes = emptyList(); active = 0; dest = null; turn = null; eta = null; lastIdx = 0; previewing = false; routeFrac = 0f; onRoad = ""; demoOnStart = false
         pushQueues(emptyList())
         departMin = 0; departAtMs = 0L; navStartMs = 0L; navTripDest = null; evStartPending = false; evPreferRoute = null; pickedSlower = false
-        fuelSuggestion = null; parkingNear = emptyList(); parkingFor = null
+        fuelSuggestion = null; parkingNear = emptyList(); parkingFor = null; myRouteVias = emptyList(); myRouteIdx = -1
         turnArrowKey = -1; map.setTurnArrow(emptyList())
         clearLiveAlts(); liveSaid.clear(); radar = emptyList(); radarSig = 0; bendsFor = null; bends = emptyList(); sharpFor = null; sharp = emptyList()
         flushRoads()
@@ -4661,6 +4681,8 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
     private fun onPositionInner(p: Fix, force: Boolean) {
         fix = p
         val newFix = p !== lastMeasured
+        // the way driven on a guided trip, for "Save as my route" (not in the demo drive)
+        if (newFix && route != null && !previewing && simMode == 0) recordTrack(p.pos)
         if (newFix) isStill = try { stillCheck(p) } catch (e: Exception) { false }
         // the speed used for the camera and the arrow: none while standing still
         val sp = if (isStill) 0.0 else p.speed
@@ -5608,7 +5630,7 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
      */
     private fun cardsForStartAlts() {
         val cur = route ?: return
-        if (!prefs.b(PreferenceKeys.FASTER_ROUTE, true) || !prefs.b(PreferenceKeys.LIVE_ALTERNATIVES, true)) return
+        if (!prefs.b(PreferenceKeys.FASTER_ROUTE, true) || !prefs.b(PreferenceKeys.LIVE_ALTERNATIVES, true) || onMyRoute()) return
         val others = routes.filter { it !== cur }
         if (others.isEmpty()) return
         scope.launch {

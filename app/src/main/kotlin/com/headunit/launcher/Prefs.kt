@@ -407,6 +407,8 @@ internal object PreferenceKeys {
     const val LIMIT_SOUNDS = "limitSounds"
     /** Settings › Alerts: the pop-up when the limit changes (the sign by the speedometer pulses either way). */
     const val LIMIT_POPUP = "limitPopup"
+    /** My routes: the ways you saved, as JSON (see MyRoutes). */
+    const val MY_ROUTES = "myRoutes"
     /** The turn card's arrow, width and height in percent (100 = as designed), on the phone and on the car screen. */
     const val TURN_ARROW_SIZE = "turnArrowSize"
     const val TURN_CARD_WIDTH = "turnCardWidth"

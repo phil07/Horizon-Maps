@@ -262,7 +262,7 @@ private fun SettingsBody(prefs: Prefs, engine: NavEngine, startAt: Int?, onClose
                         4 -> GuidanceSection(prefs)
                         5 -> AlertsSection(prefs, engine)
                         6 -> SoundSection(prefs, engine)
-                        7 -> { PlacesSection(engine); PhoneLinkGroup(prefs); SharingGroups(prefs) }
+                        7 -> { PlacesSection(engine); MyRoutesGroup(engine); PhoneLinkGroup(prefs); SharingGroups(prefs) }
                         8 -> FuelSection(prefs, engine)
                         9 -> { OfflineMapsContent(prefs, engine); OfflinePlacesGroup(engine) }
                         10 -> ScreenSection(prefs, engine)

@@ -1,6 +1,9 @@
 package com.headunit.launcher.ui
 
 import com.headunit.launcher.beginDemo
+import com.headunit.launcher.canSaveMyRoute
+import com.headunit.launcher.saveMyRoute
+import com.headunit.launcher.myRouteDefaultName
 import com.headunit.launcher.R
 import com.headunit.launcher.Lang
 import androidx.compose.ui.res.stringResource
@@ -365,7 +368,7 @@ internal fun BoxScope.RoutePreview(engine: NavEngine) {
         rs.forEachIndexed { i, r ->
             val sel = i == engine.active
             val shape = RoundedCornerShape(18.dp)
-            val label = if (i == fastest) Lang.t("Schnellste", "Fastest") else if (i == engine.simplerIdx) Lang.t("Einfachste", "Simplest") else if (i == shortest) Lang.t("Kürzeste", "Shortest") else Lang.t("Alternative", "Alternative")
+            val label = if (i == engine.myRouteIdx) myRouteLabel(engine) else if (i == fastest) Lang.t("Schnellste", "Fastest") else if (i == engine.simplerIdx) Lang.t("Einfachste", "Simplest") else if (i == shortest) Lang.t("Kürzeste", "Shortest") else Lang.t("Alternative", "Alternative")
             Column(
                 Modifier.weight(1f).inset(18.dp, if (sel) c.accent else null)
                                         .clickable { engine.selectRoute(i) }.padding(horizontal = 14.dp, vertical = 9.dp),
@@ -556,6 +559,13 @@ internal fun ArrivalCard(engine: NavEngine, a: ArrivalInfo, modifier: Modifier =
             Text(Lang.t("Parkzeit", "Parking"), color = c.sub, fontSize = 13.sp)
             for ((m, label) in listOf(30 to Lang.t("30 Min.", "30 min"), 60 to Lang.t("1 Std.", "1 h"), 120 to Lang.t("2 Std.", "2 h"), 180 to Lang.t("3 Std.", "3 h")))
                 Pill(label, engine.parkMinutes == m, { engine.parkTimer(m) }, Modifier.tap("pk$m") { engine.parkTimer(m) })
+        }
+        // My routes: keep the roads you really took (the phone asks for a name, Android Auto names it "Zuhause → Arbeit")
+        if (engine.canSaveMyRoute()) {
+            var naming by remember { mutableStateOf(false) }
+            Pill(Lang.t("Als meine Route speichern", "Save as my route"), false, { if (car) engine.saveMyRoute(null, a.place) else naming = true },
+                Modifier.tap("myroute") { engine.saveMyRoute(null, a.place) })
+            if (naming) MyRouteNameDialog(engine.myRouteDefaultName(a.place)) { nm -> naming = false; if (nm != null) engine.saveMyRoute(nm, a.place) }
         }
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             a.place?.let { p ->
@@ -817,6 +827,13 @@ private fun StepPill(text: String, onStep: () -> Unit) {
             .padding(horizontal = 18.dp, vertical = 10.dp),
         contentAlignment = Alignment.Center,
     ) { Text(text, color = c.text, fontSize = 15.sp, fontWeight = FontWeight.Medium) }
+}
+
+/** "Deine Route · +2 Min." (or "3 Min. schneller"): your saved way in the route choice, against the fastest of the others. */
+internal fun myRouteLabel(engine: NavEngine): String {
+    val d = engine.myRouteDiffMin
+    val cmp = when { d > 0 -> Lang.t("+$d Min.", "+$d min"); d < 0 -> Lang.t("${-d} Min. schneller", "${-d} min faster"); else -> Lang.t("gleich schnell", "as fast") }
+    return Lang.t("Deine Route", "Your route") + " · " + cmp
 }
 
 /**
