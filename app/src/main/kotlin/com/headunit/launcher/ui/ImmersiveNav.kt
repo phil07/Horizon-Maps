@@ -272,6 +272,7 @@ private fun MapScreen(engine: NavEngine, onSettings: () -> Unit) {
         // and your speed and the re-centre button sit just above the trip card instead of beside it
         val narrow = maxWidth < 720.dp
         var portraitSheetUp by remember { mutableStateOf(false) }
+        var portraitTripUp by remember { mutableStateOf(false) }
         val dens = androidx.compose.ui.platform.LocalDensity.current
         var tripPx by remember { mutableStateOf(0) }
         // where the speedometer starts (in pixels), so zoom only moves beside the panel when it would really touch it
@@ -538,7 +539,31 @@ private fun MapScreen(engine: NavEngine, onSettings: () -> Unit) {
         if (Neon.on && !narrow && !previewing) NeonKeyBar(engine, Modifier.align(Alignment.BottomCenter))
 
         // ---- bottom left: hazards and the trip card
-        if (!previewing && engine.arrival == null) {
+        // the new portrait layout on a route: the trip as a sheet along the bottom (time left, arrival, distance, End); pulled up it
+        // shows the rest of the trip card (add a stop, share, the turns, the music)
+        val portraitRoute = engine.prefs.b(PreferenceKeys.PORTRAIT_LAYOUT, true) && maxHeight > maxWidth && routing && !previewing
+        if (portraitRoute && engine.arrival == null) {
+            val pe = engine.eta
+            val pc = LocalVw.current
+            Column(Modifier.align(Alignment.BottomCenter).fillMaxWidth().padding(start = 16.dp, end = 16.dp, bottom = 16.dp).panel(10.dp, RoundedCornerShape(24.dp), pc.surface).padding(bottom = 8.dp),
+                horizontalAlignment = Alignment.CenterHorizontally) {
+                Box(Modifier.padding(top = 8.dp, bottom = 6.dp).clip(RoundedCornerShape(3.dp)).background(pc.sub.copy(alpha = 0.5f)).size(width = 44.dp, height = 5.dp)
+                    .clickable { portraitTripUp = !portraitTripUp })
+                if (pe != null) Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Column { Text(Geo.fmtDur(pe.secs), color = pc.accent, fontSize = 26.sp, fontWeight = FontWeight.Bold, maxLines = 1); Text(Lang.t("Verbleibend", "Left"), color = pc.sub, fontSize = 12.sp, maxLines = 1) }
+                    Spacer(Modifier.weight(1f))
+                    Column(horizontalAlignment = Alignment.End) { Text(pe.arrive, color = pc.text, fontSize = 26.sp, fontWeight = FontWeight.Bold, maxLines = 1); Text(Lang.t("Ankunft", "Arrival"), color = pc.sub, fontSize = 12.sp, maxLines = 1) }
+                    Spacer(Modifier.width(14.dp))
+                    Text(Geo.fmtDist(pe.dist, engine.imperial), color = pc.text, fontSize = 18.sp, maxLines = 1)
+                    Spacer(Modifier.width(12.dp))
+                    Box(Modifier.size(52.dp).clip(CircleShape).background(Color(0xFFEA4335)).clickable { engine.endRoute() }, contentAlignment = Alignment.Center) {
+                        Icon(Icons.Rounded.Close, Lang.t("Route beenden", "End route"), tint = Color.White, modifier = Modifier.size(24.dp))
+                    }
+                }
+                if (portraitTripUp) TripArea(engine, shareEta, narrow, voice)
+            }
+        }
+        else if (!previewing && engine.arrival == null) {
             val tripBaseDensity = LocalDensity.current
             val tripCardScale = engine.prefs.i(PreferenceKeys.MAIN_CARD_SIZE, 100).coerceIn(70, 150) / 100f
             Box(Modifier.align(side(Alignment.BottomStart)).then(if (narrow) Modifier.fillMaxWidth().sides(end = 16.dp) else Modifier).onSizeChanged { tripPx = it.height }
