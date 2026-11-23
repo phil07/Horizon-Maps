@@ -1,8 +1,8 @@
 ## Unreleased
 
 ### Fixed
-- Hochformat: Die Suche mit Zuhause, Arbeit und deinen Orten bleibt oben stehen, auch wenn du die Karte berührst. Sie klappt sich nicht mehr zu einem Knopf zusammen.
-  EN: Portrait: the search with Home, Work and your places stays at the top even when you touch the map. It no longer folds into a single button.
+- Hochformat mit „Suche als Knopf“: Zuhause, Arbeit, deine Orte, Wetter, Sprit, Geparkt und die Abfahrtszeit stehen wieder oben unter dem Such-Knopf.
+  EN: Portrait with "Search as a button": Home, Work, your places, weather, fuel, where you parked and the leave-by time are back at the top under the search button.
 
 ## 1.0.246 — 2026-10-28
 

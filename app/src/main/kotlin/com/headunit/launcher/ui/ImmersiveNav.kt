@@ -335,6 +335,12 @@ private fun MapScreen(engine: NavEngine, onSettings: () -> Unit) {
             // the turn list opens over the trip card below it
             .zIndex(if (engine.itineraryOpen) 2f else 0f), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             // every block slides and fades in and out instead of popping, so the screen changes feel like one piece
+            // search as a button, upright: Home, Work and your places still show at the top, under the button
+            if (foldSearch && upright) Column(Modifier.padding(top = 66.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                ImmChips(engine) { searchOpen = true }
+                PortraitChips(engine); LeaveByChips(engine)
+                OutsideMapsChip(engine)
+            }
             AnimatedVisibility(!routing && !previewing && !foldSearch, enter = fadeIn(tween(220)) + androidx.compose.animation.expandVertically(tween(260)), exit = fadeOut(tween(160)) + androidx.compose.animation.shrinkVertically(tween(220))) {
               Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 // on foot to the parked car: the next instruction and what is left, over the search bar
