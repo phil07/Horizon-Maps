@@ -1,20 +1,30 @@
 ## Unreleased
 
 ### New
+- Neues Hochformat-Layout (an unter Einstellungen › Bildschirm): Auf dem hochkant stehenden Bildschirm liegt unten ein Blatt mit Zuhause, Arbeit, deinen Orten, Wetter, günstigstem Sprit, geparktem Auto, Abfahrtszeit „Abfahren 08:04 zur Arbeit“, Straßenname und Musik. Zieh es mit dem Griff hoch für die zuletzt genutzten Orte.
+  EN: New portrait layout (on by default under Settings › Screen): on an upright screen a sheet along the bottom holds Home, Work, your places, the weather, the cheapest fuel, where you parked, a "Leave by 08:04 for Work" time, the road name and the music. Pull it up by its handle for your recent places.
+- Hochformat auf der Route: Die Fahrtkarte ist ein Blatt unten mit Restzeit, Ankunft, Entfernung und Beenden. Hochgezogen zeigt sie den Rest der Fahrtkarte. Auf den letzten Metern steht im Blatt, auf welcher Seite das Ziel liegt, und der nächste Parkplatz am Ziel.
+  EN: Portrait route: the trip is a sheet along the bottom with time left, arrival, distance and End; pulled up it shows the rest of the trip card. On the last stretch the sheet says which side the destination is on, and the nearest car park by it.
+- Das Blatt zeigt „Außerhalb deiner Karten“, wenn du außerhalb aller heruntergeladenen Karten bist.
+  EN: The sheet shows "Outside your maps" when you're outside every map you've downloaded.
 - Sprachkanal unter Einstellungen › Ton: neu Benachrichtigung, Wecker und Klingelton, für Head-Units, die den Navi-Kanal mit der Musiklautstärke abspielen.
   EN: Voice channel under Settings › Sound: new Notification, Alarm and Ringtone choices, for head units that play the navigation channel at the music volume.
 
 ### Improved
-- Routen zu einer Hausadresse enden auf der Straße, an der das Haus liegt, nicht in der Mitte des Grundstücks. Mapbox' Punkt auf der Straße wird genutzt; fehlt er, der nächste Punkt auf der benannten Straße.
-  EN: Routes to a house address end on the street the house is on, not in the middle of the plot. Mapbox's point on the street is used; if it gives none, the nearest point on the named street.
-- Die Vorschau in den Einstellungen zentriert beim Öffnen auf dich und zeigt einen Schritt weiter heraus, damit mehr von deiner Umgebung sichtbar ist. Der Zoom der Karte kommt beim Schließen zurück.
-  EN: The settings map preview centres on you when it opens and shows a step further out, so more of your area is visible. The map's zoom comes back when it closes.
-- Die Was-ist-neu-Karte zeigt nur Änderungen, die du noch nicht gesehen hast. Jede Änderung wird beim Schließen der Karte gemerkt.
-  EN: The what's-new card only shows changes you haven't seen yet. Each change is remembered when the card is closed.
+- Die Hinweise unter der Abbiegekarte (Durchschnittstempo, nächster Dienst, Parkplatz, Hinweis, Mitteilung) sind kleine Chips in einer Zeile statt Kacheln darunter.
+  EN: The hints under the turn card (average speed, next service, car park, advice, notice) are small chips in one line instead of cards stacked under it.
+- Routen zu einer Hausadresse enden auf der Straße, an der das Haus liegt, nicht in der Mitte des Grundstücks.
+  EN: Routes to a house address end on the street the house is on, not in the middle of the plot.
+- Die Vorschau in den Einstellungen zentriert beim Öffnen auf dich und zeigt einen Schritt weiter heraus. Der Zoom der Karte kommt beim Schließen zurück.
+  EN: The settings map preview centres on you when it opens and shows a step further out. The map's zoom comes back when it closes.
+- Die Was-ist-neu-Karte zeigt nur Änderungen, die du noch nicht gesehen hast.
+  EN: The what's-new card only shows changes you haven't seen yet.
 
 ### Fixed
-- Straßenlampen, die die App entlang von Straßen setzt, stehen nicht mehr auf der Fahrbahn: Eine Lampe wird nur gesetzt, wenn sie mindestens 4 m von jeder Straßenmitte entfernt ist.
-  EN: Street lamps the app places along streets no longer stand in the road: a lamp is only placed at least 4 m away from every street's middle line.
+- Straßenlampen, die die App entlang von Straßen setzt, stehen nicht mehr auf der Fahrbahn.
+  EN: Street lamps the app places along streets no longer stand in the road.
+- Auf der Routenleiste ist der Pfeil wieder glatt (Stufen beim Verkleinern) und die Zahlen der Fahrtkarte laufen auf Android Auto nicht mehr ineinander.
+  EN: The arrow on the route bar is smooth again (scaled in steps), and the figures on the Android Auto trip card no longer run into each other.
 
 ## 1.0.246 — 2026-10-28
 
