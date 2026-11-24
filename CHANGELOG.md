@@ -1,18 +1,8 @@
 ## Unreleased
 
-### New
-- Größere 3D-Modelle für deinen Pfeil: Eine .glb über 8 MB (wie sie KI-Tools oft liefern) bekommt beim Auswählen kleinere Bilder, damit sie passt. Die Form bleibt gleich. Bis 48 MB wählbar.
-  EN: Bigger 3D models for your arrow: a .glb over 8 MB (as AI tools often make them) has its pictures made smaller as it's picked, so it fits; the shape isn't changed. Up to 48 MB can be picked.
-- „Langsamer fahren“: Einstellungen › Warnungen › „Langsamer fahren“ sagen spricht es nach dem Ton beim Überschreiten. „Eigene Höchstgeschwindigkeit“ (z. B. 120 km/h) piept und sagt es einmal, wenn du sie erreichst, egal welches Limit gilt. Beides standardmäßig aus.
-  EN: "Slow down" in words: Settings › Alerts › Say "Slow down" speaks it after the beep when you go over the limit, and Top speed alert (say 120 km/h) beeps and says it once as you reach it, whatever the limit is. Both off by default.
-
 ### Fixed
-- Verkehr auf der Routenleiste ist zu sehen: Ein kurzer Stau auf einer langen Fahrt verschwand im Blau. Jetzt zeigt er seine eigene Farbe auf einer etwas dickeren Leiste, nur an den Rändern weich.
-  EN: Traffic on the route bar can be seen: a short patch on a long trip was blended away into the blue. It now shows in its own colour on a slightly thicker bar, soft only at its edges.
-- Parkplätze am Routenende kommen wieder: Fand die erste Suche nichts, kam keine zweite. Jetzt wird bis zu dreimal neu gesucht.
-  EN: Car parks near the end of a route come back: when the first look found nothing it wasn't tried again; now it's tried up to three times.
-- Deutschland: Straßen mit „kein Limit“ außer Autobahnen, und als außerorts markierte, zeigen 100 km/h statt nichts oder der alten 70.
-  EN: Germany: roads marked "no limit" that aren't motorways, and those marked rural, show 100 km/h instead of nothing or the old 70.
+- Parkplätze am Ziel haben wieder eine eigene Karte unter der Abbiegekarte (Telefon, Headunit und Android Auto) statt eines Chips: bis zu drei Parkplätze, Tippen fährt hin, das X blendet sie für diese Fahrt aus.
+  EN: Car parks near the destination have their own card under the turn card again (phone, head unit and Android Auto) instead of a chip: up to three, a tap drives there, the X hides it for this trip.
 
 ## 1.0.246 — 2026-10-28
 

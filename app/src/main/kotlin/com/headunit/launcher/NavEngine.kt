@@ -2035,6 +2035,9 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
         }
     }
 
+    /** The car park card's X: hidden for this destination (no more looks for it either). */
+    fun dismissParking() { parkingNear = emptyList(); parkingTries = 3 }
+
     /** Drives to a car park from the list instead (you walk the last bit). */
     fun parkAt(n: Nearby) {
         val d = dest

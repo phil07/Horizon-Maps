@@ -368,7 +368,11 @@ private fun CarScreen(engine: NavEngine, a: android.graphics.Rect?, actions: Car
                         })
                 }
                 // the hints under it as small chips in one line, as on the phone (see TurnLineChips)
-                CompositionLocalProvider(LocalDensity provides Density(dens.density * cardScale, dens.fontScale)) { TurnLineChips(engine) }
+                CompositionLocalProvider(LocalDensity provides Density(dens.density * cardScale, dens.fontScale)) {
+                    TurnLineChips(engine)
+                    // car parks near the destination: their own card under the turn card, as on the phone
+                    ParkingCard(engine, car = true)
+                }
             }
         }
 
@@ -489,10 +493,6 @@ private fun CarScreen(engine: NavEngine, a: android.graphics.Rect?, actions: Car
         }
         if (guiding && engine.faster != null) Box(Modifier.align(Alignment.TopCenter).padding(top = top + below, start = left, end = rightTop)) {
             CompositionLocalProvider(LocalDensity provides Density(dens.density * cardScale, dens.fontScale)) { FasterCard(engine, Modifier.widthIn(max = 560.dp)) }
-        }
-        // car parks near the destination and the next motorway services, as in the app: a tap on a car park drives there
-        if (guiding && (engine.parkingNear.isNotEmpty() || engine.servicesAhead.isNotEmpty())) Box(Modifier.align(Alignment.TopCenter).padding(top = top + below, start = left, end = rightTop)) {
-            CompositionLocalProvider(LocalDensity provides Density(dens.density * cardScale, dens.fontScale)) { CarParkingCard(engine, Modifier.widthIn(max = 560.dp)) }
         }
 
         // the compass, top right (below the sound button when the screen is tall), as on the phone: a tap turns north up or back
@@ -717,27 +717,6 @@ private fun CarNewDest(engine: NavEngine, modifier: Modifier) {
                 Text(Lang.t("Neues Ziel", "New destination"), color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold)
             }
         }
-    }
-}
-
-/** Car parks near the destination and the next motorway services: a tap on a car park drives there (you walk the last bit). */
-@Composable
-private fun CarParkingCard(engine: NavEngine, modifier: Modifier) {
-    val list = engine.parkingNear
-    val svc = engine.servicesAhead.firstOrNull()
-    val c = LocalVw.current
-    Column(modifier.panel(10.dp, RoundedCornerShape(24.dp), c.surface).padding(horizontal = 16.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        if (list.isNotEmpty()) {
-            Text(Lang.t("Parken in der Nähe", "Parking nearby"), color = c.sub, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
-            list.take(3).forEachIndexed { i, n ->
-                Row(Modifier.fillMaxWidth().carTap("car-park-$i") { engine.parkAt(n) }.padding(vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Text(n.place.name, color = c.text, fontSize = 20.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
-                    Text(listOfNotNull(Geo.fmtDist(n.dist, engine.imperial), n.extra.ifBlank { null }).joinToString(" · "), color = c.sub, fontSize = 16.sp, maxLines = 1)
-                }
-            }
-        }
-        if (svc != null) Text(Lang.t("Nächste Raststelle: ${svc.name}, ${Geo.fmtDist(svc.dist, engine.imperial)}", "Next services: ${svc.name}, ${Geo.fmtDist(svc.dist, engine.imperial)}"),
-            color = c.text, fontSize = 17.sp, maxLines = 2, overflow = TextOverflow.Ellipsis)
     }
 }
 
