@@ -16,15 +16,19 @@ import java.nio.ByteOrder
  */
 object OwnModel {
     const val MAX_BYTES = 8L * 1024 * 1024
+    /** The biggest file that can be picked: over [MAX_BYTES] its pictures are made smaller first (see GlbShrink). */
+    const val MAX_PICK = 48L * 1024 * 1024
     /** The built-in car is modelled in metres, 4.4 m long (see MapBinding.modelPxPerUnit). */
     const val CAR_LENGTH_M = 4.4
     private const val FILE = "own_model.glb"
 
     private fun file(ctx: Context) = File(ctx.filesDir, FILE)
 
-    /** Copies the picked file in when it is a binary glTF of at most [MAX_BYTES]. The old model stays when it isn't. */
+    /** Copies the picked file in when it is a binary glTF of at most [MAX_BYTES] (a bigger one, up to [MAX_PICK], gets its pictures
+     *  made smaller first). The old model stays when it isn't. */
     fun save(ctx: Context, uri: Uri): Boolean {
         val tmp = File(ctx.filesDir, "$FILE.tmp")
+        val small = File(ctx.filesDir, "$FILE.small")
         try {
             val input = ctx.contentResolver.openInputStream(uri) ?: return false
             var total = 0L
@@ -34,21 +38,24 @@ object OwnModel {
                     val n = inp.read(buf)
                     if (n < 0) break
                     total += n
-                    if (total > MAX_BYTES) return false
+                    if (total > MAX_PICK) return false
                     out.write(buf, 0, n)
                 }
             } }
             val head = ByteArray(4)
             tmp.inputStream().use { it.read(head) }
             if (String(head, Charsets.US_ASCII) != "glTF") return false
-            if (extent(tmp) == null) return false
+            // too big: its pictures are made smaller (the shape isn't changed) until it fits
+            val use = if (total > MAX_BYTES) { if (!GlbShrink.shrink(tmp, small, MAX_BYTES)) return false; small } else tmp
+            if (extent(use) == null) return false
             val dest = file(ctx)
             if (dest.exists()) dest.delete()
-            return tmp.renameTo(dest)
-        } catch (e: Exception) {
+            return use.renameTo(dest)
+        } catch (e: Throwable) {
             return false
         } finally {
             if (tmp.exists()) tmp.delete()
+            if (small.exists()) small.delete()
         }
     }
 

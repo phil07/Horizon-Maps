@@ -153,15 +153,15 @@ fun RouteBar(engine: NavEngine, modifier: Modifier = Modifier, thin: Boolean = f
         }
         out
     }
-    // Settings › On the map › Blend traffic colours: each level is averaged with its neighbours (two either side), so the colours
-    // run into each other where the traffic changes; a long stretch of one level keeps its colour
+    // Settings › On the map › Blend traffic colours: a patch of traffic keeps its own colour (a short one on a long trip used to be
+    // averaged away into the blue); only the bits beside it take on a little of it, so the edges are soft
     val blend = engine.prefs.b(PreferenceKeys.TRAFFIC_BLEND, true)
     val smooth = remember(levels, blend) {
         FloatArray(bins) { b ->
-            if (!blend) levels[b].toFloat() else {
-                var s = 0f; var n = 0
-                for (k in -2..2) { val j = b + k; if (j in 0 until bins) { s += levels[j]; n++ } }
-                s / n
+            val own = levels[b].toFloat()
+            if (!blend) own else {
+                val nb = maxOf(levels.getOrElse(b - 1) { 0 }, levels.getOrElse(b + 1) { 0 }).toFloat()
+                if (nb > own) own + (nb - own) * 0.5f else own
             }
         }
     }
@@ -178,7 +178,8 @@ fun RouteBar(engine: NavEngine, modifier: Modifier = Modifier, thin: Boolean = f
         val w = maxWidth
         // the track, with the part already driven greyed out, and the arrow
         Canvas(Modifier.align(Alignment.BottomStart).fillMaxWidth().height(if (thin) 30.dp else 26.dp)) {
-            val th = 8.dp.toPx()
+            // (a little thicker, so a short patch of traffic can be seen)
+            val th = 10.dp.toPx()
             val y0 = (size.height - th) / 2f
             val bw = size.width / bins
             drawRoundRect(Color.Black.copy(alpha = 0.45f), Offset(0f, y0 - 1.5f), Size(size.width, th + 3f), CornerRadius(th))

@@ -453,16 +453,16 @@ private fun ArrowSection(prefs: Prefs, engine: NavEngine) {
         if (loc == "model") {
             SChoice(Lang.t("Modellform", "Model shape"), listOf("arrow" to Lang.t("Pfeil", "Arrow"), "car" to "Auto", "own" to Lang.t("Dein Modell", "Your model")), prefs.s(PreferenceKeys.MODEL_SHAPE, "arrow")) { prefs.put(PreferenceKeys.MODEL_SHAPE, it) }
             if (prefs.s(PreferenceKeys.MODEL_SHAPE, "arrow") == "own") {
-                // your own model (.glb, up to 8 MB): sized to match the built-in car; the built-in car stands in while there's none
+                // your own model (.glb, up to 48 MB; over 8 MB its pictures are made smaller): sized to match the built-in car; the built-in car stands in while there's none
                 val hasOwn = com.headunit.launcher.OwnModel.factor(ctx) != null
                 val ownName = prefs.s(PreferenceKeys.OWN_MODEL_NAME, "")
                 val pickOwn = rememberOwnModelPicker { ok, name ->
                     if (ok) {
                         prefs.put(PreferenceKeys.OWN_MODEL_NAME, name.ifBlank { "3D" })
                         prefs.put(PreferenceKeys.OWN_MODEL_STAMP, System.currentTimeMillis().toString())
-                    } else android.widget.Toast.makeText(ctx, Lang.t("Modell nicht lesbar (eine .glb-Datei, höchstens 8 MB)", "Model can't be read (a .glb file, up to 8 MB)"), android.widget.Toast.LENGTH_LONG).show()
+                    } else android.widget.Toast.makeText(ctx, Lang.t("Modell nicht lesbar (eine .glb-Datei, höchstens 48 MB)", "Model can't be read (a .glb file, up to 48 MB)"), android.widget.Toast.LENGTH_LONG).show()
                 }
-                SItem(Lang.t("Dein Modell", "Your model"), if (hasOwn) "Aktuell: $ownName" else Lang.t("Noch keins gewählt · eine .glb-Datei, höchstens 8 MB. Bis dahin steht das eingebaute Auto da.", "None chosen yet · a .glb file, up to 8 MB. Until then the built-in car stands in.")) {
+                SItem(Lang.t("Dein Modell", "Your model"), if (hasOwn) "Aktuell: $ownName" else Lang.t("Noch keins gewählt · eine .glb-Datei, höchstens 48 MB (größer als 8 MB: die Bilder darin werden verkleinert). Bis dahin steht das eingebaute Auto da.", "None chosen yet · a .glb file, up to 48 MB (over 8 MB its pictures are made smaller). Until then the built-in car stands in.")) {
                     SButton(if (hasOwn) Lang.t("Ersetzen", "Replace") else Lang.t("Datei wählen", "Choose file"), primary = true) {
                         if (!pickOwn()) android.widget.Toast.makeText(ctx, Lang.t("Keine App auf diesem Gerät kann eine Datei auswählen", "No app on this device can choose a file"), android.widget.Toast.LENGTH_LONG).show()
                     }
@@ -667,6 +667,9 @@ private fun AlertsSection(prefs: Prefs, engine: NavEngine) {
     SGroup(Lang.t("Geschwindigkeit", "Speed")) {
         SToggle(prefs, Lang.t("Warnen bei Überschreitung", "Warn when speeding"), PreferenceKeys.SPEEDWARN, false)
         if (prefs.b(PreferenceKeys.SPEEDWARN, false)) SChoice(Lang.t("Warnen ab Überschreitung um", "Warn when over by"), listOf("0", "5", "10").map { it to it + if (engine.imperial) " mph" else " km/h" }, prefs.s(PreferenceKeys.TRAFFIC_WARNING, "5")) { prefs.put(PreferenceKeys.TRAFFIC_WARNING, it) }
+        if (prefs.b(PreferenceKeys.SPEEDWARN, false)) SToggle(prefs, Lang.t("„Langsamer fahren“ sagen", "Say \"Slow down\""), PreferenceKeys.SAY_SLOW, false, Lang.t("Nach dem Ton beim Überschreiten, einmal pro Überschreitung", "After the beep when you go over, once each time"))
+        SChoice(Lang.t("Eigene Höchstgeschwindigkeit", "Top speed alert"), listOf("0" to Lang.t("Aus", "Off")) + (if (engine.imperial) listOf(50, 60, 70, 80, 90) else listOf(80, 100, 120, 130, 150, 180)).map { "$it" to "$it " + if (engine.imperial) "mph" else "km/h" },
+            prefs.i(PreferenceKeys.TOP_SPEED, 0).toString(), Lang.t("Piept und sagt einmal „Langsamer fahren“, wenn du sie erreichst, egal welches Limit gilt", "Beeps and says \"Slow down\" once as you reach it, whatever the limit is")) { prefs.put(PreferenceKeys.TOP_SPEED, it.toInt()) }
         SToggle(prefs, Lang.t("Tempolimit-Töne", "Speed limit sounds"), PreferenceKeys.LIMIT_SOUNDS, true, Lang.t("Aus: keine Töne und keine Stimme zum Tempolimit (zu schnell, Wechsel). Blitzer, Gefahren und andere Warnungen bleiben", "Off: no beeps or voice for the speed limit (over it, or a change). Cameras, hazards and other alerts still sound"))
         SToggle(prefs, Lang.t("Limitänderung ansagen", "Announce limit changes"), PreferenceKeys.LIMITCHANGE, false)
         if (prefs.b(PreferenceKeys.LIMITCHANGE, false)) SToggle(prefs, Lang.t("Pop-up beim Tempowechsel", "Pop-up when the limit changes"), PreferenceKeys.LIMIT_POPUP, true, Lang.t("Aus: kein Hinweis auf der Karte, das Schild am Tacho pulsiert trotzdem", "Off: no banner on the map; the sign by the speedometer still pulses"))

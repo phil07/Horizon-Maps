@@ -409,6 +409,10 @@ internal object PreferenceKeys {
     const val LIMIT_POPUP = "limitPopup"
     /** My routes: the ways you saved, as JSON (see MyRoutes). */
     const val MY_ROUTES = "myRoutes"
+    /** Settings › Alerts: say "Slow down" after the over-the-limit beep (off by default). */
+    const val SAY_SLOW = "saySlow"
+    /** Settings › Alerts › Top speed alert: your own top speed in km/h or mph (0 = off). */
+    const val TOP_SPEED = "topSpeed"
     /** The turn card's arrow, width and height in percent (100 = as designed), on the phone and on the car screen. */
     const val TURN_ARROW_SIZE = "turnArrowSize"
     const val TURN_CARD_WIDTH = "turnCardWidth"

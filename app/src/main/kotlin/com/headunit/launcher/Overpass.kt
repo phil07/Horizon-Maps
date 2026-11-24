@@ -353,6 +353,8 @@ object Overpass {
                 ?: parseSpeed(t.optString("maxspeed:type"), country)
                 ?: parseSpeed(t.optString("source:maxspeed"), country)
                 ?: zoneSpeed(t.optString("maxspeed").ifBlank { t.optString("zone:maxspeed").ifBlank { t.optString("source:maxspeed") } }, country)
+                // ("DE:rural" is often only in maxspeed:type: it was missed, and the 70 before it stayed on the sign)
+                ?: zoneSpeed(t.optString("maxspeed:type"), country)
             val ref = t.optString("ref").split(";").firstOrNull()?.trim().orEmpty()
             val nm = t.optString("name").trim()
             val major = t.optString("highway") in setOf("motorway", "trunk", "primary", "motorway_link", "trunk_link")
@@ -364,6 +366,8 @@ object Overpass {
             // (only really in Germany: the country can lag at a border, and Austrian or Swiss motorways do have a limit)
             val inDe = country == "DE" && Zones.inGermany(p)
             val none = unType == "none" || (unType == "de:motorway" && inDe)
+            // Germany: "no limit" off the Autobahn is the general limit outside towns, 100 km/h (it showed as no limit, or nothing)
+            val deOpenRoad = none && inDe && t.optString("highway") !in setOf("motorway", "motorway_link")
             // a limit only at certain times ("30 @ (22:00-06:00)", "Mo-Fr 07:00-17:00"): while it applies it replaces the plain one
             // (worked out on every lookup from the road's tags, so it changes at the right minute)
             val condKey = if (dirKey == "maxspeed:backward") "maxspeed:backward:conditional" else "maxspeed:forward:conditional"
@@ -377,6 +381,7 @@ object Overpass {
             val rf = refOf(t)
             if (cond != null) { if (cond < 0) Limit(-1.0, false, road, w.id, names, sure, noLimit = true, timed = true, refDays = rf.first, refCheck = rf.second) else Limit(cond, false, road, w.id, names, sure, timed = true, refDays = rf.first, refCheck = rf.second) }
             else if (posted != null) Limit(posted, false, road, w.id, names, sure, idle = idle, refDays = rf.first, refCheck = rf.second)
+            else if (deOpenRoad) Limit(100.0 / 3.6, false, road, w.id, names, sure, refDays = rf.first, refCheck = rf.second)
             else if (unposted) Limit(-1.0, false, road, w.id, names, sure, noLimit = none, refDays = rf.first, refCheck = rf.second)
             else {
                 val isMajor = t.optString("highway") in setOf("motorway", "trunk", "motorway_link", "trunk_link")

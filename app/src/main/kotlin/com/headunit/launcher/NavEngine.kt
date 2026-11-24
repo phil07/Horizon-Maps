@@ -501,6 +501,9 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
     private var candidateHits = 0
     private var announcedLimit = -1
     private var lastBeep = 0L
+    /** "Slow down" was said for this time over the limit, and the top speed alert for this time over your own top speed. */
+    private var slowSaid = false
+    private var topSaid = false
     private var breakNext = 7200L
     private var tripPts = ArrayList<LL>()
 
@@ -2003,12 +2006,18 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
     /** Where the car parks were looked for: once per destination, so a reroute or a traffic refresh (a new route to the same place)
      *  doesn't look again; that made the car park lines under the turn card open and close over and over. */
     private var parkingFor: LL? = null
+    /** Looks so far for this destination's car parks, and when the next may be (an empty answer, the map service not answering, is
+     *  tried again a few times; the fix for the lines opening and closing took them away for good after one empty answer). */
+    private var parkingTries = 0
+    private var parkingNextAt = 0L
 
     private fun checkParking(r: Route, rem: Double) {
         if (rem > 1700.0 || rem < 150.0 || r.len < 3000.0 || previewing || !prefs.b(PreferenceKeys.PARKPROMPT, false)) return
         val d = dest ?: return
-        if (parkingFor == d.pos) return
-        parkingFor = d.pos
+        val now = System.currentTimeMillis()
+        if (parkingFor == d.pos) { if (parkingNear.isNotEmpty() || parkingTries >= 3 || now < parkingNextAt) return }
+        else { parkingFor = d.pos; parkingTries = 0 }
+        parkingTries++; parkingNextAt = now + 30_000L
         // going to a car park already: nothing to offer
         val nm = d.name.lowercase()
         if (nm.contains("parking") || nm.contains("car park") || nm.contains("multi-storey") || nm.contains("multistorey")) return
@@ -3925,6 +3934,20 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
             if (over && soundMode != 2 && prefs.b(PreferenceKeys.LIMIT_SOUNDS, true) && now - lastBeep > 9000) {
                 lastBeep = now
                 chime(android.media.ToneGenerator.TONE_PROP_BEEP2)
+                // Settings › Alerts › Say "Slow down": once after the first beep each time you go over
+                if (!slowSaid && prefs.b(PreferenceKeys.SAY_SLOW, false)) { slowSaid = true; scope.launch { delay(400); speak(Lang.t("Langsamer fahren", "Slow down"), true) } }
+            }
+            if (!over) slowSaid = false
+            // Settings › Alerts › Top speed alert: your own top speed, whatever the limit; a beep and "Slow down" once as you reach it
+            // (again only after dropping 5 under it)
+            val top = prefs.i(PreferenceKeys.TOP_SPEED, 0)
+            if (top > 0) {
+                val topMs = top * (if (imperial) 0.44704 else 1 / 3.6)
+                if (!topSaid && p.speed >= topMs && soundMode != 2) {
+                    topSaid = true
+                    chime(android.media.ToneGenerator.TONE_PROP_BEEP2)
+                    scope.launch { delay(400); speak(Lang.t("Langsamer fahren", "Slow down"), true) }
+                } else if (topSaid && p.speed < topMs - 5 * (if (imperial) 0.44704 else 1 / 3.6)) topSaid = false
             }
         }
         val lp = limitPos
