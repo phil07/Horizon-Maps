@@ -387,7 +387,9 @@ private fun CarScreen(engine: NavEngine, a: android.graphics.Rect?, actions: Car
         // (worked out here: the screen's height can't be read from inside the column below)
         val savedRows = ((maxHeight - top - bottom - 330.dp - 150.dp) / 86.dp).toInt().coerceIn(0, 3)
         // the search bar alone (Home, Work and Saved folded away) is no card beside the arrow: only the block with the chips counts
-        val searchBarDp = if (engine.carShort) 56.dp else 80.dp
+        // Settings › Sizes on the car screen › Bar height: the search bar slimmer, to leave more map
+        val barK = engine.prefs.i(PreferenceKeys.CAR_BAR_HEIGHT, 100).coerceIn(60, 100) / 100f
+        val searchBarDp = (if (engine.carShort) 56.dp else 80.dp) * barK
         // Settings › Android Auto › Hide them after: the search bar and places go after a while without a touch (a touch brings them back)
         val hideAfter = engine.prefs.i(PreferenceKeys.CAR_HIDE_AFTER, 0)
         var idleHidden by remember { mutableStateOf(false) }
@@ -402,7 +404,7 @@ private fun CarScreen(engine: NavEngine, a: android.graphics.Rect?, actions: Car
             verticalArrangement = Arrangement.spacedBy(10.dp)) {
             // sized like the car's own Melden button: big enough to hit and read while driving
             // (on a short screen: slimmer, so the chips below get the room)
-            val barH = if (engine.carShort) 56.dp else 80.dp
+            val barH = (if (engine.carShort) 56.dp else 80.dp) * barK
             // Settings › Android Auto › hide the search bar: for cars with a knob and no touchscreen, the bar, Home and Work, the
             // shortcuts and the suggestion are left off (Places ★ in Android Auto's own buttons has them all); notices stay
             val hideTop = engine.prefs.b(PreferenceKeys.CAR_HIDE_SEARCH, false)

@@ -1,10 +1,10 @@
 ## Unreleased
 
 ### New
-- Bildschirm auch ohne Route anlassen: Einstellungen › Bildschirm. Der Bildschirm bleibt an, wenn du nur die Karte und den Verkehr ansiehst. Aus, weil es mehr Akku braucht.
-  EN: Keep the screen on without a route: Settings › Screen. The screen stays on while you just watch the map and traffic. Off, as it uses more battery.
-- Farbe der Abbiegekarte: Einstellungen › Kartenansicht › Abbiegekarte › Farbe. Grün, Schwarz, Dunkelgrau, Navy oder Lila, mit weißer Schrift.
-  EN: Turn card colour: Settings › Map look › Turn card › Colour. Green, black, dark grey, navy or purple, with white writing.
+- Ladeumweg: Einstellungen › Dein Elektroauto › Ladeumweg (5, 10 oder 15 Minuten). Bestimmt, wie weit abseits der Route eine Ladesäule noch aufgeführt wird, auch wenn sie nur ein paar Minuten von der Hauptstraße liegt. Standard: 10 Minuten.
+  EN: Charger detour: Settings › Your electric car › Charger detour (5, 10 or 15 minutes). Sets how far off the route a charger can be and still be listed, so chargers a few minutes from the main road show up too. Default: 10 minutes.
+- Leistenhöhe auf Android Auto: Einstellungen › Größen auf dem Autodisplay › Leistenhöhe macht die Suchleiste schlanker, damit mehr von der Karte frei bleibt.
+  EN: Bar height on Android Auto: Settings › Sizes on the car screen › Bar height makes the search bar slimmer, to leave more of the map.
 
 ### Improved
 - Kompass: Die rote Nordmarke wandert am Rand mit der Karte und zeigt immer nach echtem Norden.

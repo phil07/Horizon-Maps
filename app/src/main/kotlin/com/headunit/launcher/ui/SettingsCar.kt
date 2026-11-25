@@ -141,6 +141,7 @@ internal fun AndroidAutoSection(prefs: Prefs) {
             SSlider(Lang.t("Limit-Schild-Größe", "Speed-limit sign size"), prefs.i(PreferenceKeys.CAR_LIMIT_SIGN_SIZE, 100).toFloat(), 70f..200f, "%", steps = 26, reset = 100f) { prefs.put(PreferenceKeys.CAR_LIMIT_SIGN_SIZE, it) }
             SSlider(Lang.t("Textgröße", "Text size"), prefs.i(PreferenceKeys.CAR_TEXT_SIZE, 100).toFloat(), 70f..150f, "%", steps = 16, reset = 100f) { prefs.put(PreferenceKeys.CAR_TEXT_SIZE, it) }
             SSlider(Lang.t("Navigationspfeil-Größe", "Navigation arrow size"), prefs.i(PreferenceKeys.CAR_ARROW_SIZE, 70).toFloat(), 30f..180f, "%", reset = 70f) { prefs.put(PreferenceKeys.CAR_ARROW_SIZE, it) }
+            SSlider(Lang.t("Leistenhöhe", "Bar height"), prefs.i(PreferenceKeys.CAR_BAR_HEIGHT, 100).toFloat(), 60f..100f, "%", sub = Lang.t("Die Suchleiste schlanker, damit mehr von der Karte frei bleibt", "The search bar slimmer, to leave more of the map"), steps = 8, reset = 100f) { prefs.put(PreferenceKeys.CAR_BAR_HEIGHT, it) }
             SSlider(Lang.t("Straßennamen-Größe", "Road name size"), prefs.i(PreferenceKeys.CAR_ROAD_NAME_SIZE, 100).toFloat(), 70f..200f, "%", steps = 12, reset = 100f) { prefs.put(PreferenceKeys.CAR_ROAD_NAME_SIZE, it) }
         }
         SGroup("Knöpfe auf der Fahrtkarte") {

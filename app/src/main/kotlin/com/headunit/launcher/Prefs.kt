@@ -239,6 +239,10 @@ internal object PreferenceKeys {
     const val KEEPON_NO_ROUTE = "keepon_noroute"
     /** The colour behind the turn card: green (the app's own), black, grey, navy or purple. */
     const val TURN_CARD_COLOR = "turn_card_color"
+    /** How many minutes off the route a charger can be and still be listed: 5, 10 (the default) or 15. */
+    const val CHARGER_DETOUR_MIN = "charger_detour_min"
+    /** Android Auto's search bar height in percent (60 to 100). */
+    const val CAR_BAR_HEIGHT = "car_bar_height"
     const val LAMPGAP = "lampgap"
     const val LANDMARKS3D = "landmarks3d"
     const val LANEMAP = "lanemap"

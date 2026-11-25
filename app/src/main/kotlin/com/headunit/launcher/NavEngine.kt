@@ -6806,6 +6806,11 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
     var chargerMinKw by mutableStateOf(prefs.i(PreferenceKeys.CHARGER_FILTER_KW, 0))
     var chargerFilterOpen by mutableStateOf(false)
 
+    /** Settings › Your electric car › Charger detour: how many minutes off the route a charger can be and still be listed (5, 10 or 15). */
+    private fun chargerDetourMin(): Int = prefs.i(PreferenceKeys.CHARGER_DETOUR_MIN, 10).takeIf { it == 5 || it == 15 } ?: 10
+    /** The same choice as the distance off the route, in metres, for the registers and OpenStreetMap. */
+    private fun chargerReachM(min: Int): Double = when (min) { 5 -> 1000.0; 15 -> 2500.0; else -> 1600.0 }
+
     /** Only the charge points in the chosen power class; one whose power is unknown is hidden while a filter is on. */
     /** The map's markers: each place's charge points added up, but only those at the chosen power or faster (a 200 kW point isn't counted at 300 kW). */
     private fun shownChargers(units: List<ChargerSite>): List<ChargerSite> =
@@ -6919,7 +6924,7 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
                     if (hasKey && online()) {
                         val line = RouteExtras.line(r, from, r.len, 800.0, 140)
                         try {
-                            for ((n, secs) in TomTomRest.poiAlong(apiKey, "charging", line, 600)) {
+                            for ((n, secs) in TomTomRest.poiAlong(apiKey, "charging", line, chargerDetourMin() * 60)) {
                                 val pr = RouteExtras.project(r, n.place.pos, 3000.0) ?: continue
                                 l += n.copy(dist = pr.first, detourMin = if (secs >= 0) Math.round(secs / 60.0).toInt() else detour(pr.second), ahead = true)
                             }
@@ -6948,7 +6953,7 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
             val added = ArrayList<Nearby>()
             for (n in reg) {
                 if (!fast(n) || ChargerInfo.near(n.place.pos, known)) continue
-                val pr = RouteExtras.project(r, n.place.pos, 1600.0) ?: continue
+                val pr = RouteExtras.project(r, n.place.pos, chargerReachM(chargerDetourMin())) ?: continue
                 added += n.copy(dist = pr.first, detourMin = detour(pr.second), ahead = true)
             }
             out += added
@@ -6958,7 +6963,7 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
                 for (n in ChargerInfo.enrich(Overpass.nearbyAlong("charging", line, 900), reg)) {
                     // (one the register already added would be listed twice)
                     if (!fast(n) || ChargerInfo.near(n.place.pos, added)) continue
-                    val pr = RouteExtras.project(r, n.place.pos, 1200.0) ?: continue
+                    val pr = RouteExtras.project(r, n.place.pos, chargerReachM(chargerDetourMin()) * 0.75) ?: continue
                     out += n.copy(dist = pr.first, detourMin = detour(pr.second), ahead = true)
                 }
             }
