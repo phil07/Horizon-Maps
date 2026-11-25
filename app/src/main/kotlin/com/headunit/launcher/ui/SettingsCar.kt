@@ -147,6 +147,7 @@ internal fun AndroidAutoSection(prefs: Prefs) {
             SToggle(prefs, Lang.t("Suche", "Search"), PreferenceKeys.TRIP_BTN_SEARCH, true, "Such-Taste auf der Fahrtkarte: ein gewählter Ort wird als Stopp oder als Ziel gefragt")
             SToggle(prefs, "Übersicht", PreferenceKeys.TRIP_BTN_OVERVIEW, true, "Die ganze Route auf einen Blick")
             SToggle(prefs, "Ansagen", PreferenceKeys.TRIP_BTN_OTHERS, true, "Alle Ansagen, nur Warnungen oder aus")
+            SToggle(prefs, "Schnellmeldung", PreferenceKeys.TRIP_BTN_QUICK, true, "Megafon: Panel mit Polizei, Unfall, Gefahr, Panne, mobilem Blitzer und Stau. Ein Tipp meldet, wo du bist; es schließt sich nach 8 Sekunden")
             SToggle(prefs, "Beenden", PreferenceKeys.TRIP_BTN_END, true, "Die Fahrt beenden")
             SChoice("Knopfgröße", listOf("normal" to Lang.t("Normal", "Normal"), "large" to "Groß", "xl" to "Extra groß"), prefs.s(PreferenceKeys.TRIP_BTN_SIZE, "normal"),
                 "Weniger Knöpfe machen die Karte schmaler, so bleibt mehr von der Karte frei") { prefs.put(PreferenceKeys.TRIP_BTN_SIZE, it) }

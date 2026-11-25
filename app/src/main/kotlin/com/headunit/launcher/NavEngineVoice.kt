@@ -109,7 +109,7 @@ fun NavEngine.handleVoice(raw: String): String? {
         val k = when {
             has("police", "cop", "polizei", "kontrolle") -> "police"; has("accident", "crash", "unfall") -> "accident"
             has("breakdown", "broken", "panne", "liegengeblieben") -> "breakdown"; has("camera", "blitzer", "radar") -> "mobilecam"
-            has("traffic jam", "jam", "stau") -> "jam"
+            has("traffic jam", "jam", "stau", "traffic", "verkehr") -> "jam"
             else -> "hazard"
         }
         report(k); return ""
@@ -173,9 +173,8 @@ fun NavEngine.handleVoice(raw: String): String? {
         return ""
     }
     if (has("i parked here", "remember where i parked", "hier geparkt", "parkplatz merken", "merk dir den parkplatz", "ich parke hier")) {
-        val p = fix?.pos
-        if (p == null) say(Lang.t("Ich kenne deinen Standort gerade nicht", "I don't know where you are right now"))
-        else { prefs.put(PreferenceKeys.PARKED_SPOT, String.format(Locale.US, "%.6f,%.6f,%d", p.lat, p.lon, System.currentTimeMillis())); say(Lang.t("Parkplatz gemerkt", "Parking spot saved")) }
+        if (parkHere()) say(Lang.t("Parkplatz gemerkt", "Parking spot saved"))
+        else say(Lang.t("Ich kenne deinen Standort gerade nicht", "I don't know where you are right now"))
         return ""
     }
     // satellite photos on or off

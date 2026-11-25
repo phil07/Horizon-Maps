@@ -33,6 +33,14 @@ internal fun NavEngine.synthToFile(t: android.speech.tts.TextToSpeech, text: Str
     return t.synthesizeToFile(text, null, f, id) != android.speech.tts.TextToSpeech.ERROR
 }
 
+/** The loudness boost (Settings › Voice boost) on the voice being played now; released with it. */
+private var voiceBoost: android.media.audiofx.LoudnessEnhancer? = null
+
+private fun releaseVoiceBoost() {
+    try { voiceBoost?.release() } catch (e: Exception) { softFail(e) }
+    voiceBoost = null
+}
+
 /** The file for utterance [id] is ready: plays it (if it's still the one to say), then goes on to the next. */
 internal fun NavEngine.playVoiceFile(id: String) {
     speechMain.post {
@@ -46,9 +54,13 @@ internal fun NavEngine.playVoiceFile(id: String) {
                 .setContentType(if (like) AudioAttributes.CONTENT_TYPE_SONIFICATION else AudioAttributes.CONTENT_TYPE_SPEECH).build())
             if (android.os.Build.VERSION.SDK_INT >= 28 && speakerOut()) phoneSpeaker()?.let { mp.setPreferredDevice(it) }
             mp.setDataSource(f.path)
+            releaseVoiceBoost()
+            val boostDb = prefs.i(PreferenceKeys.VOICE_BOOST, 0)
+            if (boostDb > 0) try { voiceBoost = android.media.audiofx.LoudnessEnhancer(mp.audioSessionId).apply { setTargetGain(boostDb * 100); setEnabled(true) } } catch (e: Exception) { softFail(e) }
             fun done() {
                 if (voicePlayer === mp) voicePlayer = null
                 try { mp.release() } catch (e: Exception) { softFail(e) }
+                releaseVoiceBoost()
                 f.delete()
                 uttDone(id)
             }
@@ -59,6 +71,7 @@ internal fun NavEngine.playVoiceFile(id: String) {
         } catch (e: Exception) {
             softFail(e)
             voicePlayer = null
+            releaseVoiceBoost()
             f.delete()
             uttDone(id)
         }
@@ -69,4 +82,5 @@ internal fun NavEngine.playVoiceFile(id: String) {
 internal fun NavEngine.stopVoice() {
     try { tts?.stop() } catch (e: Exception) { softFail(e) }
     voicePlayer?.let { mp -> voicePlayer = null; try { mp.stop(); mp.release() } catch (e: Exception) { softFail(e) } }
+    releaseVoiceBoost()
 }

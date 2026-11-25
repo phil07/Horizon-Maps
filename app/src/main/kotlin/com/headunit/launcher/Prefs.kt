@@ -369,6 +369,8 @@ internal object PreferenceKeys {
     const val VOICE_OUT = "voiceOut"
     /** The app plays the voice itself, the way it plays the chimes (for head units that only lower the music for those). */
     const val VOICE_AS_CHIME = "voiceAsChime"
+    /** Voice boost in dB (0 to 18): the app's own voice player gets louder; needs VOICE_AS_CHIME (see the slider). */
+    const val VOICE_BOOST = "voiceBoost"
     /** The system speech voice chosen in Settings (its name); empty = the best installed one. */
     const val TTS_VOICE = "ttsvoice"
     const val TANKERKOENIG_KEY = "tkkey"
@@ -424,6 +426,7 @@ internal object PreferenceKeys {
     const val CAR_SOUND_IDLE = "car_sound_idle"
     const val TRIP_BTN_SOUND = "tripbtn_sound"
     const val TRIP_BTN_END = "tripbtn_end"
+    const val TRIP_BTN_QUICK = "tripbtn_quick"
     const val TRIP_BTN_SIZE = "tripbtn_size"
     const val CAR_MODEL = "carmodel"
     /** Your own 3D model (a .glb you pick): its size in per cent, the turn in degrees, and the time it was picked (see OwnModel). */

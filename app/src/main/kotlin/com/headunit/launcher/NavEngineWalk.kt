@@ -53,6 +53,13 @@ fun NavEngine.startWalkToCar(): Boolean {
     return true
 }
 
+/** Saves where you are now as your parked car (for two days, as the car's own spot). False when there is no GPS fix yet. */
+fun NavEngine.parkHere(): Boolean {
+    val p = fix?.pos ?: return false
+    prefs.put(PreferenceKeys.PARKED_SPOT, String.format(java.util.Locale.US, "%.6f,%.6f,%d", p.lat, p.lon, System.currentTimeMillis()))
+    return true
+}
+
 /** Starts a walk to [to]. A drive on the screen (or a route choice) ends first: you are on foot now. */
 fun NavEngine.startWalk(to: LL) {
     if (route != null) endRoute()

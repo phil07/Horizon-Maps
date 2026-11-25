@@ -500,6 +500,9 @@ private fun CarScreen(engine: NavEngine, a: android.graphics.Rect?, actions: Car
             ImmCompass(engine, Modifier.align(Alignment.TopEnd).padding(end = rightTop, top = top + below + if (portrait) 84.dp else 0.dp))
         }
 
+        // the quick report panel (the trip card's megaphone), over the map
+        QuickReportPanel(engine, Modifier.align(Alignment.Center))
+
         // an unknown car's Bluetooth device connected: which car it is
         // centred in the area Android Auto leaves free (its button column on the left, its own bar on the right), never wider than 520 dp,
         // so it doesn't cover Melden, 2D or the settings button, and it follows the window's size when that changes
@@ -854,6 +857,13 @@ private fun TripCard(engine: NavEngine, fill: Boolean, oneLine: Boolean = false)
                 androidx.compose.material3.Icon(androidx.compose.material.icons.Icons.Rounded.Search, Lang.t("Suche", "Search"), tint = c.text, modifier = Modifier.size(h * 0.55f))
             }
         }
+        // the megaphone: a small panel over the map with the quick reports (one tap reports where you are; see QuickReportPanel)
+        val quickBtn: @Composable (Dp) -> Unit = { h ->
+            Box(Modifier.size(h).clip(androidx.compose.foundation.shape.CircleShape).background(c.line).carTap("trip-quick") { engine.quickReportAt = System.currentTimeMillis() },
+                contentAlignment = Alignment.Center) {
+                androidx.compose.material3.Icon(androidx.compose.material.icons.Icons.Rounded.Campaign, Lang.t("Schnellmeldung", "Quick report"), tint = c.text, modifier = Modifier.size(h * 0.55f))
+            }
+        }
         // (it took the place of "Andere aus", which turned the grey other routes on and off)
         val otherBtn: @Composable (Dp) -> Unit = { h ->
             val sm = engine.soundMode
@@ -869,12 +879,14 @@ private fun TripCard(engine: NavEngine, fill: Boolean, oneLine: Boolean = false)
         val showOther = engine.prefs.b(PreferenceKeys.TRIP_BTN_OTHERS, true)
         val showEnd = engine.prefs.b(PreferenceKeys.TRIP_BTN_END, true)
         val showSearch = engine.prefs.b(PreferenceKeys.TRIP_BTN_SEARCH, true)
+        val showQuick = engine.prefs.b(PreferenceKeys.TRIP_BTN_QUICK, true)
         // the trip card's buttons: the size chosen for them, and the Button size on Android Auto (which also covers them)
         val sizeK = when (engine.prefs.s(PreferenceKeys.TRIP_BTN_SIZE, "normal")) { "large" -> 1.2f; "xl" -> 1.4f; else -> 1f } *
             (engine.prefs.i(PreferenceKeys.CAR_BUTTON_SIZE, 100).coerceIn(70, 150) / 100f)
         if (fill) Row(Modifier.fillMaxWidth().padding(start = 16.dp, end = 10.dp, top = 4.dp, bottom = 10.dp), verticalAlignment = Alignment.CenterVertically) {
             Row(Modifier.weight(1f).carTap("trip-stats") { engine.stopsScreen = true }, horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) { stats() }
             if (showSearch) Box(Modifier.padding(start = 8.dp)) { searchBtn(46.dp * sizeK) }
+            if (showQuick) Box(Modifier.padding(start = 8.dp)) { quickBtn(46.dp * sizeK) }
             if (showOv) Box(Modifier.padding(start = 8.dp)) { overviewBtn(46.dp * sizeK) }
             if (showOther) Box(Modifier.padding(start = 8.dp)) { otherBtn(46.dp * sizeK) }
             if (showEnd) Box(Modifier.padding(start = 8.dp)) { end(46.dp * sizeK) }
@@ -883,6 +895,7 @@ private fun TripCard(engine: NavEngine, fill: Boolean, oneLine: Boolean = false)
             Row(Modifier.carTap("trip-stats") { engine.stopsScreen = true }, horizontalArrangement = Arrangement.spacedBy(26.dp), verticalAlignment = Alignment.CenterVertically) { stats() }
             Row(Modifier.padding(start = 16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                 if (showSearch) searchBtn(54.dp * sizeK)
+                if (showQuick) quickBtn(54.dp * sizeK)
                 if (showOv) overviewBtn(54.dp * sizeK)
                 if (showOther) otherBtn(54.dp * sizeK)
                 if (showEnd) end(54.dp * sizeK)

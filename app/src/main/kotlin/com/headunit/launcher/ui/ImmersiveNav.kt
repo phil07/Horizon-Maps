@@ -363,7 +363,8 @@ private fun MapScreen(engine: NavEngine, onSettings: () -> Unit) {
                         val chipsDensity = LocalDensity.current
                         CompositionLocalProvider(LocalDensity provides Density(chipsDensity.density * (if (sidewaysPhone(engine)) 0.85f else 1f), chipsDensity.fontScale)) {
                             ImmChips(engine) { try { focus.requestFocus() } catch (e: Exception) { softFail(e) } }
-                            // upright: the weather, the cheapest fuel, the parked car and the leave-by times under your places
+                            ParkedCard(engine)
+                            // upright: the weather, the cheapest fuel and the leave-by times under your places
                             if (upright) { PortraitChips(engine); LeaveByChips(engine) }
                             OutsideMapsChip(engine)
                         }
@@ -867,23 +868,18 @@ internal fun delayColour(delayMin: Int, dark: Boolean): androidx.compose.ui.grap
 }
 
 /**
- * The sheet's small chips: the weather now, the cheapest of your fuel nearby (tap to go there) and where you parked (tap to walk or
- * drive back). Each one only when there is something to show.
+ * The sheet's small chips: the weather now and the cheapest of your fuel nearby (tap to go there). Each one only when there is
+ * something to show. (Your car has its own card, see ParkedCard.)
  */
 @Composable
 private fun PortraitChips(engine: NavEngine) {
     val w = engine.weather
     val cheap = engine.nearby.filter { it.price != null }.minByOrNull { it.price ?: Double.MAX_VALUE }
-    val parked = engine.prefs.s(PreferenceKeys.PARKED_SPOT, "").split(',')
-    val parkedPos = parked.getOrNull(0)?.toDoubleOrNull()?.let { la -> parked.getOrNull(1)?.toDoubleOrNull()?.let { lo -> LL(la, lo) } }
-    if (w == null && cheap == null && parkedPos == null) return
+    if (w == null && cheap == null) return
     Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         w?.let { ImmChip(Icons.Rounded.Cloud, Color(0xFF4A90E2), "${Math.round(it.tempC)} °C", {}) }
         cheap?.let { n ->
             ImmChip(Icons.Rounded.LocalGasStation, Color(0xFF34A853), com.headunit.launcher.fmtFuelPrice(n.price ?: 0.0, n.unit)) { engine.startRoute(n.place) }
-        }
-        parkedPos?.let { spot ->
-            ImmChip(Icons.Rounded.LocalParking, Color(0xFFFBBC04), Lang.t("Geparkt", "Parked")) { engine.startRoute(Place(Lang.t("Auto", "Car"), "", spot)) }
         }
     }
 }

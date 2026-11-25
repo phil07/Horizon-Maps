@@ -5394,6 +5394,9 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
         prefs.put(PreferenceKeys.REPORTS, list.joinToString(";") { "${it.kind},${it.pos.lat},${it.pos.lon},${it.t}" + (if (it.sid > 0) ",${it.sid}" else "") })
     }
 
+    /** When the quick report panel on Android Auto was opened (0 when closed); it closes itself after a few seconds. */
+    var quickReportAt by mutableStateOf(0L)
+
     fun report(kind: String) {
         val p = fix?.pos
         if (p == null) { toast(Lang.t("Warte auf GPS", "Waiting for GPS"), 2500); return }
