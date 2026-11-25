@@ -351,6 +351,11 @@ private fun MapLookSection(prefs: Prefs, engine: NavEngine) {
                 Lang.t("Farbe von Menüs und Hervorhebungen", "Colour of menus and highlights")) { prefs.put(PreferenceKeys.NEON_ACCENT, it) }
     }
     if (prefs.s(PreferenceKeys.LOOK, "standard") != "neon") OwnDesignGroup(prefs, engine)
+    SGroup(Lang.t("Abbiegekarte", "Turn card")) {
+        SChoice(Lang.t("Farbe", "Colour"), listOf("green" to Lang.t("Grün", "Green"), "black" to Lang.t("Schwarz", "Black"), "grey" to Lang.t("Dunkelgrau", "Dark grey"),
+            "navy" to "Navy", "purple" to Lang.t("Lila", "Purple")), prefs.s(PreferenceKeys.TURN_CARD_COLOR, "green"),
+            Lang.t("Die Farbe hinter der nächsten Abbiegung, mit weißer Schrift", "The colour behind the next turn, with white writing")) { prefs.put(PreferenceKeys.TURN_CARD_COLOR, it) }
+    }
     SGroup(Lang.t("Tag und Nacht", "Day and night")) {
         SChoice(Lang.t("Tag und Nacht", "Day and night"), listOf("auto" to "Auto", "lights" to Lang.t("Scheinwerfer", "Headlights"), "sun" to Lang.t("Sonnenstand", "Sunrise/sunset"), "times" to Lang.t("Feste Zeiten", "Set times"), "day" to Lang.t("Tag", "Day"), "night" to Lang.t("Nacht", "Night"), "phone" to Lang.t("Dunkelmodus des Telefons", "Phone's dark mode")), prefs.s(PreferenceKeys.THEME, "auto"),
             Lang.t("Auto folgt dem Nachtmodus des Geräts", "Auto follows the device's dark mode")) { prefs.put(PreferenceKeys.THEME, it) }
@@ -783,6 +788,8 @@ private fun ScreenSection(prefs: Prefs, engine: NavEngine) {
         SToggle(prefs, Lang.t("Neues Hochformat-Layout", "New portrait layout"), PreferenceKeys.PORTRAIT_LAYOUT, true, Lang.t("Auf dem hochkant stehenden Bildschirm ohne Route: oben nur die Suche mit Einstellungen daneben, die Kartenknöpfe etwa auf halber Höhe", "On an upright screen with no route: just the search at the top with Settings beside it, the map buttons about half-way down"))
         SToggle(prefs, Lang.t("Bildschirm nachts dimmen", "Dim the screen at night"), PreferenceKeys.DIMNIGHT, false)
         SToggle(prefs, Lang.t("Bildschirm eingeschaltet lassen", "Keep the screen on"), PreferenceKeys.KEEPON, true)
+        SToggle(prefs, Lang.t("Bildschirm auch ohne Route anlassen", "Keep the screen on without a route"), PreferenceKeys.KEEPON_NO_ROUTE, false,
+            Lang.t("Der Bildschirm bleibt an, wenn du nur die Karte und den Verkehr ansiehst. Aus, weil es mehr Akku braucht", "The screen stays on while you just watch the map and traffic. Off, as it uses more battery"))
         val screenConfig = androidx.compose.ui.platform.LocalConfiguration.current
         val autoPercent = recommendedMainUiScale(screenConfig.screenWidthDp, screenConfig.screenHeightDp)
         val autoScale = prefs.b(PreferenceKeys.UI_AUTO_SCALE, prefs.s(PreferenceKeys.UI_SCALE, "").isBlank())

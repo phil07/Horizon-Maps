@@ -1,10 +1,16 @@
 ## Unreleased
 
+### New
+- Bildschirm auch ohne Route anlassen: Einstellungen › Bildschirm. Der Bildschirm bleibt an, wenn du nur die Karte und den Verkehr ansiehst. Aus, weil es mehr Akku braucht.
+  EN: Keep the screen on without a route: Settings › Screen. The screen stays on while you just watch the map and traffic. Off, as it uses more battery.
+- Farbe der Abbiegekarte: Einstellungen › Kartenansicht › Abbiegekarte › Farbe. Grün, Schwarz, Dunkelgrau, Navy oder Lila, mit weißer Schrift.
+  EN: Turn card colour: Settings › Map look › Turn card › Colour. Green, black, dark grey, navy or purple, with white writing.
+
 ### Improved
-- Kompass: Die rote Nordmarke wandert am Rand mit der Karte und zeigt immer nach echtem Norden, auch wenn du die Karte von Hand drehst oder umschaust.
-  EN: Compass: the red north mark moves round the edge with the map and always points to real north, even when you turn the map by hand or look around.
-- Suche: Der kleine Ausklapp-Pfeil auf der Suchleiste zeigt sich nur noch im Querformat. Im Hochformat stehen die letzten Orte im Panel darunter.
-  EN: Search: the little fold-down arrow on the search bar now only shows in landscape; upright, the recent places are in the pull-up panel.
+- Kompass: Die rote Nordmarke wandert am Rand mit der Karte und zeigt immer nach echtem Norden.
+  EN: Compass: the red north mark moves round the edge with the map and always points to real north.
+- Suche: Der Ausklapp-Pfeil auf der Suchleiste zeigt sich nur noch im Querformat.
+  EN: Search: the fold-down arrow on the search bar now only shows in landscape.
 
 ## 1.0.246 — 2026-10-28
 

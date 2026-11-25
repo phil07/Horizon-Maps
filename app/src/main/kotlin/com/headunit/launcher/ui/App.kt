@@ -123,7 +123,8 @@ fun App(prefs: Prefs, engine: NavEngine, map: MapBinding) {
     val dimNight = prefs.b(PreferenceKeys.DIMNIGHT, false)
     val keepOn = prefs.b(PreferenceKeys.KEEPON, true)
     // the screen stays on while a route is guided (and always on a head unit); a phone otherwise lets it go off as usual
-    val screenHeld = keepOn && (engine.isCar || (engine.route != null && !engine.previewing))
+    val keepNoRoute = prefs.b(PreferenceKeys.KEEPON_NO_ROUTE, false)
+    val screenHeld = keepNoRoute || (keepOn && (engine.isCar || (engine.route != null && !engine.previewing)))
     LaunchedEffect(bright, dimNight, dark, screenHeld) {
         val win = findActivity(hostCtx)?.window ?: return@LaunchedEffect
         val dim = dimNight && dark

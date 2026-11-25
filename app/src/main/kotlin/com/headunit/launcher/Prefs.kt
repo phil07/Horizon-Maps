@@ -235,6 +235,10 @@ internal object PreferenceKeys {
     const val INCIDENTS = "incidents"
     const val ROADWORKS_WARN = "roadworksWarn"
     const val KEEPON = "keepon"
+    /** Keep the screen on too when there is no route (watching the map and traffic). Off by default: it uses more battery. */
+    const val KEEPON_NO_ROUTE = "keepon_noroute"
+    /** The colour behind the turn card: green (the app's own), black, grey, navy or purple. */
+    const val TURN_CARD_COLOR = "turn_card_color"
     const val LAMPGAP = "lampgap"
     const val LANDMARKS3D = "landmarks3d"
     const val LANEMAP = "lanemap"

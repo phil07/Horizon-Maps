@@ -310,6 +310,15 @@ private fun SpeedRing(engine: NavEngine, show: Boolean, k: Double) {
     }
 }
 
+/** The turn card's colour (Settings › Map look › Turn card colour) and the darker one for its bars: green is the app's own. */
+internal fun turnCardColours(engine: NavEngine): Pair<Color, Color> = when (engine.prefs.s(PreferenceKeys.TURN_CARD_COLOR, "green")) {
+    "black" -> Color(0xFF15181E) to Color(0xFF000000)
+    "grey" -> Color(0xFF3A3F47) to Color(0xFF262A30)
+    "navy" -> Color(0xFF1B2F5B) to Color(0xFF122244)
+    "purple" -> Color(0xFF5B2A7A) to Color(0xFF3E1C55)
+    else -> Teal to TealDeep
+}
+
 @Composable
 internal fun ImmTurnCard(
     engine: NavEngine, t: com.headunit.launcher.TurnInfo, compact: Boolean = false,
@@ -325,6 +334,8 @@ internal fun ImmTurnCard(
     // Settings › Advanced sizes: the arrow on its own, and the room above and below the writing (car or phone settings)
     val arrowK = engine.prefs.i(if (car) PreferenceKeys.CAR_TURN_ARROW_SIZE else PreferenceKeys.TURN_ARROW_SIZE, 100).coerceIn(70, 200) / 100f
     val padK = engine.prefs.i(if (car) PreferenceKeys.CAR_TURN_CARD_HEIGHT else PreferenceKeys.TURN_CARD_HEIGHT, 100).coerceIn(50, 200) / 100f
+    // Settings › Map look › Turn card colour
+    val (base, deep) = turnCardColours(engine)
     val frac = ((450.0 - t.dist) / 450.0).coerceIn(0.0, 1.0).toFloat()
     // living card: it grows a touch and starts to glow as the turn comes up, and pulses in the last 80 m
     val alive = engine.prefs.b(PreferenceKeys.LIVECARD, true)
@@ -342,7 +353,7 @@ internal fun ImmTurnCard(
             .graphicsLayer { scaleX = grow; scaleY = grow; transformOrigin = growOrigin }
             .shadow((if (compact) 5f else 12f + 14f * glow).dp, shape, ambientColor = glowCol, spotColor = glowCol)
             .clip(shape)
-            .background(androidx.compose.ui.graphics.lerp(Teal, Color(0xFF14C9A6), 0.35f * glow))
+            .background(androidx.compose.ui.graphics.lerp(base, if (base == Teal) Color(0xFF14C9A6) else androidx.compose.ui.graphics.lerp(base, Color.White, 0.25f), 0.35f * glow))
             .border(1.5.dp, Color.White.copy(alpha = 0.18f + 0.25f * glow), shape)
             .drawWithContent {
                 drawContent()
@@ -406,7 +417,7 @@ internal fun ImmTurnCard(
             }
             // the turn straight after, as a small arrow (the "Then" line below is used instead when that style is chosen)
             if (thenIcon && t.thenManeuver != null) Column(Modifier.padding(start = 10.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                Box(Modifier.size(44.dp).clip(RoundedCornerShape(12.dp)).background(TealDeep), contentAlignment = Alignment.Center) {
+                Box(Modifier.size(44.dp).clip(RoundedCornerShape(12.dp)).background(deep), contentAlignment = Alignment.Center) {
                     ManeuverArrow(t.thenManeuver, Geo.maneuverAngle(t.thenManeuver), Modifier.size(28.dp), roundaboutExit = t.thenExit, roundaboutClockwise = engine.leftTraffic)
                 }
                 Text(Lang.t("dann", "then"), color = Color.White.copy(alpha = 0.85f), fontSize = 11.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(top = 2.dp))
@@ -426,12 +437,12 @@ internal fun ImmTurnCard(
             val shortScreen = androidx.compose.ui.platform.LocalConfiguration.current.screenHeightDp < 500
             val hero = !car && !shortScreen && engine.prefs.s(PreferenceKeys.LANE_STYLE, "hero") == "hero" && ls.lanes.size >= 2 && t.dist < 900.0
             if (hero) LaneHero(ls, t.maneuver, if (car) null else t.laneAdvice)
-            else Box(Modifier.fillMaxWidth().background(TealDeep).padding(vertical = 4.dp), contentAlignment = Alignment.Center) { LaneRow(ls, t.maneuver, t.dist < 400.0) }
+            else Box(Modifier.fillMaxWidth().background(deep).padding(vertical = 4.dp), contentAlignment = Alignment.Center) { LaneRow(ls, t.maneuver, t.dist < 400.0) }
         }
         val heroShown = !car && androidx.compose.ui.platform.LocalConfiguration.current.screenHeightDp >= 500 && engine.prefs.b(PreferenceKeys.LANE_STRIP, true) && engine.prefs.s(PreferenceKeys.LANE_STYLE, "hero") == "hero" && (t.lanes?.lanes?.size ?: 0) >= 2 && t.dist < 900.0
-        if (!compact && !heroShown && !(car && t.lanes != null && engine.prefs.b(PreferenceKeys.LANE_STRIP, true))) t.laneAdvice?.let { Text(it, color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.fillMaxWidth().background(TealDeep).padding(horizontal = 18.dp, vertical = 6.dp)) }
+        if (!compact && !heroShown && !(car && t.lanes != null && engine.prefs.b(PreferenceKeys.LANE_STRIP, true))) t.laneAdvice?.let { Text(it, color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.fillMaxWidth().background(deep).padding(horizontal = 18.dp, vertical = 6.dp)) }
         if (!compact && t.thenManeuver != null && !thenIcon) {
-            Row(Modifier.fillMaxWidth().background(TealDeep).padding(horizontal = 18.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+            Row(Modifier.fillMaxWidth().background(deep).padding(horizontal = 18.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
                 ManeuverArrow(t.thenManeuver, Geo.maneuverAngle(t.thenManeuver), Modifier.size(22.dp), roundaboutExit = t.thenExit, roundaboutClockwise = engine.leftTraffic)
                 // UK road numbers in the sentence show as their road signs (Settings › UK road signs)
                 if (engine.prefs.b(PreferenceKeys.UKSIGNS, true) && !com.headunit.launcher.RoadRefs.country.equals("DE", true))
