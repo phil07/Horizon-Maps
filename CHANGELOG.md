@@ -1,32 +1,8 @@
 ## Unreleased
 
-### New
-- Ton bei Tempoverstoß: Einstellungen › Warnungen. Doppelton, steigende Sirene oder tiefes Brummen, damit der Tempo-Ton nicht wie Blitzer- oder Gefahrentöne klingt. Gilt auch für die eigene Höchstgeschwindigkeit.
-  EN: Speed alert sound: Settings › Alerts. Double beep, rising siren or low buzz, so the speed beep can't be taken for the camera and hazard beeps. Also used for your top speed.
-- Tempowarnung im Hintergrund: Einstellungen › Warnungen. Die Warnung läuft weiter, wenn eine andere App vorn ist, mit oder ohne Route. Standard: aus.
-  EN: Speed alert in the background: Settings › Alerts. The alert keeps going while another app is in front, with or without a route. Default: off.
-- Karten-Knöpfe: Einstellungen › Karten-Knöpfe wählt, welche Knöpfe am rechten Kartenrand erscheinen: Kompass, Klare Ansicht, Ton, Andere Routen und Übersicht. Neu ist der Übersicht-Knopf, standardmäßig aus.
-  EN: Map buttons: Settings › Map buttons chooses which buttons show on the right edge of the map: compass, clean view, sound, other routes and overview. The new Overview button is off by default.
-- Klare Ansicht auf dem Handy: Ein Auge-Knopf auf der Kartenleiste zeigt beim Navigieren nacheinander alles, eine minimale Ansicht und nur die Karte.
-  EN: Clean view on the phone: an eye button on the map bar while you navigate goes through everything, a minimal view and just the map.
-- Ladeleistung und Nur diese Anbieter: Einstellungen › Dein Elektroauto. Die Ladeleistung filtert auf 22, 50 oder 150 kW und mehr (oder beliebig). „Nur diese Anbieter“ zeigt nur Ladesäulen der gewählten Anbieter.
-  EN: Charger speed and Only these providers: Settings › Your electric car. Charger speed filters to 22, 50 or 150 kW and more (or any). Only these providers shows only the chargers of the networks you pick.
-- Ladeumweg: Einstellungen › Dein Elektroauto › Ladeumweg (5, 10 oder 15 Minuten). Standard: 10 Minuten.
-  EN: Charger detour: Settings › Your electric car › Charger detour (5, 10 or 15 minutes). Default: 10 minutes.
-- Leistenhöhe auf Android Auto: Einstellungen › Größen auf dem Autodisplay › Leistenhöhe macht die Suchleiste schlanker.
-  EN: Bar height on Android Auto: Settings › Sizes on the car screen › Bar height makes the search bar slimmer.
-- Bildschirm auch ohne Route anlassen: Einstellungen › Bildschirm. Aus, weil es mehr Akku braucht.
-  EN: Keep the screen on without a route: Settings › Screen. Off, as it uses more battery.
-- Farbe der Abbiegekarte: Grün, Schwarz, Dunkelgrau, Navy oder Lila, mit weißer Schrift.
-  EN: Turn card colour: green, black, dark grey, navy or purple, with white writing.
-
-### Improved
-- Die Ladeliste folgt dem Filter: Handy, Autodisplay und Android Auto zeigen beim Laden und bei Ladesäulen an der Route nur Säulen mit der gewählten Leistung und den gewählten Anbietern. Säulen mit unbekannter Leistung bleiben sichtbar.
-  EN: The chargers list follows the filter: the phone, the car screen and Android Auto show only chargers of the chosen power and networks. Chargers of unknown power stay visible.
-- Kompass: Die rote Nordmarke wandert am Rand mit der Karte und zeigt immer nach echtem Norden.
-  EN: Compass: the red north mark moves round the edge with the map and always points to real north.
-- Suche: Der Ausklapp-Pfeil auf der Suchleiste zeigt sich nur noch im Querformat.
-  EN: Search: the fold-down arrow on the search bar now only shows in landscape.
+### Fixed
+- Tunneln: Bei aktiver Route werden Standort-Meldungen aus dem Netz ohne oder mit schlechter als 30 m Genauigkeit auch nach zwei Minuten ohne GPS ignoriert. Die Schätzung läuft weiter wie bisher, nur für zwei Minuten.
+  EN: Tunnels: while a route is active, network-location fixes with missing or worse-than-30 m accuracy are ignored even after two minutes without GPS. The estimate still runs for two minutes as before.
 
 ## 1.0.246 — 2026-10-28
 

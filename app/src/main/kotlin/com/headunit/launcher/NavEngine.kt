@@ -1653,7 +1653,8 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
         if (l.provider == LocationManager.GPS_PROVIDER && ageMs < 30_000L) lastGpsTime = now
         else if (l.provider != LocationManager.GPS_PROVIDER && now - lastGpsTime < 10000) return
         // with the GPS gone (a tunnel) a rough mobile-network position would throw the route off: keep estimating along the route instead
-        else if (route != null && !previewing && glideOnRoute && now - lastGpsTime < 120_000 && (!l.hasAccuracy() || l.accuracy > 30f)) return
+        // (this holds on past the two minutes too: the dead-reckoning limit below still stops the estimate from running on forever)
+        else if (route != null && !previewing && glideOnRoute && (!l.hasAccuracy() || l.accuracy > 30f)) return
         val cur = LL(l.latitude, l.longitude)
         var h = fix?.heading ?: 0.0
         if (l.hasBearing() && l.hasSpeed() && l.speed > 1.0f) h = l.bearing.toDouble()
