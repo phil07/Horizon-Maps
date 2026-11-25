@@ -163,7 +163,7 @@ import com.headunit.launcher.PreferenceKeys
 import com.headunit.launcher.softFail
 
 @Composable
-internal fun ImmSearch(engine: NavEngine, q: String, onQ: (String) -> Unit, locked: Boolean, focus: FocusRequester, voice: () -> Unit, onFold: (() -> Unit)? = null) {
+internal fun ImmSearch(engine: NavEngine, q: String, onQ: (String) -> Unit, locked: Boolean, focus: FocusRequester, voice: () -> Unit, onFold: (() -> Unit)? = null, showArrow: Boolean = true) {
     val c = LocalVw.current
     val shape = RoundedCornerShape(30.dp)
     Box(Modifier.fillMaxWidth().height(60.dp).panel(10.dp, shape, c.surface)) {
@@ -176,7 +176,8 @@ internal fun ImmSearch(engine: NavEngine, q: String, onQ: (String) -> Unit, lock
                 else Row(verticalAlignment = Alignment.CenterVertically) {
                     // search as a button: the arrow folds the bar (and everything under it) back into the button.
                     // Otherwise it folds Saved & recent up under the bar, and back down again
-                    if (onFold != null) Box(Modifier.padding(end = 4.dp).size(40.dp).clip(CircleShape).clickable { onFold() }, contentAlignment = Alignment.Center) {
+                    // (only on a landscape screen: upright, the recent places are in the pull-up panel)
+                    if (!showArrow) Unit else if (onFold != null) Box(Modifier.padding(end = 4.dp).size(40.dp).clip(CircleShape).clickable { onFold() }, contentAlignment = Alignment.Center) {
                         Icon(Icons.Rounded.KeyboardArrowUp, Lang.t("Suche zuklappen", "Fold the search away"), tint = c.sub, modifier = Modifier.size(26.dp))
                     } else {
                         val open = engine.prefs.b(PreferenceKeys.QUICKLIST, true)

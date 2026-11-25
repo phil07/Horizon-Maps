@@ -272,6 +272,8 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
             override fun onShoveEnd(detector: ShoveGestureDetector) { }
         })
         subs += mbMap.subscribeCameraChanged {
+            // the way the map is turned: the compass's north mark follows it
+            try { onBearing?.invoke(mbMap.cameraState.bearing) } catch (e: Throwable) { softFail(e) }
             // zooming across the level where the turn arrow appears or goes: put the route back together (or cut it for the arrow)
             if (turnCut != null && cutZoomOk() != cutActive) try { setLine(main) } catch (e: Exception) { softFail(e) }
             placeAltCards(false)
@@ -1503,6 +1505,8 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
     var onRouteCameras: ((List<LL>) -> Unit)? = null
     /** The map was dragged to a new place: where its middle is now (so the speed cameras there can be looked up). */
     var onViewMoved: ((LL) -> Unit)? = null
+    /** The map's bearing in degrees (0 = north up), whenever the camera moves. */
+    var onBearing: ((Double) -> Unit)? = null
 
     /** One line for the settings page: how many lights are known and whether the last fetch worked. */
     fun signalInfo(): String {

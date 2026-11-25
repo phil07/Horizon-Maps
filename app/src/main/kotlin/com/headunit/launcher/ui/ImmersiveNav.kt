@@ -343,7 +343,7 @@ private fun MapScreen(engine: NavEngine, onSettings: () -> Unit) {
               Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 // on foot to the parked car: the next instruction and what is left, over the search bar
                 if (engine.walking) WalkCard(engine)
-                ImmSearch(engine, q, { q = it }, typingLocked, focus, voice, onFold = if (foldOn) foldUp else null)
+                ImmSearch(engine, q, { q = it }, typingLocked, focus, voice, onFold = if (foldOn) foldUp else null, showArrow = !upright)
                 // adding a stop: the matches along the rest of the route (the keyboard's search key does the same)
                 if (engine.stopMode && q.trim().length >= 2 && !engine.alongOpen) ImmPill(Lang.t("Entlang der Route suchen", "See them along your route"), { engine.searchAlong(q) }, icon = Icons.Rounded.Route, filled = true)
                 if (engine.alongOpen) AlongPanel(engine)
@@ -818,10 +818,11 @@ internal fun ImmCompass(engine: NavEngine, modifier: Modifier = Modifier) {
         (if (LocalInRail.current) Modifier.size(52.dp) else Modifier.size(52.dp).panel(6.dp, CircleShape, c.surface)).then(modifier).pressClick { engine.toggleNorthUp() },
         contentAlignment = Alignment.Center,
     ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Box(Modifier.size(width = 4.dp, height = 8.dp).clip(RoundedCornerShape(2.dp)).background(Bad))
-            Text("N", color = if (engine.northUp) c.accent else c.text, fontSize = 15.sp, fontWeight = FontWeight.Bold)
+        // the red mark goes round the edge, against the map's turn, so it always sits on real north
+        Box(Modifier.fillMaxSize().graphicsLayer { rotationZ = -engine.mapBearing.toFloat() }, contentAlignment = Alignment.TopCenter) {
+            Box(Modifier.padding(top = 3.dp).size(width = 4.dp, height = 8.dp).clip(RoundedCornerShape(2.dp)).background(Bad))
         }
+        Text("N", color = if (engine.northUp) c.accent else c.text, fontSize = 15.sp, fontWeight = FontWeight.Bold)
     }
 }
 

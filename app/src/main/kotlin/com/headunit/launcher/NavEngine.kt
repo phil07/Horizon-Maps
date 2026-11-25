@@ -75,6 +75,8 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
     var quickFolded by mutableStateOf(true)
     var previewing by mutableStateOf(false)
     var northUp by mutableStateOf(false)
+    /** The map's bearing (degrees, 0 = north up) as the camera has it now; the compass turns its north mark against it. */
+    var mapBearing by mutableStateOf(0.0)
     var results by mutableStateOf<List<Place>>(emptyList())
     var alternatives by mutableStateOf(false)
     var weather by mutableStateOf<Weather.Now?>(null)
@@ -5188,6 +5190,7 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
     init {
         map.onRouteCameras = { c -> camCache.known = c; if (camerasOnMap()) mergeCams() }
         map.onViewMoved = { c -> viewMoved(c); garagesAt(c, false) }
+        map.onBearing = { b -> if (b != mapBearing) mapBearing = b }
         map.onGarageTap = { g -> showGarage(g) }
         map.onChainTap = { i ->
             val ch = chain
