@@ -1744,6 +1744,15 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
                 val fade = minOf(1.0, minOf(i, n - i) / (rate * 0.01))
                 (Math.sin(2 * Math.PI * hz * i / rate) * fade * 0.5 * chimeGain * Short.MAX_VALUE).toInt().toShort()
             }
+            playSamples(buf)
+        } catch (e: Exception) { softFail(e) }
+    }
+
+    /** Plays [buf] (mono, 22050 Hz) on the navigation channel, the same as the spoken directions, and lets it go after a moment. */
+    private fun playSamples(buf: ShortArray) {
+        val rate = 22050
+        val n = buf.size
+        try {
             val track = android.media.AudioTrack.Builder()
                 .setAudioAttributes(android.media.AudioAttributes.Builder()
                     // the same channel as the spoken directions (Settings > Sound & voice > Voice channel), so the head unit's volume
@@ -1759,6 +1768,49 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
             track.play()
             scope.launch { delay(400); try { track.release() } catch (e: Exception) { softFail(e) } }
         } catch (e: Exception) { softFail(e) }
+    }
+
+    /**
+     * The speed alert's sound (Settings › Alerts › Speed alert sound): a double beep, a rising siren or a low buzz, so it can't be taken
+     * for the camera and hazard beeps. Used for going over the limit and for your top speed.
+     */
+    internal fun speedChime() {
+        if (soundMode == 2 || quiet()) return
+        val rate = 22050
+        val gain = prefs.i(PreferenceKeys.CHIME_VOL, 100).coerceIn(0, 100) / 100.0
+        val kind = prefs.s(PreferenceKeys.SPEED_ALERT_SOUND, "double")
+        val samples = when (kind) {
+            "siren" -> (0.9 * rate).toInt().let { n ->
+                // a rising sweep, 600 to 1400 Hz, with a short fade in and out
+                var ph = 0.0
+                ShortArray(n) { i ->
+                    val f = 600.0 + 800.0 * i / n
+                    ph += 2 * Math.PI * f / rate
+                    val fade = minOf(1.0, minOf(i, n - i) / (rate * 0.02))
+                    (Math.sin(ph) * fade * 0.5 * gain * Short.MAX_VALUE).toInt().toShort()
+                }
+            }
+            "buzz" -> (0.5 * rate).toInt().let { n ->
+                // a low, rough buzz: a 140 Hz square wave
+                ShortArray(n) { i ->
+                    val fade = minOf(1.0, minOf(i, n - i) / (rate * 0.01))
+                    val sq = if (Math.sin(2 * Math.PI * 140.0 * i / rate) >= 0) 1.0 else -1.0
+                    (sq * fade * 0.4 * gain * Short.MAX_VALUE).toInt().toShort()
+                }
+            }
+            else -> (0.42 * rate).toInt().let { n ->
+                // two short beeps at 720 Hz, with a gap between
+                ShortArray(n) { i ->
+                    val onA = i < rate * 0.14; val onB = i >= rate * 0.22 && i < rate * 0.36
+                    if (!onA && !onB) 0 else {
+                        val t0 = if (onA) i.toDouble() else i - rate * 0.22
+                        val fade = minOf(1.0, minOf(t0, rate * 0.14 - t0) / (rate * 0.01))
+                        (Math.sin(2 * Math.PI * 720.0 * i / rate) * fade * 0.5 * gain * Short.MAX_VALUE).toInt().toShort()
+                    }
+                }
+            }
+        }
+        playSamples(samples)
     }
 
     /** A short chime at the set volume, for the sample button in Settings. */
@@ -3942,7 +3994,7 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
             // (Settings › Alerts › Speed limit sounds off: no beep; cameras, hazards and other alerts still sound)
             if (over && soundMode != 2 && prefs.b(PreferenceKeys.LIMIT_SOUNDS, true) && now - lastBeep > 9000) {
                 lastBeep = now
-                chime(android.media.ToneGenerator.TONE_PROP_BEEP2)
+                speedChime()
                 // Settings › Alerts › Say "Slow down": once after the first beep each time you go over
                 if (!slowSaid && prefs.b(PreferenceKeys.SAY_SLOW, false)) { slowSaid = true; scope.launch { delay(400); speak(Lang.t("Langsamer fahren", "Slow down"), true) } }
             }
@@ -3954,7 +4006,7 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
                 val topMs = top * (if (imperial) 0.44704 else 1 / 3.6)
                 if (!topSaid && p.speed >= topMs && soundMode != 2) {
                     topSaid = true
-                    chime(android.media.ToneGenerator.TONE_PROP_BEEP2)
+                    speedChime()
                     scope.launch { delay(400); speak(Lang.t("Langsamer fahren", "Slow down"), true) }
                 } else if (topSaid && p.speed < topMs - 5 * (if (imperial) 0.44704 else 1 / 3.6)) topSaid = false
             }

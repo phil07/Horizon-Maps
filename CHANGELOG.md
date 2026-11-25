@@ -1,12 +1,16 @@
 ## Unreleased
 
 ### New
-- Karten-Knöpfe: Einstellungen › Karten-Knöpfe wählt, welche Knöpfe am rechten Kartenrand erscheinen: Kompass, Klare Ansicht, Ton, Andere Routen und Übersicht. Neu ist der Übersicht-Knopf, standardmäßig aus: Er zeigt die ganze Route ein paar Sekunden, dann folgt die Karte wieder dir.
-  EN: Map buttons: Settings › Map buttons chooses which buttons show on the right edge of the map: compass, clean view, sound, other routes and overview. The new Overview button is off by default: it shows the whole route for a few seconds, then the map follows you again.
-- Klare Ansicht auf dem Handy: Ein Auge-Knopf auf der Kartenleiste zeigt beim Navigieren nacheinander alles, eine minimale Ansicht (Abbiegekarte, Tempo und Fahrtkarte) und nur die Karte. Die Wahl bleibt gespeichert.
-  EN: Clean view on the phone: an eye button on the map bar while you navigate goes through everything, a minimal view (turn card, speed and trip card) and just the map. The choice is kept.
-- Ladeleistung und Nur diese Anbieter: Einstellungen › Dein Elektroauto. Die Ladeleistung filtert auf 22, 50 oder 150 kW und mehr (oder beliebig). „Nur diese Anbieter“ zeigt nur Ladesäulen der gewählten Anbieter, z. B. Ionity oder Tesla.
-  EN: Charger speed and Only these providers: Settings › Your electric car. Charger speed filters to 22, 50 or 150 kW and more (or any). Only these providers shows only the chargers of the networks you pick, e.g. Ionity or Tesla.
+- Ton bei Tempoverstoß: Einstellungen › Warnungen. Doppelton, steigende Sirene oder tiefes Brummen, damit der Tempo-Ton nicht wie Blitzer- oder Gefahrentöne klingt. Gilt auch für die eigene Höchstgeschwindigkeit.
+  EN: Speed alert sound: Settings › Alerts. Double beep, rising siren or low buzz, so the speed beep can't be taken for the camera and hazard beeps. Also used for your top speed.
+- Tempowarnung im Hintergrund: Einstellungen › Warnungen. Die Warnung läuft weiter, wenn eine andere App vorn ist, mit oder ohne Route. Standard: aus.
+  EN: Speed alert in the background: Settings › Alerts. The alert keeps going while another app is in front, with or without a route. Default: off.
+- Karten-Knöpfe: Einstellungen › Karten-Knöpfe wählt, welche Knöpfe am rechten Kartenrand erscheinen: Kompass, Klare Ansicht, Ton, Andere Routen und Übersicht. Neu ist der Übersicht-Knopf, standardmäßig aus.
+  EN: Map buttons: Settings › Map buttons chooses which buttons show on the right edge of the map: compass, clean view, sound, other routes and overview. The new Overview button is off by default.
+- Klare Ansicht auf dem Handy: Ein Auge-Knopf auf der Kartenleiste zeigt beim Navigieren nacheinander alles, eine minimale Ansicht und nur die Karte.
+  EN: Clean view on the phone: an eye button on the map bar while you navigate goes through everything, a minimal view and just the map.
+- Ladeleistung und Nur diese Anbieter: Einstellungen › Dein Elektroauto. Die Ladeleistung filtert auf 22, 50 oder 150 kW und mehr (oder beliebig). „Nur diese Anbieter“ zeigt nur Ladesäulen der gewählten Anbieter.
+  EN: Charger speed and Only these providers: Settings › Your electric car. Charger speed filters to 22, 50 or 150 kW and more (or any). Only these providers shows only the chargers of the networks you pick.
 - Ladeumweg: Einstellungen › Dein Elektroauto › Ladeumweg (5, 10 oder 15 Minuten). Standard: 10 Minuten.
   EN: Charger detour: Settings › Your electric car › Charger detour (5, 10 or 15 minutes). Default: 10 minutes.
 - Leistenhöhe auf Android Auto: Einstellungen › Größen auf dem Autodisplay › Leistenhöhe macht die Suchleiste schlanker.

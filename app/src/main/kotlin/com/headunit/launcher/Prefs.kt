@@ -253,6 +253,10 @@ internal object PreferenceKeys {
     const val MAPBTN_SOUND = "mapbtn_sound"
     const val MAPBTN_OTHERS = "mapbtn_others"
     const val MAPBTN_OVERVIEW = "mapbtn_overview"
+    /** The sound of the speed alert: "double" (a double beep, the default), "siren" (a rising siren) or "buzz" (a low buzz). */
+    const val SPEED_ALERT_SOUND = "speed_alert_sound"
+    /** Speed alerts in the background (while another app is in front, with or without a route). Off by default. */
+    const val SPEED_ALERT_BG = "speed_alert_bg"
     const val LAMPGAP = "lampgap"
     const val LANDMARKS3D = "landmarks3d"
     const val LANEMAP = "lanemap"

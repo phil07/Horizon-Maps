@@ -131,7 +131,7 @@ class MainActivity : ComponentActivity() {
 
         // while a route runs, a foreground service keeps GPS and voice going in the background; it stops when the route ends
         lifecycleScope.launch {
-            snapshotFlow { if (engine.walking && engine.route == null) Lang.t("Fußweg zum Auto", "Walk to the car") else if (guiding()) Lang.t("Navigation nach ", "Navigating to ") + (engine.dest?.name ?: Lang.t("dein Ziel", "your destination")) else null }
+            snapshotFlow { if (engine.walking && engine.route == null) Lang.t("Fußweg zum Auto", "Walk to the car") else if (guiding()) Lang.t("Navigation nach ", "Navigating to ") + (engine.dest?.name ?: Lang.t("dein Ziel", "your destination")) else if (engine.prefs.b(PreferenceKeys.SPEED_ALERT_BG, false) && engine.prefs.b(PreferenceKeys.SPEEDWARN, false)) Lang.t("Tempowarnung läuft", "Speed alert running") else null }
                 .distinctUntilChanged()
                 .collect { to ->
                     if (to != null && hasLocation()) NavService.start(applicationContext, to)
