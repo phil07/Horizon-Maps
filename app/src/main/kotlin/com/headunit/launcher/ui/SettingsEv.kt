@@ -196,11 +196,18 @@ internal fun evCarDetails(car: com.headunit.launcher.EvCar): String =
  * keeps the menu open, so several can be picked in one go; the charging-stop plan prefers their chargers (see NavEngine.planEv).
  */
 @Composable
-internal fun EvOperatorsItem(prefs: Prefs) {
+internal fun EvOperatorsItem(
+    prefs: Prefs,
+    key: String = PreferenceKeys.EV_PREF_OPS,
+    title: String = Lang.t("Bevorzugte Ladeanbieter", "Preferred charging networks"),
+    help: String = Lang.t("Bevorzugt bei kleinem Umweg.", "Preferred if the detour is small."),
+    onChanged: () -> Unit = {},
+) {
     val c = LocalVw.current
     var open by remember { mutableStateOf(false) }
     val ops = com.headunit.launcher.ChargeOperators.all
-    val sel = com.headunit.launcher.ChargeOperators.selected(prefs)
+    val sel = com.headunit.launcher.ChargeOperators.selectedFor(prefs, key)
+    fun store(ids: Set<String>) { com.headunit.launcher.ChargeOperators.setSelectedFor(prefs, key, ids); onChanged() }
     val names = ops.filter { it.id in sel }.map { it.label }
     val summary = when {
         names.isEmpty() -> Lang.t("Noch keine ausgewählt", "None chosen yet")
@@ -209,7 +216,7 @@ internal fun EvOperatorsItem(prefs: Prefs) {
     }
     Box(Modifier.fillMaxWidth()) {
         // a real button, so it's clear the list opens from here
-        SItem(Lang.t("Bevorzugte Ladeanbieter", "Preferred charging networks"), Lang.t("$summary. Bevorzugt bei kleinem Umweg.", "$summary. Preferred if the detour is small."), onClick = { open = true }) {
+        SItem(title, "$summary. $help", onClick = { open = true }) {
             SButton(if (names.isEmpty()) Lang.t("Auswählen ▾", "Choose ▾") else Lang.t("Ändern ▾", "Change ▾")) { open = true }
         }
         // limited height and scrolling: the car's screen is short
@@ -220,11 +227,11 @@ internal fun EvOperatorsItem(prefs: Prefs) {
         ) {
             if (sel.isNotEmpty()) androidx.compose.material3.DropdownMenuItem(
                 text = { Text(Lang.t("Alle abwählen", "Clear all"), color = c.accent, fontSize = 15.sp, fontWeight = FontWeight.SemiBold) },
-                onClick = { com.headunit.launcher.ChargeOperators.setSelected(prefs, emptySet()) },
+                onClick = { store(emptySet()) },
             )
             for (o in ops) {
                 val on = o.id in sel
-                fun toggle() = com.headunit.launcher.ChargeOperators.setSelected(prefs, if (on) sel - o.id else sel + o.id)
+                fun toggle() = store(if (on) sel - o.id else sel + o.id)
                 androidx.compose.material3.DropdownMenuItem(
                     text = { Text(o.label, color = c.text, fontSize = 15.sp) },
                     onClick = { toggle() },

@@ -243,6 +243,8 @@ internal object PreferenceKeys {
     const val CHARGER_DETOUR_MIN = "charger_detour_min"
     /** Android Auto's search bar height in percent (60 to 100). */
     const val CAR_BAR_HEIGHT = "car_bar_height"
+    /** "Only these providers" for the charger filter: the ids from ChargeOperators, comma separated (empty = all). */
+    const val CHARGER_ONLY_OPS = "charger_only_ops"
     const val LAMPGAP = "lampgap"
     const val LANDMARKS3D = "landmarks3d"
     const val LANEMAP = "lanemap"

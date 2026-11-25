@@ -1476,7 +1476,7 @@ class CarSettingsScreen(carContext: CarContext, private val holder: CarHolder, p
             rows += Row.Builder().setTitle(Lang.t("Ladesäulen filtern", "Filter charging points"))
                 .addText(if (kw <= 0) Lang.t("Alle · tippen zum Wechseln", "All · tap to change") else Lang.t("Ab $kw kW · tippen zum Wechseln", "$kw kW and faster · tap to change"))
                 .setOnClickListener {
-                    val next = when { kw < 50 -> 50; kw < 150 -> 150; kw < 300 -> 300; else -> 0 }
+                    val next = when { kw < 22 -> 22; kw < 50 -> 50; kw < 150 -> 150; else -> 0 }
                     if (e != null) e.pickChargerMinKw(next) else prefs.put(PreferenceKeys.CHARGER_FILTER_KW, next)
                     invalidate()
                 }.build()

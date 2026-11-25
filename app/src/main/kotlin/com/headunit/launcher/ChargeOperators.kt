@@ -43,13 +43,22 @@ object ChargeOperators {
     private const val WORD = "a-z0-9äöüß"
     private val patterns: Map<String, List<Regex>> = all.associate { o -> o.id to o.aliases.map { Regex("(?<![$WORD])" + Regex.escape(it) + "(?![$WORD])") } }
 
-    /** The ids picked in Settings, in list order. */
-    fun selected(prefs: Prefs): Set<String> {
-        val ids = prefs.s(PreferenceKeys.EV_PREF_OPS, "").split(',').map { it.trim() }.toSet()
+    /** The ids picked in Settings under [key], in list order. */
+    fun selectedFor(prefs: Prefs, key: String): Set<String> {
+        val ids = prefs.s(key, "").split(',').map { it.trim() }.toSet()
         return all.map { it.id }.filter { it in ids }.toCollection(LinkedHashSet())
     }
 
-    fun setSelected(prefs: Prefs, ids: Set<String>) = prefs.put(PreferenceKeys.EV_PREF_OPS, all.map { it.id }.filter { it in ids }.joinToString(","))
+    fun setSelectedFor(prefs: Prefs, key: String, ids: Set<String>) = prefs.put(key, all.map { it.id }.filter { it in ids }.joinToString(","))
+
+    /** The preferred networks (Settings › Your electric car). */
+    fun selected(prefs: Prefs): Set<String> = selectedFor(prefs, PreferenceKeys.EV_PREF_OPS)
+
+    fun setSelected(prefs: Prefs, ids: Set<String>) = setSelectedFor(prefs, PreferenceKeys.EV_PREF_OPS, ids)
+
+    /** Whether a network name (or a place name) is one of [ids]: the map's "Only these providers" filter. */
+    fun matchesAny(op: String?, name: String?, ids: Set<String>): Boolean =
+        ids.isNotEmpty() && (find(op, ids) != null || find(name, ids) != null)
 
     private fun find(text: String?, ids: Collection<String>? = null): ChargeOperator? {
         if (text.isNullOrBlank()) return null

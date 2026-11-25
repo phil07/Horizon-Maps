@@ -1203,8 +1203,8 @@ private fun CarChips(engine: NavEngine, actions: CarActions, rows: Int) {
 @Composable
 private fun CarChargerFilter(engine: NavEngine) {
     val c = LocalVw.current
-    val options = listOf(0 to Lang.t("Alle Ladesäulen", "All chargers"), 50 to Lang.t("Ab 50 kW", "50 kW and up"),
-        150 to Lang.t("Ab 150 kW", "150 kW and up"), 300 to Lang.t("Ab 300 kW", "300 kW and up"))
+    val options = listOf(0 to Lang.t("Alle Ladesäulen", "All chargers"), 22 to Lang.t("Ab 22 kW", "22 kW and up"), 50 to Lang.t("Ab 50 kW", "50 kW and up"),
+        150 to Lang.t("Ab 150 kW", "150 kW and up"))
     Column(Modifier.width(340.dp).panel(10.dp, RoundedCornerShape(24.dp), c.surface).padding(vertical = 2.dp)) {
         Row(Modifier.fillMaxWidth().carTap("cf-close") { engine.chargerFilterOpen = false }.padding(start = 16.dp, end = 14.dp, top = 10.dp, bottom = 10.dp), verticalAlignment = Alignment.CenterVertically) {
             Text(Lang.t("Ladesäulen filtern", "Filter chargers").uppercase(), color = c.sub, fontSize = 18.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.2.sp, modifier = Modifier.weight(1f))

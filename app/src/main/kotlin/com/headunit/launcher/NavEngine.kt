@@ -6811,10 +6811,23 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
     /** The same choice as the distance off the route, in metres, for the registers and OpenStreetMap. */
     private fun chargerReachM(min: Int): Double = when (min) { 5 -> 1000.0; 15 -> 2500.0; else -> 1600.0 }
 
-    /** Only the charge points in the chosen power class; one whose power is unknown is hidden while a filter is on. */
-    /** The map's markers: each place's charge points added up, but only those at the chosen power or faster (a 200 kW point isn't counted at 300 kW). */
-    private fun shownChargers(units: List<ChargerSite>): List<ChargerSite> =
-        mergeSites(if (chargerMinKw <= 0) units else units.filter { (it.kw ?: 0) >= chargerMinKw })
+    /** Settings › Your electric car: "Only these providers" (ids from ChargeOperators); empty = every network. */
+    var chargerOnlyOps by mutableStateOf(ChargeOperators.selectedFor(prefs, PreferenceKeys.CHARGER_ONLY_OPS))
+
+    /** The map's markers: each place's charge points added up, but only those at the chosen power or faster (a 200 kW point isn't
+     *  counted at 300 kW) and of the chosen networks. A charge point whose power is not known is still shown. */
+    private fun shownChargers(units: List<ChargerSite>): List<ChargerSite> {
+        val only = chargerOnlyOps
+        return mergeSites(units.filter { u ->
+            (chargerMinKw <= 0 || u.kw == null || u.kw >= chargerMinKw) && (only.isEmpty() || ChargeOperators.matchesAny(u.op, null, only))
+        })
+    }
+
+    /** Applies the charger filter again after a change in Settings (the markers and the charging-stop plan). */
+    fun refreshChargerFilter() {
+        map.setChargers(shownChargers(chgAll))
+        if (route != null && !previewing && ev.isEv && prefs.b(PreferenceKeys.SMARTFUEL, true)) refreshEvPlan()
+    }
 
     fun pickChargerMinKw(kw: Int) {
         chargerMinKw = kw

@@ -767,8 +767,8 @@ internal fun ItineraryCard(engine: NavEngine) {
 @Composable
 internal fun ChargerFilterDialog(engine: NavEngine, onClose: () -> Unit) {
     val c = LocalVw.current
-    val options = listOf(0 to Lang.t("Alle Ladesäulen", "All chargers"), 50 to Lang.t("50 kW und höher", "50 kW and up"),
-        150 to Lang.t("150 kW und höher", "150 kW and up"), 300 to Lang.t("300 kW und höher", "300 kW and up"))
+    val options = listOf(0 to Lang.t("Alle Ladesäulen", "All chargers"), 22 to Lang.t("22 kW und höher", "22 kW and up"), 50 to Lang.t("50 kW und höher", "50 kW and up"),
+        150 to Lang.t("150 kW und höher", "150 kW and up"))
     Dialog(onDismissRequest = onClose, properties = DialogProperties(usePlatformDefaultWidth = false)) {
         Column(Modifier.padding(horizontal = 16.dp).widthIn(max = 480.dp).fillMaxWidth().clip(RoundedCornerShape(26.dp)).background(c.surface).padding(20.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -784,7 +784,7 @@ internal fun ChargerFilterDialog(engine: NavEngine, onClose: () -> Unit) {
                     if (on) Icon(Icons.Rounded.Check, null, tint = c.accent, modifier = Modifier.size(22.dp))
                 }
             }
-            Text(Lang.t("Standorte mit unbekannter Leistung werden bei einem Filter ausgeblendet.", "Sites with unknown power are hidden while a filter is on."), color = c.sub, fontSize = 12.sp)
+            Text(Lang.t("Standorte mit unbekannter Leistung bleiben sichtbar.", "Sites with unknown power stay visible."), color = c.sub, fontSize = 12.sp)
         }
     }
 }
