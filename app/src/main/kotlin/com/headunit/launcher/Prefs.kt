@@ -247,6 +247,12 @@ internal object PreferenceKeys {
     const val CHARGER_ONLY_OPS = "charger_only_ops"
     /** Clean view while navigating: 0 everything, 1 minimal (turn card, speed and trip card), 2 just the map. */
     const val CLEAN_VIEW = "clean_view"
+    /** Which buttons are on the map's right-hand panel while navigating (Settings › Map buttons). */
+    const val MAPBTN_COMPASS = "mapbtn_compass"
+    const val MAPBTN_CLEAN = "mapbtn_clean"
+    const val MAPBTN_SOUND = "mapbtn_sound"
+    const val MAPBTN_OTHERS = "mapbtn_others"
+    const val MAPBTN_OVERVIEW = "mapbtn_overview"
     const val LAMPGAP = "lampgap"
     const val LANDMARKS3D = "landmarks3d"
     const val LANEMAP = "lanemap"

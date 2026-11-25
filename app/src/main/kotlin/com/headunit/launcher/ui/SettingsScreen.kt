@@ -356,6 +356,13 @@ private fun MapLookSection(prefs: Prefs, engine: NavEngine) {
             "navy" to "Navy", "purple" to Lang.t("Lila", "Purple")), prefs.s(PreferenceKeys.TURN_CARD_COLOR, "green"),
             Lang.t("Die Farbe hinter der nächsten Abbiegung, mit weißer Schrift", "The colour behind the next turn, with white writing")) { prefs.put(PreferenceKeys.TURN_CARD_COLOR, it) }
     }
+    SGroup(Lang.t("Karten-Knöpfe", "Map buttons"), footer = Lang.t("Die Knöpfe am rechten Rand der Karte. Die Kartenoptionen sind immer dabei, außer in der klaren Ansicht", "The buttons on the right edge of the map. Map options is always there, except in the clean view")) {
+        SToggle(prefs, Lang.t("Kompass", "Compass"), PreferenceKeys.MAPBTN_COMPASS, true, Lang.t("Dreht die Karte nach Norden oder zurück", "Turns the map north up or back"))
+        SToggle(prefs, Lang.t("Klare Ansicht (Auge)", "Clean view (eye)"), PreferenceKeys.MAPBTN_CLEAN, true, Lang.t("Beim Navigieren: alles, minimal oder nur Karte", "While navigating: everything, minimal or just the map"))
+        SToggle(prefs, Lang.t("Ton", "Sound"), PreferenceKeys.MAPBTN_SOUND, false, Lang.t("Ansagen an, nur Warnungen oder aus", "Voice on, alerts only or off"))
+        SToggle(prefs, Lang.t("Andere Routen", "Other routes"), PreferenceKeys.MAPBTN_OTHERS, false, Lang.t("Die grauen anderen Routen an oder aus, während du navigierst", "The grey other routes on or off while you navigate"))
+        SToggle(prefs, Lang.t("Übersicht", "Overview"), PreferenceKeys.MAPBTN_OVERVIEW, false, Lang.t("Zeigt die ganze Route ein paar Sekunden, dann folgt die Karte wieder dir", "Shows the whole route for a few seconds, then the map follows you again"))
+    }
     SGroup(Lang.t("Tag und Nacht", "Day and night")) {
         SChoice(Lang.t("Tag und Nacht", "Day and night"), listOf("auto" to "Auto", "lights" to Lang.t("Scheinwerfer", "Headlights"), "sun" to Lang.t("Sonnenstand", "Sunrise/sunset"), "times" to Lang.t("Feste Zeiten", "Set times"), "day" to Lang.t("Tag", "Day"), "night" to Lang.t("Nacht", "Night"), "phone" to Lang.t("Dunkelmodus des Telefons", "Phone's dark mode")), prefs.s(PreferenceKeys.THEME, "auto"),
             Lang.t("Auto folgt dem Nachtmodus des Geräts", "Auto follows the device's dark mode")) { prefs.put(PreferenceKeys.THEME, it) }

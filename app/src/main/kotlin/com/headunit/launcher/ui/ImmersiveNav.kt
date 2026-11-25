@@ -125,6 +125,7 @@ import androidx.compose.material.icons.rounded.Star
 import androidx.compose.material.icons.rounded.Traffic
 import androidx.compose.material.icons.rounded.VolumeOff
 import androidx.compose.material.icons.rounded.VolumeUp
+import androidx.compose.material.icons.rounded.ZoomOutMap
 import androidx.compose.material.icons.rounded.Wc
 import androidx.compose.material.icons.rounded.Work
 import androidx.compose.material.icons.rounded.Build
@@ -432,11 +433,17 @@ private fun MapScreen(engine: NavEngine, onSettings: () -> Unit) {
             // just two buttons on the map: the compass and map options. 3D / 2D and sound are at the top of map options, voice and sound
             // are on the trip card while navigating, Settings is beside these when you're not (and in map options' header when you are)
             val railItems = ArrayList<@Composable () -> Unit>()
-            // the clean view's eye: on the route, in the same panel (it stays in every clean view, so it can be switched back)
-            if (routing) railItems.add(@Composable { ImmIcon(if (engine.cleanView == 0) Icons.Rounded.Visibility else Icons.Rounded.VisibilityOff, { engine.cycleCleanView() },
+            // the map buttons (Settings › Map buttons). The clean view's eye is on the route; it stays in every clean view, so it can be
+            // switched back. Map options is always there when the map isn't cleaned.
+            if (routing && engine.prefs.b(PreferenceKeys.MAPBTN_CLEAN, true)) railItems.add(@Composable { ImmIcon(if (engine.cleanView == 0) Icons.Rounded.Visibility else Icons.Rounded.VisibilityOff, { engine.cycleCleanView() },
                 active = engine.cleanView != 0, desc = Lang.t("Klare Ansicht", "Clean view")) })
             if (engine.cleanView == 0) {
-                railItems.add(@Composable { ImmCompass(engine) })
+                if (engine.prefs.b(PreferenceKeys.MAPBTN_COMPASS, true)) railItems.add(@Composable { ImmCompass(engine) })
+                if (engine.prefs.b(PreferenceKeys.MAPBTN_SOUND, false)) railItems.add(@Composable { ImmIcon(if (engine.soundMode == 2) Icons.Rounded.VolumeOff else Icons.Rounded.VolumeUp, { engine.cycleSound() },
+                    active = engine.soundMode != 0, desc = Lang.t("Ansagen", "Voice")) })
+                if (routing && engine.prefs.b(PreferenceKeys.MAPBTN_OTHERS, false)) railItems.add(@Composable { ImmIcon(Icons.Rounded.Route, { engine.toggleOtherRoutes() },
+                    active = engine.prefs.b(PreferenceKeys.LIVE_ALTERNATIVES, true), desc = Lang.t("Andere Routen", "Other routes")) })
+                if (engine.route != null && engine.prefs.b(PreferenceKeys.MAPBTN_OVERVIEW, false)) railItems.add(@Composable { ImmIcon(Icons.Rounded.ZoomOutMap, { engine.overview() }, desc = Lang.t("Übersicht", "Overview")) })
                 railItems.add(@Composable { ImmIcon(Icons.Rounded.Layers, { sheet = !sheet }, active = sheet, desc = Lang.t("Kartenoptionen", "Map options")) })
             }
             if (!simple && (engine.prefs.b(PreferenceKeys.DEMO, false) || engine.simMode != 0)) railItems.add(@Composable { ImmIcon(Icons.Rounded.PlayArrow, { engine.cycleSim() }, active = engine.simMode != 0, desc = Lang.t("Demofahrt", "Demo drive")) })

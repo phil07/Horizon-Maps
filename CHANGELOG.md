@@ -1,6 +1,8 @@
 ## Unreleased
 
 ### New
+- Karten-Knöpfe: Einstellungen › Karten-Knöpfe wählt, welche Knöpfe am rechten Kartenrand erscheinen: Kompass, Klare Ansicht, Ton, Andere Routen und Übersicht. Neu ist der Übersicht-Knopf, standardmäßig aus: Er zeigt die ganze Route ein paar Sekunden, dann folgt die Karte wieder dir.
+  EN: Map buttons: Settings › Map buttons chooses which buttons show on the right edge of the map: compass, clean view, sound, other routes and overview. The new Overview button is off by default: it shows the whole route for a few seconds, then the map follows you again.
 - Klare Ansicht auf dem Handy: Ein Auge-Knopf auf der Kartenleiste zeigt beim Navigieren nacheinander alles, eine minimale Ansicht (Abbiegekarte, Tempo und Fahrtkarte) und nur die Karte. Die Wahl bleibt gespeichert.
   EN: Clean view on the phone: an eye button on the map bar while you navigate goes through everything, a minimal view (turn card, speed and trip card) and just the map. The choice is kept.
 - Ladeleistung und Nur diese Anbieter: Einstellungen › Dein Elektroauto. Die Ladeleistung filtert auf 22, 50 oder 150 kW und mehr (oder beliebig). „Nur diese Anbieter“ zeigt nur Ladesäulen der gewählten Anbieter, z. B. Ionity oder Tesla.
