@@ -75,6 +75,10 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
     var quickFolded by mutableStateOf(true)
     var previewing by mutableStateOf(false)
     var northUp by mutableStateOf(false)
+    /** Clean view while navigating (the eye button): 0 everything, 1 minimal (turn card, speed and trip card), 2 just the map. */
+    var cleanView by mutableStateOf(prefs.i(PreferenceKeys.CLEAN_VIEW, 0).coerceIn(0, 2))
+    fun cycleCleanView() { cleanView = (cleanView + 1) % 3; prefs.put(PreferenceKeys.CLEAN_VIEW, cleanView) }
+
     /** The map's bearing (degrees, 0 = north up) as the camera has it now; the compass turns its north mark against it. */
     var mapBearing by mutableStateOf(0.0)
     var results by mutableStateOf<List<Place>>(emptyList())

@@ -102,6 +102,8 @@ import androidx.compose.material.icons.rounded.Home
 import androidx.compose.material.icons.rounded.PhoneAndroid
 import androidx.compose.material.icons.rounded.ZoomIn
 import androidx.compose.material.icons.rounded.Layers
+import androidx.compose.material.icons.rounded.Visibility
+import androidx.compose.material.icons.rounded.VisibilityOff
 import androidx.compose.material.icons.rounded.LocalCafe
 import androidx.compose.material.icons.rounded.LocalGasStation
 import androidx.compose.material.icons.rounded.LocalParking
@@ -390,7 +392,7 @@ private fun MapScreen(engine: NavEngine, onSettings: () -> Unit) {
                     val curTurn = engine.turn
                     val lastTurn = remember { mutableStateOf(curTurn) }
                     if (curTurn != null) lastTurn.value = curTurn
-                    AnimatedVisibility(curTurn != null, enter = fadeIn(tween(240)) + androidx.compose.animation.slideInVertically(tween(300)) { -it / 4 }, exit = fadeOut(tween(160))) {
+                    AnimatedVisibility(curTurn != null && engine.cleanView < 2, enter = fadeIn(tween(240)) + androidx.compose.animation.slideInVertically(tween(300)) { -it / 4 }, exit = fadeOut(tween(160))) {
                         lastTurn.value?.let { t ->
                             if (engine.itineraryOpen) {
                                 val itineraryDensity = LocalDensity.current
@@ -405,7 +407,7 @@ private fun MapScreen(engine: NavEngine, onSettings: () -> Unit) {
                             }
                         }
                     }
-                    TurnLineChips(engine)
+                    if (engine.cleanView == 0) TurnLineChips(engine)
                     if (!engine.itineraryOpen) ParkingCard(engine, car = false)
                 }
                 // an alert on the route: one line under the turn card (the big banner is off on the route, see App)
@@ -413,7 +415,7 @@ private fun MapScreen(engine: NavEngine, onSettings: () -> Unit) {
                 val lastAlert = remember { mutableStateOf(curAlert) }
                 if (curAlert != null) lastAlert.value = curAlert
                 AnimatedVisibility(curAlert != null, enter = fadeIn(tween(200)) + androidx.compose.animation.expandVertically(tween(220)), exit = fadeOut(tween(160)) + androidx.compose.animation.shrinkVertically(tween(180))) {
-                    lastAlert.value?.let { AlertLine(it) }
+                    if (engine.cleanView == 0) lastAlert.value?.let { AlertLine(it) }
                 }
             }
             // (adding a stop upright: the list sits along the bottom instead, see below)
@@ -430,8 +432,13 @@ private fun MapScreen(engine: NavEngine, onSettings: () -> Unit) {
             // just two buttons on the map: the compass and map options. 3D / 2D and sound are at the top of map options, voice and sound
             // are on the trip card while navigating, Settings is beside these when you're not (and in map options' header when you are)
             val railItems = ArrayList<@Composable () -> Unit>()
-            railItems.add(@Composable { ImmCompass(engine) })
-            railItems.add(@Composable { ImmIcon(Icons.Rounded.Layers, { sheet = !sheet }, active = sheet, desc = Lang.t("Kartenoptionen", "Map options")) })
+            // the clean view's eye: on the route, in the same panel (it stays in every clean view, so it can be switched back)
+            if (routing) railItems.add(@Composable { ImmIcon(if (engine.cleanView == 0) Icons.Rounded.Visibility else Icons.Rounded.VisibilityOff, { engine.cycleCleanView() },
+                active = engine.cleanView != 0, desc = Lang.t("Klare Ansicht", "Clean view")) })
+            if (engine.cleanView == 0) {
+                railItems.add(@Composable { ImmCompass(engine) })
+                railItems.add(@Composable { ImmIcon(Icons.Rounded.Layers, { sheet = !sheet }, active = sheet, desc = Lang.t("Kartenoptionen", "Map options")) })
+            }
             if (!simple && (engine.prefs.b(PreferenceKeys.DEMO, false) || engine.simMode != 0)) railItems.add(@Composable { ImmIcon(Icons.Rounded.PlayArrow, { engine.cycleSim() }, active = engine.simMode != 0, desc = Lang.t("Demofahrt", "Demo drive")) })
             // zoom: hidden while the map is following you on the move (it zooms itself); back as soon as you touch or zoom the map, or
             // whenever you're stopped. (A little hysteresis on the speed, so it doesn't flicker at walking pace.)
@@ -523,7 +530,7 @@ private fun MapScreen(engine: NavEngine, onSettings: () -> Unit) {
             val baseSpeedDensity = LocalDensity.current
             // (sized by Settings > Screen & sizes > Speed limit and speedometer size, inside ImmSpeed)
             val speedSize = 1f
-            CompositionLocalProvider(LocalDensity provides Density(baseSpeedDensity.density * speedSize, baseSpeedDensity.fontScale)) {
+            if (engine.cleanView < 2) CompositionLocalProvider(LocalDensity provides Density(baseSpeedDensity.density * speedSize, baseSpeedDensity.fontScale)) {
                 // the car's battery level sits right above the speed, on the same side
                 Column(horizontalAlignment = if (speedLeft) Alignment.Start else Alignment.End) {
                     if (Neon.on && !narrow) NeonQuestBox(engine)
@@ -540,7 +547,7 @@ private fun MapScreen(engine: NavEngine, onSettings: () -> Unit) {
         // the new portrait layout on a route: the trip as a sheet along the bottom (time left, arrival, distance, End); pulled up it
         // shows the rest of the trip card (add a stop, share, the turns, the music)
         val portraitRoute = engine.prefs.b(PreferenceKeys.PORTRAIT_LAYOUT, true) && maxHeight > maxWidth && routing && !previewing
-        if (portraitRoute && engine.arrival == null) {
+        if (portraitRoute && engine.arrival == null && engine.cleanView < 2) {
             val pe = engine.eta
             val pc = LocalVw.current
             Column(Modifier.align(Alignment.BottomCenter).fillMaxWidth().padding(start = 16.dp, end = 16.dp, bottom = 16.dp).panel(10.dp, RoundedCornerShape(24.dp), pc.surface).padding(bottom = 8.dp),
@@ -572,7 +579,7 @@ private fun MapScreen(engine: NavEngine, onSettings: () -> Unit) {
                 if (portraitTripUp) TripArea(engine, shareEta, narrow, voice)
             }
         }
-        else if (!previewing && engine.arrival == null) {
+        else if (!previewing && engine.arrival == null && engine.cleanView < 2) {
             val tripBaseDensity = LocalDensity.current
             val tripCardScale = engine.prefs.i(PreferenceKeys.MAIN_CARD_SIZE, 100).coerceIn(70, 150) / 100f
             Box(Modifier.align(side(Alignment.BottomStart)).then(if (narrow) Modifier.fillMaxWidth().sides(end = 16.dp) else Modifier).onSizeChanged { tripPx = it.height }

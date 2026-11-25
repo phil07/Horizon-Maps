@@ -245,6 +245,8 @@ internal object PreferenceKeys {
     const val CAR_BAR_HEIGHT = "car_bar_height"
     /** "Only these providers" for the charger filter: the ids from ChargeOperators, comma separated (empty = all). */
     const val CHARGER_ONLY_OPS = "charger_only_ops"
+    /** Clean view while navigating: 0 everything, 1 minimal (turn card, speed and trip card), 2 just the map. */
+    const val CLEAN_VIEW = "clean_view"
     const val LAMPGAP = "lampgap"
     const val LANDMARKS3D = "landmarks3d"
     const val LANEMAP = "lanemap"
