@@ -4300,7 +4300,7 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
                     val live = withContext(Dispatchers.IO) { try { if (online()) ParkingLive.around(centre, radius) else null } catch (e: Exception) { null } }
                     nearby = ParkingLive.sortNearby(ParkingLive.enrich(list, live.orEmpty(), origin, radius.toDouble())).take(15)
                 } else
-                nearby = sortNearby(list).take(15)
+                nearby = sortNearby(if (kind == "charging") list.filter { chargerListOk(it) } else list).take(15)
                 pinNearby()
                 loadLogos(nearby.map { it.place })
                 if (nearby.isEmpty()) toast(if (alongRoute) Lang.t("Nichts entlang der Route gefunden", "Nothing found along the route ahead") else Lang.t("Nichts in der Nähe gefunden", "Nothing found nearby"), 3000)
@@ -4378,6 +4378,10 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
 
     /** Rough extra minutes to call somewhere [off] metres from the route: there and back at town speed, plus a minute. */
     private fun detour(off: Double): Int = Math.round((2.0 * off / 11.0 + 60.0) / 60.0).toInt()
+
+    /** The chargers list follows the map's filter: the power (a charger of unknown power stays) and the networks chosen. */
+    private fun chargerListOk(n: Nearby): Boolean =
+        (chargerMinKw <= 0 || n.kw == null || n.kw >= chargerMinKw) && (chargerOnlyOps.isEmpty() || ChargeOperators.matchesAny(n.op, n.place.name, chargerOnlyOps))
 
     private fun sortNearby(l: List<Nearby>): List<Nearby> =
         if (nearbySort == "cheap" && l.any { it.price != null }) l.sortedWith(compareBy<Nearby> { it.price ?: 9999.0 }.thenBy { it.dist })
@@ -6928,7 +6932,7 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
         val minKw = prefs.i(PreferenceKeys.EV_MIN_KW, 50)
         // the power filter from Settings drops chargers known to be slower. Ones of unknown power stay, as a last resort
         // (the planner takes them only when no charger of known power is in reach)
-        fun fast(n: Nearby) = minKw <= 0 || n.kw == null || n.kw >= minKw
+        fun fast(n: Nearby) = (minKw <= 0 || n.kw == null || n.kw >= minKw) && chargerListOk(n)
         try {
             // TomTom's list and the registers are asked at the same time (each is a network call of a second or more)
             val (tt, reg) = coroutineScope {

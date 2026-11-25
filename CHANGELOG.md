@@ -1,20 +1,22 @@
 ## Unreleased
 
+### Improved
+- Die Ladeliste folgt dem Filter: Handy, Autodisplay und Android Auto zeigen beim Laden und bei Ladesäulen an der Route nur Säulen mit der gewählten Leistung und den gewählten Anbietern. Säulen mit unbekannter Leistung bleiben sichtbar.
+  EN: The chargers list follows the filter: the phone, the car screen and Android Auto show only chargers of the chosen power and networks when charging and for chargers along the route. Chargers of unknown power stay visible.
+
 ### New
-- Ladeleistung und Nur diese Anbieter: Einstellungen › Dein Elektroauto. Die Ladeleistung filtert auf 22, 50 oder 150 kW und mehr (oder beliebig). „Nur diese Anbieter“ zeigt nur Ladesäulen der gewählten Anbieter, z. B. Ionity oder Tesla. Der Filter gilt für die Karte, auf dem Handy, dem Autodisplay und Android Auto.
-  EN: Charger speed and Only these providers: Settings › Your electric car. Charger speed filters to 22, 50 or 150 kW and more (or any). Only these providers shows only the chargers of the networks you pick, e.g. Ionity or Tesla. The filter applies to the map, the phone, the head unit and Android Auto.
+- Ladeleistung und Nur diese Anbieter: Einstellungen › Dein Elektroauto. Die Ladeleistung filtert auf 22, 50 oder 150 kW und mehr (oder beliebig). „Nur diese Anbieter“ zeigt nur Ladesäulen der gewählten Anbieter, z. B. Ionity oder Tesla.
+  EN: Charger speed and Only these providers: Settings › Your electric car. Charger speed filters to 22, 50 or 150 kW and more (or any). Only these providers shows only the chargers of the networks you pick, e.g. Ionity or Tesla.
 - Ladeumweg: Einstellungen › Dein Elektroauto › Ladeumweg (5, 10 oder 15 Minuten). Bestimmt, wie weit abseits der Route eine Ladesäule noch aufgeführt wird. Standard: 10 Minuten.
   EN: Charger detour: Settings › Your electric car › Charger detour (5, 10 or 15 minutes). Sets how far off the route a charger can be and still be listed. Default: 10 minutes.
-- Leistenhöhe auf Android Auto: Einstellungen › Größen auf dem Autodisplay › Leistenhöhe macht die Suchleiste schlanker, damit mehr von der Karte frei bleibt.
-  EN: Bar height on Android Auto: Settings › Sizes on the car screen › Bar height makes the search bar slimmer, to leave more of the map.
+- Leistenhöhe auf Android Auto: Einstellungen › Größen auf dem Autodisplay › Leistenhöhe macht die Suchleiste schlanker.
+  EN: Bar height on Android Auto: Settings › Sizes on the car screen › Bar height makes the search bar slimmer.
 - Bildschirm auch ohne Route anlassen: Einstellungen › Bildschirm. Aus, weil es mehr Akku braucht.
   EN: Keep the screen on without a route: Settings › Screen. Off, as it uses more battery.
 - Farbe der Abbiegekarte: Grün, Schwarz, Dunkelgrau, Navy oder Lila, mit weißer Schrift.
   EN: Turn card colour: green, black, dark grey, navy or purple, with white writing.
 
-### Improved
-- Ladesäulen ohne bekannte Leistung bleiben beim Filter sichtbar.
-  EN: Chargers whose power isn't known stay visible when a filter is on.
+### Improved (Kompass und Suche)
 - Kompass: Die rote Nordmarke wandert am Rand mit der Karte und zeigt immer nach echtem Norden.
   EN: Compass: the red north mark moves round the edge with the map and always points to real north.
 - Suche: Der Ausklapp-Pfeil auf der Suchleiste zeigt sich nur noch im Querformat.
