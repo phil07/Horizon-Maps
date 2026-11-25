@@ -861,7 +861,7 @@ private fun TripCard(engine: NavEngine, fill: Boolean, oneLine: Boolean = false)
         val quickBtn: @Composable (Dp) -> Unit = { h ->
             Box(Modifier.size(h).clip(androidx.compose.foundation.shape.CircleShape).background(c.line).carTap("trip-quick") { engine.quickReportAt = System.currentTimeMillis() },
                 contentAlignment = Alignment.Center) {
-                androidx.compose.material3.Icon(androidx.compose.material.icons.Icons.Rounded.Campaign, Lang.t("Schnellmeldung", "Quick report"), tint = c.text, modifier = Modifier.size(h * 0.55f))
+                androidx.compose.material3.Icon(androidx.compose.material.icons.Icons.Rounded.NotificationsActive, Lang.t("Schnellmeldung", "Quick report"), tint = c.text, modifier = Modifier.size(h * 0.55f))
             }
         }
         // (it took the place of "Andere aus", which turned the grey other routes on and off)
