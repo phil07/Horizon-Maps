@@ -36,6 +36,7 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.EvStation
+import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.LocalGasStation
 import androidx.compose.material.icons.rounded.Restaurant
 import androidx.compose.material.icons.rounded.Apartment
@@ -431,14 +432,21 @@ fun ZonesRow(engine: NavEngine) {
 @Composable
 fun VignetteRow(engine: NavEngine) {
     val v = engine.routeVignette
-    if (v.isEmpty()) return
+    // a route through more than one country: the list of them, unless a vignette is needed (that line says the countries too)
+    val countries = engine.routeCountries
+    if (v.isEmpty() && countries.size < 2) return
     val c = LocalVw.current
     Row(
         Modifier.floating(50.dp).padding(horizontal = 16.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        Icon(Icons.Rounded.Warning, null, tint = Warn, modifier = Modifier.size(20.dp))
-        Text(com.headunit.launcher.Vignette.summary(v), color = c.text, fontSize = 13.sp, maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))
+        if (v.isNotEmpty()) {
+            Icon(Icons.Rounded.Warning, null, tint = Warn, modifier = Modifier.size(20.dp))
+            Text(com.headunit.launcher.Vignette.summary(v), color = c.text, fontSize = 13.sp, maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))
+        } else {
+            Icon(Icons.Rounded.Info, null, tint = c.text.copy(alpha = 0.7f), modifier = Modifier.size(20.dp))
+            Text(Lang.t("Länder: ", "Countries: ") + countries.joinToString(" → "), color = c.text, fontSize = 13.sp, maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))
+        }
     }
 }
 

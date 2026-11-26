@@ -1,8 +1,8 @@
 ## Unreleased
 
 ### Changed
-- Vor einer Landesgrenze sagt die App das Land an, mit Richtwerten zu Tempo, Notruf, Währung und Sprache (20 km vorher).
-  EN: Before a national border the app announces the country, with guide values for speed, emergency number, currency and language (20 km ahead).
+- Die Routenübersicht zeigt die Länder der Route in Reihenfolge, z. B. „Länder: Deutschland → Österreich → Italien“.
+  EN: The route overview lists the countries of the route in order, e.g. "Countries: Germany → Austria → Italy".
 
 ## 1.0.246 — 2026-10-28
 

@@ -1952,6 +1952,8 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
     // ---- vignettes ----
     /** The vignette countries on the route (shown under the route choice, and said before the border). */
     var routeVignette by mutableStateOf<List<Vignette.Need>>(emptyList()); private set
+    /** The countries the route goes through, in order (names, where the border table knows them): the route overview's line. */
+    var routeCountries by mutableStateOf<List<String>>(emptyList()); private set
     private var vignetteRoute: Route? = null
     private val vignetteSaid = HashSet<String>()
 
@@ -1992,12 +1994,16 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
     }
 
     internal fun updateRouteZones() {
-        val r = route ?: run { routeZones = emptyList(); routeVignette = emptyList(); vignetteRoute = null; return }
+        val r = route ?: run { routeZones = emptyList(); routeVignette = emptyList(); routeCountries = emptyList(); vignetteRoute = null; return }
         if (vignetteRoute !== r) {
             scope.launch {
                 val vs = withContext(Dispatchers.Default) { try { Vignette.along(r) } catch (e: Exception) { emptyList() } }
                 if (route === r) { if (vignetteRoute == null || vignetteRoute?.let { o -> o.pts.lastOrNull() != r.pts.lastOrNull() } == true) vignetteSaid.clear(); routeVignette = vs; vignetteRoute = r }
             }
+        }
+        scope.launch {
+            val cs = withContext(Dispatchers.Default) { try { CountryBorders.along(ctx, r) } catch (e: Exception) { emptyList() } }
+            if (route === r) routeCountries = cs.mapNotNull { CountryBorders.info[it]?.let { i -> Lang.t(i.de, i.en) } }
         }
         scope.launch {
             val zs = withContext(Dispatchers.Default) { try { Zones.entries(r, Zones.all(ctx)).map { it.first } } catch (e: Exception) { emptyList() } }

@@ -77,6 +77,19 @@ internal object CountryBorders {
         return c
     }
 
+    /** The countries [r] goes through, in order, sampled about every 5 km (codes from the table only; none repeated). */
+    fun along(ctx: android.content.Context, r: Route): List<String> {
+        val out = ArrayList<String>()
+        var next = 0.0
+        for (i in r.pts.indices) {
+            if (r.cum[i] < next) continue
+            next = r.cum[i] + 5_000.0
+            val c = at(ctx, r.pts[i]) ?: continue
+            if (c in info && c !in out) out += c
+        }
+        return out
+    }
+
     /** The country code of [p], or null when it is in none of the outlines. */
     fun at(ctx: android.content.Context, p: LL): String? {
         for ((cc, list) in load(ctx)) for (r in list) if (inside(r, p.lat, p.lon)) return cc
