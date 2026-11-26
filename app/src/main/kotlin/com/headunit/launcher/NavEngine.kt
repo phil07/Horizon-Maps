@@ -137,6 +137,8 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
     internal var abAt = 0L
     internal var abRoads = ""
     internal var abItems: List<Incident> = emptyList()
+    /** Whether the last Autobahn answer for [abItems] came in complete; a closure is only dropped on a complete answer. */
+    @Volatile internal var abOk = false
     internal var routeCams: List<Pair<LL, Double>> = emptyList()
     private var camsRoute: Route? = null
     private var camsAt = 0L

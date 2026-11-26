@@ -16,16 +16,20 @@ object AutobahnRest {
     fun roadOf(street: String): String? =
         Regex("^\\s*A\\s?(\\d{1,3})\\b").find(street)?.let { "A" + it.groupValues[1] }
 
-    /** The current items on [roads] (e.g. "A3"). Empty when none, or when the server didn't answer for a road. Never throws. */
-    fun incidents(roads: List<String>): List<Incident> {
+    /**
+     * The current items on [roads] (e.g. "A3"). Null when the server didn't answer for some road, so the caller can tell "nothing
+     * there now" from "couldn't ask". Never throws.
+     */
+    fun incidents(roads: List<String>): List<Incident>? {
         val out = ArrayList<Incident>()
+        var answered = true
         for (road in roads) for ((service, cat) in SERVICES) {
             try {
                 val arr = JSONObject(Http.get(BASE + road + "/services/" + service, 6000, 8000, accept = "application/json", failure = { code, _ -> IllegalStateException("Autobahn HTTP $code") })).optJSONArray(service) ?: continue
                 for (i in 0 until arr.length()) parse(arr.optJSONObject(i) ?: continue, road, service, cat)?.let { out += it }
-            } catch (e: Exception) { softFail(e) }
+            } catch (e: Exception) { answered = false; softFail(e) }
         }
-        return out
+        return if (answered) out else null
     }
 
     private fun parse(o: JSONObject, road: String, service: String, cat0: String): Incident? {

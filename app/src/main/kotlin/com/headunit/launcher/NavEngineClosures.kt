@@ -38,10 +38,18 @@ import com.headunit.launcher.NavEngine.Notice
 
 internal fun NavEngine.isClosure(cat: String) = cat.equals("roadClosed", true) || cat == "8"
 
-private fun NavEngine.noteClosures(list: List<Incident>) {
+private fun closureKey(inc: Incident): String = inc.id.ifBlank { inc.pts.firstOrNull()?.let { "${it.lat},${it.lon}" }.orEmpty() }
+
+/**
+ * Remembers the closures in [list] until the feed that gave them stops listing them (or for 30 minutes after the last sighting, so a
+ * feed that stays down cannot keep one forever). A closure is only dropped on an answer that came in complete: [feedsOk] for TomTom,
+ * DGT and NDW, [abOk] for Autobahn (ids start with "ab-"). Without those, it is only the expiry that removes entries.
+ */
+private fun NavEngine.noteClosures(list: List<Incident>, feedsOk: Boolean = false, abOk: Boolean = false) {
     val now = System.currentTimeMillis()
-    closures.entries.removeIf { it.value.second < now }
-    for (inc in list) if (isClosure(inc.cat) && inc.pts.isNotEmpty()) closures[inc.id.ifBlank { "${inc.pts.first().lat},${inc.pts.first().lon}" }] = inc.pts to now + 30 * 60_000L
+    val listed = list.mapTo(HashSet(), ::closureKey)
+    closures.entries.removeIf { (key, v) -> v.second < now || (key !in listed && if (key.startsWith("ab-")) abOk else feedsOk) }
+    for (inc in list) if (isClosure(inc.cat) && inc.pts.isNotEmpty()) closures[closureKey(inc)] = inc.pts to now + 30 * 60_000L
 }
 
 /** Points on closed roads: from the feeds (start, middle and end of each), and drivers' "Straße gesperrt" reports. */
@@ -126,7 +134,8 @@ internal fun NavEngine.checkIncidents(r: Route, progress: Double) {
                         val roadworksOn = prefs.b(PreferenceKeys.ROADWORKS_WARN, true)
                         val list = (tt + ab + when (countryCode()) { "ES" -> DgtRest.notIn(tt); "NL" -> NdwRest.notIn(tt); else -> emptyList() })
                             .filter { roadworksOn || it.cat.lowercase() !in setOf("roadworks", "laneclosed") }
-                        noteClosures(list)
+                        // (the TomTom answer counts only when it is TomTom's own: not the route's incidents, which stand in while it is down)
+                        noteClosures(list, feedsOk = !fromRoute, abOk = abOk)
                         val out = ArrayList<Triple<Incident, Double, String>>()
                         for (inc in list) {
                             var bestOff = -1.0; var bestD = 40.0

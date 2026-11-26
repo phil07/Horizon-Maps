@@ -1,8 +1,8 @@
 ## Unreleased
 
-### Added
-- Einstellungen › Geschwindigkeit: Der Knopf „Nur warnen“ schaltet die Warnung bei Überschreitung an und die Ansage von Tempowechseln aus. Keine Tempolimit-Ansagen mehr.
-  EN: Settings › Speed: the "Warn only" button turns the speeding warning on and the announcement of limit changes off. No limit announcements any more.
+### Changed
+- Straßensperrungen bleiben auf der Route gemerkt, bis die Quelle sie nicht mehr meldet, nicht nur 30 Minuten. Antwortet eine Quelle nicht vollständig (Netzfehler), bleibt alles wie es war.
+  EN: Road closures stay remembered until the source no longer lists them, not just for 30 minutes. If a source doesn't answer in full (network error), nothing changes.
 
 ## 1.0.246 — 2026-10-28
 

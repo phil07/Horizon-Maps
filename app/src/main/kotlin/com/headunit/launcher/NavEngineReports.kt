@@ -272,12 +272,19 @@ internal fun NavEngine.checkYieldSigns(p: LL, heading: Double) {
 internal fun NavEngine.autobahnIncidents(r: Route): List<Incident> {
     if (!prefs.b(PreferenceKeys.INCIDENTS, true)) return emptyList()
     val roads = r.steps.mapNotNull { AutobahnRest.roadOf(it.street) }.distinct()
-    if (roads.isEmpty()) return emptyList()
+    if (roads.isEmpty()) {
+        // no motorway on the route now: nothing from it, and its closures may go (see noteClosures)
+        abItems = emptyList(); abOk = true; abRoads = ""
+        return emptyList()
+    }
     val key = roads.joinToString(",")
     val now = System.currentTimeMillis()
     if (key != abRoads || now - abAt > 300_000L) {
         abAt = now; abRoads = key
-        scope.launch { abItems = withContext(Dispatchers.IO) { try { AutobahnRest.incidents(roads) } catch (e: Exception) { emptyList() } } }
+        scope.launch {
+            val res = withContext(Dispatchers.IO) { try { AutobahnRest.incidents(roads) } catch (e: Exception) { null } }
+            abOk = res != null; abItems = res ?: emptyList()
+        }
     }
     return abItems
 }
