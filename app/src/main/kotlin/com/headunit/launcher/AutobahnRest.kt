@@ -1,8 +1,6 @@
 package com.headunit.launcher
 
 import org.json.JSONObject
-import java.net.HttpURLConnection
-import java.net.URL
 
 /**
  * Roadworks, warnings and closures on Germany's motorways, from Autobahn GmbH's public traffic API (no key needed). They feed the
@@ -23,7 +21,7 @@ object AutobahnRest {
         val out = ArrayList<Incident>()
         for (road in roads) for ((service, cat) in SERVICES) {
             try {
-                val arr = JSONObject(get(BASE + road + "/services/" + service)).optJSONArray(service) ?: continue
+                val arr = JSONObject(Http.get(BASE + road + "/services/" + service, 6000, 8000, accept = "application/json", failure = { code, _ -> IllegalStateException("Autobahn HTTP $code") })).optJSONArray(service) ?: continue
                 for (i in 0 until arr.length()) parse(arr.optJSONObject(i) ?: continue, road, service, cat)?.let { out += it }
             } catch (e: Exception) { softFail(e) }
         }
@@ -64,7 +62,7 @@ object AutobahnRest {
     fun wrongWay(roads: List<String>): List<Incident> {
         val out = ArrayList<Incident>()
         for (road in roads) try {
-            val arr = JSONObject(get(BASE + road + "/services/warning")).optJSONArray("warning") ?: continue
+            val arr = JSONObject(Http.get(BASE + road + "/services/warning", 6000, 8000, accept = "application/json", failure = { code, _ -> IllegalStateException("Autobahn HTTP $code") })).optJSONArray("warning") ?: continue
             for (i in 0 until arr.length()) parse(arr.optJSONObject(i) ?: continue, road, "warning", "danger")?.takeIf { it.cat == "wrongway" }?.let { out += it }
         } catch (e: Exception) { softFail(e) }
         return out
@@ -82,7 +80,7 @@ object AutobahnRest {
         val now = System.currentTimeMillis()
         synchronized(rwCache) { rwCache[road]?.let { if (now - it.first < 15 * 60_000L) return it.second } }
         val list = try {
-            val arr = JSONObject(get(BASE + road + "/services/roadworks")).optJSONArray("roadworks")
+            val arr = JSONObject(Http.get(BASE + road + "/services/roadworks", 6000, 8000, accept = "application/json", failure = { code, _ -> IllegalStateException("Autobahn HTTP $code") })).optJSONArray("roadworks")
             val out = ArrayList<RoadworkLimit>()
             if (arr != null) for (i in 0 until arr.length()) parseLimit(arr.optJSONObject(i) ?: continue)?.let { out += it }
             out
@@ -107,7 +105,7 @@ object AutobahnRest {
         val now = System.currentTimeMillis()
         synchronized(zoneCache) { zoneCache[road]?.let { if (now - it.first < 15 * 60_000L) return it.second } }
         val list = try {
-            val arr = JSONObject(get(BASE + road + "/services/roadworks")).optJSONArray("roadworks")
+            val arr = JSONObject(Http.get(BASE + road + "/services/roadworks", 6000, 8000, accept = "application/json", failure = { code, _ -> IllegalStateException("Autobahn HTTP $code") })).optJSONArray("roadworks")
             val out = ArrayList<RoadworkZone>()
             if (arr != null) for (i in 0 until arr.length()) parseZone(arr.optJSONObject(i) ?: continue)?.let { out += it }
             out
@@ -229,14 +227,4 @@ object AutobahnRest {
         return Math.hypot(ax + t * dx, ay + t * dy)
     }
 
-    private fun get(url: String): String {
-        val c = URL(url).openConnection() as HttpURLConnection
-        c.connectTimeout = 6000; c.readTimeout = 8000
-        c.setRequestProperty("Accept", "application/json")
-        try {
-            val code = c.responseCode
-            if (code !in 200..299) throw IllegalStateException("Autobahn HTTP $code")
-            return c.inputStream.bufferedReader().use { it.readText() }
-        } finally { c.disconnect() }
-    }
 }

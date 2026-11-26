@@ -1,8 +1,6 @@
 package com.headunit.launcher
 
 import org.json.JSONObject
-import java.net.HttpURLConnection
-import java.net.URL
 import kotlin.math.abs
 
 /**
@@ -59,7 +57,7 @@ object RwsSpeedLimits {
 
     private fun fetch(p: LL): List<Seg> {
         val box = "${p.lon - BOX},${p.lat - BOX},${p.lon + BOX},${p.lat + BOX}"
-        val arr = JSONObject(get("$ITEMS?f=json&limit=50&bbox=$box")).optJSONArray("features") ?: return emptyList()
+        val arr = JSONObject(Http.get("$ITEMS?f=json&limit=50&bbox=$box", 6000, 8000, accept = "application/geo+json", failure = { code, _ -> IllegalStateException("RWS HTTP $code") })).optJSONArray("features") ?: return emptyList()
         val out = ArrayList<Seg>()
         for (i in 0 until arr.length()) {
             val f = arr.optJSONObject(i) ?: continue
@@ -80,14 +78,4 @@ object RwsSpeedLimits {
         return out
     }
 
-    private fun get(url: String): String {
-        val c = URL(url).openConnection() as HttpURLConnection
-        c.connectTimeout = 6000; c.readTimeout = 8000
-        c.setRequestProperty("Accept", "application/geo+json")
-        try {
-            val code = c.responseCode
-            if (code !in 200..299) throw IllegalStateException("RWS HTTP $code")
-            return c.inputStream.bufferedReader().use { it.readText() }
-        } finally { c.disconnect() }
-    }
 }

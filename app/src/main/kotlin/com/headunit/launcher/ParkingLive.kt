@@ -1,8 +1,6 @@
 package com.headunit.launcher
 
 import org.json.JSONObject
-import java.net.HttpURLConnection
-import java.net.URL
 
 /**
  * A car park or garage with how many spaces it has and, where the operator publishes it, how many are free right now.
@@ -107,20 +105,11 @@ object ParkingLive {
         return out
     }
 
-    private fun get(url: String): String {
-        val c = URL(url).openConnection() as HttpURLConnection
-        c.connectTimeout = 6000; c.readTimeout = 10000
-        c.setRequestProperty("User-Agent", "HorizonNav/1.0")
-        val code = c.responseCode
-        if (code !in 200..299) throw java.io.IOException("HTTP $code")
-        return c.inputStream.bufferedReader().readText()
-    }
-
     private val PARK_TYPES = setOf("CAR_PARK", "UNDERGROUND", "OFF_STREET_PARKING_GROUND")
 
     private fun mobidata(p: LL, radius: Int): List<Garage> {
         val url = String.format(java.util.Locale.US, "https://api.mobidata-bw.de/park-api/api/public/v3/parking-sites?lat=%.5f&lon=%.5f&radius=%d&purpose=CAR&limit=300", p.lat, p.lon, radius)
-        return parseMobidata(get(url), System.currentTimeMillis())
+        return parseMobidata(Http.get(url, 6000, 10000), System.currentTimeMillis())
     }
 
     /** ParkAPI v3: live counts only when they're under 2 hours old (some feeds stopped long ago). */
@@ -149,7 +138,7 @@ object ParkingLive {
     private fun parkendd(p: LL, radius: Int): List<Garage> {
         val now = System.currentTimeMillis()
         if (now - citiesAt > 24 * 3600_000L || cities.isEmpty()) {
-            val o = JSONObject(get("https://api.parkendd.de/")).optJSONObject("cities") ?: return emptyList()
+            val o = JSONObject(Http.get("https://api.parkendd.de/", 6000, 10000)).optJSONObject("cities") ?: return emptyList()
             val l = ArrayList<Pair<String, LL>>()
             for (k in o.keys()) {
                 val c = o.optJSONObject(k) ?: continue
@@ -162,7 +151,7 @@ object ParkingLive {
         // only a city whose centre is within 25 km (a city's car parks are all within that)
         val near = cities.filter { Geo.dist(it.second, p) < 25_000.0 }
         val out = ArrayList<Garage>()
-        for ((id, _) in near) try { out += parseParkendd(id, get("https://api.parkendd.de/$id"), now).filter { Geo.dist(p, it.pos) <= radius } } catch (e: Exception) { softFail(e) }
+        for ((id, _) in near) try { out += parseParkendd(id, Http.get("https://api.parkendd.de/$id", 6000, 10000), now).filter { Geo.dist(p, it.pos) <= radius } } catch (e: Exception) { softFail(e) }
         return out
     }
 

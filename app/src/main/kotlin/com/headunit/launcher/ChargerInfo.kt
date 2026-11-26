@@ -109,7 +109,7 @@ object ChargerInfo {
         val radiusKm = Math.min(100.0, Geo.dist(LL(lat, lon), LL(box[0], box[1])) / 1000.0 + 0.5)
         val url = "$OCM/poi?output=json&key=${URLEncoder.encode(key, "UTF-8")}&latitude=$lat&longitude=$lon&distance=${"%.2f".format(java.util.Locale.US, radiusKm)}" +
             "&distanceunit=KM&maxresults=500&compact=true&verbose=false"
-        val arr = JSONArray(get(url))
+        val arr = JSONArray(Http.get(url, 10000, 20000, failure = { code, reply -> IOException("HTTP $code ${reply.take(100)}") }))
         val out = ArrayList<ChargerSite>()
         for (i in 0 until arr.length()) {
             val x = arr.optJSONObject(i) ?: continue
@@ -241,7 +241,7 @@ object ChargerInfo {
         val poly = URLEncoder.encode(encodePolyline(line), "UTF-8")
         // compact: operators etc. come as ids only (much smaller); the names are looked up once from the reference data
         val url = "$OCM/poi?output=json&key=$k&polyline=$poly&distance=2&distanceunit=KM&maxresults=500&compact=true&verbose=false"
-        val arr = JSONArray(get(url))
+        val arr = JSONArray(Http.get(url, 10000, 20000, failure = { code, reply -> IOException("HTTP $code ${reply.take(100)}") }))
         val raw = ArrayList<Triple<LL, Int?, Pair<Int, String>>>()
         for (i in 0 until arr.length()) {
             val x = arr.optJSONObject(i) ?: continue
@@ -271,7 +271,7 @@ object ChargerInfo {
     fun testOcm(key: String): String {
         val k = key.trim(); if (k.isEmpty()) return Lang.t("Kein Schlüssel eingetragen", "No key entered")
         return try {
-            val arr = JSONArray(get("$OCM/poi?output=json&key=${URLEncoder.encode(k, "UTF-8")}&latitude=52.52&longitude=13.405&distance=5&distanceunit=KM&maxresults=3&compact=true&verbose=false"))
+            val arr = JSONArray(Http.get("$OCM/poi?output=json&key=${URLEncoder.encode(k, "UTF-8")}&latitude=52.52&longitude=13.405&distance=5&distanceunit=KM&maxresults=3&compact=true&verbose=false", 10000, 20000, failure = { code, reply -> IOException("HTTP $code ${reply.take(100)}") }))
             Lang.t("Schlüssel funktioniert (${arr.length()} Ladesäulen in Berlin-Mitte gefunden)", "Key works (${arr.length()} chargers found in central Berlin)")
         } catch (e: Exception) {
             val m = e.message ?: e.javaClass.simpleName
@@ -283,7 +283,7 @@ object ChargerInfo {
     private fun operators(key: String): Map<Int, String> {
         ocmOperators?.let { return it }
         return try {
-            val j = JSONObject(get("$OCM/referencedata?output=json&key=${URLEncoder.encode(key, "UTF-8")}", readMs = 30000))
+            val j = JSONObject(Http.get("$OCM/referencedata?output=json&key=${URLEncoder.encode(key, "UTF-8")}", 10000, 30000, failure = { code, reply -> IOException("HTTP $code ${reply.take(100)}") }))
             val arr = j.optJSONArray("Operators") ?: JSONArray()
             val m = HashMap<Int, String>()
             for (i in 0 until arr.length()) {
@@ -328,17 +328,6 @@ object ChargerInfo {
 
     /** A non-blank string value, or null (org.json on Android turns a JSON null into the text "null"). */
     private fun str(o: JSONObject, k: String): String? = if (o.isNull(k)) null else o.optString(k).trim().takeIf { it.isNotEmpty() && it != "null" }
-
-    private fun get(url: String, connectMs: Int = 10000, readMs: Int = 20000): String {
-        val c = URL(url).openConnection() as HttpURLConnection
-        c.connectTimeout = connectMs
-        c.readTimeout = readMs
-        c.setRequestProperty("User-Agent", UA)
-        val code = c.responseCode
-        val body = (if (code in 200..299) c.inputStream else c.errorStream)?.bufferedReader()?.readText() ?: ""
-        if (code !in 200..299) throw IOException("HTTP $code ${body.take(100)}")
-        return body
-    }
 
     /** Form-encoded POST: a whole route's line is too long for a URL. */
     private fun postForm(url: String, form: Map<String, String>, connectMs: Int = 10000, readMs: Int = 25000): String {

@@ -3,8 +3,6 @@ package com.headunit.launcher
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import org.json.JSONObject
-import java.net.HttpURLConnection
-import java.net.URL
 import java.net.URLEncoder
 
 /**
@@ -51,7 +49,7 @@ object HereRest {
             .append("&routeMatch=1&mode=").append(enc("fastest;car;traffic:disabled"))
             .append("&attributes=").append(enc("SPEED_LIMITS_FCn(*)"))
         trail.forEachIndexed { i, p -> sb.append("&waypoint").append(i).append('=').append(String.format(java.util.Locale.US, "%.6f,%.6f", p.lat, p.lon)) }
-        val body = try { get(sb.toString()) } catch (e: Exception) { lastError = e.message ?: e.javaClass.simpleName; return null }
+        val body = try { Http.get(sb.toString(), 6000, 8000, failure = { code, _ -> IllegalStateException("HERE HTTP $code") }) } catch (e: Exception) { lastError = e.message ?: e.javaClass.simpleName; return null }
         lastError = null
         val root = JSONObject(body)
         val links = root.optJSONArray("RouteLinks") ?: return null
@@ -78,13 +76,4 @@ object HereRest {
 
     private fun enc(s: String) = URLEncoder.encode(s, "UTF-8")
 
-    private fun get(url: String): String {
-        val c = URL(url).openConnection() as HttpURLConnection
-        c.connectTimeout = 6000; c.readTimeout = 8000
-        try {
-            val code = c.responseCode
-            if (code !in 200..299) throw IllegalStateException("HERE HTTP $code")
-            return c.inputStream.bufferedReader().use { it.readText() }
-        } finally { c.disconnect() }
-    }
 }

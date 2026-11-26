@@ -2,9 +2,6 @@ package com.headunit.launcher
 
 import org.json.JSONArray
 import org.json.JSONObject
-import java.io.IOException
-import java.net.HttpURLConnection
-import java.net.URL
 import java.net.URLEncoder
 
 /**
@@ -67,16 +64,6 @@ object PoiSearch {
     /** OpenStreetMap's keys for a shop, a service or a sight: a Photon result with one of these is a place you can go to. */
     private val POI_KEYS = setOf("shop", "amenity", "tourism", "leisure", "craft", "office", "healthcare", "club", "historic")
 
-    private fun get(url: String, connectMs: Int, readMs: Int): String {
-        val c = URL(url).openConnection() as HttpURLConnection
-        c.connectTimeout = connectMs; c.readTimeout = readMs
-        c.setRequestProperty("User-Agent", "HorizonNav/1.0 (Android navigation app)")
-        val code = c.responseCode
-        val body = (if (code in 200..299) c.inputStream else c.errorStream)?.bufferedReader()?.readText() ?: ""
-        if (code !in 200..299) throw IOException("HTTP $code")
-        return body
-    }
-
     /**
      * Shops and places whose name or brand matches [q] within [radius] metres of [near], from OpenStreetMap (Photon, free).
      * Photon is asked to weigh nearness strongly, and what it returns further away than [radius] is dropped.
@@ -86,7 +73,7 @@ object PoiSearch {
         val lang = java.util.Locale.getDefault().language.takeIf { it in setOf("en", "de", "fr", "it") } ?: "en"
         val url = String.format(java.util.Locale.US, "https://photon.komoot.io/api/?q=%s&limit=30&lang=%s&lat=%.5f&lon=%.5f&zoom=14&location_bias_scale=0.1",
             enc, lang, near.lat, near.lon)
-        val arr = JSONObject(get(url, 8000, 9000)).optJSONArray("features") ?: JSONArray()
+        val arr = JSONObject(Http.get(url, 8000, 9000)).optJSONArray("features") ?: JSONArray()
         val out = ArrayList<Place>()
         for (i in 0 until arr.length()) {
             val f = arr.optJSONObject(i) ?: continue
@@ -136,7 +123,7 @@ object PoiSearch {
     /** The address at [p] ("Hauptstraße 5, Ulm"), from OpenStreetMap (Photon, free), or null. */
     fun addressAt(p: LL): String? {
         val url = String.format(java.util.Locale.US, "https://photon.komoot.io/reverse?lat=%.6f&lon=%.6f&limit=1", p.lat, p.lon)
-        val pr = (JSONObject(get(url, 6000, 7000)).optJSONArray("features") ?: return null).optJSONObject(0)?.optJSONObject("properties") ?: return null
+        val pr = (JSONObject(Http.get(url, 6000, 7000)).optJSONArray("features") ?: return null).optJSONObject(0)?.optJSONObject("properties") ?: return null
         val street = listOf(pr.optString("street"), pr.optString("housenumber")).filter { it.isNotBlank() }.joinToString(" ")
         val town = pr.optString("city").ifBlank { pr.optString("district") }.ifBlank { pr.optString("county") }
         return listOf(street.ifBlank { pr.optString("name") }, town).filter { it.isNotBlank() }.distinct().joinToString(", ").ifBlank { null }

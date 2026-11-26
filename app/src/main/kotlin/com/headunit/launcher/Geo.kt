@@ -508,17 +508,6 @@ object TomTomRest {
         else -> "HTTP $code ${body.take(140)}"
     })
 
-    private fun get(url: String, connectMs: Int = 15000, readMs: Int = 25000): String {
-        val c = URL(url).openConnection() as HttpURLConnection
-        c.connectTimeout = connectMs
-        c.readTimeout = readMs
-        c.setRequestProperty("User-Agent", "HorizonNav/1.0")
-        val code = c.responseCode
-        val body = (if (code in 200..299) c.inputStream else c.errorStream)?.bufferedReader()?.readText() ?: ""
-        if (code !in 200..299) throw httpError(code, body)
-        return body
-    }
-
     private fun parsePlaces(arr: JSONArray, q: String, out: MutableList<Place>) {
         for (i in 0 until arr.length()) {
             val x = arr.getJSONObject(i)
@@ -555,7 +544,7 @@ object TomTomRest {
             var url = "$SEARCH/$enc.json?key=$k&limit=15&language=${Lang.serviceTag}&typeahead=true&minFuzzyLevel=1&maxFuzzyLevel=2&idxSet=POI,Addr,Str,Xstr,Geo,PAD&openingHours=nextSevenDays"
             if (cc.isNotEmpty()) url += "&countrySet=$cc"
             if (near != null) url += "&lat=${near.lat}&lon=${near.lon}"
-            parsePlaces(JSONObject(get(url)).optJSONArray("results") ?: JSONArray(), q, out)
+            parsePlaces(JSONObject(Http.get(url, 15000, 25000, failure = { code, reply -> httpError(code, reply) })).optJSONArray("results") ?: JSONArray(), q, out)
         } catch (e: Exception) { if (e is Refused) classicRefused = true /* fall through to the next source */ }
         // 1b. Newer keys can come with the Orbis APIs only: the classic search refuses them, so the same search goes to Orbis
         var orbisRefused = false
@@ -563,14 +552,14 @@ object TomTomRest {
             var url = "$API/places/search/$enc.json?key=$k&apiVersion=1&limit=15&language=${Lang.serviceTag}&typeahead=true"
             if (cc.isNotEmpty()) url += "&countrySet=$cc"
             if (near != null) url += "&lat=${near.lat}&lon=${near.lon}"
-            parsePlaces(JSONObject(get(url)).optJSONArray("results") ?: JSONArray(), q, out)
+            parsePlaces(JSONObject(Http.get(url, 15000, 25000, failure = { code, reply -> httpError(code, reply) })).optJSONArray("results") ?: JSONArray(), q, out)
         } catch (e: Exception) { if (e is Refused) orbisRefused = true }
         // 2. Orbis geocoder
         if (out.size < 4) try {
             var url = "$API/places/geocode/$enc.json?key=$k&apiVersion=1&limit=8"
             if (cc.isNotEmpty()) url += "&countrySet=$cc"
             if (near != null) url += "&lat=${near.lat}&lon=${near.lon}"
-            parsePlaces(JSONObject(get(url)).optJSONArray("results") ?: JSONArray(), q, out)
+            parsePlaces(JSONObject(Http.get(url, 15000, 25000, failure = { code, reply -> httpError(code, reply) })).optJSONArray("results") ?: JSONArray(), q, out)
         } catch (e: Exception) { if (e is Refused && classicRefused) orbisRefused = true }
         searchRefusal = if (classicRefused && orbisRefused && out.isEmpty()) Lang.t("TomTom lehnt den Schlüssel für die Suche ab (die klassische Suche und die Orbis-Suche). Prüfe den Schlüssel unter Einstellungen > Schlüssel & Konten, die Suche braucht die Search-API", "TomTom refuses the key for search (both the classic and the Orbis search). Check the key under Settings > Keys & accounts; search needs the Search API") else null
         // 3. Nominatim
@@ -578,7 +567,7 @@ object TomTomRest {
             var url = "https://nominatim.openstreetmap.org/search?format=jsonv2&limit=10&q=$enc"
             if (near != null) url += "&viewbox=${near.lon - 0.5},${near.lat + 0.35},${near.lon + 0.5},${near.lat - 0.35}"
             if (cc.isNotEmpty()) url += "&countrycodes=${cc.lowercase()}"
-            val arr = JSONArray(get(url))
+            val arr = JSONArray(Http.get(url, 15000, 25000, failure = { code, reply -> httpError(code, reply) }))
             for (i in 0 until arr.length()) {
                 val x = arr.getJSONObject(i)
                 val disp = x.optString("display_name")
@@ -601,21 +590,6 @@ object TomTomRest {
     @Volatile var avoidRects: List<Pair<LL, LL>> = emptyList()
     /** True when the last request had to drop the areas to avoid to find a route at all. */
     @Volatile var avoidDropped = false
-
-    private fun post(url: String, body: String, connectMs: Int, readMs: Int): String {
-        val c = URL(url).openConnection() as HttpURLConnection
-        c.connectTimeout = connectMs
-        c.readTimeout = readMs
-        c.requestMethod = "POST"
-        c.doOutput = true
-        c.setRequestProperty("User-Agent", "HorizonNav/1.0")
-        c.setRequestProperty("Content-Type", "application/json")
-        c.outputStream.use { it.write(body.toByteArray()) }
-        val code = c.responseCode
-        val text = (if (code in 200..299) c.inputStream else c.errorStream)?.bufferedReader()?.readText() ?: ""
-        if (code !in 200..299) throw httpError(code, text)
-        return text
-    }
 
     private fun avoidBody(rects: List<Pair<LL, LL>>): String {
         val arr = JSONArray()
@@ -692,8 +666,8 @@ object TomTomRest {
         departApplied = false
         for ((idx, u) in attempts.withIndex()) {
             try {
-                body = if (avoidJson != null && u.startsWith(CLASSIC)) post(u, avoidJson, if (quick) 8000 else 15000, if (quick) 12000 else 25000)
-                else get(u, if (quick) 8000 else 15000, if (quick) 12000 else 25000)
+                body = if (avoidJson != null && u.startsWith(CLASSIC)) Http.post(u, avoidJson, if (quick) 8000 else 15000, if (quick) 12000 else 25000, failure = { code, reply -> httpError(code, reply) })
+                else Http.get(u, if (quick) 8000 else 15000, if (quick) 12000 else 25000, failure = { code, reply -> httpError(code, reply) })
                 departApplied = departAtMs > 0 && u.contains("departAt="); break
             }
             catch (e: IOException) {
@@ -747,7 +721,7 @@ object TomTomRest {
     fun poiNearby(key: String, kind: String, c: LL, radius: Int): List<Nearby> {
         val k = URLEncoder.encode(key, "UTF-8")
         val q = URLEncoder.encode(poiQuery(kind), "UTF-8").replace("+", "%20")
-        val body = get("https://api.tomtom.com/search/2/categorySearch/$q.json?key=$k&lat=${c.lat}&lon=${c.lon}&radius=$radius&limit=25&language=${Lang.serviceTag}", 8000, 12000)
+        val body = Http.get("https://api.tomtom.com/search/2/categorySearch/$q.json?key=$k&lat=${c.lat}&lon=${c.lon}&radius=$radius&limit=25&language=${Lang.serviceTag}", 8000, 12000, failure = { code, reply -> httpError(code, reply) })
         val arr = JSONObject(body).optJSONArray("results") ?: JSONArray()
         return (0 until arr.length()).mapNotNull { poiResult(arr.getJSONObject(it), kind, c) }
     }
@@ -764,12 +738,12 @@ object TomTomRest {
             "&language=${Lang.serviceTag}&openingHours=nextSevenDays" + (if (kind == null) "&typeahead=true" else "")
         val out = ArrayList<Place>()
         try {
-            parsePlaces(JSONObject(get(url, 8000, 9000)).optJSONArray("results") ?: JSONArray(), q, out)
+            parsePlaces(JSONObject(Http.get(url, 8000, 9000, failure = { code, reply -> httpError(code, reply) })).optJSONArray("results") ?: JSONArray(), q, out)
         } catch (e: Refused) {
             // the classic search turned the key away: the same search on Orbis (a kind of place goes in as the search words)
             val orbis = "$API/places/search/$enc.json?key=$k&apiVersion=1&lat=${near.lat}&lon=${near.lon}&radius=$radius&limit=25" +
                 "&language=${Lang.serviceTag}" + (if (kind == null) "&typeahead=true" else "")
-            parsePlaces(JSONObject(get(orbis, 8000, 9000)).optJSONArray("results") ?: JSONArray(), q, out)
+            parsePlaces(JSONObject(Http.get(orbis, 8000, 9000, failure = { code, reply -> httpError(code, reply) })).optJSONArray("results") ?: JSONArray(), q, out)
         }
         return out.filter { Geo.dist(near, it.pos) <= radius * 1.2 }.sortedBy { Geo.dist(near, it.pos) }
     }
@@ -782,7 +756,7 @@ object TomTomRest {
         val pts = JSONArray()
         for (p in line) pts.put(JSONObject().put("lat", p.lat).put("lon", p.lon))
         val req = JSONObject().put("route", JSONObject().put("points", pts)).toString()
-        val body = post("https://api.tomtom.com/search/2/searchAlongRoute/$q.json?key=$k&maxDetourTime=$maxDetourSec&limit=20&spreadingMode=auto", req, 8000, 15000)
+        val body = Http.post("https://api.tomtom.com/search/2/searchAlongRoute/$q.json?key=$k&maxDetourTime=$maxDetourSec&limit=20&spreadingMode=auto", req, 8000, 15000, failure = { code, reply -> httpError(code, reply) })
         val arr = JSONObject(body).optJSONArray("results") ?: JSONArray()
         return (0 until arr.length()).mapNotNull { i ->
             val x = arr.getJSONObject(i)
@@ -793,7 +767,7 @@ object TomTomRest {
     /** Seconds to drive from [from] to [to] with today's traffic (no route line asked for), or null. */
     fun driveTime(key: String, from: LL, to: LL): Double? {
         val k = URLEncoder.encode(key, "UTF-8")
-        val body = get("$CLASSIC/${from.lat},${from.lon}:${to.lat},${to.lon}/json?key=$k&traffic=true&routeRepresentation=none", 8000, 12000)
+        val body = Http.get("$CLASSIC/${from.lat},${from.lon}:${to.lat},${to.lon}/json?key=$k&traffic=true&routeRepresentation=none", 8000, 12000, failure = { code, reply -> httpError(code, reply) })
         return JSONObject(body).optJSONArray("routes")?.optJSONObject(0)?.optJSONObject("summary")?.optDouble("travelTimeInSeconds", -1.0)?.takeIf { it > 0 }
     }
 
@@ -803,7 +777,7 @@ object TomTomRest {
         val loc = (listOf(from) + via + listOf(to)).joinToString(":") { "${it.lat},${it.lon}" }
         val iso = URLEncoder.encode(java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX", java.util.Locale.US).format(java.util.Date(arriveAtMs)), "UTF-8")
         val prefs = avoid.joinToString("") { "&avoid=$it" } + (if (routeType != "fastest") "&routeType=$routeType" else "")
-        val body = get("$CLASSIC/$loc/json?key=$k&arriveAt=$iso&traffic=true&routeRepresentation=none$prefs", 10000, 20000)
+        val body = Http.get("$CLASSIC/$loc/json?key=$k&arriveAt=$iso&traffic=true&routeRepresentation=none$prefs", 10000, 20000, failure = { code, reply -> httpError(code, reply) })
         val sum = JSONObject(body).optJSONArray("routes")?.optJSONObject(0)?.optJSONObject("summary") ?: return null
         val dep = sum.optString("departureTime")
         if (dep.isNotBlank()) try { return java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX", java.util.Locale.US).parse(dep)?.time } catch (e: Exception) { softFail(e) }
@@ -867,7 +841,7 @@ object TomTomRest {
         val k = URLEncoder.encode(key, "UTF-8")
         val hd = if (heading >= 0) "&heading=${heading.toInt() % 360}" else ""
         // a tight radius: a wide one happily returns the limit of a side road or a parallel slip road
-        val body = get("https://api.tomtom.com/search/2/reverseGeocode/${p.lat},${p.lon}.json?key=$k&returnSpeedLimit=true&radius=25$hd", 6000, 8000)
+        val body = Http.get("https://api.tomtom.com/search/2/reverseGeocode/${p.lat},${p.lon}.json?key=$k&returnSpeedLimit=true&radius=25$hd", 6000, 8000, failure = { code, reply -> httpError(code, reply) })
         val addr = JSONObject(body).optJSONArray("addresses")?.optJSONObject(0)?.optJSONObject("address") ?: return null
         val v = addr.optString("speedLimit").trim().uppercase()
         val m = Regex("^([0-9]+(?:\\.[0-9]+)?)\\s*(KPH|MPH)$").find(v) ?: return null
@@ -1075,16 +1049,6 @@ object Weather {
  * then Nominatim). Free, no key; used together with the downloaded place names and your saved places.
  */
 object OsmSearch {
-    private fun get(url: String): String {
-        val c = URL(url).openConnection() as HttpURLConnection
-        c.connectTimeout = 10000; c.readTimeout = 15000
-        // both services ask apps to say who they are
-        c.setRequestProperty("User-Agent", "HorizonNav/1.0 (Android navigation app)")
-        val code = c.responseCode
-        val body = (if (code in 200..299) c.inputStream else c.errorStream)?.bufferedReader()?.readText() ?: ""
-        if (code !in 200..299) throw IOException("HTTP $code")
-        return body
-    }
 
     fun geocode(country: String, q: String, near: LL?): List<Place> {
         val enc = URLEncoder.encode(q, "UTF-8").replace("+", "%20")
@@ -1095,7 +1059,7 @@ object OsmSearch {
             val lang = java.util.Locale.getDefault().language.takeIf { it in setOf("en", "de", "fr", "it") } ?: "en"
             var url = "https://photon.komoot.io/api/?q=$enc&limit=15&lang=$lang"
             if (near != null) url += String.format(java.util.Locale.US, "&lat=%.5f&lon=%.5f", near.lat, near.lon)
-            val arr = JSONObject(get(url)).optJSONArray("features") ?: JSONArray()
+            val arr = JSONObject(Http.get(url, 10000, 15000)).optJSONArray("features") ?: JSONArray()
             anyOk = true
             for (i in 0 until arr.length()) {
                 val f = arr.optJSONObject(i) ?: continue
@@ -1116,7 +1080,7 @@ object OsmSearch {
             var url = "https://nominatim.openstreetmap.org/search?format=jsonv2&limit=10&q=$enc"
             if (near != null) url += "&viewbox=${near.lon - 0.5},${near.lat + 0.35},${near.lon + 0.5},${near.lat - 0.35}"
             if (cc.isNotEmpty()) url += "&countrycodes=${cc.lowercase()}"
-            val arr = JSONArray(get(url))
+            val arr = JSONArray(Http.get(url, 10000, 15000))
             anyOk = true
             for (i in 0 until arr.length()) {
                 val x = arr.getJSONObject(i)

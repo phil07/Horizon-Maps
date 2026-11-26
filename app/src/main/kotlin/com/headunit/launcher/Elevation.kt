@@ -2,8 +2,6 @@ package com.headunit.launcher
 
 import org.json.JSONObject
 import java.io.IOException
-import java.net.HttpURLConnection
-import java.net.URL
 
 /**
  * The heights along a route, for the battery estimate (climbing costs, going down gives some back). From Open-Meteo's elevation
@@ -11,16 +9,6 @@ import java.net.URL
  */
 object Elevation {
     class Profile(val off: DoubleArray, val h: DoubleArray)
-
-    private fun get(url: String): String {
-        val c = URL(url).openConnection() as HttpURLConnection
-        c.connectTimeout = 8000; c.readTimeout = 12000
-        c.setRequestProperty("User-Agent", "HorizonNav/1.0 (Android navigation app)")
-        val code = c.responseCode
-        val body = (if (code in 200..299) c.inputStream else c.errorStream)?.bufferedReader()?.readText() ?: ""
-        if (code !in 200..299) throw IOException("HTTP $code")
-        return body
-    }
 
     /** Where along [len] metres to look: about every 500 m, at most [max] points (spread further apart on a long route). */
     fun sampleOffsets(len: Double, max: Int): DoubleArray {
@@ -85,7 +73,7 @@ object Elevation {
             val chunk = pts.subList(i, minOf(pts.size, i + 100))
             val lat = chunk.joinToString(",") { String.format(java.util.Locale.US, "%.5f", it.lat) }
             val lon = chunk.joinToString(",") { String.format(java.util.Locale.US, "%.5f", it.lon) }
-            val arr = JSONObject(get("https://api.open-meteo.com/v1/elevation?latitude=$lat&longitude=$lon")).getJSONArray("elevation")
+            val arr = JSONObject(Http.get("https://api.open-meteo.com/v1/elevation?latitude=$lat&longitude=$lon", 8000, 12000)).getJSONArray("elevation")
             if (arr.length() != chunk.size) throw IOException("short answer")
             for (k in chunk.indices) {
                 val v = arr.optDouble(k, Double.NaN)
@@ -103,7 +91,7 @@ object Elevation {
         for ((k, p) in pts.withIndex()) {
             val url = String.format(java.util.Locale.US,
                 "https://api.mapbox.com/v4/mapbox.mapbox-terrain-v2/tilequery/%.5f,%.5f.json?layers=contour&limit=50&access_token=%s", p.lon, p.lat, token)
-            val f = JSONObject(get(url)).optJSONArray("features") ?: throw IOException("no data")
+            val f = JSONObject(Http.get(url, 8000, 12000)).optJSONArray("features") ?: throw IOException("no data")
             var best = Double.NaN
             for (j in 0 until f.length()) {
                 val e = f.optJSONObject(j)?.optJSONObject("properties")?.optDouble("ele", Double.NaN) ?: continue
