@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Block
 import androidx.compose.material.icons.rounded.Build
 import androidx.compose.material.icons.rounded.CameraAlt
 import androidx.compose.material.icons.rounded.CarCrash
@@ -30,17 +31,21 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.headunit.launcher.Lang
 import com.headunit.launcher.NavEngine
+import com.headunit.launcher.ReportKind
 import kotlinx.coroutines.delay
 
 /** The quick reports on the car screen: the kinds, their icon and colour (the same reports as the phone's "Hier melden"). */
-private val quickKinds: List<Triple<String, ImageVector, Color>> = listOf(
-    Triple("police", Icons.Rounded.LocalPolice, Color(0xFF1E66F5)),
-    Triple("accident", Icons.Rounded.CarCrash, Bad),
-    Triple("hazard", Icons.Rounded.PriorityHigh, Warn),
-    Triple("breakdown", Icons.Rounded.Build, Color(0xFFFB8C00)),
-    Triple("mobilecam", Icons.Rounded.CameraAlt, Color(0xFF1E66F5)),
-    Triple("jam", Icons.Rounded.DirectionsCar, Color(0xFFF4511E)),
-)
+/** The icon of each kind on the quick panel (the phone's tiles use the same icons). */
+private fun ReportKind.quickIcon(): ImageVector = when (this) {
+    ReportKind.POLICE -> Icons.Rounded.LocalPolice
+    ReportKind.ACCIDENT -> Icons.Rounded.CarCrash
+    ReportKind.HAZARD -> Icons.Rounded.PriorityHigh
+    ReportKind.BREAKDOWN -> Icons.Rounded.Build
+    ReportKind.MOBILECAM -> Icons.Rounded.CameraAlt
+    ReportKind.JAM -> Icons.Rounded.DirectionsCar
+    ReportKind.ROADWORKS -> Icons.Rounded.Build
+    ReportKind.CLOSED -> Icons.Rounded.Block
+}
 
 /**
  * The megaphone's panel on Android Auto, over the map: one tap reports where you are and closes it. Without a tap it closes
@@ -60,15 +65,15 @@ internal fun QuickReportPanel(engine: NavEngine, modifier: Modifier) {
     Column(modifier.panel(14.dp, RoundedCornerShape(24.dp), c.surface).padding(horizontal = 18.dp, vertical = 14.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Text(Lang.t("Schnellmeldung hier", "Quick report here"), color = c.sub, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
-        quickKinds.chunked(3).forEach { row ->
+        ReportKind.entries.filter { it.quick }.chunked(3).forEach { row ->
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                row.forEach { (kind, icon, tint) ->
-                    Column(Modifier.size(width = 150.dp, height = 110.dp).carTap("quick-$kind") { engine.report(kind); engine.quickReportAt = 0L },
+                row.forEach { kind ->
+                    Column(Modifier.size(width = 150.dp, height = 110.dp).carTap("quick-${kind.key}") { engine.report(kind.key); engine.quickReportAt = 0L },
                         horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
-                        Box(Modifier.size(56.dp).clip(CircleShape).background(tint), contentAlignment = Alignment.Center) {
-                            Icon(icon, null, tint = Color.White, modifier = Modifier.size(30.dp))
+                        Box(Modifier.size(56.dp).clip(CircleShape).background(Color(kind.argb)), contentAlignment = Alignment.Center) {
+                            Icon(kind.quickIcon(), null, tint = Color.White, modifier = Modifier.size(30.dp))
                         }
-                        Text(engine.reportName(kind), color = c.text, fontSize = 16.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(top = 6.dp))
+                        Text(kind.label, color = c.text, fontSize = 16.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(top = 6.dp))
                     }
                 }
             }

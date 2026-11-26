@@ -1,5 +1,9 @@
 ## Unreleased
 
+### Changed
+- „Hier melden“ sieht auf dem Handy und im Auto gleich aus: dieselben Farben und Namen. „Gesperrt“ heißt jetzt „Straße gesperrt“, „Mobile Blitzer“ und „Pannenfahrzeug“ heißen überall „Mobiler Blitzer“ und „Panne“.
+  EN: "Report here" looks the same on the phone and in the car: the same colours and names. "Gesperrt" is now "Straße gesperrt", and "Mobile Blitzer" and "Pannenfahrzeug" are "Mobiler Blitzer" and "Panne" everywhere.
+
 ## 1.0.246 — 2026-10-28
 
 ### Improved in-app updates

@@ -67,6 +67,7 @@ import com.headunit.launcher.MapboxRest
 import com.headunit.launcher.locatorSpec
 import com.headunit.launcher.mapDetail
 import com.headunit.launcher.NavEngine
+import com.headunit.launcher.ReportKind
 import com.headunit.launcher.NavService
 import com.headunit.launcher.Place
 import com.headunit.launcher.Prefs
@@ -1110,16 +1111,7 @@ class PlacesScreen(carContext: CarContext, private val holder: CarHolder) : Scre
 /** "Hier melden": Polizei, Unfall, Gefahr, Panne, mobiler Blitzer oder Stau, saved where you are (the same reports as the phone's). */
 class ReportScreen(carContext: CarContext, private val holder: CarHolder) : Screen(carContext) {
     override fun onGetTemplate(): Template {
-        val kinds = listOf(
-            Triple("police", Lang.t("Polizei", "Police"), R.drawable.ic_car_police to 0xFF8AB4F8.toInt()),
-            Triple("accident", Lang.t("Unfall", "Crash"), R.drawable.ic_car_crash to 0xFFF28B82.toInt()),
-            Triple("hazard", Lang.t("Gefahr", "Hazard"), R.drawable.ic_car_report to 0xFFFBBC04.toInt()),
-            Triple("breakdown", Lang.t("Panne", "Broken down"), R.drawable.ic_car_breakdown to 0xFFFCAD70.toInt()),
-            Triple("mobilecam", Lang.t("Mobiler Blitzer", "Mobile camera"), R.drawable.ic_car_mobilecam to 0xFF8AB4F8.toInt()),
-            Triple("jam", Lang.t("Stau", "Traffic jam"), R.drawable.ic_car_jam to 0xFFFF8A65.toInt()),
-            Triple("roadworks", Lang.t("Baustelle", "Roadworks"), R.drawable.ic_roadworks_sign to 0xFFFBC02D.toInt()),
-            Triple("closed", Lang.t("Gesperrt", "Road closed"), R.drawable.ic_car_report to 0xFFF28B82.toInt()),
-        )
+        val kinds = ReportKind.entries.map { it to carIcon(it) }
         val list = ItemList.Builder()
         // a car that shows only 6 tiles: the speed limit takes the place of "Panne" (the least used), so it isn't cut off
         val max = try { carContext.getCarService(ConstraintManager::class.java).getContentLimit(ConstraintManager.CONTENT_LIMIT_TYPE_GRID) } catch (x: Exception) { 6 }
@@ -1127,12 +1119,12 @@ class ReportScreen(carContext: CarContext, private val holder: CarHolder) : Scre
         val canShare = e0 != null && e0.route != null && !e0.previewing
         val room = max - 1 - (if (canShare) 1 else 0)
         // the least used kinds make room when the car shows few tiles (breakdown first)
-        val shownKinds = (if (room >= kinds.size) kinds else kinds.filter { it.first != "breakdown" }).take(room.coerceAtLeast(1))
-        for ((kind, label, ic) in shownKinds) list.addItem(
+        val shownKinds = (if (room >= kinds.size) kinds else kinds.filter { it.first != ReportKind.BREAKDOWN }).take(room.coerceAtLeast(1))
+        for ((kind, ic) in shownKinds) list.addItem(
             // (the roadworks sign keeps its own colours: red, white and black, not one flat tint)
-            GridItem.Builder().setTitle(label)
-                .setImage(if (kind == "roadworks") CarIcon.Builder(IconCompat.createWithResource(carContext, ic.first)).build() else rowIcon(carContext, ic.first, ic.second), GridItem.IMAGE_TYPE_LARGE)
-                .setOnClickListener { send(kind) }.build()
+            GridItem.Builder().setTitle(kind.label)
+                .setImage(if (kind == ReportKind.ROADWORKS) CarIcon.Builder(IconCompat.createWithResource(carContext, ic)).build() else rowIcon(carContext, ic, kind.argb.toInt()), GridItem.IMAGE_TYPE_LARGE)
+                .setOnClickListener { send(kind.key) }.build()
         )
         // the speed limit here: the right value, or that the sign shown is right
         list.addItem(GridItem.Builder().setTitle(Lang.t("Tempolimit", "Speed limit")).setImage(rowIcon(carContext, R.drawable.ic_car_speed, 0xFFF28B82.toInt()), GridItem.IMAGE_TYPE_LARGE)
@@ -1151,6 +1143,17 @@ class ReportScreen(carContext: CarContext, private val holder: CarHolder) : Scre
         return GridTemplate.Builder().setTitle(Lang.t("Hier melden", "Report here")).setHeaderAction(Action.BACK).setSingleList(list.build()).build()
     }
 
+    /** The car's icon for each kind (drawables, as the car's icons are not the phone's). */
+    private fun carIcon(k: ReportKind): Int = when (k) {
+        ReportKind.POLICE -> R.drawable.ic_car_police
+        ReportKind.ACCIDENT -> R.drawable.ic_car_crash
+        ReportKind.HAZARD, ReportKind.CLOSED -> R.drawable.ic_car_report
+        ReportKind.BREAKDOWN -> R.drawable.ic_car_breakdown
+        ReportKind.MOBILECAM -> R.drawable.ic_car_mobilecam
+        ReportKind.JAM -> R.drawable.ic_car_jam
+        ReportKind.ROADWORKS -> R.drawable.ic_roadworks_sign
+    }
+
     private fun send(kind: String) {
         val e = holder.engine
         val msg = when {
@@ -1163,7 +1166,7 @@ class ReportScreen(carContext: CarContext, private val holder: CarHolder) : Scre
             return
         }
         try { e.report(kind) } catch (x: Exception) { softFail(x) }
-        try { androidx.car.app.CarToast.makeText(carContext, Lang.t("${e.reportName(kind)}-Meldung hier gespeichert", "${e.reportName(kind)} report saved here"), androidx.car.app.CarToast.LENGTH_SHORT).show() } catch (x: Exception) { softFail(x) }
+        try { androidx.car.app.CarToast.makeText(carContext, Lang.t("${ReportKind.orPolice(kind).label}-Meldung hier gespeichert", "${ReportKind.orPolice(kind).label} report saved here"), androidx.car.app.CarToast.LENGTH_SHORT).show() } catch (x: Exception) { softFail(x) }
         screenManager.pop()
     }
 }

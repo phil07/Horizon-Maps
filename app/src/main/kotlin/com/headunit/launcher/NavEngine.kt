@@ -5373,13 +5373,6 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
      */
     class Report(val kind: String, val pos: LL, val t: Long, val sid: Long = 0L, val shared: Boolean = false)
 
-    /** How long each kind of report lasts, its map icon, and what is said when you come up to it. */
-    internal fun reportLife(k: String) = when (k) { "roadworks" -> 12 * 3_600_000L; "closed" -> 3 * 3_600_000L; "jam" -> 1_800_000L; "hazard" -> 3_600_000L; "accident", "breakdown" -> 2 * 3_600_000L; "mobilecam" -> 4 * 3_600_000L; else -> 3 * 3_600_000L }
-    internal fun reportIcon(k: String) = when (k) { "roadworks" -> 1; "closed" -> 2; "accident" -> 4; "hazard" -> 5; "breakdown" -> 6; "mobilecam" -> 7; "jam" -> 8; else -> 3 }
-    fun reportName(k: String) = when (k) { "roadworks" -> Lang.t("Baustelle", "Roadworks"); "closed" -> Lang.t("Straße gesperrt", "Road closed"); "accident" -> Lang.t("Unfall", "Accident"); "hazard" -> Lang.t("Gefahr", "Hazard"); "breakdown" -> Lang.t("Pannenfahrzeug", "Broken-down vehicle"); "mobilecam" -> Lang.t("Mobile Blitzer", "Mobile speed camera"); "jam" -> Lang.t("Stau", "Traffic jam"); else -> Lang.t("Polizei", "Police") }
-    /** The kinds this version knows (a shared report of a kind added later is left out rather than shown as police). */
-    internal val reportKinds = setOf("police", "accident", "hazard", "breakdown", "mobilecam", "jam", "roadworks", "closed")
-
     /** Your own reports still in force (older police-only reports are read too). Stored as "kind,lat,lon,time[,server id]". */
     fun reportsActive(): List<Report> {
         val now = System.currentTimeMillis()
@@ -5387,14 +5380,14 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
         for (r in prefs.s(PreferenceKeys.POLICEREP, "").split(";")) {
             val q = r.split(",")
             val la = q.getOrNull(0)?.toDoubleOrNull(); val lo = q.getOrNull(1)?.toDoubleOrNull(); val t = q.getOrNull(2)?.toLongOrNull()
-            if (la != null && lo != null && t != null && now - t < reportLife("police")) out += Report("police", LL(la, lo), t)
+            if (la != null && lo != null && t != null && now - t < ReportKind.POLICE.lifeMs) out += Report("police", LL(la, lo), t)
         }
         for (r in prefs.s(PreferenceKeys.REPORTS, "").split(";")) {
             val q = r.split(",")
             val k = q.getOrNull(0).orEmpty()
             val la = q.getOrNull(1)?.toDoubleOrNull(); val lo = q.getOrNull(2)?.toDoubleOrNull(); val t = q.getOrNull(3)?.toLongOrNull()
             val sid = q.getOrNull(4)?.toLongOrNull() ?: 0L
-            if (k.isNotBlank() && la != null && lo != null && t != null && now - t < reportLife(k)) out += Report(k, LL(la, lo), t, sid)
+            if (k.isNotBlank() && la != null && lo != null && t != null && now - t < ReportKind.orPolice(k).lifeMs) out += Report(k, LL(la, lo), t, sid)
         }
         return out
     }
@@ -5414,11 +5407,11 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
         val mine = Report(kind, p, System.currentTimeMillis())
         saveReports(keep + mine)
         prefs.put(PreferenceKeys.POLICEREP, "")
-        toast(Lang.f("%1\$s-Meldung hier gespeichert", "%1\$s report saved here", reportName(kind)), 3000)
+        toast(Lang.f("%1\$s-Meldung hier gespeichert", "%1\$s report saved here", ReportKind.orPolice(kind).label), 3000)
         pushHazards(hzProgress)
         // a report made by mistake can be taken back for a few seconds: Undo on the "saved here" message
         lastOwnReport = mine; lastOwnSid = 0L
-        showNotice(Notice("undo_report", reportName(kind), Lang.t("Hier gespeichert", "Saved here"), 2, Lang.t("Rückgängig", "Undo")), 5000)
+        showNotice(Notice("undo_report", ReportKind.orPolice(kind).label, Lang.t("Hier gespeichert", "Saved here"), 2, Lang.t("Rückgängig", "Undo")), 5000)
         // shared with other drivers (Settings, on by default): the server's id is kept with the report, so the same report coming
         // back from the server isn't shown twice
         if (SharedReports.sharing(prefs)) scope.launch {

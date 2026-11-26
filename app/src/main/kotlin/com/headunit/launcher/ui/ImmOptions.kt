@@ -10,6 +10,7 @@ import com.headunit.launcher.skipSimTurn
 import com.headunit.launcher.startWalkToCar
 import com.headunit.launcher.stopSim
 import com.headunit.launcher.R
+import com.headunit.launcher.ReportKind
 import com.headunit.launcher.Lang
 import androidx.compose.ui.res.stringResource
 
@@ -248,16 +249,9 @@ internal fun OptionsSheet(engine: NavEngine, shareEta: () -> Unit, voice: () -> 
         val restPart: @Composable () -> Unit = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 SheetHeading(Lang.t("Hier melden", "Report here"))
-                WideTiles(3, listOf(
-                    TileSpec(Icons.Rounded.LocalPolice, Lang.t("Polizei", "Police"), Color(0xFF1E66F5), { engine.report("police"); close() }),
-                    TileSpec(Icons.Rounded.CarCrash, Lang.t("Unfall", "Crash"), Bad, { engine.report("accident"); close() }),
-                    TileSpec(Icons.Rounded.PriorityHigh, Lang.t("Gefahr", "Hazard"), Warn, { engine.report("hazard"); close() }),
-                    TileSpec(Icons.Rounded.Build, Lang.t("Panne", "Broken down"), Color(0xFFFB8C00), { engine.report("breakdown"); close() }),
-                    TileSpec(Icons.Rounded.CameraAlt, Lang.t("Mobiler Blitzer", "Mobile cam"), Color(0xFF1E66F5), { engine.report("mobilecam"); close() }),
-                    TileSpec(Icons.Rounded.DirectionsCar, Lang.t("Stau", "Traffic jam"), Color(0xFFF4511E), { engine.report("jam"); close() }),
-                    TileSpec(Icons.Rounded.Build, Lang.t("Baustelle", "Roadworks"), Color(0xFFFBC02D), { engine.report("roadworks"); close() }, picture = R.drawable.ic_roadworks_sign),
-                    TileSpec(Icons.Rounded.Block, Lang.t("Gesperrt", "Road closed"), Bad, { engine.report("closed"); close() }),
-                ), compact = true)
+                WideTiles(3, ReportKind.entries.map { k ->
+                    TileSpec(k.phoneIcon(), k.label, Color(k.argb), { engine.report(k.key); close() }, picture = if (k == ReportKind.ROADWORKS) R.drawable.ic_roadworks_sign else null)
+                }, compact = true)
                 // with no route the map page already has fuel, charging, food, coffee and parking, so only the rest are here
                 fun find(kind: String): () -> Unit = { engine.loadNearby(kind, false); close() }
                 val finds = listOfNotNull(
@@ -305,6 +299,18 @@ private fun Segments(labels: List<String>, selected: Int, onPick: (Int) -> Unit)
             }
         }
     }
+}
+
+/** The icon of each report kind on the phone's "Hier melden" tiles. */
+private fun ReportKind.phoneIcon(): ImageVector = when (this) {
+    ReportKind.POLICE -> Icons.Rounded.LocalPolice
+    ReportKind.ACCIDENT -> Icons.Rounded.CarCrash
+    ReportKind.HAZARD -> Icons.Rounded.PriorityHigh
+    ReportKind.BREAKDOWN -> Icons.Rounded.Build
+    ReportKind.MOBILECAM -> Icons.Rounded.CameraAlt
+    ReportKind.JAM -> Icons.Rounded.DirectionsCar
+    ReportKind.ROADWORKS -> Icons.Rounded.Build
+    ReportKind.CLOSED -> Icons.Rounded.Block
 }
 
 private fun soundIcon(mode: Int): ImageVector = when (mode) { 0 -> Icons.Rounded.VolumeUp; 1 -> Icons.Rounded.NotificationsActive; else -> Icons.Rounded.VolumeOff }

@@ -44,7 +44,7 @@ internal fun NavEngine.allReports(): List<Report> {
     val mine = own.mapTo(HashSet()) { it.sid }
     val now = System.currentTimeMillis()
     val out = ArrayList<Report>(own)
-    for (s in shared) if (s.exp > now && !s.mine && s.kind in reportKinds && s.id !in mine && !SharedReports.isOwn(s.id) && !SharedReports.isGone(s.id))
+    for (s in shared) if (s.exp > now && !s.mine && ReportKind.of(s.kind) != null && s.id !in mine && !SharedReports.isOwn(s.id) && !SharedReports.isGone(s.id))
         out += Report(s.kind, s.pos, s.t, s.id, shared = true)
     return out
 }
@@ -188,7 +188,7 @@ internal fun NavEngine.checkPolice(p: Fix) {
         val hit = list.firstOrNull { it.shared && it.sid !in votePrompted && Geo.dist(p.pos, it.pos) < 150.0 }
         if (hit != null) {
             votePrompted.add(hit.sid)
-            val vp = VotePrompt(hit.sid, hit.kind, reportName(hit.kind))
+            val vp = VotePrompt(hit.sid, hit.kind, ReportKind.orPolice(hit.kind).label)
             votePrompt = vp
             // a jam or a closure driven through at 50 km/h or more is gone: left unanswered, it is voted "weg" by itself
             val fast = p.speed >= 14.0 && hit.kind in setOf("jam", "closed")
@@ -207,13 +207,13 @@ internal fun NavEngine.checkPolice(p: Fix) {
         // weighed by its sources: a fresh report counts alone. One that has run most of its life (70 %) is only announced when another
         // source says the same, because the others (a driver's vote, a second report, a traffic feed) would have it too, but only where
         // there are other sources at all: the fewer there are here, the more the one that exists is trusted
-        if (System.currentTimeMillis() - r.t > reportLife(r.kind) * 7 / 10 && sourcesPossible() >= 3 && reportSources(r, list) < 2) continue
+        if (System.currentTimeMillis() - r.t > ReportKind.orPolice(r.kind).lifeMs * 7 / 10 && sourcesPossible() >= 3 && reportSources(r, list) < 2) continue
         val diff = abs(((Geo.bearing(p.pos, r.pos) - p.heading + 540.0) % 360.0) - 180.0)
         // (a shared report is remembered by its server id: two drivers' reports can carry the same time)
         if (diff < 50 && policeAlerted.add(if (r.shared) -r.sid else r.t)) {
             chime(android.media.ToneGenerator.TONE_PROP_PROMPT)
-            raiseAlert(if (r.kind == "mobilecam") "camera" else "report", Lang.f("%1\$s voraus gemeldet", "%1\$s reported ahead", reportName(r.kind)))
-            speak(Lang.f("%1\$s voraus gemeldet", "%1\$s reported ahead", reportName(r.kind)), true)
+            raiseAlert(if (r.kind == "mobilecam") "camera" else "report", Lang.f("%1\$s voraus gemeldet", "%1\$s reported ahead", ReportKind.orPolice(r.kind).label))
+            speak(Lang.f("%1\$s voraus gemeldet", "%1\$s reported ahead", ReportKind.orPolice(r.kind).label), true)
         }
     }
 }
@@ -223,7 +223,7 @@ internal fun NavEngine.pushHazards(progress: Double) {
     hzProgress = progress
     val list = ArrayList<Pair<LL, Int>>()
     if (prefs.b(PreferenceKeys.HAZARD_ICONS, true)) {
-        for (r in allReports()) list += r.pos to reportIcon(r.kind)
+        for (r in allReports()) list += r.pos to ReportKind.orPolice(r.kind).mapIcon
         for ((inc, off, _) in incMatches) {
             if (off <= progress - 20) continue
             val k = when (inc.cat.lowercase()) { "roadclosed" -> 2; "roadworks", "laneclosed" -> 1; else -> -1 }
