@@ -1,9 +1,5 @@
 ## Unreleased
 
-### Changed
-- Die Routenübersicht zeigt die Länder der Route in Reihenfolge, z. B. „Länder: Deutschland → Österreich → Italien“.
-  EN: The route overview lists the countries of the route in order, e.g. "Countries: Germany → Austria → Italy".
-
 ## 1.0.246 — 2026-10-28
 
 ### Improved in-app updates

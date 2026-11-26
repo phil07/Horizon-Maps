@@ -1954,44 +1954,8 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
     var routeVignette by mutableStateOf<List<Vignette.Need>>(emptyList()); private set
     /** The countries the route goes through, in order (names, where the border table knows them): the route overview's line. */
     var routeCountries by mutableStateOf<List<String>>(emptyList()); private set
-    private var vignetteRoute: Route? = null
-    private val vignetteSaid = HashSet<String>()
-
-    /**
-     * Settings > Routes Lang.t("Vignettenpflichtige Straßen meiden", "Avoid vignette roads"): when the best route uses a vignette road in a country you only pass
-     * through, it's asked again without toll roads; the new one is kept if it needs fewer vignettes.
-     */
-    private suspend fun avoidVignette(rs: List<Route>, from: LL, to: LL, departMs: Long): List<Route> {
-        if (!prefs.b(PreferenceKeys.AVOID_VIGNETTE, false) || prefs.b(PreferenceKeys.AVOID_TOLL, false)) return rs
-        val ends = setOfNotNull(Vignette.countryOf(to), Vignette.countryOf(from))
-        val need = withContext(Dispatchers.Default) { try { Vignette.along(rs[0]) } catch (e: Exception) { emptyList() } }.filter { it.cc !in ends }
-        if (need.isEmpty()) return rs
-        val alt = withContext(Dispatchers.IO) {
-            val keep = TomTomRest.avoid
-            try { TomTomRest.avoid = (keep + "tollRoads").distinct(); netRoutes(from, to, true, departMs, via.map { it.pos }, driveHeading(from), askBoth = true) }
-            catch (e: Exception) { emptyList() }
-            finally { TomTomRest.avoid = keep }
-        }
-        if (alt.isEmpty()) return rs
-        val need2 = withContext(Dispatchers.Default) { try { Vignette.along(alt[0]) } catch (e: Exception) { need } }.filter { it.cc !in ends }
-        if (need2.size >= need.size) return rs
-        val extra = Math.round((alt[0].time - rs[0].time) / 60.0).toInt()
-        toast(Lang.t("Route ohne Vignette" + (if (extra > 0) " (+$extra Min.)" else ""), "Route without a vignette" + (if (extra > 0) " (+$extra min)" else "")), 4000)
-        return alt
-    }
-
-    /** Before the border: once per country and route, about 30 km ahead (or straight away when it's nearer). */
-    internal fun checkVignette(r: Route, progress: Double) {
-        if (vignetteRoute !== r || previewing || simMode != 0 || !prefs.b(PreferenceKeys.VIGNETTE_WARN, true)) return
-        for (n in routeVignette) {
-            val ahead = n.off - progress
-            if (ahead < 0 || ahead > 30_000.0 || !vignetteSaid.add(n.cc)) continue
-            speak(Vignette.spoken(n), true)
-            showNotice(Notice("toll", Lang.t("Vignettenpflicht in ${Vignette.name(n.cc)}", "Vignette needed in ${Vignette.name(n.cc)}"),
-                Lang.t("Ab etwa ${Geo.fmtDist(ahead, imperial)}", "From about ${Geo.fmtDist(ahead, imperial)}") + (if (n.special.isNotEmpty()) Lang.t(" · Streckenmaut ", " · section toll ") + n.special.joinToString(", ") else ""), 2), 20_000L)
-            break
-        }
-    }
+    internal var vignetteRoute: Route? = null
+    internal val vignetteSaid = HashSet<String>()
 
     internal fun updateRouteZones() {
         val r = route ?: run { routeZones = emptyList(); routeVignette = emptyList(); routeCountries = emptyList(); vignetteRoute = null; return }
