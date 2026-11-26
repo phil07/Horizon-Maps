@@ -686,7 +686,8 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
         var won: Pair<String, List<Route>>? = null
         try {
             for (i in 0 until 2) {
-                val got = done.poll(20, java.util.concurrent.TimeUnit.SECONDS)?.get() ?: break
+                // (a route from either service within 10 s; after that the offline route is tried, if there is one)
+                val got = done.poll(10, java.util.concurrent.TimeUnit.SECONDS)?.get() ?: break
                 if (got.second.isNotEmpty()) { won = got; break }
             }
         } catch (e: Exception) { softFail(e) } finally {
@@ -2847,7 +2848,12 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
                     val haveOffline = OfflineRouter.installed(ctx)
                     val hd = driveHeading(from)
                     if (haveOffline && (!hasOnline || !online())) { usedOffline = true; typicalOffline(ctx, from, toPos, via.map { it.pos }, hd) }
-                    else try { netRoutes(from, toPos, true, departMs, via.map { it.pos }, hd, askBoth = true) }
+                    else try {
+                        // no online route in time: the offline one, when a pack is there
+                        netRoutes(from, toPos, true, departMs, via.map { it.pos }, hd, askBoth = true).ifEmpty {
+                            if (haveOffline) { usedOffline = true; typicalOffline(ctx, from, toPos, via.map { it.pos }, hd) } else emptyList()
+                        }
+                    }
                     catch (e: Exception) {
                         if (haveOffline && NavigationFallbackPolicy.shouldUseOffline(e)) { usedOffline = true; typicalOffline(ctx, from, toPos, via.map { it.pos }, hd) } else throw e
                     }

@@ -1,8 +1,8 @@
 ## Unreleased
 
 ### Changed
-- Wird die Suche durch einen neuen Buchstaben abgebrochen, wartet die App nicht mehr auf die Antwort des Suchdienstes.
-  EN: When a new letter cancels the search, the app no longer waits for the search service's answer.
+- Gibt der Online-Dienst beim Planen keine Route in 10 Sekunden zurück, wird die Offline-Route gerechnet, wenn ein Offline-Paket da ist.
+  EN: If the online service gives no route within 10 seconds when planning, the offline route is worked out, when an offline pack is there.
 
 ## 1.0.246 — 2026-10-28
 
