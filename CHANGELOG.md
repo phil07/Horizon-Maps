@@ -1,8 +1,8 @@
 ## Unreleased
 
 ### Changed
-- Fahrspuren, die gegen die Fahrtrichtung laufen, werden nicht mehr angezeigt.
-  EN: Lanes that run against the direction of travel are no longer shown.
+- Offline-Routen geben ihren Speicher nach jeder Berechnung wieder frei. Die nächste Route lädt die Karte dann neu, das dauert etwas länger.
+  EN: Offline routes free their memory after each route is worked out. The next route loads the map again, which takes a little longer.
 
 ## 1.0.246 — 2026-10-28
 

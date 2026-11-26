@@ -878,8 +878,14 @@ object OfflineRouter {
         return Route(pts, cum, steps, cum.last(), time, 0.0)
     }
 
-    /** A route inside one downloaded area (the folder [pd]). */
-    private fun routeIn(pd: File, from: LL, to: LL, via: List<LL>, headingDeg: Double, costing: String = "auto"): Route {
+    /**
+     * A route inside one downloaded area (the folder [pd]). The engine holds the area's tiles in memory, so it is closed after the route:
+     * the memory goes back at once, and the next route opens it again.
+     */
+    private fun routeIn(pd: File, from: LL, to: LL, via: List<LL>, headingDeg: Double, costing: String = "auto"): Route =
+        try { routeInEngine(pd, from, to, via, headingDeg, costing) } finally { closeEngine() }
+
+    private fun routeInEngine(pd: File, from: LL, to: LL, via: List<LL>, headingDeg: Double, costing: String): Route {
         if (!installedIn(pd)) throw IllegalStateException(Lang.t("Keine Offline-Karte installiert", "No offline map installed"))
         val locs = org.json.JSONArray()
         locs.put(JSONObject().put("lat", from.lat).put("lon", from.lon).apply { if (headingDeg >= 0) { put("heading", headingDeg.toInt()); put("heading_tolerance", 60) } })
