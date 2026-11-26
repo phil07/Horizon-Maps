@@ -231,6 +231,7 @@ private fun NavEngine.pushAvgZones(r: Route, zones: List<AvgOnRoute>) {
 /** Once a second while navigating: fetches and places services, bumps, schools and average speed checks, and raises their alerts. */
 internal fun NavEngine.routeExtrasTick(r: Route, progress: Double) {
     try { checkVignette(r, progress) } catch (e: Exception) { softFail(e) }
+    try { checkBorder(r, progress) } catch (e: Exception) { softFail(e) }
     if (previewing) return
     // your destination's building lights up for the last 400 m (and goes back to normal when you get there)
     run {

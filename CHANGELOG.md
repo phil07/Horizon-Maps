@@ -1,12 +1,8 @@
 ## Unreleased
 
 ### Changed
-- Ein Tempolimit bleibt im Stau gemerkt, solange du stehst. Es fällt erst weg, wenn du dich mehr als 3 km entfernst.
-  EN: A speed limit stays remembered while you stand in a jam. It only goes once you are more than 3 km away.
-- Auf dem Auto-Display sind die Suchleiste und die Schnellzugriffe deckender.
-  EN: On the car display, the search bar and the shortcuts are more solid.
-- Ein Tipp auf einen benannten Ort in der Karte öffnet die Ortskarte mit dem Namen, auch bei der OpenStreetMap-Karte.
-  EN: A tap on a named place on the map opens its place card with the name, also on the OpenStreetMap map.
+- Vor einer Landesgrenze sagt die App das Land an, mit Richtwerten zu Tempo, Notruf, Währung und Sprache (20 km vorher).
+  EN: Before a national border the app announces the country, with guide values for speed, emergency number, currency and language (20 km ahead).
 
 ## 1.0.246 — 2026-10-28
 
