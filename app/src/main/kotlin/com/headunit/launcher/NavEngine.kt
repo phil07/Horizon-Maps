@@ -2554,7 +2554,8 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
             // the online search and the saved / downloaded places run at the same time, and their results are merged
             val localJob = async { offlineMatches(q, near) }
             val nearJob = async(Dispatchers.IO) { try { nearbyMatches(q, near) } catch (e: Exception) { emptyList() } }
-            val net0 = try { withContext(Dispatchers.IO) { netGeocode(countryCode(), q, near) } } catch (e: kotlinx.coroutines.CancellationException) { throw e } catch (e: Exception) { android.util.Log.w("NavEngine", "search failed", e); null }
+            // (a new letter cancels this search at once: the online answer is then not waited for)
+            val net0 = try { cancellableCall { netGeocode(countryCode(), q, near) } } catch (e: kotlinx.coroutines.CancellationException) { throw e } catch (e: Exception) { android.util.Log.w("NavEngine", "search failed", e); null }
             // the online places show as soon as they are in; the shops and chains near you (searched at the same time) join them when they arrive
             val early = rankResults(q, near, net0 ?: emptyList(), emptyList())
             if (early.isNotEmpty()) results = early

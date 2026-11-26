@@ -1,8 +1,8 @@
 ## Unreleased
 
 ### Changed
-- Ladesäulen auf langen Routen werden schneller gefunden: Die Route wird in Abschnitte geteilt, die gleichzeitig abgefragt werden, mit dichteren Punkten.
-  EN: Chargers on long routes are found faster: the route is split into pieces that are asked at the same time, with denser points.
+- Wird die Suche durch einen neuen Buchstaben abgebrochen, wartet die App nicht mehr auf die Antwort des Suchdienstes.
+  EN: When a new letter cancels the search, the app no longer waits for the search service's answer.
 
 ## 1.0.246 — 2026-10-28
 

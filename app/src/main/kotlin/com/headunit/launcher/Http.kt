@@ -3,6 +3,8 @@ package com.headunit.launcher
 import java.io.IOException
 import java.net.HttpURLConnection
 import java.net.URL
+import kotlin.coroutines.resume
+import kotlin.coroutines.resumeWithException
 
 /**
  * The app's plain web requests, in one place: the timeouts (each call names its own), the app's name for the servers, the status
@@ -57,4 +59,16 @@ internal object Http {
             c.disconnect()
         }
     }
+}
+
+/**
+ * Runs a blocking web call on its own thread. When the caller is cancelled, it stops waiting at once and the answer is dropped; the
+ * call itself ends on its own timeout, as a socket can't be stopped from outside here.
+ */
+internal suspend fun <T> cancellableCall(block: () -> T): T = kotlinx.coroutines.suspendCancellableCoroutine { cont ->
+    val t = Thread {
+        try { cont.resume(block()) } catch (e: Throwable) { cont.resumeWithException(e) }
+    }
+    t.isDaemon = true
+    t.start()
 }
