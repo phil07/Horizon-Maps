@@ -991,6 +991,7 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
     /** When the car came to rest near the destination, and when a route came to rest at all (0 = not stopped). */
     private var parkedNearSince = 0L
     private var parkedRouteSince = 0L
+    private var parkedBgSince = 0L
     private var parkedCloseSince = 0L
     private var posSavedAt = 0L
     private var tripOn = false
@@ -4086,6 +4087,12 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
             if (parkedRouteSince == 0L) parkedRouteSince = now
             else if (now - parkedRouteSince > 30 * 60_000L) { parkedRouteSince = 0L; endRouteKeepingResume(); if (!appVisible && !RouteSync.carConnected()) stopLocation() }
         } else parkedRouteSince = 0L
+        // parked for half an hour with the app in the background and no car: the GPS stops (and the background service with it);
+        // it starts again when the app is opened, so the speed warning in the background is on again only from then
+        if (p.speed < 0.8 && !appVisible && !isCar && !RouteSync.carConnected()) {
+            if (parkedBgSince == 0L) parkedBgSince = now
+            else if (now - parkedBgSince > 30 * 60_000L) { parkedBgSince = 0L; stopLocation(); NavService.stop(ctx) }
+        } else parkedBgSince = 0L
         // ---- end of trip (stopped for two minutes) ----
         if (p.speed > 4.0) { drove = true; stillSince = 0L }
         else if (p.speed < 0.8 && drove) {

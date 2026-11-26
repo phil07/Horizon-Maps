@@ -1,8 +1,8 @@
 ## Unreleased
 
 ### Changed
-- Suchergebnisse: Die Adresse darf jetzt zwei Zeilen lang sein, statt nach einer Zeile abgeschnitten zu werden.
-  EN: Search results: the address may now run to two lines instead of being cut off after one.
+- Akku: Bist du 30 Minuten lang ohne Auto geparkt und die App ist im Hintergrund, stellt die App das GPS und den Hintergrunddienst ab. Beim Öffnen läuft beides wieder. Bis dahin ist die Tempowarnung im Hintergrund aus.
+  EN: Battery: if you have been parked for 30 minutes with no car connected and the app in the background, the app stops the GPS and the background service. Both start again when you open the app. Until then the background speed warning is off.
 
 ## 1.0.246 — 2026-10-28
 
