@@ -1,8 +1,8 @@
 ## Unreleased
 
 ### Changed
-- Gesperrte Strecken ab 2 km werden als schmaler Streifen entlang der Straße umfahren, nicht mehr mit wenigen Quadraten.
-  EN: Closed stretches of 2 km or more are now avoided as a narrow strip along the road, no longer with a few small squares.
+- Die Meldung „Straße gesperrt“ nennt, wie weit die Sperrung vorn liegt, z. B. „In 3,2 km · Neue Route um die Sperrung“.
+  EN: The "Road closed" notice says how far ahead the closure is, e.g. "In 3.2 km · New route round the closure".
 
 ## 1.0.246 — 2026-10-28
 

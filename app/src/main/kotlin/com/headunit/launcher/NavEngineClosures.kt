@@ -142,20 +142,29 @@ private fun NavEngine.closureAhead(r: Route) {
     closureRerouted += hit.id
     if (hit.id.startsWith("rep")) noteClosures(emptyList()) else closures[hit.id] = hit.pts to System.currentTimeMillis() + 30 * 60_000L
     closurePending = hit
+    closureAheadM = aheadOf(r, hit.pts.first(), prog)
     lastReroute = 0L
     reroute()
+}
+
+/** Metres along [r] from [prog] to the first point near [p]; 0 when the route does not come near it. */
+private fun aheadOf(r: Route, p: LL, prog: Double): Double {
+    for (n in r.pts.indices) if (r.cum[n] >= prog && Geo.dist(r.pts[n], p) < 30.0) return r.cum[n] - prog
+    return 0.0
 }
 
 /** After a reroute for a closure: says the new way round, or that there is none (the route still goes through). */
 internal fun NavEngine.closureAfterReroute(r: Route) {
     val c = closurePending ?: return
     closurePending = null
+    // how far ahead the closure is, first: the notice says it (for example "In 3.2 km · Neue Route um die Sperrung")
+    fun ahead(s: String) = "In ${Geo.fmtDist(closureAheadM, imperial)} · $s"
     if (passes(r, c.pts.take(30), 0.0)) {
         speak(Lang.t("Sperrung auf der Route, kein Umweg gefunden.", "Road closed on the route, no way round found."), true)
-        showNotice(Notice("closure", Lang.t("Straße gesperrt", "Road closed"), Lang.t("Kein Umweg gefunden", "No way round found"), 2), 15_000L)
+        showNotice(Notice("closure", Lang.t("Straße gesperrt", "Road closed"), ahead(Lang.t("Kein Umweg gefunden", "No way round found")), 2), 15_000L)
     } else {
         speak(Lang.t("Straße gesperrt. Neue Route.", "Road closed. New route."), true)
-        showNotice(Notice("closure", Lang.t("Straße gesperrt", "Road closed"), Lang.t("Neue Route um die Sperrung", "New route round the closure"), 2), 10_000L)
+        showNotice(Notice("closure", Lang.t("Straße gesperrt", "Road closed"), ahead(Lang.t("Neue Route um die Sperrung", "New route round the closure")), 2), 10_000L)
     }
 }
 

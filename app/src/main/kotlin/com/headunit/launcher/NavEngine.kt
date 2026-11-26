@@ -5512,6 +5512,8 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
     /** Closures a reroute was already asked for (each once), and one waiting to be said once the new route is in. */
     internal val closureRerouted = HashSet<String>()
     internal var closurePending: Incident? = null
+    /** How far ahead, in metres, the closure in [closurePending] lies on the route it was found on (shown on the notice). */
+    internal var closureAheadM = 0.0
 
     internal var sevBase: IntArray? = null
     internal var sevBaseRoute: Route? = null
