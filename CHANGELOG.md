@@ -1,8 +1,8 @@
 ## Unreleased
 
 ### Changed
-- Die Meldung „Straße gesperrt“ nennt, wie weit die Sperrung vorn liegt, z. B. „In 3,2 km · Neue Route um die Sperrung“.
-  EN: The "Road closed" notice says how far ahead the closure is, e.g. "In 3.2 km · New route round the closure".
+- Die Routenlinie auf der Karte folgt den Kurven genauer und schneidet keine Ecken mehr ab.
+  EN: The route line on the map follows the bends more closely and no longer cuts corners.
 
 ## 1.0.246 — 2026-10-28
 

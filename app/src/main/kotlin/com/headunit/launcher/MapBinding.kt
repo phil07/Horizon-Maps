@@ -1586,7 +1586,8 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
         addS(st, GeoJsonSource.Builder("dl-pick").featureCollection(empty()).build())
         addS(st, GeoJsonSource.Builder("dl-live-alts").featureCollection(empty()).build())
         addS(st, GeoJsonSource.Builder("dl-live-bub").featureCollection(empty()).build())
-        addS(st, GeoJsonSource.Builder("dl-route").featureCollection(empty()).build())
+        // the route line keeps every bend: Mapbox's default simplifies a long line at low zoom, which cut the corners
+        addS(st, GeoJsonSource.Builder("dl-route").featureCollection(empty()).tolerance(0.1).build())
         addS(st, GeoJsonSource.Builder("dl-flow").featureCollection(empty()).lineMetrics(true).build())
         addS(st, GeoJsonSource.Builder("dl-done").featureCollection(empty()).build())
         addS(st, GeoJsonSource.Builder("dl-dest").featureCollection(empty()).build())
