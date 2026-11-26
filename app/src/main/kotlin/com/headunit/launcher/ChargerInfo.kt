@@ -6,6 +6,7 @@ import java.io.IOException
 import java.net.HttpURLConnection
 import java.net.URL
 import java.net.URLEncoder
+import java.util.concurrent.Callable
 
 /**
  * Charger power and operator from two open registers, for chargers TomTom and OpenStreetMap know but without a power or operator
@@ -21,6 +22,9 @@ object ChargerInfo {
     private const val UA = "HorizonNav/1.0"
     /** How close a register entry must be to count as the same charger (the register's positions are often a car park's, not the pillar's). */
     private const val SAME_M = 150.0
+    /** Points of the route per register request (a longer line is cut into pieces of this many, asked at the same time). */
+    private const val PIECE_PTS = 100
+    private val pool = java.util.concurrent.Executors.newFixedThreadPool(4) { r -> Thread(r, "charger-register").apply { isDaemon = true } }
 
     /** What the last lookup did, for the settings page. */
     @Volatile var lastNote = ""
@@ -41,24 +45,42 @@ object ChargerInfo {
         val fastOnly = prefs.i(PreferenceKeys.EV_MIN_KW, 50) > 0
         val h = (line.hashCode() * 31 + key.hashCode()) * 31 + fastOnly.hashCode()
         synchronized(cache) { cache[h] }?.let { return it }
-        val out = ArrayList<Nearby>()
-        val notes = ArrayList<String>()
-        var failed = false
+        // a long line is asked in pieces at the same time, one point shared between neighbours
+        val pieces = (0 until line.size - 1 step PIECE_PTS - 1).map { s -> line.subList(s, minOf(line.size, s + PIECE_PTS)) }
+        val found = pieces.map { p -> pool.submit(Callable { one(p, key, fastOnly) }) }.map { it.get() }
+        // the same site from two pieces counts once; Open Charge Map's are left out where the register has the charger
+        val bn = found.flatMap { it.bn }.distinctBy { it.place.pos.lat to it.place.pos.lon }
+        val ocmAll = found.flatMap { it.ocm }.distinctBy { it.place.pos.lat to it.place.pos.lon }
+            .filter { n -> bn.none { Geo.dist(it.place.pos, n.place.pos) < SAME_M } }
+        val out = ArrayList<Nearby>(bn + ocmAll)
+        lastNote = listOfNotNull(
+            if (found.any { it.bnOn }) "BNetzA ${bn.size}" else null,
+            if (found.any { it.ocmOn }) "OCM ${ocmAll.size}" else null,
+        ).plus(found.flatMap { it.errors }.distinct()).joinToString("; ")
+        // a failed source is asked again next time (it may only have been a dead spot)
+        if (found.none { it.failed }) synchronized(cache) { cache[h] = out }
+        return out
+    }
+
+    /** What one piece of the line got: the register's and Open Charge Map's chargers, and any error. */
+    private class Found(val bn: List<Nearby>, val ocm: List<Nearby>, val bnOn: Boolean, val ocmOn: Boolean, val errors: List<String>) {
+        val failed: Boolean get() = errors.isNotEmpty()
+    }
+
+    private fun one(line: List<LL>, key: String, fastOnly: Boolean): Found {
+        val bn = ArrayList<Nearby>(); val ocmList = ArrayList<Nearby>(); val errors = ArrayList<String>()
+        var bnOn = false; var ocmOn = false
         if (line.any { it.lat in 47.2..55.1 && it.lon in 5.8..15.1 }) {
-            try { out += bnetza(line, fastOnly); notes += "BNetzA ${out.size}" }
-            catch (e: Exception) { failed = true; notes += "BNetzA: " + (e.message ?: e.javaClass.simpleName) }
+            bnOn = true
+            try { bn += bnetza(line, fastOnly) }
+            catch (e: Exception) { errors += "BNetzA: " + (e.message ?: e.javaClass.simpleName) }
         }
         if (key.isNotEmpty()) {
-            try {
-                // in Germany Open Charge Map is a second opinion: only its chargers the register doesn't already have
-                val o = ocm(key, line).filter { n -> out.none { Geo.dist(it.place.pos, n.place.pos) < SAME_M } }
-                out += o; notes += "OCM ${o.size}"
-            } catch (e: Exception) { failed = true; notes += "OCM: " + (e.message ?: e.javaClass.simpleName) }
+            ocmOn = true
+            try { ocmList += ocm(key, line) }
+            catch (e: Exception) { errors += "OCM: " + (e.message ?: e.javaClass.simpleName) }
         }
-        lastNote = notes.joinToString("; ")
-        // a failed source is asked again next time (it may only have been a dead spot)
-        if (!failed) synchronized(cache) { cache[h] = out }
-        return out
+        return Found(bn, ocmList, bnOn, ocmOn, errors)
     }
 
     /**

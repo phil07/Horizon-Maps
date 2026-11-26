@@ -1,8 +1,8 @@
 ## Unreleased
 
 ### Changed
-- Die Routenlinie auf der Karte folgt den Kurven genauer und schneidet keine Ecken mehr ab.
-  EN: The route line on the map follows the bends more closely and no longer cuts corners.
+- Ladesäulen auf langen Routen werden schneller gefunden: Die Route wird in Abschnitte geteilt, die gleichzeitig abgefragt werden, mit dichteren Punkten.
+  EN: Chargers on long routes are found faster: the route is split into pieces that are asked at the same time, with denser points.
 
 ## 1.0.246 — 2026-10-28
 
