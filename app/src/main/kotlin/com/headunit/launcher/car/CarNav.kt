@@ -8,83 +8,6 @@ import com.headunit.launcher.skipSimTurn
 import com.headunit.launcher.stopSim
 import com.headunit.launcher.R
 import com.headunit.launcher.Lang
-import com.headunit.launcher.PreferenceKeys
-import android.app.Presentation
-import android.content.Intent
-import android.content.res.Configuration
-import android.graphics.Canvas
-import android.graphics.Color
-import android.graphics.Paint
-import android.graphics.Rect
-import android.hardware.display.DisplayManager
-import android.hardware.display.VirtualDisplay
-import android.os.Handler
-import android.os.Looper
-import android.view.View
-import android.widget.FrameLayout
-import androidx.car.app.AppManager
-import androidx.car.app.CarAppService
-import androidx.car.app.CarContext
-import androidx.car.app.Screen
-import androidx.car.app.Session
-import androidx.car.app.SurfaceCallback
-import androidx.car.app.SurfaceContainer
-import androidx.car.app.constraints.ConstraintManager
-import androidx.car.app.model.Action
-import androidx.car.app.model.ActionStrip
-import androidx.car.app.model.CarIcon
-import androidx.car.app.model.DateTimeWithZone
-import androidx.car.app.model.Distance
-import androidx.car.app.model.GridItem
-import androidx.car.app.model.GridTemplate
-import androidx.car.app.model.ItemList
-import androidx.car.app.model.ListTemplate
-import androidx.car.app.model.MessageTemplate
-import androidx.car.app.model.Row
-import androidx.car.app.model.SearchTemplate
-import androidx.car.app.model.Template
-import androidx.car.app.model.Toggle
-import androidx.car.app.navigation.model.LaneDirection
-import androidx.car.app.navigation.NavigationManager
-import androidx.car.app.navigation.NavigationManagerCallback
-import androidx.car.app.navigation.model.Destination
-import androidx.car.app.navigation.model.Maneuver
-import androidx.car.app.navigation.model.NavigationTemplate
-import androidx.car.app.navigation.model.Step
-import androidx.car.app.navigation.model.TravelEstimate
-import androidx.car.app.navigation.model.Trip
-import androidx.car.app.validation.HostValidator
-import androidx.core.graphics.drawable.IconCompat
-import androidx.lifecycle.DefaultLifecycleObserver
-import androidx.lifecycle.LifecycleOwner
-import androidx.lifecycle.setViewTreeLifecycleOwner
-import androidx.lifecycle.setViewTreeViewModelStoreOwner
-import androidx.savedstate.setViewTreeSavedStateRegistryOwner
-import com.headunit.launcher.KEEP_LEFT
-import com.headunit.launcher.MapBinding
-import com.headunit.launcher.MapboxRest
-import com.headunit.launcher.locatorSpec
-import com.headunit.launcher.mapDetail
-import com.headunit.launcher.NavEngine
-import com.headunit.launcher.ReportKind
-import com.headunit.launcher.NavService
-import com.headunit.launcher.Place
-import com.headunit.launcher.Prefs
-import com.headunit.launcher.ui.weatherKindOn
-import com.headunit.launcher.TurnInfo
-import java.util.TimeZone
-import com.headunit.launcher.softFail
-
-package com.headunit.launcher.car
-
-import com.headunit.launcher.acceptFaster
-import com.headunit.launcher.answerVote
-import com.headunit.launcher.beginDemo
-import com.headunit.launcher.cycleSim
-import com.headunit.launcher.skipSimTurn
-import com.headunit.launcher.stopSim
-import com.headunit.launcher.R
-import com.headunit.launcher.Lang
 
 import com.headunit.launcher.PreferenceKeys
 import android.app.Presentation
@@ -619,6 +542,7 @@ class CarComposeOwner : androidx.lifecycle.LifecycleOwner, androidx.savedstate.S
         store.clear()
     }
 }
+
 
 /** Lets the map screen's once-a-second tick also update the speed sign drawn on the map. */
 object CarTicks { var tick: (() -> Unit)? = null }
