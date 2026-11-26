@@ -4020,7 +4020,9 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
                     } else {
                         // keep showing the last known limit through a failed lookup; only drop it once it is clearly out of date (10 minutes or 3 km)
                         val okPos = limitOkPos
-                        if (!routeLimitLive() && (System.currentTimeMillis() - limitOkAt > 600_000 || (okPos != null && Geo.dist(okPos, p.pos) > 3000))) { speedLimit = null; limitEstimated = false; noLimit = false }
+                        // (standing in a jam, the limit of the stretch stays: the 10 minutes count only while moving; 3 km away it goes anyway)
+                        val driving = p.speed >= 2.0
+                        if (!routeLimitLive() && ((driving && System.currentTimeMillis() - limitOkAt > 600_000) || (okPos != null && Geo.dist(okPos, p.pos) > 3000))) { speedLimit = null; limitEstimated = false; noLimit = false }
                         // the lookup itself failed: try again soon instead of waiting until the car has moved (and let an old road name
                         // drop once it's out of date)
                         refreshRoad()

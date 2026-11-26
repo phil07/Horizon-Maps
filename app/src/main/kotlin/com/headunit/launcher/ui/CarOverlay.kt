@@ -408,7 +408,8 @@ private fun CarScreen(engine: NavEngine, a: android.graphics.Rect?, actions: Car
             // Settings › Android Auto › hide the search bar: for cars with a knob and no touchscreen, the bar, Home and Work, the
             // shortcuts and the suggestion are left off (Places ★ in Android Auto's own buttons has them all); notices stay
             val hideTop = engine.prefs.b(PreferenceKeys.CAR_HIDE_SEARCH, false)
-            if (!hideTop) Row(Modifier.fillMaxWidth().height(barH).panel(10.dp, RoundedCornerShape(40.dp), c.surface).padding(end = if (engine.carShort) 6.dp else 10.dp),
+            // (the bar is nearly solid: the map behind it no longer shows through the search text)
+            if (!hideTop) Row(Modifier.fillMaxWidth().height(barH).panel(10.dp, RoundedCornerShape(40.dp), c.surface.copy(alpha = maxOf(c.surface.alpha, 0.94f))).padding(end = if (engine.carShort) 6.dp else 10.dp),
                 verticalAlignment = Alignment.CenterVertically) {
                 // the bar opens the search (Saved & recent folds itself, by its own header)
                 Row(Modifier.weight(1f).fillMaxHeight().carTap("search") { actions.search() }.padding(start = if (engine.carShort) 16.dp else 24.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -1071,7 +1072,7 @@ private fun CarChips(engine: NavEngine, actions: CarActions, rows: Int) {
             else -> place.sub
         }
         // a short screen: slim pills (the same two lines, smaller)
-        Row(m.height(if (slim) 52.dp else 86.dp).panel(6.dp, RoundedCornerShape(if (slim) 26.dp else 30.dp), c.surface).carTap(id) { if (place != null) engine.startRoute(place) else { engine.pendingSave = id; actions.search() } }
+        Row(m.height(if (slim) 52.dp else 86.dp).panel(6.dp, RoundedCornerShape(if (slim) 26.dp else 30.dp), c.surface.copy(alpha = maxOf(c.surface.alpha, 0.94f))).carTap(id) { if (place != null) engine.startRoute(place) else { engine.pendingSave = id; actions.search() } }
             .padding(horizontal = if (slim) 8.dp else 14.dp), verticalAlignment = Alignment.CenterVertically) {
             Box(Modifier.size(if (slim) 36.dp else 60.dp).clip(androidx.compose.foundation.shape.CircleShape).background(tint.copy(alpha = 0.18f)), contentAlignment = Alignment.Center) {
                 androidx.compose.material3.Icon(icon, null, tint = tint, modifier = Modifier.size(if (slim) 22.dp else 36.dp))
@@ -1084,7 +1085,7 @@ private fun CarChips(engine: NavEngine, actions: CarActions, rows: Int) {
         }
     }
     @Composable fun find(kind: String, icon: androidx.compose.ui.graphics.vector.ImageVector, tint: Color) {
-        Box(Modifier.size(if (slim) 50.dp else 78.dp).panel(6.dp, androidx.compose.foundation.shape.CircleShape, c.surface).carTap("n-$kind") { actions.nearby(kind) }, contentAlignment = Alignment.Center) {
+        Box(Modifier.size(if (slim) 50.dp else 78.dp).panel(6.dp, androidx.compose.foundation.shape.CircleShape, c.surface.copy(alpha = maxOf(c.surface.alpha, 0.94f))).carTap("n-$kind") { actions.nearby(kind) }, contentAlignment = Alignment.Center) {
             androidx.compose.material3.Icon(icon, null, tint = tint, modifier = Modifier.size(if (slim) 26.dp else 42.dp))
         }
     }

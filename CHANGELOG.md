@@ -1,8 +1,12 @@
 ## Unreleased
 
 ### Changed
-- Offline-Routen geben ihren Speicher nach jeder Berechnung wieder frei. Die nächste Route lädt die Karte dann neu, das dauert etwas länger.
-  EN: Offline routes free their memory after each route is worked out. The next route loads the map again, which takes a little longer.
+- Ein Tempolimit bleibt im Stau gemerkt, solange du stehst. Es fällt erst weg, wenn du dich mehr als 3 km entfernst.
+  EN: A speed limit stays remembered while you stand in a jam. It only goes once you are more than 3 km away.
+- Auf dem Auto-Display sind die Suchleiste und die Schnellzugriffe deckender.
+  EN: On the car display, the search bar and the shortcuts are more solid.
+- Ein Tipp auf einen benannten Ort in der Karte öffnet die Ortskarte mit dem Namen, auch bei der OpenStreetMap-Karte.
+  EN: A tap on a named place on the map opens its place card with the name, also on the OpenStreetMap map.
 
 ## 1.0.246 — 2026-10-28
 

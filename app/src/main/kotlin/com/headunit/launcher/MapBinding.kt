@@ -246,7 +246,7 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
                 main0.postDelayed({ tapClears() }, 150L)
                 val used = try { val s = mbMap.pixelForCoordinate(p); tapAt(android.graphics.PointF(s.x.toFloat(), s.y.toFloat())) } catch (e: Throwable) { false }
                 // nothing of the app's under the tap, and (a moment later) no place of the map's either: a tap on a free spot
-                if (!used) { val at = android.os.SystemClock.uptimeMillis(); main0.postDelayed({ if (poiTapAt < at) try { onFreeTap?.invoke(LL(p.latitude(), p.longitude())) } catch (e: Throwable) { android.util.Log.w("MapBinding", "free tap: ${e.message}") } }, 300L) }
+                if (!used) { val at = android.os.SystemClock.uptimeMillis(); main0.postDelayed({ if (poiTapAt < at) try { freeTapOrPlace(p, at) } catch (e: Throwable) { android.util.Log.w("MapBinding", "free tap: ${e.message}") } }, 300L) }
                 used
             } catch (e: Throwable) { android.util.Log.w("MapBinding", "map tap: ${e.message}"); false }
         }
@@ -634,6 +634,26 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
             pendingQueries.remove(c)
             if (!finished) { try { c.cancel() } catch (e: Throwable) { softFail(e) }; finish(null) }
         }, timeoutMs)
+    }
+
+    /**
+     * A tap on a spot with nothing of the app's under it: a named place of the map there opens as a place (the same as Mapbox's own
+     * places, so TomTom's and OpenStreetMap's styles act alike); anything else is the free spot.
+     */
+    private fun freeTapOrPlace(p: Point, at: Long) {
+        val spot = LL(p.latitude(), p.longitude())
+        val layers = try { mbMap.getStyle()?.styleLayers?.map { it.id }?.filter { it.contains("poi") }.orEmpty() } catch (e: Throwable) { emptyList() }
+        if (layers.isEmpty()) { onFreeTap?.invoke(spot); return }
+        val s = mbMap.pixelForCoordinate(p)
+        val x = s.x.toFloat(); val y = s.y.toFloat()
+        query(RectF(x - 24f, y - 24f, x + 24f, y + 24f), layers) { feats ->
+            if (poiTapAt >= at) return@query
+            val f = feats?.firstOrNull { !it.getStringProperty("name").isNullOrBlank() }
+            if (f == null) { onFreeTap?.invoke(spot); return@query }
+            val at2 = (f.geometry() as? Point)?.let { LL(it.latitude(), it.longitude()) } ?: spot
+            poiTapAt = android.os.SystemClock.uptimeMillis()
+            onPoiTap?.invoke(f.getStringProperty("name").orEmpty(), at2)
+        }
     }
 
     /** Google-style destination pin: red teardrop with a white centre. */
