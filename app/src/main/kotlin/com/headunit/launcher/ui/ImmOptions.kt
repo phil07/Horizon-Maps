@@ -246,12 +246,17 @@ internal fun OptionsSheet(engine: NavEngine, shareEta: () -> Unit, voice: () -> 
                 ))
             }
         }
-        val restPart: @Composable () -> Unit = {
+        // the reports come right after the trip tools (before the map and the finds): one tap away, not at the bottom of the sheet
+        val reportPart: @Composable () -> Unit = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 SheetHeading(Lang.t("Hier melden", "Report here"))
                 WideTiles(3, ReportKind.entries.map { k ->
                     TileSpec(k.phoneIcon(), k.label, Color(k.argb), { engine.report(k.key); close() }, picture = if (k == ReportKind.ROADWORKS) R.drawable.ic_roadworks_sign else null)
                 }, compact = true)
+            }
+        }
+        val restPart: @Composable () -> Unit = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 // with no route the map page already has fuel, charging, food, coffee and parking, so only the rest are here
                 fun find(kind: String): () -> Unit = { engine.loadNearby(kind, false); close() }
                 val finds = listOfNotNull(
@@ -274,10 +279,10 @@ internal fun OptionsSheet(engine: NavEngine, shareEta: () -> Unit, voice: () -> 
         }
         if (wide) Row(horizontalArrangement = Arrangement.spacedBy(18.dp)) {
             Box(Modifier.weight(1f)) { mapPart() }
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) { tripPart(); restPart() }
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) { tripPart(); reportPart(); restPart() }
         } else {
-            // while navigating the trip tools come first; otherwise the map
-            tripPart(); mapPart(); restPart()
+            // while navigating the trip tools come first, then the reports; otherwise the map
+            tripPart(); reportPart(); mapPart(); restPart()
         }
         // closes the app: any route ends, the GPS stops and the app is gone, so nothing keeps running in the background
         Box(Modifier.fillMaxWidth().padding(top = 6.dp).clip(RoundedCornerShape(14.dp)).background(Bad.copy(alpha = 0.16f))

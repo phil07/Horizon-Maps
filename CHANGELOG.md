@@ -1,8 +1,8 @@
 ## Unreleased
 
 ### Changed
-- Gibt der Online-Dienst beim Planen keine Route in 10 Sekunden zurück, wird die Offline-Route gerechnet, wenn ein Offline-Paket da ist.
-  EN: If the online service gives no route within 10 seconds when planning, the offline route is worked out, when an offline pack is there.
+- „Hier melden“ steht im Menü jetzt gleich nach den Fahrt-Knöpfen, nicht mehr ganz unten.
+  EN: "Report here" in the menu now comes right after the trip buttons, no longer at the very bottom.
 
 ## 1.0.246 — 2026-10-28
 
