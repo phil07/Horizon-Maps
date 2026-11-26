@@ -3353,10 +3353,7 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
 
     // ---- speed limit, speed cameras (real GPS + OpenStreetMap) ----
     @Volatile private var limitBusy = false
-    @Volatile private var ttAt = 0L
-    @Volatile private var ttPos: LL? = null
-    @Volatile private var ttWay = -1L
-    @Volatile private var ttLim: TomTomRest.RoadLimit? = null
+    private val tomtomMemo = SpeedSourceMemo<TomTomRest.RoadLimit>(gapMs = 2_500, staleMs = 15_000, staleM = 200.0)
     private var routeLimitAt = 0L
     private var pendLimit = -2.0
     private var pendHits = 0
@@ -3379,14 +3376,8 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
      * new stretch of road, otherwise only every 15 to 20 seconds.
      */
     private val mbTrail = ArrayList<LL>()
-    @Volatile private var mbAt = 0L
-    @Volatile private var mbPos: LL? = null
-    @Volatile private var mbWay = 0L
-    @Volatile private var mbLim: Double? = null
-    @Volatile private var hereAt = 0L
-    @Volatile private var herePos: LL? = null
-    @Volatile private var hereWay = -1L
-    @Volatile private var hereLim: Double? = null
+    private val mapboxMemo = SpeedSourceMemo<Double>(gapMs = 4_000, staleMs = 20_000, staleM = 250.0)
+    private val hereMemo = SpeedSourceMemo<Double>(gapMs = 4_000, staleMs = 20_000, staleM = 250.0)
 
     /** The last speed sign passed (Mapillary), with the road it was on: it counts until the road changes, or for 10 minutes. */
     private class SeenSign(val sign: MlySign, val wayId: Long, val road: String, val pos: LL, val at: Long)
@@ -3443,35 +3434,20 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
         val got = kotlinx.coroutines.coroutineScope {
             val hereJ = async(Dispatchers.IO) {
                 if (hk.isEmpty()) return@async null
-                val now = System.currentTimeMillis()
-                val stale = now - hereAt > 20_000L || (herePos?.let { Geo.dist(it, p) > 250.0 } ?: true)
                 // a new stretch of road or an old answer, at most once every 4 seconds (a long way inside HERE's free allowance)
-                if ((way != hereWay || stale) && now - hereAt > 4000L && trail.size >= 2) {
-                    hereAt = now; herePos = p; hereWay = way
-                    hereLim = try { HereRest.speedLimitNoted(hk, trail) } catch (e: Exception) { null }
-                }
-                if (osm == null || hereWay == way) hereLim else null
+                val v = hereMemo.answer(p, way, System.currentTimeMillis(), if (trail.size >= 2) ({ HereRest.speedLimitNoted(hk, trail) }) else null)
+                if (osm == null || hereMemo.way == way) v else null
             }
             val ttJ = async(Dispatchers.IO) {
                 if (!hasKey || ttDown()) return@async null
-                val now = System.currentTimeMillis()
-                val stale = now - ttAt > 15_000L || (ttPos?.let { Geo.dist(it, p) > 200.0 } ?: true)
                 // a new stretch of road (OpenStreetMap splits roads where the limit changes) or an old answer, at most every 2.5 s
-                if ((way != ttWay || stale) && now - ttAt > 2500L) {
-                    ttAt = now; ttPos = p; ttWay = way
-                    ttLim = try { TomTomRest.speedLimit(apiKey, p, hd) } catch (e: Exception) { null }
-                }
-                if (osm == null || ttWay == way) ttLim else null
+                val v = tomtomMemo.answer(p, way, System.currentTimeMillis()) { TomTomRest.speedLimit(apiKey, p, hd) }
+                if (osm == null || tomtomMemo.way == way) v else null
             }
             val mbJ = async(Dispatchers.IO) {
                 if (!hasMapbox) return@async null
-                val now = System.currentTimeMillis()
-                val stale = now - mbAt > 20_000L || (mbPos?.let { Geo.dist(it, p) > 250.0 } ?: true)
-                if ((way != mbWay || stale) && now - mbAt > 4000L && trail.size >= 2) {
-                    mbAt = now; mbPos = p; mbWay = way
-                    mbLim = try { MapboxRest.speedLimit(mbToken, trail) } catch (e: Exception) { null }
-                }
-                if (osm == null || mbWay == way) mbLim else null
+                val v = mapboxMemo.answer(p, way, System.currentTimeMillis(), if (trail.size >= 2) ({ MapboxRest.speedLimit(mbToken, trail) }) else null)
+                if (osm == null || mapboxMemo.way == way) v else null
             }
             val mlyJ = async(Dispatchers.IO) { if (mk.isEmpty()) null else try { Mapillary.signsAround(mk, p, mph) } catch (e: Exception) { null } }
             // limits other drivers reported (Horizon's reports server)
@@ -3509,7 +3485,7 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
         if (hv != null) votes += SpeedVote.Vote("HERE", if (hv <= 0.0) SpeedVote.NONE else hv, if (hv <= 0.0) SpeedVote.W_HERE else cw(hv, SpeedVote.W_HERE))
         // HERE answered for this very road without a number, and OpenStreetMap has no posted limit here: on an Autobahn or
         // Schnellstraße that means no general limit, not the last sign seen (a failed request doesn't count)
-        else if (hk.isNotEmpty() && hereWay == way && HereRest.lastError == null && osm != null && osm.major && !(osm.ms > 0.0 && !osm.estimated))
+        else if (hk.isNotEmpty() && hereMemo.way == way && HereRest.lastError == null && osm != null && osm.major && !(osm.ms > 0.0 && !osm.estimated))
             votes += SpeedVote.Vote("HERE", SpeedVote.NONE, SpeedVote.W_HERE)
         // TomTom has no way to say "no limit": where OpenStreetMap says so outright, an answer of its from the stretch before doesn't count
         if (tt != null && !osmNone) votes += SpeedVote.Vote("TomTom", tt.ms, cw(tt.ms, SpeedVote.W_TOMTOM))
