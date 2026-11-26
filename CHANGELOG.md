@@ -1,8 +1,8 @@
 ## Unreleased
 
-### Changed
-- Karte: Antwortet der OpenStreetMap-Server nicht, zeigt die App die Karte über MapTiler, wenn ein MapTiler-Schlüssel eingetragen ist. Die Prüfung läuft alle 10 Minuten.
-  EN: Map: if the OpenStreetMap server doesn't answer, the app shows the map from MapTiler when a MapTiler key is set. The check runs every 10 minutes.
+### Added
+- Einstellungen › Geschwindigkeit: Der Knopf „Nur warnen“ schaltet die Warnung bei Überschreitung an und die Ansage von Tempowechseln aus. Keine Tempolimit-Ansagen mehr.
+  EN: Settings › Speed: the "Warn only" button turns the speeding warning on and the announcement of limit changes off. No limit announcements any more.
 
 ## 1.0.246 — 2026-10-28
 

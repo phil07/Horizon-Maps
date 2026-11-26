@@ -677,6 +677,11 @@ private fun ZonesItem() {
 @Composable
 private fun AlertsSection(prefs: Prefs, engine: NavEngine) {
     SGroup(Lang.t("Geschwindigkeit", "Speed")) {
+        // the warning-only mode: warn when you go over the limit, with no limit announcements at all
+        SButton(Lang.t("Nur warnen", "Warn only")) {
+            prefs.put(PreferenceKeys.SPEEDWARN, true)
+            prefs.put(PreferenceKeys.LIMITCHANGE, false)
+        }
         SToggle(prefs, Lang.t("Warnen bei Überschreitung", "Warn when speeding"), PreferenceKeys.SPEEDWARN, false)
         if (prefs.b(PreferenceKeys.SPEEDWARN, false)) SChoice(Lang.t("Warnen ab Überschreitung um", "Warn when over by"), listOf("0", "5", "10").map { it to it + if (engine.imperial) " mph" else " km/h" }, prefs.s(PreferenceKeys.TRAFFIC_WARNING, "5")) { prefs.put(PreferenceKeys.TRAFFIC_WARNING, it) }
         if (prefs.b(PreferenceKeys.SPEEDWARN, false)) SToggle(prefs, Lang.t("„Langsamer fahren“ sagen", "Say \"Slow down\""), PreferenceKeys.SAY_SLOW, false, Lang.t("Nach dem Ton beim Überschreiten, einmal pro Überschreitung", "After the beep when you go over, once each time"))
