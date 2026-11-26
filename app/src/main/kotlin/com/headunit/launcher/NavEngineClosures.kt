@@ -70,6 +70,61 @@ internal fun NavEngine.closureBoxes(from: LL?, to: LL?): List<Pair<LL, LL>> = cl
     LL(p.lat - dLat, p.lon - dLon) to LL(p.lat + dLat, p.lon + dLon)
 }
 
+/** One piece of a closed stretch: its strip as a closed ring (for the offline router) and its box (for TomTom). */
+internal class ClosedStrip(val ring: List<LL>, val box: Pair<LL, LL>)
+
+private const val STRIP_MIN_M = 2_000.0
+private const val STRIP_PIECE_M = 200.0
+private const val STRIP_HALF_M = 40.0
+
+/**
+ * A closed stretch of 2 km or more is kept out of as a strip along its line, in pieces of about 200 m: a closure that long can't be
+ * covered by a few boxes. The pieces at the start or the end of the trip are left out, as the points are.
+ */
+internal fun NavEngine.closedStrips(from: LL?, to: LL?): List<ClosedStrip> {
+    val now = System.currentTimeMillis()
+    val out = ArrayList<ClosedStrip>()
+    for ((line, until) in closures.values) {
+        if (until < now || lineLength(line) < STRIP_MIN_M) continue
+        val s = sampled(line)
+        for (i in 0 until s.size - 1) {
+            val a = s[i]; val b = s[i + 1]
+            val mid = LL((a.lat + b.lat) / 2, (a.lon + b.lon) / 2)
+            if ((from != null && Geo.dist(mid, from) <= 300.0) || (to != null && Geo.dist(mid, to) <= 300.0)) continue
+            val ring = strip(a, b) ?: continue
+            out += ClosedStrip(ring, LL(ring.minOf { it.lat }, ring.minOf { it.lon }) to LL(ring.maxOf { it.lat }, ring.maxOf { it.lon }))
+        }
+    }
+    return out
+}
+
+private fun lineLength(line: List<LL>): Double = line.zipWithNext { a, b -> Geo.dist(a, b) }.sum()
+
+/** The line's points about every [STRIP_PIECE_M] metres, with its first and its last. */
+private fun sampled(line: List<LL>): List<LL> {
+    if (line.size < 2) return line
+    val out = arrayListOf(line.first())
+    var acc = 0.0
+    for (i in 1 until line.size) {
+        acc += Geo.dist(line[i - 1], line[i])
+        if (acc >= STRIP_PIECE_M) { out += line[i]; acc = 0.0 }
+    }
+    if (out.last() != line.last()) out += line.last()
+    return out
+}
+
+/** A rectangle [STRIP_HALF_M] metres either side of the piece a-b, as a closed ring; null for a piece of no length. */
+private fun strip(a: LL, b: LL): List<LL>? {
+    val k = cos(Geo.rad(a.lat))
+    val dx = (b.lon - a.lon) * 111320.0 * k; val dy = (b.lat - a.lat) * 110574.0
+    val len = hypot(dx, dy)
+    if (len < 1e-6) return null
+    val nx = -dy / len * STRIP_HALF_M; val ny = dx / len * STRIP_HALF_M
+    fun at(p: LL, x: Double, y: Double) = LL(p.lat + y / 110574.0, p.lon + x / (111320.0 * k))
+    val ring = listOf(at(a, nx, ny), at(b, nx, ny), at(b, -nx, -ny), at(a, -nx, -ny))
+    return ring + ring[0]
+}
+
 /** True when [r] runs within 30 m of a point of [pts] ahead of [from] metres along it. */
 internal fun NavEngine.passes(r: Route, pts: List<LL>, from: Double): Boolean {
     for (q in pts) for (n in r.pts.indices) { if (r.cum[n] < from) continue; if (Geo.dist(r.pts[n], q) < 30.0) return true }

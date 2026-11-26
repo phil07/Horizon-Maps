@@ -2779,6 +2779,10 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
         }
         // known road closures (traffic feeds and drivers' reports): small boxes on the closed road, all but one at the start or the
         // end of the trip (the only road there: still used). Behind the areas you set yourself, as TomTom takes 10 at most.
+        // closed stretches of 2 km or more: a strip along the line (see closedStrips), before the boxes
+        val strips = closedStrips(from, to)
+        rects.addAll(strips.map { it.box }.take(max(0, 10 - rects.size)))
+        for (s in strips) rings += s.ring
         val cl = closureBoxes(from, to)
         rects.addAll(cl.take(max(0, 10 - rects.size)))
         for ((sw, ne) in cl) rings += listOf(sw, LL(sw.lat, ne.lon), ne, LL(ne.lat, sw.lon), sw)

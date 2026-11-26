@@ -1,8 +1,8 @@
 ## Unreleased
 
 ### Changed
-- Straßensperrungen bleiben auf der Route gemerkt, bis die Quelle sie nicht mehr meldet, nicht nur 30 Minuten. Antwortet eine Quelle nicht vollständig (Netzfehler), bleibt alles wie es war.
-  EN: Road closures stay remembered until the source no longer lists them, not just for 30 minutes. If a source doesn't answer in full (network error), nothing changes.
+- Gesperrte Strecken ab 2 km werden als schmaler Streifen entlang der Straße umfahren, nicht mehr mit wenigen Quadraten.
+  EN: Closed stretches of 2 km or more are now avoided as a narrow strip along the road, no longer with a few small squares.
 
 ## 1.0.246 — 2026-10-28
 
