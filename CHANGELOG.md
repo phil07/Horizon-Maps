@@ -1,5 +1,9 @@
 ## Unreleased
 
+### Changed
+- Suchergebnisse: Die Adresse darf jetzt zwei Zeilen lang sein, statt nach einer Zeile abgeschnitten zu werden.
+  EN: Search results: the address may now run to two lines instead of being cut off after one.
+
 ## 1.0.246 — 2026-10-28
 
 ### Improved in-app updates

@@ -327,7 +327,7 @@ internal fun ImmResults(engine: NavEngine, onPicked: () -> Unit) {
                 PlaceLogo(engine, p)
                 Column(Modifier.padding(start = 14.dp).weight(1f)) {
                     Text(p.name, color = c.text, fontSize = 17.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                    Text(p.sub, color = c.sub, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Text(p.sub, color = c.sub, fontSize = 13.sp, maxLines = 2, overflow = TextOverflow.Ellipsis)
                     HoursLine(p)
                 }
                 if (here != null) Text(Geo.fmtDist(Geo.dist(here, p.pos), engine.imperial), color = c.sub, fontSize = 13.sp, modifier = Modifier.padding(start = 8.dp))
