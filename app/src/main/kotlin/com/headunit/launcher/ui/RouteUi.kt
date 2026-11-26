@@ -846,10 +846,6 @@ fun AppUpdateCard(engine: NavEngine) {
     }
 }
 
-    .map { it.trim() }
-    .filter { it.isNotEmpty() && !it.startsWith("#") }
-    .joinToString(" ") { l -> l.removePrefix("- ").removePrefix("* ").replace("**", "").replace("`", "") }
-
 // ------------------------------------------------------------------ your own saved places
 
 /**
