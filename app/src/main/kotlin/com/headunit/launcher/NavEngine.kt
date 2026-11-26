@@ -6300,7 +6300,9 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
     /** Closes the arrival card and goes back to following the car. */
     fun dismissArrival() {
         arrival = null; arrivalParking = null
-        if (!following && route == null) recenter()
+        // the route-glide and still anchors from the destination view go, so the arrow comes back to the car (the latest GPS fix)
+        glideRoute = null; glideOnRoute = false; stillAnchor = null
+        recenter()
     }
 
     /** "left" or "right" for the side of the road the destination is on, from the route's own instruction or from where the pin is. */

@@ -1,6 +1,8 @@
 ## Unreleased
 
 ### Fixed
+- Ankunftskarte: Wenn du sie schließt, springt der Pfeil zurück zum Auto, statt auf der Zielansicht stehen zu bleiben.
+  EN: Arrival card: when you dismiss it, the arrow returns to the car instead of staying on the destination view.
 - Tunneln: Bei aktiver Route werden Standort-Meldungen aus dem Netz ohne oder mit schlechter als 30 m Genauigkeit auch nach zwei Minuten ohne GPS ignoriert. Die Schätzung läuft weiter wie bisher, nur für zwei Minuten.
   EN: Tunnels: while a route is active, network-location fixes with missing or worse-than-30 m accuracy are ignored even after two minutes without GPS. The estimate still runs for two minutes as before.
 
