@@ -1055,7 +1055,7 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
             try { EvWidget.start(ctx, prefs) } catch (e: Exception) { softFail(e) }
         }
         try {
-            val o = org.json.JSONObject(prefs.s(PreferenceKeys.RESUME, "{}"))
+            val o = org.json.JSONObject(resumeStore())
             val age = System.currentTimeMillis() - o.optLong("b", o.optLong("t"))
             // a trip that ended by itself while you were stopped on the way (see endRouteKeepingResume)
             val autoEnded = o.optBoolean("auto", false)
@@ -1296,11 +1296,21 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
     private var countryChecked = false
     private var countryTryAt = 0L
 
+    /** The trip's resume state, in a small file of its own (it used to be rewritten into all the settings every 20 seconds). */
+    private fun resumeFile() = java.io.File(ctx.filesDir, "resume.json")
+    private fun resumeStore(): String = try { resumeFile().takeIf { it.exists() }?.readText() ?: prefs.s(PreferenceKeys.RESUME, "{}") } catch (e: Exception) { softFail(e); "{}" }
+    private fun resumeSave(s: String) { try { resumeFile().writeText(s) } catch (e: Exception) { softFail(e) } }
+
+    private var countryAt: LL? = null
+
     private fun detectCountry(lat: Double, lon: Double) {
+        val here = LL(lat, lon)
         val now = android.os.SystemClock.elapsedRealtime()
-        // once per app start; if it couldn't tell (no signal), try again a couple of minutes later
-        if (countryChecked || (countryTryAt != 0L && now - countryTryAt < 120_000L)) return
-        countryChecked = true; countryTryAt = now
+        // checked on the first fix; if it couldn't tell (no signal), again two minutes later; once it knows, again only after 15 km
+        val due = if (!countryChecked) countryTryAt == 0L || now - countryTryAt >= 120_000L
+            else countryAt?.let { Geo.dist(it, here) > 15_000.0 } ?: false
+        if (!due) return
+        countryChecked = true; countryTryAt = now; countryAt = here
         scope.launch {
             val cc = withContext(Dispatchers.IO) {
                 val g = try {
@@ -3083,7 +3093,7 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
             evKmAtPlan = null
         }
         lastFasterCheck = System.currentTimeMillis(); faster = null; lastTrafficAt = 0L; undoRoute = null; if (notice?.kind == "reroute") notice = null
-        dest?.let { d -> prefs.put(PreferenceKeys.RESUME, org.json.JSONObject().put("n", d.name).put("s", d.sub).put("la", d.pos.lat).put("lo", d.pos.lon).put("t", System.currentTimeMillis()).toString()) }
+        dest?.let { d -> resumeSave(org.json.JSONObject().put("n", d.name).put("s", d.sub).put("la", d.pos.lat).put("lo", d.pos.lon).put("t", System.currentTimeMillis()).toString()) }
         following = true
         // Settings > Offline maps > Save every route's map: the Mapbox map along this route, kept for when signal drops
         try { route?.let { r -> MapboxOffline.autoSaveRoute(ctx, prefs, offlineRouteName(), r.pts, onWifi(), map.isSatellite) } } catch (e: Throwable) { softFail(e) }
@@ -3218,11 +3228,11 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
      */
     private fun endRouteKeepingResume() {
         val d = dest
-        val kept = try { org.json.JSONObject(prefs.s(PreferenceKeys.RESUME, "{}")) } catch (e: Exception) { org.json.JSONObject() }
+        val kept = try { org.json.JSONObject(resumeStore()) } catch (e: Exception) { org.json.JSONObject() }
         endRoute()
         if (d == null) return
         val now = System.currentTimeMillis()
-        try { prefs.put(PreferenceKeys.RESUME, kept.put("n", d.name).put("s", d.sub).put("la", d.pos.lat).put("lo", d.pos.lon).put("b", now).put("auto", true).toString()) } catch (e: Exception) { softFail(e) }
+        try { resumeSave(kept.put("n", d.name).put("s", d.sub).put("la", d.pos.lat).put("lo", d.pos.lon).put("b", now).put("auto", true).toString()) } catch (e: Exception) { softFail(e) }
         resume = d
         scope.launch { delay(RESUME_KEEP_MS); if (resume === d) resume = null }
     }
@@ -3231,12 +3241,12 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
     fun resumeTrip(startNow: Boolean = false) {
         val rp = resume ?: return
         resume = null
-        prefs.put(PreferenceKeys.RESUME, "{}")
+        resumeSave("{}")
         startRoute(rp, startNow = startNow)
     }
 
     /** "Not now" on the "Resume trip" card. */
-    fun dismissResume() { resume = null; prefs.put(PreferenceKeys.RESUME, "{}") }
+    fun dismissResume() { resume = null; resumeSave("{}") }
 
     fun endRoute() {
         scope.launch { pushFavourites() }
@@ -3249,7 +3259,7 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
         itineraryOpen = false
         cancelWaiting()
         map.stopFly()
-        faster = null; resume = null; prefs.put(PreferenceKeys.RESUME, "{}")
+        faster = null; resume = null; resumeSave("{}")
         // the map strip that was saved by itself for this trip is only needed during it: gone with the trip
         try { MapboxOffline.removeAutoRoutes(ctx) } catch (e: Throwable) { softFail(e) }
         incMatches = emptyList(); incidentAhead = null; incAt = 0L; incAlerted.clear(); abAt = 0L; abRoads = ""; wwItems = emptyList(); wwSaid.clear(); wwAt = 0L
@@ -5649,7 +5659,7 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
         lastBeat = now
         val d = dest ?: return
         try {
-            val o = org.json.JSONObject(prefs.s(PreferenceKeys.RESUME, "{}"))
+            val o = org.json.JSONObject(resumeStore())
             o.put("n", d.name).put("s", d.sub).put("la", d.pos.lat).put("lo", d.pos.lon).put("b", now)
             // near the destination when the app last saw you: arrived, so starting again doesn't pick the trip back up
             fix?.let { f -> o.put("near", Geo.dist(f.pos, d.pos) < 400.0) }
@@ -5662,7 +5672,7 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
             for (st in evPlanned) e.put(org.json.JSONObject().put("n", st.n.place.name).put("s", st.n.place.sub).put("la", st.n.place.pos.lat).put("lo", st.n.place.pos.lon)
                 .put("kw", st.n.kw ?: -1).put("op", st.n.op ?: "").put("a", st.arrPct).put("t", st.toPct).put("m", st.minutes).put("p", st.preferred))
             o.put("e", e)
-            prefs.put(PreferenceKeys.RESUME, o.toString())
+            resumeSave(o.toString())
         } catch (e: Exception) { softFail(e) }
     }
 

@@ -530,7 +530,9 @@ object MapboxRest {
                     }
                 } catch (e: Exception) { softFail(e) }
                 // a stop on the way: not a step of its own (the next leg carries on from it)
-                val skip = type == "notification" || type == "exit roundabout" || type == "exit rotary" ||
+                // (the route's own "waypoint reached / left" lines, at the points of a saved route, are not turns: they're left out)
+                val shapingPoint = m.optString("instruction").contains("waypoint", ignoreCase = true)
+                val skip = type == "notification" || type == "exit roundabout" || type == "exit rotary" || shapingPoint ||
                     (type == "arrive" && li < legs.length() - 1) || (type == "depart" && li > 0)
                 // leaving a roundabout: not a step of its own, but where it is tells the turn card which way the exit goes
                 if (type == "exit roundabout" || type == "exit rotary") {
