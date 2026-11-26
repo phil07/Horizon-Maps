@@ -1,16 +1,10 @@
 ## Unreleased
 
-### Improved
-- Das Land wird nur noch nach 15 km Fahrt neu geprüft, nicht alle zwei Minuten. Das spart Kartenabfragen und Daten auf dem Head Unit.
-  EN: The country is checked again only after driving 15 km, not every two minutes. This saves map lookups and data on head units.
-- Die Fahrt-Fortsetzung wird in einer kleinen Datei gespeichert, nicht mehr alle 20 Sekunden in alle Einstellungen.
-  EN: The trip resume state is saved in a small file of its own, not rewritten into all the settings every 20 seconds.
-
 ### Fixed
+- Offline-Routen: Die Meldungen sind kurz und klar, auf Deutsch und Englisch, und zeigen weder die Rohmeldung der Routenmaschine noch deine Koordinaten.
+  EN: Offline routes: the messages are short and clear, in German and English, and show neither the route engine's raw message nor your coordinates.
 - Die Anweisungen zu Wegpunkten („Wegpunkt erreicht“, „Wegpunkt verlassen“) aus dem Anbieter werden bei Meine Routen nicht mehr angesagt oder angezeigt. Echte Abbiegungen und echte Stopps bleiben.
   EN: The provider's waypoint lines ("waypoint reached", "waypoint left") are no longer shown or spoken for My routes. Real turns and real stops stay.
-- Ankunftskarte: Wenn du sie schließt, springt der Pfeil zurück zum Auto.
-  EN: Arrival card: when you dismiss it, the arrow returns to the car.
 
 ## 1.0.246 — 2026-10-28
 

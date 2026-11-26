@@ -855,7 +855,7 @@ object OfflineRouter {
             ra = try { routeIn(da, from, lerp(from, to, t), emptyList(), headingDeg) } catch (e: Exception) { null }
             t -= stepT
         }
-        if (ra == null) throw IllegalStateException("No offline route from here towards the border of the downloaded area")
+        if (ra == null) throw IllegalStateException(Lang.t("Offline keine Strecke bis zur Kartengrenze", "No offline route to the map edge"))
         val lenA = ra.cum.last()
         for (back in doubleArrayOf(0.0, 1000.0, 3000.0, 6000.0, 12_000.0)) {
             val cut = lenA - back
@@ -866,7 +866,7 @@ object OfflineRouter {
             if (Geo.dist(rb.pts.first(), pt) > 60.0) continue
             return join(ra, cut, pt, idx, rb)
         }
-        throw IllegalStateException("Couldn't join the two downloaded areas at the border with no signal")
+        throw IllegalStateException(Lang.t("Die Karten an der Grenze lassen sich offline nicht verbinden", "The maps can't be joined at the border offline"))
     }
 
     private fun join(ra: Route, cut: Double, pt: LL, idx: Int, rb: Route): Route {
@@ -887,7 +887,7 @@ object OfflineRouter {
 
     /** A route inside one downloaded area (the folder [pd]). */
     private fun routeIn(pd: File, from: LL, to: LL, via: List<LL>, headingDeg: Double, costing: String = "auto"): Route {
-        if (!installedIn(pd)) throw IllegalStateException("No offline pack installed")
+        if (!installedIn(pd)) throw IllegalStateException(Lang.t("Keine Offline-Karte installiert", "No offline map installed"))
         val locs = org.json.JSONArray()
         locs.put(JSONObject().put("lat", from.lat).put("lon", from.lon).apply { if (headingDeg >= 0) { put("heading", headingDeg.toInt()); put("heading_tolerance", 60) } })
         for (v in via) locs.put(JSONObject().put("lat", v.lat).put("lon", v.lon).put("type", "through"))
@@ -907,7 +907,7 @@ object OfflineRouter {
             req.remove("exclude_polygons")
             raw = engine(pd).routeRaw(req.toString()); o = JSONObject(raw)
         }
-        if (o.has("error") && !o.has("trip")) throw IllegalStateException("No offline route here (${o.optString("error")}). Is it inside the downloaded area?")
+        if (o.has("error") && !o.has("trip")) throw IllegalStateException(Lang.t("Offline keine Route hier. Liegt das Ziel im geladenen Gebiet?", "No offline route here. Is the destination in the downloaded area?"))
         val trip = o.getJSONObject("trip")
         val legs = trip.getJSONArray("legs")
         val pts = ArrayList<LL>()
@@ -921,7 +921,7 @@ object OfflineRouter {
             val ms = leg.optJSONArray("maneuvers")
             if (ms != null) for (i in 0 until ms.length()) mans += M(base, ms.getJSONObject(i))
         }
-        if (pts.size < 2) throw IllegalStateException("No offline route found")
+        if (pts.size < 2) throw IllegalStateException(Lang.t("Offline keine Route gefunden", "No offline route found"))
         val cum = DoubleArray(pts.size)
         for (i in 1 until pts.size) cum[i] = cum[i - 1] + Geo.dist(pts[i - 1], pts[i])
         val steps = ArrayList<Step>()
