@@ -335,7 +335,10 @@ internal fun ImmTurnCard(
     val arrowK = engine.prefs.i(if (car) PreferenceKeys.CAR_TURN_ARROW_SIZE else PreferenceKeys.TURN_ARROW_SIZE, 100).coerceIn(70, 200) / 100f
     val padK = engine.prefs.i(if (car) PreferenceKeys.CAR_TURN_CARD_HEIGHT else PreferenceKeys.TURN_CARD_HEIGHT, 100).coerceIn(50, 200) / 100f
     // Settings › Map look › Turn card colour
-    val (base, deep) = turnCardColours(engine)
+    // "Match road signs": the country's sign colour for the road you're on, faded across when you join or leave a motorway
+    val matchSigns = engine.prefs.s(PreferenceKeys.TURN_CARD_COLOR, "green") == "match"
+    val signColour by androidx.compose.animation.animateColorAsState(if (matchSigns) RoadSigns.colour(engine) else Teal, androidx.compose.animation.core.tween(1500), label = "signcolour")
+    val (base, deep) = if (matchSigns) signColour to RoadSigns.darker(signColour) else turnCardColours(engine)
     val frac = ((450.0 - t.dist) / 450.0).coerceIn(0.0, 1.0).toFloat()
     // living card: it grows a touch and starts to glow as the turn comes up, and pulses in the last 80 m
     val alive = engine.prefs.b(PreferenceKeys.LIVECARD, true)

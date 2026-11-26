@@ -1,5 +1,9 @@
 ## Unreleased
 
+### Added
+- Turn card colour „Wie Straßenschilder“ (Match road signs): the card takes the country's sign colour for the road you're on, the motorway colour on a motorway and the main-road colour elsewhere, fading across when you join or leave.
+  EN: Turn card colour "Match road signs": the card takes the country's sign colour for the road you're on, the motorway colour on a motorway and the main-road colour elsewhere, fading across when you join or leave.
+
 ## 1.0.246 — 2026-10-28
 
 ### Improved in-app updates

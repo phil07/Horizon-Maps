@@ -3725,7 +3725,7 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
     }
 
     /** On a motorway or Schnellstraße (from the last limit lookup), for the rescue lane notice. */
-    @Volatile private var onMotorway = false
+    @Volatile internal var onMotorway = false
     private var slowSince = 0L
     private var laneShownAt = 0L
     private var fastSince = 0L

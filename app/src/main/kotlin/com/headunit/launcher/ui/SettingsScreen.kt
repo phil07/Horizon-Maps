@@ -353,7 +353,7 @@ private fun MapLookSection(prefs: Prefs, engine: NavEngine) {
     if (prefs.s(PreferenceKeys.LOOK, "standard") != "neon") OwnDesignGroup(prefs, engine)
     SGroup(Lang.t("Abbiegekarte", "Turn card")) {
         SChoice(Lang.t("Farbe", "Colour"), listOf("green" to Lang.t("Grün", "Green"), "black" to Lang.t("Schwarz", "Black"), "grey" to Lang.t("Dunkelgrau", "Dark grey"),
-            "navy" to "Navy", "purple" to Lang.t("Lila", "Purple")), prefs.s(PreferenceKeys.TURN_CARD_COLOR, "green"),
+            "navy" to "Navy", "purple" to Lang.t("Lila", "Purple"), "match" to Lang.t("Wie Straßenschilder", "Match road signs")), prefs.s(PreferenceKeys.TURN_CARD_COLOR, "green"),
             Lang.t("Die Farbe hinter der nächsten Abbiegung, mit weißer Schrift", "The colour behind the next turn, with white writing")) { prefs.put(PreferenceKeys.TURN_CARD_COLOR, it) }
     }
     SGroup(Lang.t("Karten-Knöpfe", "Map buttons"), footer = Lang.t("Die Knöpfe am rechten Rand der Karte. Die Kartenoptionen sind immer dabei, außer in der klaren Ansicht", "The buttons on the right edge of the map. Map options is always there, except in the clean view")) {
