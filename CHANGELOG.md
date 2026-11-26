@@ -1,8 +1,8 @@
 ## Unreleased
 
 ### Changed
-- „Hier melden“ steht im Menü jetzt gleich nach den Fahrt-Knöpfen, nicht mehr ganz unten.
-  EN: "Report here" in the menu now comes right after the trip buttons, no longer at the very bottom.
+- Fahrspuren, die gegen die Fahrtrichtung laufen, werden nicht mehr angezeigt.
+  EN: Lanes that run against the direction of travel are no longer shown.
 
 ## 1.0.246 — 2026-10-28
 

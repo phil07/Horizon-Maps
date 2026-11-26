@@ -850,6 +850,12 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
                         val pr = MapRouteGeometry.projectOn(r.pts, p) ?: continue
                         if (Geo.dist(pr.second, p) > 20.0) continue
                         val offTT = r.cum[pr.first] + Geo.dist(r.pts[pr.first], pr.second)
+                        // a lane that runs against the way you drive: its start lies further along the route than its end (the
+                        // lane of the other carriageway, or a lane Mapbox lists backwards), so it is left out
+                        val pStart = pointAt(mb, ls.off).first
+                        val prStart = MapRouteGeometry.projectOn(r.pts, pStart)
+                        if (prStart != null && Geo.dist(prStart.second, pStart) <= 20.0 &&
+                            r.cum[prStart.first] + Geo.dist(r.pts[prStart.first], prStart.second) > offTT) continue
                         // (the nearest step: with two turns close together the first one within 40 m can be the wrong one)
                         val st = r.steps.filter { Math.abs(it.off - offTT) < 40.0 }.minByOrNull { Math.abs(it.off - offTT) } ?: continue
                         // the same way through the junction: a lane Mapbox says to use must suit TomTom's turn here
