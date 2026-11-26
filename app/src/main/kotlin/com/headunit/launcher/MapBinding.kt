@@ -1993,19 +1993,6 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
         if (!lite) setBase("showPointOfInterestLabels", Value.valueOf(!poiMoving))
     }
 
-    /** (Kept for the old "Light map" switch; Map detail sets this now.) */
-    fun setLite(b: Boolean) {
-        if (lite == b || mapDetail != "full") return
-        lite = b
-        try { glowLayer?.visibility(vis(!lite)) } catch (e: Exception) { softFail(e) }
-        setBase("showPointOfInterestLabels", Value.valueOf(!lite && !poiMoving))
-        setBase("showTransitLabels", Value.valueOf(!lite))
-        if (!satellite) {
-            setBase("show3dObjects", Value.valueOf(b3dStd() && !lite))
-            setBase("showLandmarkIcons", Value.valueOf(!lite))
-        }
-    }
-
 
     /**
      * The Horizon colours, exactly as the original app painted its map: soft, light tones by day and a deep blue-grey at night, matched
@@ -3174,14 +3161,6 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
     }
     private var roadName = ""
     private var roadOffTilt = -99.0
-
-    /** How far below the locator the road pill sits: further down when the view is flat (ring is round), closer when tilted. */
-    private fun roadOffset(): Float {
-        val r = (if (theme == "immersive") 40f else 9.4f) * arrowScale
-        val c = Math.cos(Math.toRadians(tiltNow))
-        // (doubled: the offset is scaled by the pill's icon size of 0.5)
-        return ((r * (0.2 + 0.22 * c) + 2f) * 2.0).toFloat()
-    }
 
 
     /** Size of the road name pill under the locator (1 = normal), from Settings > Display. */

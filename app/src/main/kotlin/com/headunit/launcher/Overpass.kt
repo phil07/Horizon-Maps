@@ -593,15 +593,6 @@ object Overpass {
         }
     } catch (e: Exception) { null }
 
-    /** Speed cameras inside a bounding box (used to find the ones along a route). */
-    fun camerasIn(minLat: Double, minLon: Double, maxLat: Double, maxLon: Double): List<LL> = try {
-        val els = run("[out:json][timeout:15];node($minLat,$minLon,$maxLat,$maxLon)[\"highway\"=\"speed_camera\"];out;")
-        (0 until els.length()).mapNotNull {
-            val e = els.getJSONObject(it)
-            if (e.has("lat") && e.has("lon")) LL(e.getDouble("lat"), e.getDouble("lon")).also { c -> noteDir(c, e.optJSONObject("tags")) } else null
-        }
-    } catch (e: Exception) { emptyList() }
-
     /** OpenStreetMap filter for each kind of place that can be searched for nearby or along the route. */
     private fun filterOf(kind: String): String = when (kind) {
         "fuel" -> "[\"amenity\"=\"fuel\"]"

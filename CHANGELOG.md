@@ -1,11 +1,5 @@
 ## Unreleased
 
-### Fixed
-- Offline-Routen: Die Meldungen sind kurz und klar, auf Deutsch und Englisch, und zeigen weder die Rohmeldung der Routenmaschine noch deine Koordinaten.
-  EN: Offline routes: the messages are short and clear, in German and English, and show neither the route engine's raw message nor your coordinates.
-- Die Anweisungen zu Wegpunkten („Wegpunkt erreicht“, „Wegpunkt verlassen“) aus dem Anbieter werden bei Meine Routen nicht mehr angesagt oder angezeigt. Echte Abbiegungen und echte Stopps bleiben.
-  EN: The provider's waypoint lines ("waypoint reached", "waypoint left") are no longer shown or spoken for My routes. Real turns and real stops stay.
-
 ## 1.0.246 — 2026-10-28
 
 ### Improved in-app updates

@@ -81,9 +81,6 @@ object ParkingLive {
     /** What's held right now, without asking (for drawing on the map). */
     fun held(): List<Garage> = synchronized(lock) { held?.list.orEmpty() }
 
-    /** Sorted for parking near [d]: the nearest with free spaces first, full or closed ones at the end. */
-    fun nearestFree(list: List<Garage>, d: LL): List<Garage> = list.sortedWith(compareBy<Garage> { if (it.full) 1 else 0 }.thenBy { Geo.dist(d, it.pos) })
-
     /** Same for places found by the other searches, with their live count where one is known. */
     fun sortNearby(list: List<Nearby>): List<Nearby> = list.sortedWith(compareBy<Nearby> { if (it.open == false || (it.free != null && it.free <= 0)) 1 else 0 }.thenBy { it.dist })
 

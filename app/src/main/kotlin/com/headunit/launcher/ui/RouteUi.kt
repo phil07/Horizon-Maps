@@ -846,8 +846,6 @@ fun AppUpdateCard(engine: NavEngine) {
     }
 }
 
-/** Release notes are Markdown ("## Horizon Nav 1.0.1055", "- **Neu:** …"): shown as plain text, the version heading left out. */
-private fun plainNotes(md: String): String = md.lines()
     .map { it.trim() }
     .filter { it.isNotEmpty() && !it.startsWith("#") }
     .joinToString(" ") { l -> l.removePrefix("- ").removePrefix("* ").replace("**", "").replace("`", "") }

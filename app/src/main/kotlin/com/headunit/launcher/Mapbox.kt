@@ -238,9 +238,6 @@ object MapboxRest {
     private fun spriteUrl(s: String, t: String): String =
         if (s.startsWith("mapbox://sprites/")) "$API/styles/v1/" + s.removePrefix("mapbox://sprites/") + "/sprite?access_token=$t" else s
 
-    /** Satellite imagery tiles (for the satellite view on any map source while a token is set). */
-    fun satelliteTiles(token: String) = "$API/v4/mapbox.satellite/{z}/{x}/{y}@2x.jpg90?access_token=${enc(token)}"
-
     // ------------------------------------------------------------------ routes
 
     /** True when the last request was accepted with its departure time. */

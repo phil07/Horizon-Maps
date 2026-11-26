@@ -859,10 +859,10 @@ object TomTomRest {
         return out
     }
 
-    /** Posted speed limit at [p] (m/s) from TomTom's own road data, or null when it has none there. [heading] picks the right carriageway. */
     /** A limit from TomTom's reverse geocoder, with the road it belongs to (to check it's the road you're on). */
     class RoadLimit(val ms: Double, val street: String, val refs: List<String>)
 
+    /** Posted speed limit at [p] (m/s) from TomTom's own road data, or null when it has none there. [heading] picks the right carriageway. */
     fun speedLimit(key: String, p: LL, heading: Double): RoadLimit? {
         val k = URLEncoder.encode(key, "UTF-8")
         val hd = if (heading >= 0) "&heading=${heading.toInt() % 360}" else ""

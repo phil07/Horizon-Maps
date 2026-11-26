@@ -14,10 +14,3 @@ internal fun zoomed(base: Double, vararg zv: Pair<Number, Number>): Expression {
     for ((z, v) in zv) { args += lit(z); args += lit(v) }
     return Expression.interpolate(*args.toTypedArray())
 }
-internal fun zoomedExpr(base: Double, vararg zv: Pair<Number, Expression>): Expression {
-    val args = ArrayList<Expression>()
-    args += if (base == 1.0) Expression.linear() else Expression.exponential(base)
-    args += Expression.zoom()
-    for ((z, v) in zv) { args += lit(z); args += v }
-    return Expression.interpolate(*args.toTypedArray())
-}

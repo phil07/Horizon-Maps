@@ -332,13 +332,6 @@ object OfflineRouter {
 
     fun sizeOf(f: File): Long = if (!f.exists()) 0L else if (f.isFile) f.length() else (f.listFiles()?.sumOf { sizeOf(it) } ?: 0L)
 
-    /** Removes the whole pack (routing data, map, search list, fonts) and frees the space. */
-    @Synchronized
-    fun deleteAll(ctx: Context) {
-        closeEngine()
-        dir(ctx).deleteRecursively(); invalidate()
-    }
-
     /** Removes one downloaded area and frees its space; another area (if any) takes over. */
     @Synchronized
     fun deleteArea(ctx: Context, id: String) {

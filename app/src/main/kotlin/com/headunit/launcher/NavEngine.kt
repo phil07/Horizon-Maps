@@ -1214,13 +1214,6 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
         scope.launch { delay(ms); if (t == alertToken) alert = null }
     }
 
-    /** Plays a sample alert (chime, banner and voice) so the sound can be checked. */
-    fun testAlert() {
-        chime(android.media.ToneGenerator.TONE_PROP_PROMPT)
-        raiseAlert("camera", Lang.t("Testwarnung: Blitzer voraus", "Test alert: speed camera ahead"))
-        speak(Lang.t("Blitzer voraus", "Speed camera ahead"), true)
-    }
-
     fun shutdown() {
         RouteSync.unregister(this)
         stopLocation(); simJob?.cancel(); tts?.shutdown()
@@ -2193,8 +2186,6 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
         startRoute(d, 0, true, startNow = true)
     }
 
-    fun resetTrip() { tripDist = 0.0; tripMax = 0.0; tripMoving = 0.0; tripStart = System.currentTimeMillis() }
-
     // ---- search + routing ----
     /** True when the device has a network that claims internet access (it can still be too weak to use). */
     fun online(): Boolean {
@@ -2766,11 +2757,6 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
         } else startRoute(p)
     }
 
-    fun setDeparture(minutes: Int) {
-        val d = dest ?: return
-        startRoute(d, minutes, true)
-    }
-
     /** Pushes the route preferences from Settings into the routing client. */
     internal fun syncRoutePrefs(from: LL? = null, to: LL? = null) {
         // areas to keep out of: roads you asked to avoid on this trip, and clean air zones when that is switched on
@@ -3136,22 +3122,6 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
         if (previewing) pushQueues(routes.indices.flatMap { i -> queuesFor(routes[i], 0.0, i != active) })
         map.setRoute(r.pts, routes.filterIndexed { i, _ -> i != active }.map { it.pts }, r.sev)
         map.setTunnels(r.tunnels.map { (a, b) -> slice(r, a, b) })
-    }
-
-    fun cycleRoute() {
-        if (routes.size < 2) { toast(Lang.t("Keine Alternativrouten. Schalte zuerst „Alternativen“ ein.", "No alternative routes. Switch on \'Alternatives\' first.")); return }
-        userPicked = true
-        active = (active + 1) % routes.size
-        said.clear(); lastIdx = 0
-        drawRoutes()
-        fix?.let { onPosition(it, true) } ?: updateGuidance(0.0)
-    }
-
-    fun toggleAlternatives() {
-        alternatives = !alternatives
-        toast(if (alternatives) Lang.t("Alternativrouten an", "Alternative routes on") else Lang.t("Alternativrouten aus", "Alternative routes off"), 2500)
-        val d = dest
-        if (d != null) startRoute(d, 0, true)
     }
 
     internal var rerouting = false
@@ -4155,27 +4125,6 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
         if (dest != null) tripDest = dest?.name.orEmpty()
     }
 
-    /** Finds [q] and starts routing there (used for calendar appointments). */
-    fun routeToText(q: String, then: () -> Unit) {
-        if (!online()) { toast(Lang.t("Ohne Signal kann hier nicht gesucht werden", "No signal to search for that"), 4000); return }
-        scope.launch {
-            try {
-                val p = withContext(Dispatchers.IO) { netGeocode(countryCode(), q, fix?.pos ?: map.center()) }.firstOrNull()
-                if (p == null) toast(Lang.f("Kein Treffer für „%1\$s“", "Could not find “%1\$s”", q), 3500) else { then(); startRoute(p) }
-            } catch (e: Exception) { toast(Lang.f("Suche fehlgeschlagen: %1\$s", "Search failed: %1\$s", e.message.orEmpty()), 4000) }
-        }
-    }
-
-    /** Finds a place by text and returns it with the driving time in minutes from here. */
-    suspend fun travelTo(q: String): Pair<Place, Int>? = withContext(Dispatchers.IO) {
-        try {
-            val from = fix?.pos ?: return@withContext null
-            val pl = netGeocode(countryCode(), q, from).firstOrNull() ?: return@withContext null
-            val r = netRoutes(from, pl.pos, false, headingDeg = driveHeading(from)).firstOrNull() ?: return@withContext null
-            Pair(pl, Math.round(r.time / 60.0).toInt())
-        } catch (e: Exception) { null }
-    }
-
     // ---- nearby fuel / charging / parking ----
     fun clearNearby() { nearby = emptyList(); nearbyKind = null; nearbyBusy = false; stopMode = false; pinNearby() }
 
@@ -4204,24 +4153,6 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
         val pts = nearby.map { it.place.pos } + listOfNotNull(fix?.pos)
         if (pts.size >= 2) map.fit(pts)
     }
-
-    private fun distToRoute(r: Route, p: LL): Double {
-        var best = 1e9
-        var i = lastIdx.coerceIn(0, max(0, r.pts.size - 1))
-        while (i < r.pts.size) { best = min(best, Geo.dist(r.pts[i], p)); i += 3 }
-        return best
-    }
-
-    /**
-     * Finds fuel, chargers, parking, food, coffee, toilets or services. With a route, it looks along the road ahead
-     * (sorted by how far ahead, with roughly how long the detour adds); otherwise around you.
-     * Fuel uses live Fuel Finder prices when you have added your Fuel Finder details in Settings.
-     */
-    /**
-     * One tap from the stops box: finds [kind] along the route ahead and adds the best one as a stop straight away (fuel: the
-     * cheapest once a little detour time is counted; everything else: the shortest detour), so nothing needs typing while driving.
-     */
-    fun addBestStop(kind: String) { loadNearby(kind, false, pickBest = true) }
 
     /** The places only a motorhome or a car with a caravan looks for (shown with that profile in Settings > Fahrzeug). */
     val CAMPER_KINDS = setOf("camp", "dump", "lpg")
@@ -4280,6 +4211,11 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
         return emptyList()
     }
 
+    /**
+     * Finds fuel, chargers, parking, food, coffee, toilets or services. With a route, it looks along the road ahead
+     * (sorted by how far ahead, with roughly how long the detour adds); otherwise around you.
+     * Fuel uses live Fuel Finder prices when you have added your Fuel Finder details in Settings.
+     */
     fun loadNearby(kind: String, nearDest: Boolean, pickBest: Boolean = false) {
         val centre = (if (nearDest) dest?.pos else null) ?: fix?.pos ?: map.center() ?: run { toast(Lang.t("Noch keine Position", "No position yet")); return }
         val origin = fix?.pos ?: centre
@@ -5514,8 +5450,6 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
         } else undoPendingT = m.t   // the server's id comes later: removed then
         toast(Lang.t("Meldung zurückgenommen", "Report taken back"), 2500)
     }
-
-    fun reportPolice() = report("police")
 
     fun clearReports() { prefs.put(PreferenceKeys.REPORTS, ""); prefs.put(PreferenceKeys.POLICEREP, ""); pushHazards(hzProgress); toast(Lang.t("Berichte gelöscht", "Reports cleared"), 2000) }
 
