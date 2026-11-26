@@ -1,8 +1,8 @@
 ## Unreleased
 
 ### Changed
-- Akku: Bist du 30 Minuten lang ohne Auto geparkt und die App ist im Hintergrund, stellt die App das GPS und den Hintergrunddienst ab. Beim Öffnen läuft beides wieder. Bis dahin ist die Tempowarnung im Hintergrund aus.
-  EN: Battery: if you have been parked for 30 minutes with no car connected and the app in the background, the app stops the GPS and the background service. Both start again when you open the app. Until then the background speed warning is off.
+- Karte: Antwortet der OpenStreetMap-Server nicht, zeigt die App die Karte über MapTiler, wenn ein MapTiler-Schlüssel eingetragen ist. Die Prüfung läuft alle 10 Minuten.
+  EN: Map: if the OpenStreetMap server doesn't answer, the app shows the map from MapTiler when a MapTiler key is set. The check runs every 10 minutes.
 
 ## 1.0.246 — 2026-10-28
 

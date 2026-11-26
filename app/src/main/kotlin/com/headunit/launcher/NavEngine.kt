@@ -1003,6 +1003,8 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
     private var tripDest = ""
 
     init {
+        // OpenFreeMap is checked now and then, so the map knows whether to fall back to MapTiler (see OsmStyle)
+        scope.launch(Dispatchers.IO) { while (true) { OsmStyle.checkReachable(); delay(10 * 60_000L) } }
         // an older pack on the unit goes into its own area folder (it's the area that was chosen then)
         try { migratePack() } catch (e: Exception) { softFail(e) }
         // Italy's daily price list is kept with the app's files (see ItalyFuel)
@@ -1235,7 +1237,7 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
     fun styleUrl(dark: Boolean): String {
         val traffic = prefs.b(PreferenceKeys.TRAFFIC, true)
         return if (hasKey && prefs.mapSource() == "tomtom" && refusedKey != apiKey && mapRefusedKey != apiKey) TomTomRest.styleUrl(apiKey, dark, traffic)
-        else OsmStyle.json(dark)
+        else OsmStyle.json(dark, prefs.s(PreferenceKeys.MAPTILER_KEY, ""))
     }
 
 
@@ -1576,7 +1578,7 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
                     map.setStyleUrl(map.baseStyle())
                 }
             }
-            else -> map.setStyleUrl(OsmStyle.json(dark))
+            else -> map.setStyleUrl(OsmStyle.json(dark, prefs.s(PreferenceKeys.MAPTILER_KEY, "")))
         }
     }
 

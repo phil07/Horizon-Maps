@@ -11,6 +11,17 @@ import org.json.JSONObject
  */
 object OsmStyle {
     const val HOST = "tiles.openfreemap.org"
+    /** The second map server, used when OpenFreeMap doesn't answer and a MapTiler key is set. */
+    private const val MAPTILER = "api.maptiler.com"
+
+    /** True when OpenFreeMap didn't answer at the last check: the map then uses MapTiler (if a key is set). */
+    @Volatile var useMapTiler = false
+        private set
+
+    /** Asks OpenFreeMap whether it answers (a few seconds at most). Call off the main thread. */
+    fun checkReachable() {
+        useMapTiler = try { Http.get("https://$HOST/planet", 4_000, 6_000); false } catch (e: Exception) { true }
+    }
 
     private fun arr(vararg v: Any?) = JSONArray().apply { v.forEach { put(it) } }
     private fun get(k: String) = arr("get", k)
@@ -62,7 +73,7 @@ object OsmStyle {
 
     private val round get() = JSONObject().put("line-cap", "round").put("line-join", "round")
 
-    fun json(dark: Boolean): String {
+    fun json(dark: Boolean, maptilerKey: String = ""): String {
         val p = if (dark) night else day
         val L = JSONArray()
         L.put(JSONObject().put("id", "background").put("type", "background").put("paint", JSONObject().put("background-color", p.land)))
@@ -156,10 +167,14 @@ object OsmStyle {
         place("place-town", arrayOf("town"), lin(7 to 12, 13 to 18), bold, 7, 15, p.text, false)
         place("place-village", arrayOf("village", "suburb"), lin(10 to 11, 15 to 16), reg, 10, 17, p.text, true)
         place("place-small", arrayOf("hamlet", "neighbourhood", "quarter"), lin(12 to 10, 17 to 14), reg, 12, 18, p.sub, true)
-        val src = JSONObject().put("type", "vector").put("url", "https://$HOST/planet")
+        // MapTiler's vector tiles use the same layer names as OpenFreeMap's, so the same style works with either
+        val mt = useMapTiler && maptilerKey.isNotBlank()
+        val k = maptilerKey.trim()
+        val src = JSONObject().put("type", "vector")
+            .put("url", if (mt) "https://$MAPTILER/tiles/v3/tiles.json?key=$k" else "https://$HOST/planet")
         return JSONObject().put("version", 8).put("name", if (dark) "Horizon OSM dark" else "Horizon OSM day")
-            .put("sprite", "https://$HOST/sprites/ofm_f384/ofm")
-            .put("glyphs", "https://$HOST/fonts/{fontstack}/{range}.pbf")
+            .put("sprite", if (mt) "https://$MAPTILER/maps/streets-v2/sprite?key=$k" else "https://$HOST/sprites/ofm_f384/ofm")
+            .put("glyphs", if (mt) "https://$MAPTILER/fonts/{fontstack}/{range}.pbf?key=$k" else "https://$HOST/fonts/{fontstack}/{range}.pbf")
             // the same soft, even lighting as the TomTom map gets
             .put("light", JSONObject().put("anchor", "viewport").put("position", arr(1.25, 215, 48)).put("intensity", if (dark) 0.36 else 0.3).put("color", "#FFFFFF"))
             .put("sources", JSONObject().put("omt", src)).put("layers", L).toString()
