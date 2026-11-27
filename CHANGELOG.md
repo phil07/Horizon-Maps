@@ -1,10 +1,8 @@
 ## Unreleased
 
 ### Fixed
-- Die Alternativ-Routenkarten sind wieder besser lesbar (etwas größer als in der letzten Version).
-  EN: The alternative route cards are readable again (a bit larger than in the last version).
-- Farben des Abbiegeschilds in Norwegen: Autobahnen blau, andere Straßen grün.
-  EN: Turn card colours in Norway: motorways blue, other roads green.
+- Beim Hinzufügen eines Stopps in der Routenvorschau liegt die Liste der Ladepunkte, Tankstellen usw. jetzt über Wetter, Stopps und Abfahrtszeit.
+  EN: When adding a stop from the route preview, the list of charging points, fuel stations etc. now sits above the weather, stops and leave-by times.
 
 ## 1.0.246 — 2026-10-28
 

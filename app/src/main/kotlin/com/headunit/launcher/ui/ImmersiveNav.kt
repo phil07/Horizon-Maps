@@ -420,7 +420,7 @@ private fun MapScreen(engine: NavEngine, onSettings: () -> Unit) {
                 }
             }
             // (adding a stop upright: the list sits along the bottom instead, see below)
-            if (engine.nearbyKind != null && (!previewing || engine.stopMode) && !(narrow && engine.stopMode) && !(engine.stopsEditor && !narrow)) NearbyCard(engine)
+            if (engine.nearbyKind != null && !previewing && !(narrow && engine.stopMode) && !(engine.stopsEditor && !narrow)) NearbyCard(engine)
         }
         // adding a stop on a phone held upright: the panel and the places along the route sit along the bottom, over the trip card's place,
         // with the places shown on the map above them
@@ -639,6 +639,9 @@ private fun MapScreen(engine: NavEngine, onSettings: () -> Unit) {
         }
 
         if (previewing) RoutePreview(engine)
+        // adding a stop from the route preview: the places list goes over the preview's weather, stops and leave-by rows (issue #454)
+        if (previewing && engine.stopMode && engine.nearbyKind != null && !(narrow && engine.stopMode) && !(engine.stopsEditor && !narrow))
+            Box(Modifier.align(side(Alignment.TopStart)).padding(16.dp).width(380.dp).zIndex(20f)) { NearbyCard(engine) }
         // the arrival moment: the summary slides up from the bottom while the camera swoops down to the destination
         val curArr = engine.arrival
         val lastArr = remember { mutableStateOf(curArr) }
