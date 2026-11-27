@@ -2472,7 +2472,7 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
 
     /** Looks up the street of the first few house results in the background (the routes to them then plan without that wait). */
     private fun prefetchStreets(list: List<Place>) {
-        for (p in list.take(5)) if (p.street != null && streetKey(p) !in streetPts) scope.launch { try { streetPoint(p) } catch (e: Exception) { softFail(e) } }
+        for (p in list.take(5)) if (p.street != null && !streetPts.containsKey(streetKey(p))) scope.launch { try { streetPoint(p) } catch (e: Exception) { softFail(e) } }
     }
 
     /** The same house from two services: the names match once the spaces and punctuation are dropped, and they lie within 150 m. */
