@@ -1844,7 +1844,7 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
     internal fun carQuiet(): Boolean = route == null && carSurfaceSeen && !carHorizonShown && !prefs.b(PreferenceKeys.SPEED_ALERT_BG, false)
 
     private fun checkLimitChange(newMs: Double, estimated: Boolean) {
-        if (!prefs.b(PreferenceKeys.LIMITCHANGE, false) || estimated || carQuiet()) return
+        if (!prefs.b(PreferenceKeys.LIMITCHANGE, false) || !prefs.b(PreferenceKeys.SHOW_LIMITS, true) || estimated || carQuiet()) return
         val k = if (imperial) 2.23694 else 3.6
         val n = (Math.round(newMs * k / 5.0) * 5).toInt()
         if (announcedLimit < 0) { announcedLimit = n; return }
@@ -3995,7 +3995,7 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
             // a motorhome's or trailer's own top speed counts where it's below the road's limit (Settings > Fahrzeug)
             val vmax = Vehicle.active.maxMs
             val overVehicle = vmax != null && (lim == null || vmax < lim) && p.speed > vmax + tol
-            val over = prefs.b(PreferenceKeys.SPEEDWARN, false) && p.speed > 4.0 && ((lim != null && !limitEstimated && p.speed > lim + tol) || overVehicle)
+            val over = prefs.b(PreferenceKeys.SHOW_LIMITS, true) && prefs.b(PreferenceKeys.SPEEDWARN, false) && p.speed > 4.0 && ((lim != null && !limitEstimated && p.speed > lim + tol) || overVehicle)
             overLimit = over
             // (Settings › Alerts › Speed limit sounds off: no beep; cameras, hazards and other alerts still sound)
             if (over && soundMode != 2 && !carQuiet() && prefs.b(PreferenceKeys.LIMIT_SOUNDS, true) && now - lastBeep > 9000) {

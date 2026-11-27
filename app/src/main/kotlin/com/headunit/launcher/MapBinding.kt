@@ -1889,7 +1889,8 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
             .iconImage(Expression.get("img")).iconAnchor(IconAnchor.BOTTOM)
             .iconAllowOverlap(true).iconIgnorePlacement(true).iconEmissiveStrength(1.0)
             .iconPitchAlignment(IconPitchAlignment.VIEWPORT)
-            .iconSize(zoomed(1.0, 9 to 0.6, 14 to 0.68, 18 to 0.76)))
+            // (about 30% smaller than before: the other routes' time cards no longer pile up)
+            .iconSize(zoomed(1.0, 9 to 0.42, 14 to 0.48, 18 to 0.53)))
         flatArrow = neonArrowHex?.let { neonArrowBitmap(it) } ?: if (im) arrowBitmapImmersive() else arrowBitmap()
         addImg(st, "dl-arrow", flatArrow!!)
         addL(st, SymbolLayer("dl-me-arrow", "dl-me")
@@ -2597,7 +2598,7 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
         if (w < 50 || h < 50) return
         val dp = mapView.resources.displayMetrics.density
         // the card sits above its point, about 190 x 65 dp: keep the whole card on screen, clear of the round buttons down the side
-        val halfW = 100f * dp; val cardH = 68f * dp; val btn = 84f * dp
+        val halfW = 70f * dp; val cardH = 48f * dp; val btn = 84f * dp
         // first choice: the clear part of the map (not under the cards down the side or the top bar); else anywhere on screen
         val side = w * 0.40f
         val strict = floatArrayOf(
@@ -2609,7 +2610,10 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
             // look along the line (about 150 points at most), from the turn-off outwards
             val step = maxOf(1, line.size / 150)
             val sample = ArrayList<LL>()
-            var i = minOf(2, line.size - 1)
+            // a little way along the route itself (about 150 m from the turn-off), so cards of routes leaving the same point don't pile up
+            var acc = 0.0; var i0 = 0
+            while (i0 < line.size - 1 && acc < 150.0) { acc += Geo.dist(line[i0], line[i0 + 1]); i0++ }
+            var i = minOf(maxOf(2, i0), line.size - 1)
             while (i < line.size) { sample += line[i]; i += step }
             val px = pixels(sample)
             if (px.size != sample.size) return@map null

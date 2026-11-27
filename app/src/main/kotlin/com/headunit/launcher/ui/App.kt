@@ -363,7 +363,10 @@ fun App(prefs: Prefs, engine: NavEngine, map: MapBinding) {
                     androidx.compose.foundation.layout.BoxWithConstraints(Modifier.fillMaxSize()) {
                         val narrow = maxWidth < 720.dp
                         Box(
-                            if (narrow) Modifier.align(Alignment.BottomCenter).fillMaxWidth().padding(start = 16.dp, end = 16.dp, bottom = 250.dp)
+                            // (it stops short of the speed limit sign's corner: the side the speed sits on keeps room for the sign)
+                            if (narrow) Modifier.align(Alignment.BottomCenter).fillMaxWidth().padding(
+                                start = 16.dp + (if (engine.speedLimit != null && engine.speedLeft()) 96.dp else 0.dp),
+                                end = 16.dp + (if (engine.speedLimit != null && !engine.speedLeft()) 96.dp else 0.dp), bottom = 250.dp)
                             else Modifier.align(Alignment.TopStart).fillMaxWidth().padding(start = if (engine.mirrored) 290.dp else 412.dp, end = if (engine.mirrored) 412.dp else 290.dp, top = 16.dp),
                             contentAlignment = if (narrow) Alignment.BottomCenter else Alignment.TopCenter,
                         ) {

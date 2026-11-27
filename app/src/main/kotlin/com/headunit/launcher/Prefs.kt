@@ -167,6 +167,10 @@ internal object PreferenceKeys {
     /** "never", "always" or "short" (only on trips shorter than [AVOID_MOTORWAY_KM], in km or miles as the units are set). */
     const val AVOID_MOTORWAY_MODE = "avoid_motorway_mode"
     const val AVOID_MOTORWAY_KM = "avoid_motorway_km"
+    /** Show the speed limit sign, the warnings for going over it and the limit signs on the map (off for roads where the limits shown are wrong). */
+    const val SHOW_LIMITS = "show_limits"
+    /** A badge with the phone's battery level beside the speedometer on the car screen. Off by default. */
+    const val CAR_PHONE_BATTERY = "car_phone_battery"
     /** The Services list along the route shows only motorway services (not rest and picnic areas). */
     const val SERVICES_MOTORWAY = "services_motorway"
     /** Offline data and UK fuel prices refresh by themselves: "wifi" (default), "any" (mobile data too) or "off" (asked first). */

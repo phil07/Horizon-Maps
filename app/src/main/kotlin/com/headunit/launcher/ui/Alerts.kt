@@ -2,6 +2,7 @@ package com.headunit.launcher.ui
 
 import com.headunit.launcher.R
 import com.headunit.launcher.Lang
+import com.headunit.launcher.PreferenceKeys
 import androidx.compose.ui.res.stringResource
 
 import androidx.compose.animation.core.Animatable
@@ -279,6 +280,8 @@ fun HazardBadge(kind: String, label: String, dist: String) {
 @Composable
 fun SpeedLimitSign(engine: NavEngine, size: Dp, modifier: Modifier = Modifier, onClick: (() -> Unit)? = null) {
     var panel by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
+    // Settings > Screen & sizes > Speed display > Show speed limits: switched off, no limit sign
+    if (!engine.prefs.b(PreferenceKeys.SHOW_LIMITS, true)) return
     val tap: (() -> Unit)? = onClick ?: if (!engine.isCar) ({ panel = !panel }) else null
     Box(modifier) {
         SpeedLimitFace(engine, size, Modifier, tap)

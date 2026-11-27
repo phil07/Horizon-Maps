@@ -97,6 +97,7 @@ import com.headunit.launcher.softFail
 internal fun AndroidAutoSection(prefs: Prefs) {
     val ctx = LocalContext.current
     SGroup(Lang.t("Auf der Karte", "On the map")) {
+        SToggle(prefs, Lang.t("Handy-Akku anzeigen", "Phone battery"), PreferenceKeys.CAR_PHONE_BATTERY, false, Lang.t("Ein kleines Zeichen mit dem Akkustand des Handys neben dem Tacho", "A small badge with your phone's battery level beside the speedometer"))
         SToggle(prefs, Lang.t("Sound-Knopf auf der Karte, wenn nicht navigiert", "Sound button on the map when not navigating"), PreferenceKeys.CAR_SOUND_IDLE, true, Lang.t("Aus: der Sound-Knopf erscheint nur während der Navigation, für mehr Platz", "Off: the sound button shows only while navigating, for more room"))
         SToggle(prefs, Lang.t("Suchleiste und Orte auf der Karte ausblenden", "Leave the search bar and places off the map"), PreferenceKeys.CAR_HIDE_SEARCH, false, Lang.t("Für Autos mit Drehknopf ohne Touchscreen: Suchleiste, Zuhause, Arbeit, Schnellwahl und Vorschlag verschwinden, wenn du nicht navigierst. Suche, Zuhause, Arbeit und gespeicherte Orte bleiben unter Orte (★)", "For cars with a rotary knob and no touchscreen: the search bar, Home, Work, shortcuts and the suggestion go when you're not navigating. Search, Home, Work and your saved places stay under Places (★)"))
         if (!prefs.b(PreferenceKeys.CAR_HIDE_SEARCH, false)) SChoice(Lang.t("Ausblenden nach", "Hide them after"),

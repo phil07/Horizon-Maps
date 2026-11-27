@@ -10,7 +10,16 @@
 - Nur Autobahn-Raststätten: Die Liste „Raststätten“ entlang der Route kann nur Autobahn-Raststätten zeigen, ohne Rast- und Picknickplätze.
   EN: Motorway services only: the Services list along the route can show just motorway services, without rest and picnic areas.
 
+- Tempolimits ausblenden (Einstellungen › Bildschirm & Größen › Tacho): „Tempolimits anzeigen“ schaltet das Limit-Schild und die Warnungen bei Überschreitung aus, für Straßen, auf denen die angezeigten Limits nicht stimmen.
+  EN: Hide speed limits (Settings › Screen & sizes › Speed display): "Show speed limits" switches the limit sign and the warnings for going over it off, for roads where the limits shown aren't right.
+- Handy-Akku auf dem Auto-Display (Einstellungen › Android Auto › Handy-Akku): ein kleines Zeichen mit dem Akkustand neben dem Tacho, aus, bis du es einschaltest.
+  EN: Phone battery on the car screen (Settings › Android Auto › Phone battery): a small badge with the battery level beside the speedometer, off unless switched on.
+
 ### Improved
+- Die Zeitkarten der anderen Routen („Gleiche Zeit“, „5 Min. langsamer“) sind etwa 30 % kleiner und sitzen ein Stück entlang ihrer eigenen Route, damit sich Karten von Routen, die am selben Punkt abzweigen, nicht stapeln.
+  EN: The time cards on the other routes ("Same time", "5 min slower") are about 30% smaller and sit a little way along their own route, so cards of routes leaving the same point don't pile up.
+- Warnungen (Blitzer, Verkehr, Gefahren) decken das Tempolimit-Schild nicht mehr ab: Sie enden vor seiner Ecke.
+  EN: Alerts (speed cameras, traffic, hazards) no longer cover the speed limit sign: they stop short of its corner.
 - Zebrastreifen ohne Route: In Orten werden die Übergänge rund um dich auch ohne Route auf die Straße gezeichnet (mit Zebra-Leuchten), unter etwa 40 mph und etwa alle 500 m abgefragt.
   EN: Zebra crossings without a route: in towns the crossings round you are painted on the road too (with Belisha beacons), looked up under about 40 mph and about every 500 m.
 - Gespeicherte Orte auf der Karte: Die Symbole sind doppelt so groß (Einstellung bis 300 %).

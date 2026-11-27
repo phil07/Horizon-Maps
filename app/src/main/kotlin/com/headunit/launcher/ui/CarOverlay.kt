@@ -4,6 +4,7 @@ import com.headunit.launcher.acceptFaster
 import com.headunit.launcher.R
 import com.headunit.launcher.Lang
 import androidx.compose.material.icons.rounded.RvHookup
+import androidx.compose.material.icons.rounded.PhoneAndroid
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.WaterDrop
 import androidx.compose.material.icons.rounded.PropaneTank
@@ -338,7 +339,7 @@ private fun CarScreen(engine: NavEngine, a: android.graphics.Rect?, actions: Car
         if (engine.carSpeedLeft != carSpeedLeft) engine.carSpeedLeft = carSpeedLeft
         // the speed on the left, with room kept on its right for the sign beside the ring (the sign is drawn outside the ring's own box)
         val signRoom = if (engine.prefs.b(PreferenceKeys.SPEEDRING, true) && engine.prefs.s(PreferenceKeys.CAR_SPEED_STYLE, "normal") != "compact") 52.dp else 0.dp
-        val leftSpeed: @Composable () -> Unit = { CompositionLocalProvider(LocalDensity provides Density(dens.density * speedScale, dens.fontScale)) { Box(Modifier.padding(end = signRoom)) { ImmSpeed(engine) } } }
+        val leftSpeed: @Composable () -> Unit = { CompositionLocalProvider(LocalDensity provides Density(dens.density * speedScale, dens.fontScale)) { Box(Modifier.padding(end = signRoom)) { ImmSpeed(engine); PhoneBatteryBadge(engine, Modifier.align(Alignment.TopStart)) } } }
         // hazards ahead (an incident, a speed camera) go along the bottom of the turn card when it's showing, instead of a
         // separate pill: the left side is then just the turn card and the trip card
         val alert = engine.alert
@@ -1327,5 +1328,24 @@ private fun CarListScreen(engine: NavEngine, kind: String) {
                 }
             }
         }
+    }
+}
+
+/** Settings › Android Auto › Phone battery: a small badge with the phone's battery level (read once a minute), beside the speedometer. */
+@Composable
+internal fun PhoneBatteryBadge(engine: NavEngine, modifier: Modifier = Modifier) {
+    if (!engine.prefs.b(PreferenceKeys.CAR_PHONE_BATTERY, false)) return
+    val ctx = androidx.compose.ui.platform.LocalContext.current
+    val pctState = androidx.compose.runtime.produceState<Int?>(null) {
+        while (true) {
+            value = try { (ctx.getSystemService(android.content.Context.BATTERY_SERVICE) as android.os.BatteryManager).getIntProperty(android.os.BatteryManager.BATTERY_PROPERTY_CAPACITY).takeIf { it in 0..100 } } catch (e: Exception) { null }
+            kotlinx.coroutines.delay(60_000L)
+        }
+    }
+    val p = pctState.value ?: return
+    val c = LocalVw.current
+    Row(modifier.panel(4.dp, RoundedCornerShape(12.dp), c.surface).padding(horizontal = 8.dp, vertical = 3.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+        androidx.compose.material3.Icon(androidx.compose.material.icons.Icons.Rounded.PhoneAndroid, null, tint = if (p < 20) Bad else c.text, modifier = Modifier.size(14.dp))
+        Text("$p%", color = if (p < 20) Bad else c.text, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
     }
 }
