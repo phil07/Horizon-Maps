@@ -1815,6 +1815,11 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
         addL(st, SymbolLayer("dl-hazards", "dl-hazards")
             .iconImage(Expression.get("img")).iconAllowOverlap(true).iconIgnorePlacement(true).iconEmissiveStrength(1.0)
             .iconSize((prefs.i(PreferenceKeys.HAZARD_SIGN_SIZE, 115).coerceIn(50, 250) / 100.0).let { k -> zoomed(1.0, 11 to 0.45 * k, 15 to 0.75 * k, 18 to 1.0 * k) }))
+        // speed limit signs on the route where the limit changes (Settings > On the map > Limit signs on the route)
+        addS(st, GeoJsonSource.Builder("dl-limsigns").featureCollection(empty()).build())
+        addL(st, SymbolLayer("dl-limsigns", "dl-limsigns")
+            .iconImage(Expression.get("img")).iconAllowOverlap(true).iconIgnorePlacement(true).iconEmissiveStrength(1.0).minZoom(12.0)
+            .iconSize((prefs.i(PreferenceKeys.ROUTE_LIMIT_SIGN_SIZE, 100).coerceIn(40, 250) / 100.0).let { k -> zoomed(1.0, 12 to 0.22 * k, 16 to 0.36 * k, 19 to 0.5 * k) }))
         // where you parked (on the phone, after Android Auto disconnects)
         addImg(st, "dl-car-pin", parkedBitmap())
         addS(st, GeoJsonSource.Builder("dl-parked").featureCollection(FeatureCollection.fromFeatures(
@@ -2421,6 +2426,7 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
 
     private fun pushRoute() {
         setLine(main)
+        try { pushLimitSigns() } catch (e: Throwable) { softFail(e) }
         src("dl-alts")?.featureCollection(FeatureCollection.fromFeatures(ArrayList(alts.filter { it.size >= 2 }.map { line(it) })))
         pushPick()
     }
@@ -3436,6 +3442,33 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
         main0.postDelayed(flagTick, 160L)
     }
 
+    /** The speed limit signs along the route: where each is, and the limit it shows (km/h, or mph when the units are miles). */
+    private var limitSigns: List<Pair<LL, Int>> = emptyList()
+
+    fun setLimitSigns(signs: List<Pair<LL, Int>>) { main0.post { limitSigns = signs; pushLimitSigns() } }
+
+    private fun pushLimitSigns() {
+        val s = src("dl-limsigns") ?: return
+        val st = style ?: return
+        for (v in limitSigns.map { it.second }.distinct()) try { addImg(st, "dl-lim-$v", limitSignBitmap(v)) } catch (e: Throwable) { softFail(e) }
+        s.featureCollection(FeatureCollection.fromFeatures(limitSigns.map { (p, v) ->
+            Feature.fromGeometry(Point.fromLngLat(p.lon, p.lat)).also { it.addStringProperty("img", "dl-lim-$v") }
+        }))
+    }
+
+    /** A round limit sign: white, with a red ring and the number. */
+    private fun limitSignBitmap(v: Int): Bitmap {
+        val bmp = Bitmap.createBitmap(96, 96, Bitmap.Config.ARGB_8888)
+        val c = Canvas(bmp)
+        c.drawCircle(48f, 50f, 44f, Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0x55000000 })
+        c.drawCircle(48f, 48f, 44f, Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xFFFFFFFF.toInt() })
+        c.drawCircle(48f, 48f, 38f, Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.STROKE; strokeWidth = 10f; color = 0xFFD32F2F.toInt() })
+        val text = v.toString()
+        val tp = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xFF202124.toInt(); textSize = if (text.length >= 3) 32f else 42f; typeface = android.graphics.Typeface.DEFAULT_BOLD; textAlign = Paint.Align.CENTER }
+        c.drawText(text, 48f, 48f + tp.textSize * 0.35f, tp)
+        return bmp
+    }
+
     private fun pushVia() {
         val s = src("dl-via") ?: return
         val st = style
@@ -3886,7 +3919,7 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
         val il = (vi?.left ?: 0) / d; val ir = (vi?.right ?: 0) / d; val it0 = (vi?.top ?: 0) / d; val ib = (vi?.bottom ?: 0) / d
         val vw = max(50.0, w - il - ir); val vh = max(50.0, h - it0 - ib)
         val side = if (panel) fitSideDp.coerceIn(0.0, vw * 0.6) else 0.0
-        val pl = il + side + (vw - side) * 0.07; val pr = ir + (vw - side) * 0.07; val pt = it0 + vh * 0.10; val pb = ib + vh * (if (panel && side <= 0.0) 0.60 else 0.10)
+        val pl = il + side + (vw - side) * 0.07; val pr = ir + (vw - side) * 0.07; val pt = it0 + vh * 0.10; val pb = ib + vh * (if (panel && side <= 0.0 && vi == null) 0.60 else 0.10)
         val aw = w - pl - pr; val ah = h - pt - pb
         val fx = max(x1 - x0, 1e-7); val fy = max(y1 - y0, 1e-7)
         // (zoom in this formula is for a map drawn at the screen's own density; a lower render scale shows more map, so it's corrected)

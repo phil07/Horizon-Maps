@@ -2457,6 +2457,24 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
      * Exact name matches first, then names starting with what you typed (towns and cities before streets, see [SearchRank]),
      * then the rest with online results ahead of offline ones.
      */
+    /** The point on the street a house stands on, found while the search results show so picking one doesn't wait for it. */
+    private val streetPts = java.util.concurrent.ConcurrentHashMap<String, LL>()
+    private fun streetKey(p: Place) = "${p.pos.lat},${p.pos.lon}|${p.street}"
+
+    private suspend fun streetPoint(p: Place): LL? {
+        val st = p.street ?: return null
+        val key = streetKey(p)
+        streetPts[key]?.let { return it }
+        val v = withContext(Dispatchers.IO) { try { Overpass.nearestNamedRoadPoint(p.pos, st) } catch (e: Exception) { null } }
+        if (v != null) streetPts[key] = v
+        return v
+    }
+
+    /** Looks up the street of the first few house results in the background (the routes to them then plan without that wait). */
+    private fun prefetchStreets(list: List<Place>) {
+        for (p in list.take(5)) if (p.street != null && streetKey(p) !in streetPts) scope.launch { try { streetPoint(p) } catch (e: Exception) { softFail(e) } }
+    }
+
     /** The same house from two services: the names match once the spaces and punctuation are dropped, and they lie within 150 m. */
     private fun sameHouse(a: Place, b: Place): Boolean {
         fun key(s: String) = s.lowercase().filter { it.isLetterOrDigit() }
@@ -2595,6 +2613,7 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
             }
             val merged = rankResults(q, near, net ?: emptyList(), local)
             results = merged
+            prefetchStreets(merged)
             loadLogos(merged)
             if (merged.isEmpty()) toast(if (net == null) Lang.t("Suche fehlgeschlagen: schwacher oder kein Empfang", "Search failed: weak or no signal") else Lang.t("Keine Treffer. Füge einen Ort oder eine Postleitzahl hinzu.", "No matches. Try adding a town or postcode."), 3500)
             else if (net == null) toast(Lang.t("Schwaches Signal: Es werden gespeicherte Orte und Offline-Orte angezeigt", "Weak signal: showing saved places and offline towns"), 3500)
@@ -2872,7 +2891,7 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
         busy = true
         scope.launch {
             // a house address with no routable point: the route ends on its street (the nearest point on the named street), else on the place
-            val toPos = to.street?.let { st -> withContext(Dispatchers.IO) { try { Overpass.nearestNamedRoadPoint(to.pos, st) } catch (e: Exception) { null } } } ?: to.pos
+            val toPos = streetPoint(to) ?: to.pos
             try {
                 val departMs = if (departInMin > 0) System.currentTimeMillis() + departInMin * 60_000L else 0L
                 var usedOffline = false
@@ -3169,6 +3188,7 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
         // while choosing a route: the queues of every route, the others dimmed
         if (previewing) pushQueues(routes.indices.flatMap { i -> queuesFor(routes[i], 0.0, i != active) })
         map.setRoute(r.pts, routes.filterIndexed { i, _ -> i != active }.map { it.pts }, r.sev)
+        try { pushLimitSigns(r) } catch (e: Exception) { softFail(e) }
         map.setTunnels(r.tunnels.map { (a, b) -> slice(r, a, b) })
     }
 
@@ -3293,7 +3313,7 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
         sessionAvoid.clear(); routeZones = emptyList(); avgInfo = null; avgIn = null; servicesAhead = emptyList(); barEvents = emptyList()
         rawServices = emptyList(); servicesFor = null; rawHz = emptyList(); rawAvg = emptyList(); avgWinEnd = -1.0; avgWinRoute = null; avgStoredFor = null; rawJcts = emptyList(); jctsOn = null; jctsSig = 0; hzWinRoute = null; hzWinEnd = -1.0
         placed = null; placedSig = 0; avgAlerted.clear(); hzAlerted.clear(); zoneAlerted.clear(); stopsEditor = false
-        map.setRoute(emptyList(), emptyList()); map.setDest(null); map.setVia(emptyList()); map.setTurnPulse(false); laneKey = null; map.setLanes(emptyList()); map.setLaneSign(null, emptyList()); laneSignFor = -1.0; bubbleLanes = null; map.setLaneBubble(null, emptyList()); map.setRouteShift(emptyList()); laneLatAt = null; laneShiftEnd = 0.0
+        map.setRoute(emptyList(), emptyList()); map.setLimitSigns(emptyList()); map.setDest(null); map.setVia(emptyList()); map.setTurnPulse(false); laneKey = null; map.setLanes(emptyList()); map.setLaneSign(null, emptyList()); laneSignFor = -1.0; bubbleLanes = null; map.setLaneBubble(null, emptyList()); map.setRouteShift(emptyList()); laneLatAt = null; laneShiftEnd = 0.0
         map.highlightDestination(null)
         stopSim()
         speechQ.clear(); speechSegs.clear(); playing = null; playingId = ""

@@ -167,6 +167,8 @@ internal object PreferenceKeys {
     /** "never", "always" or "short" (only on trips shorter than [AVOID_MOTORWAY_KM], in km or miles as the units are set). */
     const val AVOID_MOTORWAY_MODE = "avoid_motorway_mode"
     const val AVOID_MOTORWAY_KM = "avoid_motorway_km"
+    /** The speed limit signs drawn on the route where the limit changes, in percent. */
+    const val ROUTE_LIMIT_SIGN_SIZE = "routelimitsignsize"
     /** Show the speed limit sign, the warnings for going over it and the limit signs on the map (off for roads where the limits shown are wrong). */
     const val SHOW_LIMITS = "show_limits"
     /** A badge with the phone's battery level beside the speedometer on the car screen. Off by default. */

@@ -15,7 +15,16 @@
 - Handy-Akku auf dem Auto-Display (Einstellungen › Android Auto › Handy-Akku): ein kleines Zeichen mit dem Akkustand neben dem Tacho, aus, bis du es einschaltest.
   EN: Phone battery on the car screen (Settings › Android Auto › Phone battery): a small badge with the battery level beside the speedometer, off unless switched on.
 
+- Tempolimit-Schilder auf der Route: Dort, wo sich das Limit ändert, steht ein Schild auf der Route (Einstellungen › Auf der Karte › Limit-Schilder auf der Route, in der Größe einstellbar).
+  EN: Limit signs on the route: a sign is drawn where the limit changes (Settings › On the map › Limit signs on the route, with a size setting).
+
+### Fixed
+- Android Auto: Die Routenübersicht (Vorschau, Übersicht, andere Routen) füllt jetzt den Platz neben den Karten über die ganze Höhe, statt die Route ins obere Drittel zu quetschen.
+  EN: Android Auto route overview too small: the route preview, the overview and the other-routes view now fill the space beside the cards using the whole height, instead of squeezing the route into the top third.
+
 ### Improved
+- Routen zu einer Hausadresse planen schneller: Die Straße des Hauses wird gesucht, während die Suchergebnisse zu sehen sind, sodass die Auswahl nicht darauf wartet.
+  EN: Routes to a house address plan quicker: the street the house is on is looked up while the search results are showing, so picking one doesn't wait for it.
 - Die Zeitkarten der anderen Routen („Gleiche Zeit“, „5 Min. langsamer“) sind etwa 30 % kleiner und sitzen ein Stück entlang ihrer eigenen Route, damit sich Karten von Routen, die am selben Punkt abzweigen, nicht stapeln.
   EN: The time cards on the other routes ("Same time", "5 min slower") are about 30% smaller and sit a little way along their own route, so cards of routes leaving the same point don't pile up.
 - Warnungen (Blitzer, Verkehr, Gefahren) decken das Tempolimit-Schild nicht mehr ab: Sie enden vor seiner Ecke.
