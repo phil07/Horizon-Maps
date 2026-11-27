@@ -36,6 +36,8 @@ class NavService : Service() {
         private const val ID = 7
         private const val CHANNEL = "nav"
         private const val EXTRA_TEXT = "text"
+        /** Set on the notification's Close button: the map page ends the route and closes the app (as Close Horizon Nav does). */
+        const val EXTRA_CLOSE = "close_app"
 
         private fun notification(ctx: Context, text: String): Notification {
             val nm = ctx.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
@@ -50,10 +52,17 @@ class NavService : Service() {
                 Intent(ctx, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_REORDER_TO_FRONT),
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
             )
+            // Close: the same activity, asked to close the app (see MainActivity)
+            val closeIntent = PendingIntent.getActivity(
+                ctx, 1,
+                Intent(ctx, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_REORDER_TO_FRONT).putExtra(EXTRA_CLOSE, true),
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+            )
             return Notification.Builder(ctx, CHANNEL).setSmallIcon(R.drawable.ic_stat_nav)
                 .setContentTitle("Horizon Nav")
                 .setContentText(text)
                 .setContentIntent(open)
+                .addAction(Notification.Action.Builder(android.graphics.drawable.Icon.createWithResource(ctx, R.drawable.ic_stat_nav), Lang.t("Schließen", "Close"), closeIntent).build())
                 .setOngoing(true)
                 .setOnlyAlertOnce(true)
                 .build()

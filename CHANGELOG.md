@@ -1,6 +1,8 @@
 ## Unreleased
 
 ### Added
+- Schließen in der Benachrichtigung: Die Benachrichtigung der Navigation hat einen Schließen-Knopf, der die Route beendet und die App schließt.
+  EN: Close in the notification: the navigation notification has a Close button that ends the route and closes the app.
 - Blitzer-Warnungen einstellbar (Einstellungen › Alerts › Cameras): Gong und Stimme, nur Stimme, nur Gong oder nur Bildschirm. Der Hinweis oben lässt sich separat ein- und ausschalten.
   EN: Speed camera warnings can be chosen (Settings › Alerts › Cameras): chime and voice, voice only, chime only or screen only. The notice at the top can be switched on or off separately.
 

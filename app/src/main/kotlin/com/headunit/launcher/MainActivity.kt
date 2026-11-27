@@ -206,6 +206,8 @@ class MainActivity : ComponentActivity() {
 
     /** A destination shared from another app (a Google Maps link, a geo: link or an address). */
     private fun handleShared(i: android.content.Intent?) {
+        // the notification's Close button: the route ends and the app closes, as Close Horizon Nav does
+        if (i?.getBooleanExtra(NavService.EXTRA_CLOSE, false) == true) { i?.removeExtra(NavService.EXTRA_CLOSE); engine.closeApp(); return }
         // the way back from the car maker's sign-in page
         if (CarCloud.handle(applicationContext, Prefs(applicationContext), i)) return
         // "Zum Auto" in the parking reminder: the way on foot to the car (once: the flag is taken off the intent)
