@@ -209,7 +209,7 @@ fun App(prefs: Prefs, engine: NavEngine, map: MapBinding) {
     val fxNow = if (wxOn) weatherKindOn(prefs, wxNow) else null
     // the favourites' stars follow their switch in Settings › Karte
     val favOn = prefs.b(PreferenceKeys.FAV_ON_MAP, true)
-    val savedSize = prefs.i(PreferenceKeys.SAVED_ICON_SIZE, 100)
+    val savedSize = prefs.i(PreferenceKeys.SAVED_ICON_SIZE, 200)
     LaunchedEffect(favOn, savedSize) { engine.pushFavourites() }
     LaunchedEffect(fxNow) { map.setWeather(fxNow) }
     // the haze towards the horizon follows the weather, and the route's ribbon look

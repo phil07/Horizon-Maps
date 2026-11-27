@@ -233,7 +233,7 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
         places.slot("work")?.let { pins += MapBinding.SavedPin(it.pos, MapBinding.SavedKind.WORK); shown += it }
         for (lp in places.customs()) if (lp.starred) { pins += MapBinding.SavedPin(lp.place.pos, MapBinding.SavedKind.STAR); shown += lp.place }
         savedShown = shown
-        map.setSavedPins(pins, prefs.i(PreferenceKeys.SAVED_ICON_SIZE, 100).coerceIn(50, 200) / 100.0)
+        map.setSavedPins(pins, prefs.i(PreferenceKeys.SAVED_ICON_SIZE, 200).coerceIn(50, 300) / 100.0)
         map.onSavedTap = { i -> savedShown.getOrNull(i)?.let { showPick(it.pos, it.name) } }
     }
 
@@ -3954,6 +3954,7 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
     }
 
     private fun updateRoadInfo(p: Fix) {
+        try { crossingsAroundTick(p) } catch (e: Exception) { softFail(e) }
         val now = System.currentTimeMillis()
         if (simMode == 0) {
             val dt = (now - lastSpdAt) / 1000.0
@@ -4906,7 +4907,7 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
     private var smoothZAt = 0L
     // Start each app session with a slightly wider overview. Once real movement is detected,
     // hand control back to the existing speed-based zoom curve for the rest of the session.
-    private var hasDetectedMovement = false
+    internal var hasDetectedMovement = false
 
     private fun speedZoom(sp: Double): Double = NavigationPolicy.speedZoom(sp)
 

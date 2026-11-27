@@ -1,6 +1,12 @@
 ## Unreleased
 
 ### Improved
+- Zebrastreifen ohne Route: In Orten werden die Übergänge rund um dich auch ohne Route auf die Straße gezeichnet (mit Zebra-Leuchten), unter etwa 40 mph und etwa alle 500 m abgefragt.
+  EN: Zebra crossings without a route: in towns the crossings round you are painted on the road too (with Belisha beacons), looked up under about 40 mph and about every 500 m.
+- Gespeicherte Orte auf der Karte: Die Symbole sind doppelt so groß (Einstellung bis 300 %).
+  EN: Saved places on the map: their icons are twice the size (setting up to 300 %).
+- „Hier parken“ wird nur angeboten, wenn du gefahren bist und stehst, und nicht auf dem Handy, solange Android Auto verbunden ist.
+  EN: "Park here" is only offered once you've driven and stopped, and not on the phone while Android Auto is connected.
 - Auto-Display: Tempolimit-Schilder neben dem Tacho und das kommende Limit folgen der Einstellung „Limit-Schild-Größe“.
   EN: Car display: the speed limit signs beside the speed and the upcoming limit follow the "Speed-limit sign size" setting.
 - Verkehr ohne Route: Die Verkehrslinien sind breiter und deckend, damit langsamer und stehender Verkehr auffällt.

@@ -40,6 +40,9 @@ internal fun ParkedCard(engine: NavEngine) {
     val c = LocalVw.current
     val spot = engine.parkedSpot()
     val here = engine.fix?.pos
+    // "Park here" only once you've driven and stopped, and not on the phone while Android Auto is connected (it saves the spot itself)
+    val canPark = engine.hasDetectedMovement && (engine.fix?.speed ?: 0.0) < 1.0 && !com.headunit.launcher.RouteSync.carConnected()
+    if (spot == null && !canPark) return
     val gold = Color(0xFFFBBC04)
     Row(Modifier.fillMaxWidth().panel(10.dp, RoundedCornerShape(22.dp), c.surface).padding(start = 14.dp, end = 10.dp, top = 10.dp, bottom = 10.dp),
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -53,6 +56,6 @@ internal fun ParkedCard(engine: NavEngine) {
                 color = c.sub, fontSize = 13.sp, maxLines = 1)
         }
         if (spot != null) ImmPill(Lang.t("Zu Fuß", "Walk"), { engine.startWalkToCar() }, filled = true)
-        ImmPill(Lang.t("Hier parken", "Park here"), { engine.parkHere() }, filled = spot == null)
+        if (canPark) ImmPill(Lang.t("Hier parken", "Park here"), { engine.parkHere() }, filled = spot == null)
     }
 }

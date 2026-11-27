@@ -98,6 +98,19 @@ object RouteExtras {
      * (their names and numbers, for the turn card and the voice) come in the same request and are added to [jcts].
      * (Average speed checks are looked up on their own, see AvgZones: this request is the slowest and the most likely to fail.)
      */
+    /** The marked crossings (zebras and others) within [radius] metres of [c], for the map when no route is driven (blocking; throws when no server answers). */
+    fun crossingsAround(c: LL, radius: Int = 260): List<RoutePoi> {
+        val q = "[out:json][timeout:20];node(around:$radius,${c.lat},${c.lon})[\"highway\"=\"crossing\"][\"crossing\"~\"^(zebra|marked|uncontrolled)$\"];out body 120;"
+        val els = Overpass.query(q, 8000, 20000, 2)
+        val out = ArrayList<RoutePoi>()
+        for (i in 0 until els.length()) {
+            val e = els.getJSONObject(i)
+            if (!e.has("lat")) continue
+            out += RoutePoi("crossing", e.optJSONObject("tags")?.optString("crossing").orEmpty(), LL(e.getDouble("lat"), e.getDouble("lon")))
+        }
+        return out
+    }
+
     fun hazards(line: List<LL>, jcts: MutableList<Jct>? = null): List<RoutePoi> {
         if (line.size < 2) return emptyList()
         val pl = poly(line)
