@@ -111,6 +111,13 @@ object FuelFinder {
 
     private fun clean(s: String) = s.replace('\t', ' ').replace('\n', ' ').trim()
 
+    /** When the prices were last downloaded, read from the file (so it holds across app updates and restarts); null when there are none. */
+    fun lastUpdatedText(ctx: Context): String? {
+        val f = pricesFile(ctx)
+        if (!f.exists() || f.lastModified() <= 0L) return null
+        return Lang.t("Zuletzt aktualisiert ", "Last updated ") + java.text.SimpleDateFormat("dd.MM. HH:mm", java.util.Locale.UK).format(java.util.Date(f.lastModified()))
+    }
+
     /** Brings the station list and prices up to date (blocking: call it off the main thread). */
     fun refresh(ctx: Context, prefs: Prefs, force: Boolean = false) {
         if (!configured(prefs)) return

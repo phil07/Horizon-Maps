@@ -51,6 +51,9 @@ private fun MapboxOfflineGroup(prefs: Prefs, engine: NavEngine) {
         }
         SToggle(prefs, Lang.t("Karte jeder Route speichern", "Save every route's map"), "mbautoroute", true, Lang.t("Beim Routenstart wird der Streifen im Hintergrund gespeichert, damit die Karte in Funklöchern da bleibt. Am Ende der Fahrt wird er wieder gelöscht", "When a route starts, its strip is saved in the background, so the map stays in dead spots. It is deleted again when the trip ends"))
         if (prefs.b(PreferenceKeys.MBAUTOROUTE, true)) SChoice(Lang.t("Routen speichern", "Save routes"), listOf("wifi" to Lang.t("Nur im WLAN", "On Wi-Fi only"), "always" to Lang.t("Immer (nutzt mobile Daten)", "Always (uses mobile data)")), prefs.s(PreferenceKeys.MAPBOX_AUTO_NETWORK, "always")) { prefs.put(PreferenceKeys.MAPBOX_AUTO_NETWORK, it) }
+        SChoice(Lang.t("Automatisch aktualisieren", "Update automatically"), listOf("wifi" to Lang.t("Im WLAN", "On Wi-Fi"), "any" to Lang.t("Auch mit mobilen Daten", "Mobile data too"), "off" to Lang.t("Aus (vorher fragen)", "Off (ask first)")),
+            prefs.s(PreferenceKeys.OFFLINE_AUTO, "wifi"),
+            Lang.t("Neuere Offline-Karten, Tempolimits, Blitzer und Ortsnamen werden im Hintergrund geladen, wenn du nicht fährst. Gilt auch für die britischen Spritpreise", "Newer offline maps, speed limits, cameras and town names download in the background when you're not driving. Also used for the UK fuel prices")) { prefs.put(PreferenceKeys.OFFLINE_AUTO, it) }
         if (off.saved.isNotEmpty() || off.busy != null) {
             SItem(Lang.t("Gespeichert", "Saved"), null)
             for (a in off.saved) {

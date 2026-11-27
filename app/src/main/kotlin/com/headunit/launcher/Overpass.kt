@@ -594,6 +594,9 @@ object Overpass {
     } catch (e: Exception) { null }
 
     /** OpenStreetMap filter for each kind of place that can be searched for nearby or along the route. */
+    /** The "services" kind: only motorway services, without the rest and picnic areas (Settings > Routes), set before each search. */
+    @Volatile var motorwayServicesOnly = false
+
     private fun filterOf(kind: String): String = when (kind) {
         "fuel" -> "[\"amenity\"=\"fuel\"]"
         // stations mapped as selling bioethanol (E85)
@@ -604,7 +607,7 @@ object Overpass {
         "food" -> "[\"amenity\"~\"^(restaurant|fast_food)$\"]"
         "coffee" -> "[\"amenity\"=\"cafe\"]"
         "toilets" -> "[\"amenity\"=\"toilets\"]"
-        "services" -> "[\"highway\"~\"^(services|rest_area)$\"]"
+        "services" -> if (motorwayServicesOnly) "[\"highway\"=\"services\"]" else "[\"highway\"~\"^(services|rest_area)$\"]"
         // for a motorhome: pitches and camp sites, waste water and fresh water, LPG (Autogas) and gas bottles
         "camp" -> "[\"tourism\"~\"^(caravan_site|camp_site)$\"]"
         "dump" -> "[\"amenity\"~\"^(sanitary_dump_station|water_point)$\"]"

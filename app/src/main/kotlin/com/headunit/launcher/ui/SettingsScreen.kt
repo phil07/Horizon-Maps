@@ -435,6 +435,7 @@ private fun OnTheMapSection(prefs: Prefs, engine: NavEngine) {
     SGroup(Lang.t("Auf der Route", "On the route")) {
         SToggle(prefs, Lang.t("Ampeln", "Traffic lights"), PreferenceKeys.SIGNALS, true, if (prefs.b(PreferenceKeys.SIGNALS, true)) Lang.t("Nur Ampeln auf deiner Route. Aktuell: ", "Only traffic lights on your route. Now: ") + engine.map.signalInfo() else null)
         SToggle(prefs, Lang.t("Blitzer und Baustellen", "Cameras and roadworks"), PreferenceKeys.HAZARD_ICONS, true)
+        SToggle(prefs, Lang.t("Nur Autobahn-Raststätten", "Motorway services only"), PreferenceKeys.SERVICES_MOTORWAY, false, Lang.t("Die Liste „Raststätten“ entlang der Route zeigt nur Autobahn-Raststätten, ohne Rast- und Picknickplätze", "The Services list along the route shows just motorway services, without rest and picnic areas"))
         SToggle(prefs, Lang.t("Zebrastreifen", "Zebra crossings"), PreferenceKeys.ZEBRAS, true, Lang.t("Auf der Straße gezeichnet", "Drawn on the road"))
         SToggle(prefs, Lang.t("Stoppschilder", "Stop signs"), PreferenceKeys.STOP_SIGNS, false, Lang.t("Mit kurzem Ton", "With a short tone"))
         SToggle(prefs, Lang.t("Hinweis „Vorfahrt gewähren“", "\"Give way\" alerts"), PreferenceKeys.GIVE_WAY, false, Lang.t("Standardmäßig aus", "Off by default"))

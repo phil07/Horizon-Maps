@@ -1,5 +1,15 @@
 ## Unreleased
 
+### Added
+- Offline-Daten aktualisieren sich selbst: Neuere Offline-Karten, Tempolimits, Blitzer und Ortsnamen werden im Hintergrund geladen, wenn du nicht fährst, standardmäßig im WLAN (Einstellungen › Offline-Karten › Automatisch aktualisieren: WLAN, auch Mobilfunk oder aus).
+  EN: Offline data updates by itself: newer offline map data, speed limits, cameras and town names download in the background when you're not driving, on Wi-Fi by default (Settings › Offline maps › Update automatically: Wi-Fi, mobile data too, or off).
+- Britische Spritpreise (Fuel Finder) aktualisieren sich, wenn die App geöffnet wird oder zurückkommt (höchstens alle halbe Stunde), nach derselben Einstellung. Einstellungen › Kraftstoffpreise zeigt, wann sie zuletzt aktualisiert wurden, auch nach einem App-Update.
+  EN: UK fuel prices (Fuel Finder) refresh when the app is opened or comes back (at most every half hour), on the same setting. Settings › Fuel prices shows when they were last updated, even after an app update.
+- Stopps leichter zu verfolgen: Jeder Stopp auf dem Weg hat einen orangen nummerierten Pin mit Namen auf der Karte, bei jedem Zoom, und die Fahrtkarte zeigt den nächsten Stopp mit Ankunftszeit und Entfernung.
+  EN: Stops easier to follow: each stop on the way has an orange numbered pin with its name on the map at every zoom, and the trip card shows the next stop with its arrival time and distance.
+- Nur Autobahn-Raststätten: Die Liste „Raststätten“ entlang der Route kann nur Autobahn-Raststätten zeigen, ohne Rast- und Picknickplätze.
+  EN: Motorway services only: the Services list along the route can show just motorway services, without rest and picnic areas.
+
 ### Improved
 - Zebrastreifen ohne Route: In Orten werden die Übergänge rund um dich auch ohne Route auf die Straße gezeichnet (mit Zebra-Leuchten), unter etwa 40 mph und etwa alle 500 m abgefragt.
   EN: Zebra crossings without a route: in towns the crossings round you are painted on the road too (with Belisha beacons), looked up under about 40 mph and about every 500 m.

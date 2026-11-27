@@ -2236,6 +2236,18 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
         if (!online()) return
         checkForUpdate()
         checkDataUpdates()
+        autoRefreshFuelPrices()
+    }
+
+    /**
+     * UK fuel prices (Fuel Finder) refresh by themselves when the app is opened or comes back to the screen (at most every half hour:
+     * FuelFinder keeps that gap), on the same Wi-Fi or mobile data setting as the offline data (Settings > Offline maps > Update automatically).
+     */
+    private fun autoRefreshFuelPrices() {
+        if (!FuelFinder.configured(prefs)) return
+        val mode = prefs.s(PreferenceKeys.OFFLINE_AUTO, "wifi")
+        if (mode == "off" || (mode == "wifi" && !onWifi())) return
+        scope.launch { withContext(Dispatchers.IO) { try { FuelFinder.refresh(ctx, prefs) } catch (e: Exception) { softFail(e) } } }
     }
 
     @Synchronized
@@ -2287,7 +2299,19 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
                 OfflineRouter.installedIds(ctx).filter { PackRegions.newerOnline(PackRegions.byId(it), OfflineRouter.packDir(ctx, it)) == true }
             }
             dataUpdates = found
+            if (found.isNotEmpty()) autoUpdateData(found)
         }
+    }
+
+    /**
+     * Newer offline data (maps, speed limits, cameras, town names) is downloaded by itself when you're not driving, on Wi-Fi by default
+     * (Settings > Offline maps > Update automatically: Wi-Fi, mobile data too, or off to be asked).
+     */
+    private fun autoUpdateData(found: List<String>) {
+        val mode = prefs.s(PreferenceKeys.OFFLINE_AUTO, "wifi")
+        if (mode == "off" || route != null || (fix?.speed ?: 0.0) > 1.5 || packBusy) return
+        if (mode == "wifi" && !onWifi()) return
+        updateData(found.first())
     }
 
     /** Updates the first area with newer data (the others follow, one at a time, as each finishes). */
@@ -4234,6 +4258,7 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
      * Fuel uses live Fuel Finder prices when you have added your Fuel Finder details in Settings.
      */
     fun loadNearby(kind: String, nearDest: Boolean, pickBest: Boolean = false) {
+        if (kind == "services") Overpass.motorwayServicesOnly = prefs.b(PreferenceKeys.SERVICES_MOTORWAY, false)
         val centre = (if (nearDest) dest?.pos else null) ?: fix?.pos ?: map.center() ?: run { toast(Lang.t("Noch keine Position", "No position yet")); return }
         val origin = fix?.pos ?: centre
         val rt = route
@@ -6705,6 +6730,15 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
         }
     }
 
+    /** The next stop for the trip card: the time you get there and its name with how far ahead it is; null when no stop is on the way. */
+    fun nextStopStat(): Pair<String, String>? {
+        val s = via.firstOrNull() ?: return null
+        val tm = stopArrivalTimes().firstOrNull()?.takeIf { it.isNotBlank() } ?: return null
+        val r = route ?: return null
+        val d = RouteExtras.project(r, s.pos, 400.0)?.first?.let { max(0.0, it - curProgress) }
+        return tm to (Lang.t("Stopp ", "Stop ") + s.name.take(12) + (if (d != null) " · " + Geo.fmtDist(d, imperial) else ""))
+    }
+
     /** How close counts as reached for the next stop: a charging site (a car park) more generously than a plain stop. */
     private fun viaReachM(): Double {
         val p = via.firstOrNull() ?: return 80.0
@@ -6940,7 +6974,7 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
         }
         // a charging stop shows its power on the map; "?" when the power isn't known
         val labels = via.map { p -> evPlanned.firstOrNull { Geo.dist(it.n.place.pos, p.pos) < 30.0 }?.let { st -> st.n.kw?.let { "$it kW" } ?: "?" } }
-        map.setVia(via.map { p -> p.pos to evPlanned.any { Geo.dist(it.n.place.pos, p.pos) < 30.0 } }, labels)
+        map.setVia(via.map { p -> p.pos to evPlanned.any { Geo.dist(it.n.place.pos, p.pos) < 30.0 } }, labels, via.map { it.name })
     }
 
     /** Chargers along the whole route, with where they are on it (metres) and the detour. */

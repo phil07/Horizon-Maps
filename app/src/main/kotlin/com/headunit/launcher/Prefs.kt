@@ -167,6 +167,10 @@ internal object PreferenceKeys {
     /** "never", "always" or "short" (only on trips shorter than [AVOID_MOTORWAY_KM], in km or miles as the units are set). */
     const val AVOID_MOTORWAY_MODE = "avoid_motorway_mode"
     const val AVOID_MOTORWAY_KM = "avoid_motorway_km"
+    /** The Services list along the route shows only motorway services (not rest and picnic areas). */
+    const val SERVICES_MOTORWAY = "services_motorway"
+    /** Offline data and UK fuel prices refresh by themselves: "wifi" (default), "any" (mobile data too) or "off" (asked first). */
+    const val OFFLINE_AUTO = "offline_auto"
     /** How close the map comes for a junction: "off", "closer", "closest" or "further". */
     const val JUNCTION_ZOOM = "junction_zoom"
     const val AVOID_TOLL = "avoid_toll"

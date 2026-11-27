@@ -430,7 +430,7 @@ internal fun FuelSection(prefs: Prefs, engine: NavEngine) {
             SFieldItem("Client Secret", prefs.s(PreferenceKeys.FFSECRET, ""), password = true) { prefs.put(PreferenceKeys.FFSECRET, it.trim()) }
             var st by remember { mutableStateOf(FuelFinder.status) }
             var busy by remember { mutableStateOf(false) }
-            SItem(Lang.t("Preise", "Prices"), st.ifBlank { if (FuelFinder.configured(prefs)) Lang.t("Noch nicht heruntergeladen", "Not downloaded yet") else Lang.t("Zuerst Daten eintragen", "Enter the details first") }) {
+            SItem(Lang.t("Preise", "Prices"), st.ifBlank { FuelFinder.lastUpdatedText(ctx) ?: if (FuelFinder.configured(prefs)) Lang.t("Noch nicht heruntergeladen", "Not downloaded yet") else Lang.t("Zuerst Daten eintragen", "Enter the details first") }) {
                 SButton(if (busy) Lang.t("Sucht…", "Searching…") else Lang.t("Jetzt aktualisieren", "Update now"), primary = true) {
                     if (!busy && FuelFinder.configured(prefs)) {
                         busy = true; st = Lang.t("Tankstellen und Preise werden heruntergeladen…", "Downloading fuel stations and prices…")

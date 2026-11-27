@@ -779,6 +779,7 @@ private fun TripArea(engine: NavEngine, shareEta: () -> Unit, narrow: Boolean = 
                         ImmStat(Geo.fmtDur(e.secs), if (e.delayMin >= 1) Lang.t("+${e.delayMin} Min. Verkehr", "+${e.delayMin} min traffic") else Lang.t("Restzeit", "time left"), dc)
                         ImmStat(e.arrive, Lang.t("Ankunft", "arrival"), c.text)
                         ImmStat(Geo.fmtDist(e.dist, engine.imperial), Lang.t("verbleibend", "to go"), c.text)
+                        engine.nextStopStat()?.let { (tm, label) -> ImmStat(tm, label, c.text) }
                         if (evPct != null) ImmStat("$evPct%", Lang.t("Akku bei Ankunft", "battery at arrival"), evCol)
                     }
                 }
@@ -808,6 +809,7 @@ private fun TripArea(engine: NavEngine, shareEta: () -> Unit, narrow: Boolean = 
                         ImmStat(Geo.fmtDur(e.secs), if (e.delayMin >= 1) Lang.t("+${e.delayMin} Min.", "+${e.delayMin} min") else Lang.t("Restzeit", "time left"), dc, compact = true)
                         ImmStat(e.arrive, Lang.t("Ankunft", "arrival"), c.text, compact = true)
                         ImmStat(Geo.fmtDist(e.dist, engine.imperial), Lang.t("verbleibend", "to go"), c.text, compact = true)
+                        engine.nextStopStat()?.let { (tm, label) -> ImmStat(tm, label, c.text, compact = true) }
                         if (evPct != null) ImmStat("$evPct%", Lang.t("Akku", "battery"), evCol, compact = true)
                     }
                     Row(Modifier.fillMaxWidth().padding(top = 6.dp), horizontalArrangement = Arrangement.SpaceEvenly) {

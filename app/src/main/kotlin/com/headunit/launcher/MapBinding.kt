@@ -115,6 +115,9 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
     /** Stops on the way, in order, each with whether it's a charging stop (drawn with a lightning bolt). */
     private var via: List<Pair<LL, Boolean>> = emptyList()
     private var viaLabels: List<String?> = emptyList()
+    /** The names of the stops, for the numbered pins. */
+    private var viaNames: List<String?> = emptyList()
+    private val viaNumIds = HashSet<String>()
     /** Charge points in view, drawn as pins with their power and free count. */
     private var chargers: List<ChargerSite> = emptyList()
     /** Charger pictures already registered in the current style (cleared when the style is built again). */
@@ -3272,7 +3275,7 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
     fun setDest(p: LL?) { dest = p; pushDest(); pushFlags() }
     /** The stops on the way, in order; true = a charging stop. Kept, so they're drawn again after a style change. */
     /** [labels] (same order as [stops]) name a charging stop's power on the map: "150 kW", or "?" when it isn't known. */
-    fun setVia(stops: List<Pair<LL, Boolean>>, labels: List<String?> = emptyList()) { via = stops; viaLabels = labels; pushVia() }
+    fun setVia(stops: List<Pair<LL, Boolean>>, labels: List<String?> = emptyList(), names: List<String?> = emptyList()) { via = stops; viaLabels = labels; viaNames = names; pushVia() }
     private var meAnim: android.animation.ValueAnimator? = null
     private var lastMePush = 0L
 
@@ -3435,6 +3438,7 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
         s.featureCollection(FeatureCollection.fromFeatures(via.mapIndexed { i, (p, ev) ->
             val label = viaLabels.getOrNull(i)
             val img = when {
+                !ev && st != null -> viaNumImage(st, i + 1, viaNames.getOrNull(i))
                 !ev -> "dl-via-stop"
                 label != null && st != null -> evLabelImage(st, label)
                 else -> "dl-via-ev"
@@ -3463,6 +3467,34 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
         }))
     }
 
+
+    /** An orange numbered stop pin with the stop's name beside it, seen at every zoom (the number sits on the pin's middle). */
+    private fun viaNumImage(st: Style, n: Int, name: String?): String {
+        val label = name?.trim().orEmpty().take(24)
+        val id = "dl-via-n-$n-" + label.hashCode()
+        if (viaNumIds.add(id)) try { addImg(st, id, viaNumberedBitmap(n, label)) } catch (e: Throwable) { viaNumIds.remove(id); return "dl-via-stop" }
+        return id
+    }
+
+    private fun viaNumberedBitmap(n: Int, label: String): Bitmap {
+        val text = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xFF202124.toInt(); textSize = 26f; typeface = android.graphics.Typeface.DEFAULT_BOLD }
+        val tw = if (label.isEmpty()) 0f else text.measureText(label)
+        // the pin is in the middle of the picture (so it sits on the stop); the name goes on its right, and the left is left empty to match
+        val half = (32f + (if (label.isEmpty()) 0f else 12f + tw + 18f)).toInt()
+        val bmp = Bitmap.createBitmap(half * 2, 64, Bitmap.Config.ARGB_8888)
+        val c = Canvas(bmp)
+        val cx = half.toFloat()
+        if (label.isNotEmpty()) {
+            c.drawRoundRect(RectF(cx + 14f, 15f, cx + 14f + tw + 24f, 49f), 17f, 17f, Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xEEFFFFFF.toInt() })
+            c.drawText(label, cx + 26f, 41f, text)
+        }
+        c.drawCircle(cx, 34f, 27f, Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0x55000000 })
+        c.drawCircle(cx, 32f, 27f, Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xFFFFFFFF.toInt() })
+        c.drawCircle(cx, 32f, 22f, Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xFFFB8C00.toInt() })
+        val num = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xFFFFFFFF.toInt(); textSize = 28f; typeface = android.graphics.Typeface.DEFAULT_BOLD; textAlign = Paint.Align.CENTER }
+        c.drawText(n.toString(), cx, 42f, num)
+        return bmp
+    }
 
     /** The charging-stop picture with its power under it. Registered again on each push (replaces the same name, cheap). */
     private fun evLabelImage(st: Style, label: String): String {

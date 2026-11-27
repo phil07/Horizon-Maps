@@ -837,7 +837,7 @@ private fun TripCard(engine: NavEngine, fill: Boolean, oneLine: Boolean = false)
             CarStat(Geo.fmtDur(e.secs), if (e.delayMin >= 1) "+${e.delayMin} Min." else "Verbleibend", dc)
             CarStat(e.arrive, Lang.t("Ankunft", "Arrival"), c.text)
             // the next stop on the way and when you get there
-            engine.via.firstOrNull()?.let { s -> engine.stopArrivalTimes().firstOrNull()?.takeIf { it.isNotBlank() }?.let { tm -> CarStat(tm, Lang.t("Stopp ", "Stop ") + s.name.take(14), c.text) } }
+            engine.nextStopStat()?.let { (tm, label) -> CarStat(tm, label, c.text) }
             CarStat(Geo.fmtDist(e.dist, engine.imperial), "Entfernung", c.text)
             // the battery and range the car reports now (as the app's chip), then the battery expected at arrival
             // (only on a tall screen: on a wide one the battery and range pill sits above the speed, so they aren't repeated here)
