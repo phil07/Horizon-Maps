@@ -702,6 +702,10 @@ private fun AlertsSection(prefs: Prefs, engine: NavEngine) {
         SToggle(prefs, Lang.t("Blitzer", "Speed cameras"), PreferenceKeys.CAMERA_WARNINGS, false, if (camOff) Lang.t("Aus: in $banned nicht erlaubt", "Off: not allowed in $banned")
             else if (prefs.b(PreferenceKeys.CAMERA_WARNINGS, false)) engine.camNote.ifBlank { Lang.t("Suche startet mit dem nächsten GPS-Signal", "Search starts with the next GPS fix") } else null)
         if (prefs.b(PreferenceKeys.CAMERA_WARNINGS, false)) SToggle(prefs, Lang.t("Aus, wo verboten", "Off where banned"), PreferenceKeys.CAMBANOBEY, true, Lang.t("Automatisch aus z. B. in DE, FR und CH", "Automatically off e.g. in DE, FR and CH"))
+        SChoice(Lang.t("Wie warnen", "How to warn"), listOf("both" to Lang.t("Gong und Stimme", "Chime and voice"), "voice" to Lang.t("Nur Stimme", "Voice only"),
+            "chime" to Lang.t("Nur Gong", "Chime only"), "screen" to Lang.t("Nur Bildschirm", "Screen only")), prefs.s(PreferenceKeys.CAM_WARN_MODE, "both"),
+            Lang.t("Wie Blitzer-Warnungen klingen. „Nur Bildschirm“: kein Ton, nur der Hinweis", "How camera warnings sound. \"Screen only\": no sound, just the notice")) { prefs.put(PreferenceKeys.CAM_WARN_MODE, it) }
+        SToggle(prefs, Lang.t("Blitzer-Hinweis auf dem Bildschirm", "Camera pop-up"), PreferenceKeys.CAM_POPUP, true, Lang.t("Der Hinweis oben, unabhängig vom Ton", "The notice at the top, whatever the sound"))
         SToggle(prefs, Lang.t("Blitzer auf der Karte zeigen", "Show cameras on the map"), PreferenceKeys.CAMERA_MAP, true, Lang.t("Nur Anzeige; Warnungen dort nur mit „Blitzer“ an", "Display only; warnings there only with \"Speed cameras\" on"))
         SToggle(prefs, Lang.t("Parkhäuser auf der Karte", "Car parks on the map"), PreferenceKeys.GARAGES_MAP, true, Lang.t("Freie Plätze live, wo verfügbar. Daten: MobiData BW, ParkenDD", "Live free spaces where available. Data: MobiData BW, ParkenDD"))
         SToggle(prefs, Lang.t("Sektionskontrollen (Abschnittskontrolle)", "Average speed cameras"), PreferenceKeys.AVGZONES, true, Lang.t("Durchschnittstempo im Vergleich zum Limit", "Average speed against the limit"))

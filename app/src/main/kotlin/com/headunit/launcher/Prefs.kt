@@ -125,6 +125,10 @@ internal object PreferenceKeys {
     const val CAMERA_WARNINGS = "cameras"
     // the speed cameras drawn on the map: on by default, also where camera warnings are banned (they're only drawn, never announced)
     const val CAMERA_MAP = "cameramap"
+    /** How a speed camera warning sounds: "both" (chime and voice), "voice", "chime" or "screen" (no sound). */
+    const val CAM_WARN_MODE = "cam_warn_mode"
+    /** The banner on screen for a speed camera, on or off (independent of the sound). */
+    const val CAM_POPUP = "cam_popup"
     const val GARAGES_MAP = "garagesmap"
     const val VOICE = "voice"
     const val TRIPS = "trips"

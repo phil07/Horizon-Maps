@@ -4029,9 +4029,17 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
         val bestD = hit?.second ?: 1e9
         cameraDist = if (best != null) bestD.toInt() else null
         val a = camAlerts.check(best, bestD, p.speed)
-        if (a.first) { chime(android.media.ToneGenerator.TONE_PROP_PROMPT); raiseAlert("camera", Lang.t("Blitzer voraus", "Speed camera ahead")); speak(Lang.t("Blitzer voraus", "Speed camera ahead"), true) }
+        // how it sounds (Settings › Alerts › Cameras): chime and voice, voice only, chime only or none (the screen only); the banner is its own setting
+        val camMode = prefs.s(PreferenceKeys.CAM_WARN_MODE, "both")
+        val camChime = camMode == "both" || camMode == "chime"
+        val camVoice = camMode == "both" || camMode == "voice"
+        if (a.first) {
+            if (camChime) chime(android.media.ToneGenerator.TONE_PROP_PROMPT)
+            if (prefs.b(PreferenceKeys.CAM_POPUP, true)) raiseAlert("camera", Lang.t("Blitzer voraus", "Speed camera ahead"))
+            if (camVoice) speak(Lang.t("Blitzer voraus", "Speed camera ahead"), true)
+        }
         // a short second beep about 4 seconds before the camera (once per camera)
-        if (a.second) chime(android.media.ToneGenerator.TONE_PROP_BEEP2)
+        if (a.second && camChime) chime(android.media.ToneGenerator.TONE_PROP_BEEP2)
     }
 
     private fun trackParking(p: Fix) {
