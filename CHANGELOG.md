@@ -1,8 +1,10 @@
 ## Unreleased
 
 ### Fixed
-- Brücken im 3D-Modus: Sie haben jetzt einen Schatten und eine helle Fahrbahn, damit man sie über dem Wasser erkennt.
-  EN: Bridges in 3D mode: they now have a shadow and a light deck, so you can see them over water.
+- Die Alternativ-Routenkarten sind wieder besser lesbar (etwas größer als in der letzten Version).
+  EN: The alternative route cards are readable again (a bit larger than in the last version).
+- Farben des Abbiegeschilds in Norwegen: Autobahnen blau, andere Straßen grün.
+  EN: Turn card colours in Norway: motorways blue, other roads green.
 
 ## 1.0.246 — 2026-10-28
 

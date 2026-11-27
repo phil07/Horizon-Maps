@@ -1900,7 +1900,7 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
             .iconAllowOverlap(true).iconIgnorePlacement(true).iconEmissiveStrength(1.0)
             .iconPitchAlignment(IconPitchAlignment.VIEWPORT)
             // (about 30% smaller than before: the other routes' time cards no longer pile up)
-            .iconSize(zoomed(1.0, 9 to 0.42, 14 to 0.48, 18 to 0.53)))
+            .iconSize(zoomed(1.0, 9 to 0.55, 14 to 0.62, 18 to 0.7)))
         flatArrow = neonArrowHex?.let { neonArrowBitmap(it) } ?: if (im) arrowBitmapImmersive() else arrowBitmap()
         addImg(st, "dl-arrow", flatArrow!!)
         addL(st, SymbolLayer("dl-me-arrow", "dl-me")

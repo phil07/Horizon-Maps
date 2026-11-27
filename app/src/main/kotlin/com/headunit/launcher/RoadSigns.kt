@@ -14,9 +14,9 @@ internal object RoadSigns {
     // country -> (motorway colour, main-road colour)
     private val table: Map<String, Pair<Color, Color>> = buildMap {
         put("GB", blueUk to green)
-        for (cc in listOf("SE", "NO", "DK", "FI", "IS")) put(cc, green to blue)
+        for (cc in listOf("SE", "DK", "FI", "IS")) put(cc, green to blue)
         for (cc in listOf("IT", "AT", "CH", "CZ", "SK", "SI", "HU", "HR", "RO", "BG")) put(cc, green to blue)
-        for (cc in listOf("DE", "FR", "ES", "NL", "BE", "PT", "IE", "PL", "GR", "LU")) put(cc, blue to green)
+        for (cc in listOf("DE", "FR", "ES", "NL", "BE", "PT", "IE", "PL", "GR", "LU", "NO")) put(cc, blue to green)
     }
 
     private var memoPos: LL? = null
