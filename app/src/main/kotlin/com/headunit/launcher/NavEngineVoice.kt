@@ -140,7 +140,7 @@ fun NavEngine.handleVoice(raw: String): String? {
     }
     // route preferences
     if (has("avoid toll", "maut")) { prefs.put(PreferenceKeys.AVOID_TOLL, true); say(Lang.t("Mautstraßen werden gemieden", "Avoiding toll roads")); dest?.let { startRoute(it, departMin, true, startNow = route != null && !previewing) }; return "" }
-    if (has("avoid motorway", "keine autobahn", "ohne autobahn", "autobahn vermeiden", "autobahnen vermeiden", "meide autobahn")) { prefs.put(PreferenceKeys.AVOID_MOTORWAY, true); say(Lang.t("Autobahnen werden gemieden", "Avoiding motorways")); dest?.let { startRoute(it, departMin, true, startNow = route != null && !previewing) }; return "" }
+    if (has("avoid motorway", "keine autobahn", "ohne autobahn", "autobahn vermeiden", "autobahnen vermeiden", "meide autobahn")) { prefs.put(PreferenceKeys.AVOID_MOTORWAY, true); prefs.put(PreferenceKeys.AVOID_MOTORWAY_MODE, "always"); say(Lang.t("Autobahnen werden gemieden", "Avoiding motorways")); dest?.let { startRoute(it, departMin, true, startNow = route != null && !previewing) }; return "" }
     if (has("avoid this road", "avoid the road", "diese straße vermeiden", "straße meiden", "umfahrung", "umleitung", "andere route", "anderen weg")) { if (route != null) { say(Lang.t("Suche eine Umfahrung", "Looking for a way round")); avoidRoadAhead() } else say(Lang.t("Es gibt keine Route zum Ändern", "There's no route to change")); return "" }
     // trip info
     if (has("eta", "arrive", "how long", "how far", "time left", "when will i", "wann komme", "wann sind wir", "wie lange", "wie weit", "ankunft", "restzeit", "wie viel zeit")) {

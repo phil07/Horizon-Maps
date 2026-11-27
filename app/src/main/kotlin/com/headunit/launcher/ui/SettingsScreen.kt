@@ -394,6 +394,7 @@ private fun MapLookSection(prefs: Prefs, engine: NavEngine) {
         DefaultZoomRow(prefs)
         SToggle(prefs, Lang.t("Fußwege und Pfade", "Footpaths and paths"), PreferenceKeys.PATHS, true, Lang.t("Ausschalten für eine übersichtlichere Fahrkarte", "Turn off for a clearer driving map"))
         SToggle(prefs, Lang.t("Favoriten auf der Karte", "Favourites on the map"), PreferenceKeys.FAV_ON_MAP, true, Lang.t("Gelbe Sterne mit Namen. Beim Fahren ohne Namen", "Yellow stars with names. Without names while driving"))
+        SSlider(Lang.t("Gefahrenschilder auf der Karte", "Hazard signs on the map"), prefs.i(PreferenceKeys.HAZARD_SIGN_SIZE, 115).toFloat(), 50f..250f, " %", Lang.t("Baustellen, Sperrungen und Gefahren", "Roadworks, closures and hazards"), reset = 115f) { prefs.put(PreferenceKeys.HAZARD_SIGN_SIZE, it.toString()) }
         SSlider(Lang.t("Symbole gespeicherter Orte", "Saved places icons"), prefs.i(PreferenceKeys.SAVED_ICON_SIZE, 100).toFloat(), 50f..200f, " %", Lang.t("Zuhause, Arbeit und markierte Orte", "Home, Work and starred places"), reset = 100f) { prefs.put(PreferenceKeys.SAVED_ICON_SIZE, it.toString()) }
         SToggle(prefs, Lang.t("Glaskarten", "Glass cards"), PreferenceKeys.GLASS, true, Lang.t("Halbtransparente Karten", "Semi-transparent cards"))
         SChoice(Lang.t("Mapbox-Logo-Position", "Mapbox logo position"), listOf("tl" to Lang.t("Oben links", "Top left"), "tr" to Lang.t("Oben rechts", "Top right"), "bl" to Lang.t("Unten links", "Bottom left"), "br" to Lang.t("Unten rechts", "Bottom right")), prefs.s(PreferenceKeys.MAPBOX_LOGO, "tr"),
@@ -565,7 +566,19 @@ private fun RoutesSection(prefs: Prefs) {
             }
         }
         if (!prefs.b(PreferenceKeys.AVOID_TOLL, false)) SToggle(prefs, Lang.t("Vignettenpflichtige Straßen meiden", "Avoid vignette roads"), PreferenceKeys.AVOID_VIGNETTE, false, Lang.t("Nur bei Durchfahrt (AT, CH, SI, CZ, SK, HU, BG, RO)", "Only when passing through (AT, CH, SI, CZ, SK, HU, BG, RO)"))
-        SToggle(prefs, Lang.t("Autobahnen vermeiden", "Avoid motorways"), PreferenceKeys.AVOID_MOTORWAY, false)
+        run {
+            val mode = prefs.s(PreferenceKeys.AVOID_MOTORWAY_MODE, if (prefs.b(PreferenceKeys.AVOID_MOTORWAY, false)) "always" else "never")
+            SChoice(Lang.t("Autobahnen vermeiden", "Avoid motorways"), listOf("never" to Lang.t("Nie", "Never"), "always" to Lang.t("Immer", "Always"), "short" to Lang.t("Kurze Fahrten", "Short trips")), mode,
+                Lang.t("Kurze Fahrten: nur wenn das Ziel nah ist, die Länge stellst du darunter ein", "Short trips: only when the destination is near; you set the length below")) {
+                prefs.put(PreferenceKeys.AVOID_MOTORWAY_MODE, it); prefs.put(PreferenceKeys.AVOID_MOTORWAY, it == "always")
+            }
+            if (mode == "short") {
+                val mi = prefs.s(PreferenceKeys.DISTANCE_UNIT, "km") == "mi"
+                SSlider(Lang.t("Kurze Fahrt bis", "Short trip up to"), prefs.i(PreferenceKeys.AVOID_MOTORWAY_KM, if (mi) 20 else 30).toFloat(), (if (mi) 10f..50f else 15f..80f), if (mi) " mi" else " km", steps = if (mi) 39 else 64) {
+                    prefs.put(PreferenceKeys.AVOID_MOTORWAY_KM, it)
+                }
+            }
+        }
         SToggle(prefs, Lang.t("Fähren vermeiden", "Avoid ferries"), PreferenceKeys.AVOID_FERRY, false)
         SToggle(prefs, Lang.t("Autozüge vermeiden", "Avoid car trains"), PreferenceKeys.AVOID_CARTRAIN, false, Lang.t("Z. B. Eurotunnel und die Alpen-Tunnelzüge. Ist ein Autozug der einzige Weg, wird er trotzdem genommen", "Such as the Channel Tunnel shuttle and the Alpine tunnel trains. If a car train is the only way there, it is still used"))
         SToggle(prefs, Lang.t("Unbefestigte Straßen vermeiden", "Avoid unpaved roads"), PreferenceKeys.AVOID_UNPAVED, true)
@@ -615,6 +628,9 @@ private fun GuidanceSection(prefs: Prefs) {
         if (prefs.s(PreferenceKeys.THEN_MODE, "close") != "off") SChoice(Lang.t("Anzeigen als", "Show as"), listOf("row" to Lang.t("Zeile unter der Karte", "Line under the card"), "icon" to Lang.t("Kleiner Pfeil", "Small arrow")), prefs.s(PreferenceKeys.THEN_STYLE, "row")) { prefs.put(PreferenceKeys.THEN_STYLE, it) }
     }
     SGroup(Lang.t("Spuren und Kreuzungen", "Lanes and junctions")) {
+        SChoice(Lang.t("Zoom an Kreuzungen", "Junction zoom"), listOf("off" to Lang.t("Aus", "Off"), "further" to Lang.t("Weiter", "Further"), "closer" to Lang.t("Näher", "Closer"), "closest" to Lang.t("Am nächsten", "Closest")),
+            prefs.s(PreferenceKeys.JUNCTION_ZOOM, "off"),
+            Lang.t("Wie nah die Karte vor einer Abbiegung kommt. Weiter: mehr von den Straßen um die Kreuzung bleibt im Bild", "How close the map comes before a turn. Further: more of the roads round the junction stays in view")) { prefs.put(PreferenceKeys.JUNCTION_ZOOM, it) }
         SToggle(prefs, Lang.t("Spuren auf der Karte gezeichnet", "Lanes drawn on the map"), PreferenceKeys.LANEMAP, true)
         SToggle(prefs, Lang.t("Mapbox-Spurdaten auf TomTom-Routen nutzen", "Use Mapbox lane data on TomTom routes"), PreferenceKeys.LANES_MAPBOX, true)
         SToggle(prefs, Lang.t("Heranzoomen an Spuren vor einer Kreuzung", "Zoom in on the lanes before a junction"), PreferenceKeys.LANE_VIEW, true)

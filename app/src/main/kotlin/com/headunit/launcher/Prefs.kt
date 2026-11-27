@@ -54,6 +54,8 @@ internal object PreferenceKeys {
     const val FAV_SORT = "favsort"
     /** The size of the symbols of Home, Work and starred places on the map, in percent. */
     const val SAVED_ICON_SIZE = "savedicon"
+    /** Roadworks, closure and hazard signs on the map, in percent (100 = the old size). */
+    const val HAZARD_SIGN_SIZE = "hazardsignsize"
     /** Rain, snow and fog on the map, each on its own (all on by default; the master switch is RAIN_EFFECTS). */
     const val FX_RAIN = "fxrain"
     const val FX_SNOW = "fxsnow"
@@ -162,6 +164,11 @@ internal object PreferenceKeys {
     /** Keep routes off trains that carry cars (still used when one is the only way). */
     const val AVOID_CARTRAIN = "avoid_cartrain"
     const val AVOID_MOTORWAY = "avoid_motorway"
+    /** "never", "always" or "short" (only on trips shorter than [AVOID_MOTORWAY_KM], in km or miles as the units are set). */
+    const val AVOID_MOTORWAY_MODE = "avoid_motorway_mode"
+    const val AVOID_MOTORWAY_KM = "avoid_motorway_km"
+    /** How close the map comes for a junction: "off", "closer", "closest" or "further". */
+    const val JUNCTION_ZOOM = "junction_zoom"
     const val AVOID_TOLL = "avoid_toll"
     const val AVOID_VIGNETTE = "avoid_vignette"
     const val VIGNETTE_WARN = "vignettewarn"

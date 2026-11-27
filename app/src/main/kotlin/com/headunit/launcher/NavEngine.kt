@@ -2753,6 +2753,14 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
         } else startRoute(p)
     }
 
+    /** Avoid motorways: always, never, or only on a short trip (the straight line to the destination under the length set, in km or miles). */
+    private fun avoidMotorwaysNow(from: LL?, to: LL?): Boolean = when (prefs.s(PreferenceKeys.AVOID_MOTORWAY_MODE, if (prefs.b(PreferenceKeys.AVOID_MOTORWAY, false)) "always" else "never")) {
+        "always" -> true
+        "short" -> from != null && to != null &&
+            Geo.dist(from, to) < prefs.i(PreferenceKeys.AVOID_MOTORWAY_KM, if (imperial) 20 else 30) * (if (imperial) 1609.344 else 1000.0)
+        else -> false
+    }
+
     /** Pushes the route preferences from Settings into the routing client. */
     internal fun syncRoutePrefs(from: LL? = null, to: LL? = null) {
         // areas to keep out of: roads you asked to avoid on this trip, and clean air zones when that is switched on
@@ -2782,7 +2790,7 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
         OfflineRouter.exclude = rings
         TomTomRest.avoid = listOfNotNull(
             if (prefs.b(PreferenceKeys.AVOID_TOLL, false)) "tollRoads" else null,
-            if (prefs.b(PreferenceKeys.AVOID_MOTORWAY, false)) "motorways" else null,
+            if (avoidMotorwaysNow(from, to)) "motorways" else null,
             if (prefs.b(PreferenceKeys.AVOID_FERRY, false)) "ferries" else null,
             if (prefs.b(PreferenceKeys.AVOID_CARTRAIN, false)) "carTrains" else null,
             if (prefs.b(PreferenceKeys.AVOID_UNPAVED, true)) "unpavedRoads" else null,
@@ -4916,6 +4924,8 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
                 // Ease closer on approach to a real manoeuvre, then hold a useful junction view.
                 val near = ((650.0 - t.dist) / 650.0).coerceIn(0.0, 1.0)
                 z += 0.38 * near
+                // Settings > Turn card & lanes > Junction zoom: the map comes closer (or keeps more of the roads round the turn in view)
+                z += when (prefs.s(PreferenceKeys.JUNCTION_ZOOM, "off")) { "closer" -> 0.35; "closest" -> 0.7; "further" -> -0.4; else -> 0.0 } * near
                 if (sp > 18) z -= 0.3 * ((t.dist - 2500.0) / 2500.0).coerceIn(0.0, 1.0)
 
                 // Painted lane arrows can be visible well before the turn card is in its final

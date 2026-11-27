@@ -1811,7 +1811,7 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
             .iconSize(zoomed(1.0, 8 to 0.36, 12 to 0.44, 15 to 0.68, 18 to 0.9)))
         addL(st, SymbolLayer("dl-hazards", "dl-hazards")
             .iconImage(Expression.get("img")).iconAllowOverlap(true).iconIgnorePlacement(true).iconEmissiveStrength(1.0)
-            .iconSize(zoomed(1.0, 11 to 0.45, 15 to 0.75, 18 to 1.0)))
+            .iconSize((prefs.i(PreferenceKeys.HAZARD_SIGN_SIZE, 115).coerceIn(50, 250) / 100.0).let { k -> zoomed(1.0, 11 to 0.45 * k, 15 to 0.75 * k, 18 to 1.0 * k) }))
         // where you parked (on the phone, after Android Auto disconnects)
         addImg(st, "dl-car-pin", parkedBitmap())
         addS(st, GeoJsonSource.Builder("dl-parked").featureCollection(FeatureCollection.fromFeatures(

@@ -893,6 +893,8 @@ object OfflineRouter {
         locs.put(JSONObject().put("lat", to.lat).put("lon", to.lon))
         val req = JSONObject().put("locations", locs).put("costing", costing)
             .put("directions_options", JSONObject().put("units", "kilometers").put("language", Lang.serviceTag))
+        // avoid motorways (Settings > Routes): the offline route keeps off them too, as a strong preference
+        if (costing == "auto" && "motorways" in TomTomRest.avoid) req.put("costing_options", JSONObject().put("auto", JSONObject().put("use_highways", 0.0)))
         val ex = exclude
         if (ex.isNotEmpty()) {
             val polys = org.json.JSONArray()
