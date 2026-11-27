@@ -1820,6 +1820,11 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
         addL(st, SymbolLayer("dl-limsigns", "dl-limsigns")
             .iconImage(Expression.get("img")).iconAllowOverlap(true).iconIgnorePlacement(true).iconEmissiveStrength(1.0).minZoom(12.0)
             .iconSize((prefs.i(PreferenceKeys.ROUTE_LIMIT_SIGN_SIZE, 100).coerceIn(40, 250) / 100.0).let { k -> zoomed(1.0, 12 to 0.22 * k, 16 to 0.36 * k, 19 to 0.5 * k) }))
+        // road numbers on the route (B 27, A 7): a small white plate at each place the route turns onto that road
+        addS(st, GeoJsonSource.Builder("dl-roadnos").featureCollection(empty()).build())
+        addL(st, SymbolLayer("dl-roadnos", "dl-roadnos")
+            .iconImage(Expression.get("img")).iconAllowOverlap(true).iconIgnorePlacement(true).iconEmissiveStrength(1.0).minZoom(11.0)
+            .iconSize(zoomed(1.0, 11 to 0.5, 15 to 0.8, 18 to 1.0)))
         // where you parked (on the phone, after Android Auto disconnects)
         addImg(st, "dl-car-pin", parkedBitmap())
         addS(st, GeoJsonSource.Builder("dl-parked").featureCollection(FeatureCollection.fromFeatures(
@@ -2427,6 +2432,7 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
     private fun pushRoute() {
         setLine(main)
         try { pushLimitSigns() } catch (e: Throwable) { softFail(e) }
+        try { pushRoadNumbers() } catch (e: Throwable) { softFail(e) }
         src("dl-alts")?.featureCollection(FeatureCollection.fromFeatures(ArrayList(alts.filter { it.size >= 2 }.map { line(it) })))
         pushPick()
     }
@@ -3454,6 +3460,32 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
         s.featureCollection(FeatureCollection.fromFeatures(limitSigns.map { (p, v) ->
             Feature.fromGeometry(Point.fromLngLat(p.lon, p.lat)).also { it.addStringProperty("img", "dl-lim-$v") }
         }))
+    }
+
+    /** The road numbers along the route: where each is, and the number (already written the way the country signs it). */
+    private var roadNumbers: List<Pair<LL, String>> = emptyList()
+
+    fun setRoadNumbers(list: List<Pair<LL, String>>) { main0.post { roadNumbers = list; pushRoadNumbers() } }
+
+    private fun pushRoadNumbers() {
+        val s = src("dl-roadnos") ?: return
+        val st = style ?: return
+        for (no in roadNumbers.map { it.second }.distinct()) try { addImg(st, "dl-road-$no", roadNumberBitmap(no)) } catch (e: Throwable) { softFail(e) }
+        s.featureCollection(FeatureCollection.fromFeatures(roadNumbers.map { (p, no) ->
+            Feature.fromGeometry(Point.fromLngLat(p.lon, p.lat)).also { it.addStringProperty("img", "dl-road-$no") }
+        }))
+    }
+
+    /** A road number plate: white with a dark edge, like a road sign. */
+    private fun roadNumberBitmap(no: String): Bitmap {
+        val bmp = Bitmap.createBitmap(64 + no.length * 22, 48, Bitmap.Config.ARGB_8888)
+        val c = Canvas(bmp)
+        val w = bmp.width.toFloat()
+        c.drawRoundRect(RectF(3f, 3f, w - 3f, 45f), 10f, 10f, Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xFFFFFFFF.toInt() })
+        c.drawRoundRect(RectF(3f, 3f, w - 3f, 45f), 10f, 10f, Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.STROKE; strokeWidth = 4f; color = 0xFF202124.toInt() })
+        val tp = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xFF202124.toInt(); textSize = 30f; typeface = android.graphics.Typeface.DEFAULT_BOLD; textAlign = Paint.Align.CENTER }
+        c.drawText(no, w / 2, 24f + tp.textSize * 0.35f, tp)
+        return bmp
     }
 
     /** A round limit sign: white, with a red ring and the number. */
