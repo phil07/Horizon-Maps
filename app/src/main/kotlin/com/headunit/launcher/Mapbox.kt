@@ -185,7 +185,7 @@ object MapboxRest {
         }
         // layers MapLibre can draw (and, with traffic off, without the traffic lines)
         val layers = st.optJSONArray("layers") ?: JSONArray()
-        val kept = JSONArray()
+        var kept = JSONArray()
         var has3d = (0 until layers.length()).any { layers.optJSONObject(it)?.optString("type") == "fill-extrusion" }
         for (i in 0 until layers.length()) {
             val l = layers.optJSONObject(i) ?: continue
@@ -206,6 +206,22 @@ object MapboxRest {
                 kept.put(building3d(l.optString("source")))
             }
         }
+        // bridges: MapLibre can't raise them, so they get a shadow and a light deck instead, so they show over water (issue #456)
+        val roadSrc = (0 until kept.length()).map { kept.getJSONObject(it) }
+            .firstOrNull { it.optString("source-layer") == "road" && it.optString("type") == "line" }?.optString("source")
+        if (threeD && roadSrc != null) {
+            val at = (0 until kept.length()).firstOrNull { kept.getJSONObject(it).optString("type") == "symbol" } ?: kept.length()
+            val bridges = JSONArray()
+                .put(bridgeLayer("bridge-shadow", roadSrc, "#000000", 0.35, 2.0, 1.0, 16.0))
+                .put(bridgeLayer("bridge-deck", roadSrc, "#F4F2EE", 0.9, 0.0, 0.5, 14.0))
+            val out = JSONArray()
+            for (i in 0 until kept.length()) {
+                if (i == at) for (b in 0 until bridges.length()) out.put(bridges.get(b))
+                out.put(kept.get(i))
+            }
+            if (at >= kept.length()) for (b in 0 until bridges.length()) out.put(bridges.get(b))
+            kept = out
+        }
         // no flat building layer to follow (some looks leave buildings out): the 3D ones go under the first labels
         val compSrc = names.firstOrNull { (srcs.optJSONObject(it)?.optJSONArray("tiles")?.optString(0) ?: "").contains("mapbox-streets-v8") }
         if (threeD && !has3d && compSrc != null) {
@@ -222,6 +238,20 @@ object MapboxRest {
         }
         st.put("layers", kept)
         return st
+    }
+
+    /** A bridge drawn as a line on the road source: [offset] moves it off the road (a shadow), [wide] scales it. */
+    private fun bridgeLayer(id: String, source: String, color: String, opacity: Double, offset: Double, wide: Double, minZoom: Double): JSONObject {
+        val width = JSONArray("[\"interpolate\", [\"linear\"], [\"zoom\"], 12, ${0.8 * wide}, 16, ${5.0 * wide}, 18, ${12.0 * wide}]")
+        return JSONObject()
+            .put("id", id).put("type", "line").put("source", source).put("source-layer", "road")
+            .put("minzoom", minZoom)
+            .put("filter", JSONArray("[\"all\", [\"==\", [\"get\", \"structure\"], \"bridge\"], [\"!in\", [\"get\", \"class\"], [\"literal\", [\"path\", \"pedestrian\", \"track\", \"service\", \"golf\"]]]]"))
+            .put("layout", JSONObject().put("line-cap", "round").put("line-join", "round"))
+            .put("paint", JSONObject()
+                .put("line-color", color).put("line-opacity", opacity)
+                .put("line-translate", JSONArray().put(offset).put(offset))
+                .put("line-width", width))
     }
 
     /** 3D buildings from Mapbox's building heights (rising as you zoom in, as in the app's other maps). */

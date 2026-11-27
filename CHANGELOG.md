@@ -1,8 +1,8 @@
 ## Unreleased
 
-### Added
-- Straßennummern auf der Route (z. B. B 27, A 7): Wo die Route auf eine Hauptstraße abbiegt, steht ihre Nummer als kleines Schild an der Route.
-  EN: Road numbers on the route (e.g. B 27, A 7): where the route turns onto a main road, its number shows as a small sign on the route.
+### Fixed
+- Brücken im 3D-Modus: Sie haben jetzt einen Schatten und eine helle Fahrbahn, damit man sie über dem Wasser erkennt.
+  EN: Bridges in 3D mode: they now have a shadow and a light deck, so you can see them over water.
 
 ## 1.0.246 — 2026-10-28
 
