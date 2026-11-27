@@ -1583,7 +1583,7 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
                     map.recolourBase = true
                     map.setStyleUrl(TomTomRest.styleUrl(apiKey, dark, prefs.b(PreferenceKeys.TRAFFIC, true)))
                 } else {
-                    toast((if (hasKey) Lang.t("TomTom hat den Schlüssel für seine Karte abgelehnt, daher wird die Mapbox-Karte angezeigt", "TomTom turned down the key for its map, so Mapbox\'s map is showing") else Lang.t("Füge unter Einstellungen > Schlüssel & Konten einen TomTom-Schlüssel für die TomTom-Karte hinzu. Angezeigt wird die Mapbox-Karte.", "Add a TomTom key in Settings > Keys & accounts for TomTom\'s map. Showing Mapbox\'s map")), 5000)
+                    toast((if (hasKey) Lang.t("TomTom hat den Schlüssel für seine Karte abgelehnt. Die TomTom-Karte ist ein eigenes TomTom-Produkt, das für deinen Schlüssel eingeschaltet sein muss. Für Routen und Suche kann der Schlüssel trotzdem funktionieren. Angezeigt wird die Mapbox-Karte.", "TomTom turned down the key for its map. The map is a separate TomTom product to switch on for your key; the key can still work for routes and search. Showing Mapbox\'s map.") else Lang.t("Füge unter Einstellungen > Schlüssel & Konten einen TomTom-Schlüssel für die TomTom-Karte hinzu. Angezeigt wird die Mapbox-Karte.", "Add a TomTom key in Settings > Keys & accounts for TomTom\'s map. Showing Mapbox\'s map")), 5000)
                     map.setStyleUrl(map.baseStyle())
                 }
             }
@@ -1832,8 +1832,19 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
     /** A short chime at the set volume, for the sample button in Settings. */
     fun chimeSample() = chime(android.media.ToneGenerator.TONE_PROP_BEEP2)
 
+    /** Horizon's map is on the car screen right now (false once another app, such as Waze, takes the screen over). */
+    @Volatile var carHorizonShown = false
+    /** The car screen has shown Horizon's map at some point in this run: until then the quiet rule below never applies (phone only). */
+    @Volatile var carSurfaceSeen = false
+
+    /**
+     * Another app is in front on the car screen and no Horizon route is running: no calling out limit changes, speeding or cameras
+     * (unless Settings > Alerts > Speed alert in the background is on).
+     */
+    internal fun carQuiet(): Boolean = route == null && carSurfaceSeen && !carHorizonShown && !prefs.b(PreferenceKeys.SPEED_ALERT_BG, false)
+
     private fun checkLimitChange(newMs: Double, estimated: Boolean) {
-        if (!prefs.b(PreferenceKeys.LIMITCHANGE, false) || estimated) return
+        if (!prefs.b(PreferenceKeys.LIMITCHANGE, false) || estimated || carQuiet()) return
         val k = if (imperial) 2.23694 else 3.6
         val n = (Math.round(newMs * k / 5.0) * 5).toInt()
         if (announcedLimit < 0) { announcedLimit = n; return }
@@ -3962,7 +3973,7 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
             val over = prefs.b(PreferenceKeys.SPEEDWARN, false) && p.speed > 4.0 && ((lim != null && !limitEstimated && p.speed > lim + tol) || overVehicle)
             overLimit = over
             // (Settings › Alerts › Speed limit sounds off: no beep; cameras, hazards and other alerts still sound)
-            if (over && soundMode != 2 && prefs.b(PreferenceKeys.LIMIT_SOUNDS, true) && now - lastBeep > 9000) {
+            if (over && soundMode != 2 && !carQuiet() && prefs.b(PreferenceKeys.LIMIT_SOUNDS, true) && now - lastBeep > 9000) {
                 lastBeep = now
                 speedChime()
                 // Settings › Alerts › Say "Slow down": once after the first beep each time you go over
@@ -4041,13 +4052,13 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
         val camMode = prefs.s(PreferenceKeys.CAM_WARN_MODE, "both")
         val camChime = camMode == "both" || camMode == "chime"
         val camVoice = camMode == "both" || camMode == "voice"
-        if (a.first) {
+        if (a.first && !carQuiet()) {
             if (camChime) chime(android.media.ToneGenerator.TONE_PROP_PROMPT)
             if (prefs.b(PreferenceKeys.CAM_POPUP, true)) raiseAlert("camera", Lang.t("Blitzer voraus", "Speed camera ahead"))
             if (camVoice) speak(Lang.t("Blitzer voraus", "Speed camera ahead"), true)
         }
         // a short second beep about 4 seconds before the camera (once per camera)
-        if (a.second && camChime) chime(android.media.ToneGenerator.TONE_PROP_BEEP2)
+        if (a.second && camChime && !carQuiet()) chime(android.media.ToneGenerator.TONE_PROP_BEEP2)
     }
 
     private fun trackParking(p: Fix) {

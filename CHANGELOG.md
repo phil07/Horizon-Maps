@@ -1,5 +1,17 @@
 ## Unreleased
 
+### Improved
+- Auto-Display: Tempolimit-Schilder neben dem Tacho und das kommende Limit folgen der Einstellung „Limit-Schild-Größe“.
+  EN: Car display: the speed limit signs beside the speed and the upcoming limit follow the "Speed-limit sign size" setting.
+- Verkehr ohne Route: Die Verkehrslinien sind breiter und deckend, damit langsamer und stehender Verkehr auffällt.
+  EN: Traffic when driving without a route: the lines are wider and solid, so slow and stopped traffic stands out.
+- TomTom-Karte mit abgelehntem Schlüssel: Die Meldung erklärt, dass die Karte ein eigenes TomTom-Produkt ist, das für den Schlüssel eingeschaltet sein muss; Routen und Suche können trotzdem gehen.
+  EN: TomTom map with a key it turns down: the message says the map is a separate TomTom product to switch on for your key; routes and search can still work.
+
+### Fixed
+- Android Auto: Tempolimit-Wechsel, Tempowarnung und Blitzer werden nicht mehr angesagt, solange eine andere App (z. B. Waze) den Autobildschirm hat und keine Horizon-Route läuft (mit „Tempowarnung im Hintergrund“ weiterhin).
+  EN: Android Auto: speed limit changes, speeding and cameras are no longer called out while another app such as Waze has the car screen and no Horizon route is running (still with "Speed alert in the background").
+
 ### Added
 - Autobahnen vermeiden: Nie, Immer oder nur auf kurzen Fahrten (Länge einstellbar, 15 bis 80 km oder 10 bis 50 Meilen). Offline-Routen meiden Autobahnen jetzt auch.
   EN: Avoid motorways: Never, Always or Short trips only (the length is set, 15 to 80 km or 10 to 50 miles). Offline routes now keep off motorways too.

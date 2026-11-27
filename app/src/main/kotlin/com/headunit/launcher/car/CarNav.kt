@@ -376,6 +376,7 @@ class CarSurface(private val carContext: CarContext, private val onReady: (MapBi
         width = surfaceContainer.width.coerceAtLeast(1); height = surfaceContainer.height.coerceAtLeast(1)
         currentDpi = surfaceContainer.dpi.coerceAtLeast(80)
         engine?.setCarViewport(width, height, currentDpi)
+        engine?.let { it.carSurfaceSeen = true; it.carHorizonShown = true }
         val existing = display
         if (existing != null) {
             // The car screen came back or changed size: keep the same map, but refresh its dimensions and scale.
@@ -442,6 +443,7 @@ class CarSurface(private val carContext: CarContext, private val onReady: (MapBi
         // nothing to draw on until it comes back: the map rests instead of drawing to nowhere
         map?.carPause()
         display?.surface = null
+        engine?.carHorizonShown = false
     }
 
     override fun onVisibleAreaChanged(visibleArea: Rect) {

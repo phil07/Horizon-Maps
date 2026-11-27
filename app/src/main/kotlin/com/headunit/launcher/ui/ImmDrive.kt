@@ -192,7 +192,7 @@ private fun CompactSpeed(engine: NavEngine) {
         Modifier.clip(RoundedCornerShape(50)).background(c.surface).padding(start = 8.dp, end = 14.dp, top = 6.dp, bottom = 6.dp),
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        if (sign) SpeedLimitSign(engine, 44.dp)
+        if (sign) SpeedLimitSign(engine, 44.dp * carSignK(engine))
         if (show) Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
             Text("${Math.round(engine.shownSpeed * k)}", color = speedTint(engine) ?: c.text, fontSize = 28.sp, fontWeight = FontWeight.Bold, maxLines = 1)
             Text(if (engine.imperial) "mph" else "km/h", color = c.sub, fontSize = 12.sp, maxLines = 1, modifier = Modifier.padding(bottom = 4.dp))
@@ -229,7 +229,7 @@ private fun SpeedBlock(engine: NavEngine) {
         // the sign goes on the side facing the middle of the screen, so it can't sit off the edge: right of the speed when the
         // speed is on the left, left of it when the speed is on the right (the car screen keeps its own order)
         val signFirst = !engine.speedLeft()
-        if (show && signFirst && sign) SpeedLimitSign(engine, 70.dp)
+        if (show && signFirst && sign) SpeedLimitSign(engine, 70.dp * carSignK(engine))
         if (show) Column(
             Modifier.width(78.dp).panel(8.dp, RoundedCornerShape(24.dp), c.surface).padding(vertical = 8.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
@@ -240,7 +240,7 @@ private fun SpeedBlock(engine: NavEngine) {
             if (engine.prefs.b(PreferenceKeys.CLOCK_ON_MAP, false)) Text(java.text.SimpleDateFormat("HH:mm", java.util.Locale.getDefault()).format(java.util.Date()),
                 color = c.text, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, modifier = Modifier.padding(top = 4.dp))
         }
-        if (sign && !(show && signFirst)) SpeedLimitSign(engine, 70.dp)
+        if (sign && !(show && signFirst)) SpeedLimitSign(engine, 70.dp * carSignK(engine))
     }
 }
 
@@ -306,10 +306,14 @@ private fun SpeedRing(engine: NavEngine, show: Boolean, k: Double) {
                 .offset(x = if (!show) 0.dp else if (signRight) 48.dp else (-48).dp, y = 0.dp)
         ) {
             // (on the car, a little bigger beside the speedometer: it's read at a glance)
-            SpeedLimitSign(engine, if (show) (if (engine.isCar) (if (engine.carShort) 42.dp else 58.dp) else 50.dp) else 70.dp)
+            SpeedLimitSign(engine, (if (show) (if (engine.isCar) (if (engine.carShort) 42.dp else 58.dp) else 50.dp) else 70.dp) * carSignK(engine))
         }
     }
 }
+
+/** Settings › Android Auto › Speed-limit sign size, as a factor, for the limit signs the car screen shows beside the speed; 1 on the phone. */
+internal fun carSignK(engine: NavEngine): Float =
+    if (engine.isCar) engine.prefs.i(PreferenceKeys.CAR_LIMIT_SIGN_SIZE, 100).coerceIn(70, 200) / 100f else 1f
 
 /** The turn card's colour (Settings › Map look › Turn card colour) and the darker one for its bars: green is the app's own. */
 internal fun turnCardColours(engine: NavEngine): Pair<Color, Color> = when (engine.prefs.s(PreferenceKeys.TURN_CARD_COLOR, "green")) {

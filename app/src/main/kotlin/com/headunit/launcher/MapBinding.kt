@@ -2002,6 +2002,13 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
 
     private fun applyTraffic() {
         try { layer("dl-traffic")?.visibility(vis(trafficOn && !(routing && hideTraffic))) } catch (e: Throwable) { softFail(e) }
+        // driving with no route: the traffic lines are wider and solid, so slow and stopped traffic stands out
+        try {
+            (layer("dl-traffic") as? LineLayer)?.let { l ->
+                l.lineWidth(if (routing) zoomed(1.5, 8 to 1.0, 13 to 2.5, 16 to 4.5, 19 to 9.0) else zoomed(1.5, 8 to 1.6, 13 to 4.0, 16 to 7.0, 19 to 13.0))
+                l.lineOpacity(if (routing) 0.85 else 1.0)
+            }
+        } catch (e: Throwable) { softFail(e) }
     }
 
     /** Light map: no points of interest and no route glow, so there is less to draw and place every frame. */
