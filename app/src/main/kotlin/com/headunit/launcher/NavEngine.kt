@@ -2422,9 +2422,22 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
      * Exact name matches first, then names starting with what you typed (towns and cities before streets, see [SearchRank]),
      * then the rest with online results ahead of offline ones.
      */
+    /** The same house from two services: the names match once the spaces and punctuation are dropped, and they lie within 150 m. */
+    private fun sameHouse(a: Place, b: Place): Boolean {
+        fun key(s: String) = s.lowercase().filter { it.isLetterOrDigit() }
+        return key(a.name) == key(b.name) && key(a.name).isNotEmpty() && Geo.dist(a.pos, b.pos) < 150.0
+    }
+
+    private fun hasPostcode(p: Place): Boolean = Regex("\\b\\d{5}\\b|[A-Za-z]{1,2}\\d[A-Za-z\\d]? ?\\d[A-Za-z]{2}").containsMatchIn(p.sub)
+
     private fun rankResults(q: String, near: LL?, net: List<Place>, extra: List<Place>): List<Place> {
         val all = ArrayList<Pair<Place, Int>>()
-        net.forEachIndexed { i, p -> all += p to i }
+        // one house listed once: when two services give it, the one with a postcode is kept (its position is the house, not the road behind)
+        net.forEachIndexed { i, p ->
+            val j = all.indexOfFirst { sameHouse(it.first, p) }
+            if (j < 0) all += p to i
+            else if (hasPostcode(p) && !hasPostcode(all[j].first)) all[j] = p to all[j].second
+        }
         extra.forEachIndexed { i, raw ->
             // with signal the downloaded results are mixed in with the online ones: no "offline" note on them
             val p = SearchRank.online(raw)

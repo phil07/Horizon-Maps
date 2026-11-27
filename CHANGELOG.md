@@ -1,5 +1,9 @@
 ## Unreleased
 
+### Fixed
+- Eine Adresse, die zwei Suchdienste mit leicht anderer Schreibweise finden, steht in der Suche nur einmal, mit Postleitzahl.
+  EN: An address that two search services find with a slightly different spelling is listed once in search, with its postcode.
+
 ### Added
 - Turn card colour „Wie Straßenschilder“ (Match road signs): the card takes the country's sign colour for the road you're on, the motorway colour on a motorway and the main-road colour elsewhere, fading across when you join or leave.
   EN: Turn card colour "Match road signs": the card takes the country's sign colour for the road you're on, the motorway colour on a motorway and the main-road colour elsewhere, fading across when you join or leave.
