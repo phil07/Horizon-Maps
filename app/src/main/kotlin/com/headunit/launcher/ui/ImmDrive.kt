@@ -378,6 +378,9 @@ internal fun ImmTurnCard(
             // tap for the list of every turn on the route
             .clickable { engine.itineraryOpen = true },
     ) {
+        // the progress bar takes its room along the bottom of the card when the turn is near: with no "Then" line or lanes under the
+        // writing, the same room is taken off the top, so the arrow and writing sit in the middle (issue #448)
+        if (t.dist < 800.0 && t.thenManeuver == null && t.lanes == null) Spacer(Modifier.height(10.dp))
         // (in the car as tall as Android Auto's own buttons beside it, "Beenden", with text to match)
         if (slim) Row(Modifier.padding(horizontal = if (car) 20.dp else 14.dp, vertical = (if (car) 14.dp else 9.dp) * padK), verticalAlignment = Alignment.CenterVertically) {
             ManeuverArrow(t.maneuver, Geo.maneuverAngle(t.maneuver), Modifier.size((if (car) 50.dp else 34.dp) * arrowK), roundaboutExit = t.exit, roundaboutClockwise = engine.leftTraffic, exitAngle = roundaboutTurn(t.rbIn, t.rbOut), otherExits = t.rbExits.map { roundaboutTurn(t.rbIn, it) })

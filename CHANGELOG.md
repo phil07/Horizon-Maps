@@ -1,8 +1,8 @@
 ## Unreleased
 
-### Improved
-- Position auf Android Auto: Pfeil und Entfernung laufen etwa eine halbe Sekunde voraus, damit die Karte bei einer vorbeifahrenden Kreuzung nicht mehr hinterherhinkt (dank yurividal, #450).
-  EN: Android Auto position: the arrow and distance run about half a second ahead, so the map no longer lags behind a junction you're passing (thanks to yurividal, #450).
+### Fixed
+- Abbiegekarte: Pfeil und Schrift sitzen mittig, auch ohne „Dann“-Zeile und ohne Spuren (dank desko1973, #448).
+  EN: Turn card: the arrow and writing sit in the middle, even with no "Then" line or lanes (thanks to desko1973, #448).
 
 ## 1.0.246 — 2026-10-28
 
