@@ -1,8 +1,8 @@
 ## Unreleased
 
-### Fixed
-- Parkst du neben der Straße (Einfahrt, Parkplatz), wird die Route nicht mehr alle paar Sekunden neu berechnet (dank stingone, #463).
-  EN: Parked next to the road (a driveway, a car park), the route is no longer worked out again every few seconds (thanks to stingone, #463).
+### Improved
+- Weniger Arbeit der Karte: Im Hintergrund (andere App im Vordergrund) wird die Karte nicht mehr bei jedem Takt aktualisiert, und beim Stehen pausieren die blinkenden Spuren und der Abbiegeschein (dank stingone, #463).
+  EN: Less map work: in the background (another app in front) the map is no longer updated every tick, and when standing still the blinking lanes and the turn glow pause (thanks to stingone, #463).
 
 ## 1.0.246 — 2026-10-28
 

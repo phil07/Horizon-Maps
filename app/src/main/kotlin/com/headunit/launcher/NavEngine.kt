@@ -92,6 +92,7 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
     private var stoppedOverviewActive = false
     private var stoppedSince = 0L
     private var stopKickFor = 0L
+    private var lastStill = false
     /** A place sent from your phone, waiting to be started (head unit). */
     var phoneDest by mutableStateOf<Place?>(null)
     /** The stops sent along with [phoneDest], and points along the way picked on the phone. */
@@ -4556,7 +4557,8 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
                     if (PerfStats.ticks != before) { val d = System.nanoTime() - t0; PerfStats.tickNsSum += d; PerfStats.tickNsMax = maxOf(PerfStats.tickNsMax, d) }
                 }
                 lastFrame = frameTimeNanos
-                ch.postFrameCallback(this)
+                // in the background a few callbacks a second are plenty (the map isn't on screen): no work every vsync (issue #463)
+                if (appVisible) ch.postFrameCallback(this) else ch.postFrameCallbackDelayed(this, 50L)
             }
         })
     }
@@ -4632,13 +4634,16 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
         val fps = if (appVisible) glideFps else 5
         // update on a steady beat of whole screen frames (every frame at 60, every 2nd at 30, ...), so the map draws at perfectly even
         // intervals; skipping by elapsed time drifted against the screen's own timing and gave an uneven, slightly jumpy motion
-        if (frameNs - vsyncLastNs in 1..100_000_000L) vsyncNs = vsyncNs * 0.9 + (frameNs - vsyncLastNs) * 0.1
+        if (frameNs - vsyncLastNs in 1..50_000_000L) vsyncNs = vsyncNs * 0.9 + (frameNs - vsyncLastNs) * 0.1
         vsyncLastNs = frameNs
         val every = Math.round(1e9 / fps / vsyncNs).toInt().coerceIn(1, 4)
         if (++frameCount % every != 0L) return
         PerfStats.ticks++
         // the flowing light only while you're driving the route (in the overview it kept the map redrawing while tiles loaded)
         if (following && !previewing && appVisible) map.flowFrame()
+        // standing still: the blinking lanes and the turn glow pause (they only repaint the map), and go on when moving
+        val still = gSpeed < 0.3 && mSpeed < 0.5
+        if (still != lastStill) { lastStill = still; map.setStill(still) }
         autoPace(frameNs)
         val now = android.os.SystemClock.elapsedRealtime()
         val dt = if (gLastNs == 0L) 0.016 else ((frameNs - gLastNs) / 1e9).coerceIn(0.002, 0.1)
@@ -4705,8 +4710,9 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
         val leadRad = Math.toRadians(gHead)
         val leadS = if (gSpeed > 1.0) gSpeed * 0.5 else 0.0
         val lead = LL(gp.lat + cos(leadRad) * leadS / 110574.0, gp.lon + Math.sin(leadRad) * leadS / (111320.0 * cos(Geo.rad(gp.lat))))
-        map.setMe(lead, gHead, 0)
-        if (glideOnRoute && r != null && !previewing) {
+        // (in the background nobody sees the map: its arrow and lines are not sent to it, issue #463)
+        if (appVisible) map.setMe(lead, gHead, 0)
+        if (appVisible && glideOnRoute && r != null && !previewing) {
             if (now - gDoneAt >= (if (following) 350L else 1500L)) { gDoneAt = now; updateDone(r, gProg) }
         } else if (doneShown) { map.setDone(emptyList()); doneShown = false }
 
@@ -4745,6 +4751,8 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
         camB = ((camB + step.coerceIn(-maxStep, maxStep)) % 360.0 + 360.0) % 360.0
         // nothing has moved (parked, or waiting at lights): don't ask the map to draw the same picture again,
         // which lets it sit idle instead of redrawing every frame (a big saving in heat and battery)
+        // in the background the camera isn't sent either; the first frame back in front catches up from where it is
+        if (!appVisible) { lastCamSet = null; return }
         val lc = lastCamSet
         if (lc != null && abs(lc[0] - glCamPos.lat) < 2e-8 && abs(lc[1] - glCamPos.lon) < 2e-8 && abs(angDiff(lc[2], camB)) < 0.03 &&
             abs(lc[3] - camT) < 0.03 && abs(lc[4] - camZ) < 0.002 && abs(lc[5] - camPad) < 0.0005 && abs(lc[6] - camLeft) < 0.0005) return

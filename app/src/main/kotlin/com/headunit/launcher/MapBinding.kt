@@ -2808,6 +2808,13 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
 
     private var pulseAnim: android.animation.ValueAnimator? = null
 
+    /** Standing still the blinking lanes and the turn glow pause (they only make the map redraw); they go on when moving. */
+    fun setStill(still: Boolean) {
+        main0.post {
+            for (a in listOf(lanePulse, pulseAnim)) try { if (still) a?.pause() else a?.resume() } catch (e: Throwable) { softFail(e) }
+        }
+    }
+
     /** Pulses the glow under the route line (used when a turn is close; the Modern look keeps the glow steady). */
     fun setTurnPulse(on: Boolean) {
         if (theme == "immersive") return
