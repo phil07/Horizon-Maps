@@ -225,6 +225,8 @@ class CarNavSession : Session() {
         val screen = MapScreen(carContext, holder)
         mapScreen = screen
         surface = CarSurface(carContext) { map -> startEngine(map) }
+        // a tap on the map sends the screen to the car again: its own buttons come back where they were hidden (issue #455)
+        surface.onTap = { screen.invalidate() }
         surface.actions = object : com.headunit.launcher.ui.CarActions {
             override fun search() { screen.screenManager.push(SearchScreen(carContext, holder)) }
             override fun places() { screen.screenManager.push(PlacesScreen(carContext, holder)) }
@@ -315,6 +317,8 @@ class CarNavSession : Session() {
  * map view with the locator and road name on top) runs on that display. Drags and pinches on the car screen move it.
  */
 class CarSurface(private val carContext: CarContext, private val onReady: (MapBinding) -> Unit) : SurfaceCallback {
+    /** Run after a tap on the map: the car screen is sent again (see CarNavSession). */
+    var onTap: (() -> Unit)? = null
     private var display: VirtualDisplay? = null
     private var presentation: Presentation? = null
     private var map: MapBinding? = null
@@ -500,6 +504,7 @@ class CarSurface(private val carContext: CarContext, private val onReady: (MapBi
                 if (map?.tapAt(pt) != true) engine?.carMapTap(pt)
             }
         } catch (e: Exception) { softFail(e) }
+        onTap?.let { try { it() } catch (e: Exception) { softFail(e) } }
     }
 
     override fun onScale(focusX: Float, focusY: Float, scaleFactor: Float) {

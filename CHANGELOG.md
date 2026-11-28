@@ -1,8 +1,8 @@
 ## Unreleased
 
-### Improved
-- Routenwahl: Der Blitzer erscheint nur auf der Route, die du dir ansiehst, nicht jeder Blitzer in deiner Nähe.
-  EN: Choosing a route shows only the speed cameras on that route, not every camera round you.
+### Fixed
+- Android Auto Vollbild: Ein Tipp auf die Karte schickt den Bildschirm wieder an das Auto, damit die Knöpfe von Android Auto zurückkommen, die bei manchen Autos verschwunden blieben (dank joebGer19, #455). Bitte sag Bescheid, ob es hilft.
+  EN: Android Auto full-screen: a tap on the map sends the screen to the car again, so Android Auto's own buttons come back; they stayed hidden on some cars (thanks to joebGer19, #455). Please tell me if it helps.
 
 ## 1.0.246 — 2026-10-28
 
