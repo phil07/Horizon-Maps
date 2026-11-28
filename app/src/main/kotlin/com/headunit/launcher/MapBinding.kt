@@ -1819,7 +1819,7 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
         addS(st, GeoJsonSource.Builder("dl-limsigns").featureCollection(empty()).build())
         addL(st, SymbolLayer("dl-limsigns", "dl-limsigns")
             .iconImage(Expression.get("img")).iconAllowOverlap(true).iconIgnorePlacement(true).iconEmissiveStrength(1.0).minZoom(12.0)
-            .iconSize((prefs.i(PreferenceKeys.ROUTE_LIMIT_SIGN_SIZE, 100).coerceIn(40, 250) / 100.0).let { k -> zoomed(1.0, 12 to 0.22 * k, 16 to 0.36 * k, 19 to 0.5 * k) }))
+            .iconSize((prefs.i(PreferenceKeys.ROUTE_LIMIT_SIGN_SIZE, 100).coerceIn(40, 250) / 100.0 * carScale).let { k -> zoomed(1.0, 12 to 0.22 * k, 16 to 0.36 * k, 19 to 0.5 * k) }))
         // road numbers on the route (B 27, A 7): a small white plate at each place the route turns onto that road
         addS(st, GeoJsonSource.Builder("dl-roadnos").featureCollection(empty()).build())
         addL(st, SymbolLayer("dl-roadnos", "dl-roadnos")
@@ -1900,7 +1900,7 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
             .iconAllowOverlap(true).iconIgnorePlacement(true).iconEmissiveStrength(1.0)
             .iconPitchAlignment(IconPitchAlignment.VIEWPORT)
             // (about 30% smaller than before: the other routes' time cards no longer pile up)
-            .iconSize(zoomed(1.0, 9 to 0.55, 14 to 0.62, 18 to 0.7)))
+            .iconSize(zoomed(1.0, 9 to 0.55 * carScale, 14 to 0.62 * carScale, 18 to 0.7 * carScale)))
         flatArrow = neonArrowHex?.let { neonArrowBitmap(it) } ?: if (im) arrowBitmapImmersive() else arrowBitmap()
         addImg(st, "dl-arrow", flatArrow!!)
         addL(st, SymbolLayer("dl-me-arrow", "dl-me")
@@ -2149,6 +2149,8 @@ class MapBinding(private val ctx: Context, fast: Boolean = false, res: Float = 1
     /** Makes the route line (and everything sized with it) thicker: the Android Auto map sets this a little above 1, as the
      *  line looked thin there against the buildings. Set straight after creating the map, before its style is built. */
     var routeBoost = 1f
+    /** The car screen's "Overall size" (1 = 100 %): the other routes' time cards and the route's limit signs grow with it. */
+    var carScale = 1.0
     private val ROUTE_K: Float get() = routeBoost
 
     private fun line(p: List<LL>): Feature =

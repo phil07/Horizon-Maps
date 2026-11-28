@@ -414,6 +414,7 @@ class CarSurface(private val carContext: CarContext, private val onReady: (MapBi
             m.lampsEnabled(Prefs(p.context.applicationContext).b(PreferenceKeys.LAMPS, false))
             // a touch thicker route line on the car screen, where it looked thin against the buildings
             m.routeBoost = 1.2f
+            m.carScale = Prefs(p.context.applicationContext).i(PreferenceKeys.CARSCALE, 100).coerceIn(40, 300) / 100.0
             // the satellite and 3D-building choices from the phone's settings apply to the car map as well (it used to ignore them)
             try {
                 val carPrefs = Prefs(p.context.applicationContext)
