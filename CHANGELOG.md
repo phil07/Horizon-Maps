@@ -1,8 +1,8 @@
 ## Unreleased
 
-### Improved
-- Weniger Arbeit der Karte im Stillstand: Die Übersicht bei Halt wird einmal pro Stopp angestoßen statt jede Sekunde, und die gefahrene Linie wird nicht mehr neu gesetzt, solange sich nichts bewegt (dank stingone, #463).
-  EN: Less map work while standing still: the stopped overview is kicked once per stop instead of every second, and the driven-part line isn't re-sent while nothing moves (thanks to stingone, #463).
+### Fixed
+- Parkst du neben der Straße (Einfahrt, Parkplatz), wird die Route nicht mehr alle paar Sekunden neu berechnet (dank stingone, #463).
+  EN: Parked next to the road (a driveway, a car park), the route is no longer worked out again every few seconds (thanks to stingone, #463).
 
 ## 1.0.246 — 2026-10-28
 

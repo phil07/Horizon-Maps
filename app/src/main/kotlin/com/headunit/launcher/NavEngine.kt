@@ -4911,6 +4911,9 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
         if (r == null || r.pts.size < 2 || s == null) return
         if (holdSide) {
             // (the road next to the route, not believed yet: no strike towards a reroute)
+        } else if (gpsReliableForReroute && newFix && isStill && !jump && s.dist > offLim) {
+            // parked off the route (a driveway, a car park): no new route for that, the car hasn't left the route, it's just stood there (issue #463)
+            offSince = 0L; offCount = 0
         } else if (gpsReliableForReroute && (s.dist > (if (netGrace) maxOf(offLim, 80.0) else offLim) || (jump && !netGrace))) {
             if (newFix) {
                 // off the route for about a second in a row: a new route is asked for as soon as you start to leave it, not once it's
