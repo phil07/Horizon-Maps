@@ -120,6 +120,8 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
     var departAtMs by mutableLongStateOf(0L)
     var speedLimit by mutableStateOf<Double?>(null)     // m/s
     var limitEstimated by mutableStateOf(false)
+    /** Where the shown limit came from, for the report: "Route", "TomTom", "OpenStreetMap" and so on ("" when none). */
+    var limitSource by mutableStateOf("")
     /** The road has no general limit (an unrestricted Autobahn): the "end of all restrictions" sign shows instead of a number. Only while [speedLimit] is null. */
     var noLimit by mutableStateOf(false)
     /** The sources don't agree on the limit shown (a small mark on the sign). */
@@ -2028,6 +2030,7 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
             appendLine("Unit: ${android.os.Build.MANUFACTURER} ${android.os.Build.MODEL}, Android ${android.os.Build.VERSION.RELEASE} (API ${android.os.Build.VERSION.SDK_INT}), screen ${dm.widthPixels}x${dm.heightPixels}")
             appendLine("Country: ${detectedCountry.ifBlank { "unknown" }} · map: ${prefs.mapSource()} · TomTom key: ${if (hasKey) "yes" else "no"} · Mapbox token: ${if (hasMapbox) "yes" else "no"} · routes from: ${provider.ifBlank { "offline" }} · online: ${if (online()) "yes" else "no"}")
             appendLine("Offline area: ${installedPackId() ?: "none"}")
+            appendLine("Last speed limit: ${speedLimit?.let { SpeedVote.label(it, imperial) } ?: "none"}, from ${limitSource.ifBlank { "none" }}")
             appendLine("On screen: ${map.drawingSummary()}")
             appendLine("Last map error: ${map.lastMapError.ifBlank { "none" }}")
             appendLine("Installed by: ${Updater.installerPackage(ctx) ?: "unknown (from a file)"}")
@@ -3622,7 +3625,17 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
      * than a confidently wrong one). A change only shows straight away when the road was matched closely; otherwise it has to be
      * seen twice, so passing a side road at a junction doesn't flash its limit.
      */
-    private fun showLimit(r: Overpass.Limit, at: LL) {
+    /** The sources that won the vote, in words for the report: OSM is OpenStreetMap (from the downloaded area when one is installed). */
+    private fun limitSourceLabel(v: SpeedVote.Result?): String = v?.winners?.sorted()?.joinToString(", ") { w ->
+        when (w) {
+            "OSM" -> if (installedPackId() != null) "OpenStreetMap (downloaded area)" else "OpenStreetMap"
+            "Schild" -> "sign"
+            "Baustelle", "Baustelle (üblich)" -> "roadworks"
+            else -> w
+        }
+    }.orEmpty()
+
+    private fun showLimit(r: Overpass.Limit, at: LL, source: String = "") {
         val showEst = prefs.b(PreferenceKeys.LIMITEST, false)
         val v = if (r.ms <= 0.0 || (r.estimated && !showEst)) -1.0 else r.ms
         // no general limit (an unrestricted Autobahn) counts as its own value (-3), apart from no sign at all (-1)
@@ -3640,9 +3653,9 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
                 // the end of a posted limit is announced like a change (when limit announcements are on)
                 if (none && speedLimit != null && !limitEstimated && prefs.b(PreferenceKeys.LIMITCHANGE, false) && prefs.b(PreferenceKeys.LIMIT_SOUNDS, true))
                     speak(Lang.t("Tempolimit aufgehoben", "Speed limit lifted"), true)
-                speedLimit = null; limitEstimated = false; noLimit = none
+                speedLimit = null; limitEstimated = false; noLimit = none; limitSource = ""
             }
-            else { speedLimit = v; limitEstimated = r.estimated; noLimit = false }
+            else { speedLimit = v; limitEstimated = r.estimated; noLimit = false; limitSource = source }
         }
         if (v > 0.0) checkLimitChange(v, r.estimated)
         limitOkAt = System.currentTimeMillis(); limitOkPos = at
@@ -3966,7 +3979,7 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
         val over = routeOverruled
         if (over != null) { if (SpeedVote.key(over) == SpeedVote.key(hit.ms)) return else routeOverruled = null }
         pendHits = 0; pendLimit = -2.0
-        if (speedLimit != hit.ms || limitEstimated) { speedLimit = hit.ms; limitEstimated = false }
+        if (speedLimit != hit.ms || limitEstimated) { speedLimit = hit.ms; limitEstimated = false; limitSource = "Route" }
         if (noLimit) noLimit = false
         checkLimitChange(hit.ms, false)
         limitOkAt = routeLimitAt; limitOkPos = p.pos
@@ -4059,7 +4072,7 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
                     if (r != null) {
                         onMotorway = r.major || AutobahnRest.roadOf(r.road) != null
                         if (r.wayId != 0L || r.road.isNotBlank()) noteRoad(r.road, hd); limitFails = 0
-                        if (!routeLimitLive() || overrule) showLimit(r, p.pos)
+                        if (!routeLimitLive() || overrule) showLimit(r, p.pos, limitSourceLabel(vote))
                     } else if (Overpass.lastError == null) {
                         // looked fine, but you're not on a mapped road (a car park, a new estate): no road name or limit rather than the
                         // last road's
@@ -4070,7 +4083,7 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
                         val okPos = limitOkPos
                         // (standing in a jam, the limit of the stretch stays: the 10 minutes count only while moving; 3 km away it goes anyway)
                         val driving = p.speed >= 2.0
-                        if (!routeLimitLive() && ((driving && System.currentTimeMillis() - limitOkAt > 600_000) || (okPos != null && Geo.dist(okPos, p.pos) > 3000))) { speedLimit = null; limitEstimated = false; noLimit = false }
+                        if (!routeLimitLive() && ((driving && System.currentTimeMillis() - limitOkAt > 600_000) || (okPos != null && Geo.dist(okPos, p.pos) > 3000))) { speedLimit = null; limitEstimated = false; noLimit = false; limitSource = "" }
                         // the lookup itself failed: try again soon instead of waiting until the car has moved (and let an old road name
                         // drop once it's out of date)
                         refreshRoad()
