@@ -1,6 +1,8 @@
 ## Unreleased
 
 ### Fixed
+- Dienste „nur Autobahn“ zeigt nur benannte Raststätten, keine Wohnanlagen mehr (dank d3stiny999, #446).
+  EN: Services "motorway only" shows only named service areas, no more blocks of flats (thanks to d3stiny999, #446).
 - Android Auto Vollbild: Ein Tipp auf die Karte schickt den Bildschirm wieder an das Auto, damit die Knöpfe von Android Auto zurückkommen, die bei manchen Autos verschwunden blieben (dank joebGer19, #455). Bitte sag Bescheid, ob es hilft.
   EN: Android Auto full-screen: a tap on the map sends the screen to the car again, so Android Auto's own buttons come back; they stayed hidden on some cars (thanks to joebGer19, #455). Please tell me if it helps.
 

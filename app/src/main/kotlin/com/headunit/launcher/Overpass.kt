@@ -607,7 +607,7 @@ object Overpass {
         "food" -> "[\"amenity\"~\"^(restaurant|fast_food)$\"]"
         "coffee" -> "[\"amenity\"=\"cafe\"]"
         "toilets" -> "[\"amenity\"=\"toilets\"]"
-        "services" -> if (motorwayServicesOnly) "[\"highway\"=\"services\"]" else "[\"highway\"~\"^(services|rest_area)$\"]"
+        "services" -> if (motorwayServicesOnly) "[\"highway\"=\"services\"][\"name\"]" else "[\"highway\"~\"^(services|rest_area)$\"]"
         // for a motorhome: pitches and camp sites, waste water and fresh water, LPG (Autogas) and gas bottles
         "camp" -> "[\"tourism\"~\"^(caravan_site|camp_site)$\"]"
         "dump" -> "[\"amenity\"~\"^(sanitary_dump_station|water_point)$\"]"
