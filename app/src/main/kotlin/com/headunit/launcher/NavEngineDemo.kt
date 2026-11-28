@@ -349,13 +349,16 @@ internal fun NavEngine.updateDone(r: Route, prog: Double) {
     // grey right back to where the blue line starts (it's drawn from a little behind the car), so no blue shows behind you;
     // with the whole route on screen (map moved by hand), the whole driven part is grey
     val start = if (!following) 0.0 else max(0.0, min(prog - 800.0, lastDrawProg - 950.0))
-    if (prog - start < 2.0) { if (doneShown) { map.setDone(emptyList()); doneShown = false }; return }
+    if (prog - start < 2.0) { if (doneShown) { map.setDone(emptyList()); doneShown = false }; doneRoute = null; return }
+    // nothing moved (standing still): the line is already right, so it isn't sent to the map again (issue #463)
+    if (doneShown && r === doneRoute && abs(prog - doneProg) < 1.0 && abs(start - doneStart) < 1.0) return
     val pts = ArrayList<LL>()
     pts += pointAt(r, start).first
     var i = idxAt(r, start) + 1
     while (i < r.pts.size && r.cum[i] < prog) { pts += r.pts[i]; i++ }
     pts += pointAt(r, prog).first
     map.setDone(pts); doneShown = true
+    doneRoute = r; doneProg = prog; doneStart = start
 }
 
 internal fun NavEngine.pointAt(r: Route, d: Double): Pair<LL, Double> {

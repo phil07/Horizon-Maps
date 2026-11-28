@@ -1,8 +1,8 @@
 ## Unreleased
 
 ### Improved
-- Fehlerbericht: Eine Zeile nennt das letzte Tempolimit und woher es kam (Route, TomTom, Mapbox, OpenStreetMap oder das Offline-Gebiet), um falsche Limits zu finden.
-  EN: Problem report: a line gives the last speed limit and where it came from (route, TomTom, Mapbox, OpenStreetMap or the downloaded area), to help find wrong limits.
+- Weniger Arbeit der Karte im Stillstand: Die Übersicht bei Halt wird einmal pro Stopp angestoßen statt jede Sekunde, und die gefahrene Linie wird nicht mehr neu gesetzt, solange sich nichts bewegt (dank stingone, #463).
+  EN: Less map work while standing still: the stopped overview is kicked once per stop instead of every second, and the driven-part line isn't re-sent while nothing moves (thanks to stingone, #463).
 
 ## 1.0.246 — 2026-10-28
 

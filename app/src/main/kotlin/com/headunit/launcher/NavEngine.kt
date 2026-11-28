@@ -91,6 +91,7 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
     var stoppedOverview by mutableStateOf(false)
     private var stoppedOverviewActive = false
     private var stoppedSince = 0L
+    private var stopKickFor = 0L
     /** A place sent from your phone, waiting to be started (head unit). */
     var phoneDest by mutableStateOf<Place?>(null)
     /** The stops sent along with [phoneDest], and points along the way picked on the phone. */
@@ -1055,8 +1056,9 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
                 PerfStats.on = prefs.b(PreferenceKeys.PERFORMANCE_METER, false)
                 if (PerfStats.on) perfSample() else if (perfLine.isNotEmpty()) perfLine = ""
                 // (the traffic view when stopped shouldn't depend on the GPS still sending positions while you're stationary)
-                if (stoppedSince > 0L && !stoppedOverview && following && android.os.SystemClock.elapsedRealtime() - stoppedSince > 30_500L &&
-                    prefs.b(PreferenceKeys.STOPPED_OVERVIEW, true)) fix?.let { try { onPosition(it, true) } catch (e: Exception) { softFail(e) } }
+                // (once per stop: when the overview isn't allowed, this used to run again every second while you stood still)
+                if (stoppedSince > 0L && stopKickFor != stoppedSince && !stoppedOverview && following && android.os.SystemClock.elapsedRealtime() - stoppedSince > 30_500L &&
+                    prefs.b(PreferenceKeys.STOPPED_OVERVIEW, true)) { stopKickFor = stoppedSince; fix?.let { try { onPosition(it, true) } catch (e: Exception) { softFail(e) } } }
             }
         }
         // look for a newer app and newer map data straight after starting (the checks are a few small requests)
@@ -7336,6 +7338,10 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
 
     private var gDoneAt = 0L
     internal var doneShown = false
+    /** What the driven-part line was last drawn for: skipped when nothing has moved (standing still), see updateDone. */
+    internal var doneRoute: Route? = null
+    internal var doneProg = 0.0
+    internal var doneStart = 0.0
 
 }
 
