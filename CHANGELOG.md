@@ -1,12 +1,8 @@
 ## Unreleased
 
 ### Improved
-- Schrift des Fahrerdisplays: standardmäßig größer, und in den Android-Auto-Einstellungen gibt es „Schrift des Fahrerdisplays“ (Klein, Normal, Groß, Sehr groß).
-  EN: Driver's display writing is bigger by default, and Android Auto settings have a "Driver's display text size" (Smaller, Normal, Larger, Largest).
-- Handy-Akku am Tacho: größere Zahl. Grün beim Laden, gelb unter 30 %, rot unter 15 %.
-  EN: The phone battery badge on the car screen has a bigger number: green while charging, amber under 30 %, red under 15 %.
-- Kreuzungszoom ist auch in den Android-Auto-Einstellungen (dank joel941703-hash, #451).
-  EN: Junction zoom is also in the Android Auto settings (thanks to joel941703-hash, #451).
+- Position auf Android Auto: Pfeil und Entfernung laufen etwa eine halbe Sekunde voraus, damit die Karte bei einer vorbeifahrenden Kreuzung nicht mehr hinterherhinkt (dank yurividal, #450).
+  EN: Android Auto position: the arrow and distance run about half a second ahead, so the map no longer lags behind a junction you're passing (thanks to yurividal, #450).
 
 ## 1.0.246 — 2026-10-28
 

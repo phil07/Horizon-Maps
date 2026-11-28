@@ -4686,7 +4686,11 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
         val guided = r != null && !previewing
         if (!guided) beamLatched = false else if (gSpeed >= 2.0) beamLatched = true
         map.setBeam(prefs.b(PreferenceKeys.HEADLIGHT_BEAM, false) && lastDark && outsideDarkNow && (!guided || beamLatched), gSpeed, guided)
-        map.setMe(gp, gHead, 0)
+        // the arrow runs about half a second ahead of the smoothed position, along the heading: the map no longer lags a junction you're passing (issue #450)
+        val leadRad = Math.toRadians(gHead)
+        val leadS = if (gSpeed > 1.0) gSpeed * 0.5 else 0.0
+        val lead = LL(gp.lat + cos(leadRad) * leadS / 110574.0, gp.lon + Math.sin(leadRad) * leadS / (111320.0 * cos(Geo.rad(gp.lat))))
+        map.setMe(lead, gHead, 0)
         if (glideOnRoute && r != null && !previewing) {
             if (now - gDoneAt >= (if (following) 350L else 1500L)) { gDoneAt = now; updateDone(r, gProg) }
         } else if (doneShown) { map.setDone(emptyList()); doneShown = false }
