@@ -106,6 +106,10 @@ internal fun AndroidAutoSection(prefs: Prefs) {
             Lang.t("Suchleiste und Orte verschwinden nach dieser Zeit ohne Berührung, für eine freie Karte. Eine Berührung irgendwo holt sie zurück", "The search bar and places go after this long without a touch, for a clean map. A touch anywhere brings them back")) { prefs.put(PreferenceKeys.CAR_HIDE_AFTER, it.toInt()) }
         SChoice(Lang.t("Cool Running", "Cool running"), listOf("off" to Lang.t("Aus", "Off"), "auto" to Lang.t("Automatisch", "Automatic"), "always" to Lang.t("Immer", "Always")), prefs.s(PreferenceKeys.CAR_COOL, "off"),
             Lang.t("Für Handys, die heiß werden: 30 Bilder pro Sekunde, flache Karte mit weniger Details, keine Laternen, kein Regen oder Schnee. Automatisch schaltet es ein, wenn das Handy warm wird, und aus, sobald es abgekühlt ist", "For phones that get hot: 30 frames a second, a flat map with the lighter detail, no street lamps and no falling rain or snow. Automatic turns it on when the phone gets hot and off once it's cool")) { prefs.put(PreferenceKeys.CAR_COOL, it) }
+        // the same setting as on the phone (Settings › Lanes and junctions), here for the car screen too
+        SChoice(Lang.t("Zoom an Kreuzungen", "Junction zoom"), listOf("off" to Lang.t("Aus", "Off"), "further" to Lang.t("Weiter", "Further"), "closer" to Lang.t("Näher", "Closer"), "closest" to Lang.t("Am nächsten", "Closest")),
+            prefs.s(PreferenceKeys.JUNCTION_ZOOM, "off"),
+            Lang.t("Wie nah die Karte vor einer Abbiegung kommt, auch auf dem Autodisplay", "How close the map comes before a turn, on the car screen too")) { prefs.put(PreferenceKeys.JUNCTION_ZOOM, it) }
     }
     SGroup(Lang.t("Autodisplay", "Car screen")) {
         val gh = "com.google.android.projection.gearhead"
@@ -125,6 +129,9 @@ internal fun AndroidAutoSection(prefs: Prefs) {
         }
         SSlider(Lang.t("Gesamtgröße auf dem Autodisplay", "Overall size on the car screen"), prefs.i(PreferenceKeys.CARSCALE, 100).toFloat(), 40f..300f, "%", reset = 100f) { prefs.put(PreferenceKeys.CARSCALE, it) }
         SSlider(Lang.t("Tacho- und Tempolimitgröße", "Speedometer and limit size"), prefs.i(PreferenceKeys.CAR_SPEED_SIZE, 140).toFloat(), 40f..220f, "%", reset = 140f) { prefs.put(PreferenceKeys.CAR_SPEED_SIZE, it) }
+        SChoice(Lang.t("Schrift des Fahrerdisplays", "Driver's display text size"), listOf("smaller" to Lang.t("Klein", "Smaller"), "normal" to Lang.t("Normal", "Normal"), "larger" to Lang.t("Groß", "Larger"), "largest" to Lang.t("Sehr groß", "Largest")),
+            prefs.s(PreferenceKeys.DRIVER_TEXT, "larger"),
+            Lang.t("Die Schrift der Abbiegekarte auf dem Autodisplay", "The writing on the turn card on the car screen")) { prefs.put(PreferenceKeys.DRIVER_TEXT, it) }
         SChoice(Lang.t("Tachostil auf dem Autodisplay", "Speedometer style on the car screen"), listOf("normal" to Lang.t("Normal", "Normal"), "compact" to Lang.t("Kompakt", "Compact")), prefs.s(PreferenceKeys.CAR_SPEED_STYLE, "normal"),
             Lang.t("Kompakt: eine kleine dunkle Pille mit Limit-Schild und Tempo nebeneinander, passt auch oben rechts auf einen kurzen Bildschirm", "Compact: a small dark pill with the limit sign and speed side by side; it also fits top right on a short screen")) { prefs.put(PreferenceKeys.CAR_SPEED_STYLE, it) }
         SChoiceWith(Lang.t("Position des Tachos auf dem Autodisplay", "Speedometer position on the car screen"), listOf("bottom" to Lang.t("Untere Ecke", "Bottom corner"), "turn" to Lang.t("Unter der Abbiege-Karte", "Under the turn card"), "top" to Lang.t("Oben rechts", "Top right")), prefs.s(PreferenceKeys.CAR_SPEED_POS, "bottom"),

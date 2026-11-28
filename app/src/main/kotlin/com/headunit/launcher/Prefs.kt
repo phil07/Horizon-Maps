@@ -465,6 +465,8 @@ internal object PreferenceKeys {
     const val CAR_TURN_ARROW_SIZE = "carTurnArrowSize"
     const val CAR_TURN_CARD_WIDTH = "carTurnCardWidth"
     const val CAR_TURN_CARD_HEIGHT = "carTurnCardHeight"
+    /** The writing on the driver's display (the turn card on the car screen): smaller, normal, larger (the default), largest. */
+    const val DRIVER_TEXT = "driverText"
     /** Android Auto: the sound button stays on the map when not navigating (off: only while navigating, for more room). */
     const val CAR_SOUND_IDLE = "car_sound_idle"
     const val TRIP_BTN_SOUND = "tripbtn_sound"

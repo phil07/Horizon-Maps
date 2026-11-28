@@ -358,7 +358,9 @@ private fun CarScreen(engine: NavEngine, a: android.graphics.Rect?, actions: Car
             // the turn card, with the junction sign or roundabout diagram under it and any advice for the conditions, as on the head unit
             Column(verticalArrangement = Arrangement.spacedBy(if (compact) 4.dp else 8.dp)) {
                 // (the car's "Navigation arrow size" is the arrow on the map, as on the phone: CarNav applies it there)
-                CompositionLocalProvider(LocalDensity provides Density(dens.density * cardScale, dens.fontScale)) {
+                // the writing on the driver's display: a setting (Android Auto settings), larger by default
+                val driverText = when (engine.prefs.s(PreferenceKeys.DRIVER_TEXT, "larger")) { "smaller" -> 0.85f; "normal" -> 1f; "largest" -> 1.4f; else -> 1.2f }
+                CompositionLocalProvider(LocalDensity provides Density(dens.density * cardScale, dens.fontScale * driverText)) {
                     ImmTurnCard(engine, t, compact = compact, car = true, slim = slimHold[0],
                         footer = {
                             if (incShown || camShown) Column(Modifier.fillMaxWidth().background(GmGreenDeep).padding(horizontal = 14.dp, vertical = 6.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -1336,16 +1338,24 @@ private fun CarListScreen(engine: NavEngine, kind: String) {
 internal fun PhoneBatteryBadge(engine: NavEngine, modifier: Modifier = Modifier) {
     if (!engine.prefs.b(PreferenceKeys.CAR_PHONE_BATTERY, false)) return
     val ctx = androidx.compose.ui.platform.LocalContext.current
-    val pctState = androidx.compose.runtime.produceState<Int?>(null) {
+    // the level and whether it's charging, read once a minute
+    val state = androidx.compose.runtime.produceState<Pair<Int, Boolean>?>(null) {
         while (true) {
-            value = try { (ctx.getSystemService(android.content.Context.BATTERY_SERVICE) as android.os.BatteryManager).getIntProperty(android.os.BatteryManager.BATTERY_PROPERTY_CAPACITY).takeIf { it in 0..100 } } catch (e: Exception) { null }
+            value = try {
+                val bm = ctx.getSystemService(android.content.Context.BATTERY_SERVICE) as android.os.BatteryManager
+                val pct = bm.getIntProperty(android.os.BatteryManager.BATTERY_PROPERTY_CAPACITY).takeIf { it in 0..100 }
+                val st = bm.getIntProperty(android.os.BatteryManager.BATTERY_PROPERTY_STATUS)
+                pct?.let { it to (st == android.os.BatteryManager.BATTERY_STATUS_CHARGING || st == android.os.BatteryManager.BATTERY_STATUS_FULL) }
+            } catch (e: Exception) { null }
             kotlinx.coroutines.delay(60_000L)
         }
     }
-    val p = pctState.value ?: return
+    val (p, charging) = state.value ?: return
     val c = LocalVw.current
-    Row(modifier.panel(4.dp, RoundedCornerShape(12.dp), c.surface).padding(horizontal = 8.dp, vertical = 3.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-        androidx.compose.material3.Icon(androidx.compose.material.icons.Icons.Rounded.PhoneAndroid, null, tint = if (p < 20) Bad else c.text, modifier = Modifier.size(14.dp))
-        Text("$p%", color = if (p < 20) Bad else c.text, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
+    // green while charging, amber under 30 %, red under 15 %
+    val tint = when { charging -> Good; p < 15 -> Bad; p < 30 -> Warn; else -> c.text }
+    Row(modifier.panel(4.dp, RoundedCornerShape(12.dp), c.surface).padding(horizontal = 10.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+        androidx.compose.material3.Icon(androidx.compose.material.icons.Icons.Rounded.PhoneAndroid, null, tint = tint, modifier = Modifier.size(18.dp))
+        Text("$p%", color = tint, fontSize = 16.sp, fontWeight = FontWeight.Bold, maxLines = 1)
     }
 }

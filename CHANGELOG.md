@@ -1,10 +1,12 @@
 ## Unreleased
 
-### Fixed
-- Farben des Abbiegeschilds: Ungarn hat jetzt blaue Autobahnen und grüne Hauptstraßen, wie Norwegen und Polen.
-  EN: Turn card colours: Hungary now has blue motorways and green main roads, like Norway and Poland.
-- Die Alternativ-Karten („9 Min. langsamer“) und die Tempolimit-Schilder auf der Route werden auf dem Autodisplay mit der Gesamtgröße größer.
-  EN: The alternative route cards ("9 min slower") and the speed limit signs on the route grow with the car screen's overall size.
+### Improved
+- Schrift des Fahrerdisplays: standardmäßig größer, und in den Android-Auto-Einstellungen gibt es „Schrift des Fahrerdisplays“ (Klein, Normal, Groß, Sehr groß).
+  EN: Driver's display writing is bigger by default, and Android Auto settings have a "Driver's display text size" (Smaller, Normal, Larger, Largest).
+- Handy-Akku am Tacho: größere Zahl. Grün beim Laden, gelb unter 30 %, rot unter 15 %.
+  EN: The phone battery badge on the car screen has a bigger number: green while charging, amber under 30 %, red under 15 %.
+- Kreuzungszoom ist auch in den Android-Auto-Einstellungen (dank joel941703-hash, #451).
+  EN: Junction zoom is also in the Android Auto settings (thanks to joel941703-hash, #451).
 
 ## 1.0.246 — 2026-10-28
 
