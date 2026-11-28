@@ -1,8 +1,8 @@
 ## Unreleased
 
-### Fixed
-- Abbiegekarte: Pfeil und Schrift sitzen mittig, auch ohne „Dann“-Zeile und ohne Spuren (dank desko1973, #448).
-  EN: Turn card: the arrow and writing sit in the middle, even with no "Then" line or lanes (thanks to desko1973, #448).
+### Improved
+- Feedback: Ist eine neuere Version da, sagt der Bericht-Screen das und bietet „Jetzt aktualisieren“ an, mit dem Hinweis, vorher zu prüfen, ob das Problem noch da ist. „Trotzdem senden“ bleibt. Auf Google Play erinnert er daran, nach einer neueren Version zu suchen.
+  EN: Feedback: if a newer version is out, the report screen says so and offers "Update now", with a reminder to check the problem is still there first. "Send anyway" stays. On Google Play it reminds you to check for a newer version.
 
 ## 1.0.246 — 2026-10-28
 

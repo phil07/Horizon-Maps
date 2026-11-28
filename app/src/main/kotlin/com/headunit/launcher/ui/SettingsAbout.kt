@@ -356,6 +356,9 @@ internal fun FeedbackDialog(engine: NavEngine, onClose: () -> Unit) {
     val c = LocalVw.current
     val ctx = LocalContext.current
     var note by remember { mutableStateOf("") }
+    // a newer version out: update first and check the problem is still there (sending anyway is still possible)
+    val newer = engine.appUpdate
+    androidx.compose.runtime.LaunchedEffect(Unit) { if (com.headunit.launcher.Updater.enabled && engine.appUpdate == null) engine.checkForUpdate(manual = false) }
     androidx.compose.ui.window.Dialog(onDismissRequest = onClose) {
         // (it scrolls: on a short, wide head unit screen Send and Copy were below the bottom of the screen)
         Column(Modifier.widthIn(max = 560.dp).fillMaxWidth().clip(RoundedCornerShape(26.dp)).background(c.panel)
@@ -363,6 +366,10 @@ internal fun FeedbackDialog(engine: NavEngine, onClose: () -> Unit) {
             Text(Lang.t("Feedback oder Problem", "Feedback or a problem"), color = c.text, fontSize = 22.sp, fontWeight = FontWeight.Bold)
             Text(Lang.t("Was ist passiert oder was wünschst du dir? Hilfreich sind Angaben, wo du warst und worauf du getippt hast.", "What happened, or what would you like? Where you were and what you tapped helps."), color = c.sub, fontSize = 14.sp)
             SField(note, { note = it.take(600) }, placeholder = Lang.t("z. B. Falsch umgeleitet bei Frankfurt", "e.g. Wrong reroute near Frankfurt"), width = 516.dp, fill = true)
+            if (newer != null) Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(c.surface).padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(Lang.t("Version ${newer.version} ist da. Aktualisiere zuerst und prüfe, ob das Problem noch da ist.", "Version ${newer.version} is out. Update first and check the problem is still there."), color = c.text, fontSize = 14.sp)
+                SButton(Lang.t("Jetzt aktualisieren", "Update now"), primary = true) { engine.installAppUpdate() }
+            } else if (!com.headunit.launcher.Updater.enabled) Text(Lang.t("Prüfe vorher auf Google Play, ob es eine neuere Version gibt.", "Check Google Play for a newer version first."), color = c.sub, fontSize = 13.sp)
             Text(Lang.t("Mitgesendet werden: die App-Version, dein Autodisplay, die wichtigsten Einstellungen, deine heruntergeladenen Gebiete und der letzte Absturz (keine Orte oder API-Schlüssel).", "Sent with it: the app version, your head unit, the main settings, your downloaded areas and the last crash (no places or API keys)."), color = c.sub, fontSize = 12.sp)
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)) {
                 SButton(Lang.t("Schließen", "Close")) { onClose() }
@@ -371,7 +378,7 @@ internal fun FeedbackDialog(engine: NavEngine, onClose: () -> Unit) {
                     cm?.setPrimaryClip(android.content.ClipData.newPlainText(Lang.t("Horizon Nav Bericht", "Horizon Nav report"), engine.feedbackReport(note)))
                     engine.toast(Lang.t("Bericht kopiert: In eine Nachricht oder einen Reddit-Kommentar einfügen", "Report copied: paste it into a message or a Reddit comment"), 3500)
                 }
-                SButton(Lang.t("Auf GitHub senden", "Send on GitHub"), primary = true) {
+                SButton(if (newer != null) Lang.t("Trotzdem senden", "Send anyway") else Lang.t("Auf GitHub senden", "Send on GitHub"), primary = true) {
                     val title = note.lineSequence().firstOrNull()?.take(80)?.ifBlank { null } ?: "Bericht von Horizon Nav ${com.headunit.launcher.BuildConfig.VERSION_NAME}"
                     val body = engine.feedbackReport(note).take(5000)
                     val url = "https://github.com/${BuildConfig.UPDATE_REPO}/issues/new?title=" + android.net.Uri.encode(title) + "&body=" + android.net.Uri.encode(body)
