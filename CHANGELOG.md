@@ -1,8 +1,8 @@
 ## Unreleased
 
 ### Improved
-- Feedback: Ist eine neuere Version da, sagt der Bericht-Screen das und bietet „Jetzt aktualisieren“ an, mit dem Hinweis, vorher zu prüfen, ob das Problem noch da ist. „Trotzdem senden“ bleibt. Auf Google Play erinnert er daran, nach einer neueren Version zu suchen.
-  EN: Feedback: if a newer version is out, the report screen says so and offers "Update now", with a reminder to check the problem is still there first. "Send anyway" stays. On Google Play it reminds you to check for a newer version.
+- Routenwahl: Der Blitzer erscheint nur auf der Route, die du dir ansiehst, nicht jeder Blitzer in deiner Nähe.
+  EN: Choosing a route shows only the speed cameras on that route, not every camera round you.
 
 ## 1.0.246 — 2026-10-28
 

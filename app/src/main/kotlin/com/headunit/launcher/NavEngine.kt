@@ -5253,7 +5253,10 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
         cameras = if (camerasOn()) out else emptyList()
         // on a route only the cameras on it are drawn (the ones still ahead); otherwise every camera around you
         // (while you choose the route, or in a demo, all of the route's cameras show, not only those within 10 km of you)
-        val shown = if (!camerasOnMap()) emptyList() else if (route != null) routeCams.filter { previewing || it.second > curProg - 20.0 }.map { it.first } else out
+        // while you choose a route, the cameras on the route being looked at (not every camera round you)
+        val chosen = route
+        if (chosen != null && previewing && camerasOnMap()) updateRouteCams(chosen, 0.0)
+        val shown = if (!camerasOnMap()) emptyList() else if (chosen != null) routeCams.filter { previewing || it.second > curProg - 20.0 }.map { it.first } else out
         if (shown != camsShown) { camsShown = shown; map.setCameras(shown) }
     }
     private var camsShown: List<LL>? = null
@@ -5429,6 +5432,7 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
         // (the ones found along the route and the ones from the search around you: either can hold a camera on the route)
         val cams = (camCache.known + camCache.around).distinctBy { Overpass.camKey(it) }.filterNot { atAvgEnd(it) }
         if (camsRoute === r && camsCount == cams.size) return
+        if (camsRoute !== r) routeCams = emptyList()  // another route (say, one just picked): its list comes below, not the old one
         camsRoute = r; camsCount = cams.size
         if (cams.isEmpty()) { routeCams = emptyList(); return }
         scope.launch {
