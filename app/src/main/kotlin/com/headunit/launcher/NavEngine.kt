@@ -4286,7 +4286,8 @@ class NavEngine(internal val ctx: Context, val prefs: Prefs, val map: MapBinding
         val alongRoute = rt != null && !nearDest && kind != "parking"
         val progress = if (rt != null && !previewing) curProgress else 0.0
         val camper = kind in CAMPER_KINDS
-        val radius = if (nearDest) 900 else if (camper) 25_000 else if (kind == "parking") 2000 else if (kind == "toilets" || kind == "coffee") 3000 else 6000
+        // services with no route: look 30 km round you (a route searches along its own road, so no wider area is needed there)
+        val radius = if (nearDest) 900 else if (camper) 25_000 else if (kind == "services" && rt == null) 30_000 else if (kind == "parking") 2000 else if (kind == "toilets" || kind == "coffee") 3000 else 6000
         val fuelType = prefs.s(PreferenceKeys.FUEL_TYPE, "E10")
         // (Fuel Finder has no E85 prices, and its station list would show every station rather than ones selling it)
         val fuelLive = kind == "fuel" && FuelFinder.configured(prefs) && fuelType != "E85"

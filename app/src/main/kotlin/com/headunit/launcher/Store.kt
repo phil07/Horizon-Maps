@@ -164,7 +164,8 @@ class PlaceStore(private val prefs: Prefs) {
     fun clearParked() = prefs.put(PreferenceKeys.PLACE_PARKED, "")
     fun clearFavourites() = prefs.put(PreferenceKeys.PLACES_FAVOURITES, "")
     /** Forgets recent destinations and the places remembered for searching without signal. */
-    fun clearHistory() { prefs.put(PreferenceKeys.PLACES_RECENT, ""); prefs.put(PreferenceKeys.PLACES_SEEN, "") }
+    /** Clears the recent destinations and also the places the app learned you usually go to (or they are still suggested). */
+    fun clearHistory() { prefs.put(PreferenceKeys.PLACES_RECENT, ""); prefs.put(PreferenceKeys.PLACES_SEEN, ""); prefs.put(PreferenceKeys.LEARNED_TRIPS, "") }
     fun addRecent(p: Place) {
         writeList("places_recent", (listOf(p) + recents().filterNot { same(it, p) }).take(8))
         // everywhere you have routed to is also kept for searching without signal

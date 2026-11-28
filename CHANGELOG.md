@@ -1,8 +1,10 @@
 ## Unreleased
 
 ### Fixed
-- Beim Hinzufügen eines Stopps in der Routenvorschau liegt die Liste der Ladepunkte, Tankstellen usw. jetzt über Wetter, Stopps und Abfahrtszeit.
-  EN: When adding a stop from the route preview, the list of charging points, fuel stations etc. now sits above the weather, stops and leave-by times.
+- Das Löschen der letzten Ziele löscht auch die Orte, die die App als deine üblichen Ziele gelernt hat (sie wurden sonst weiter als „Meist um …“ vorgeschlagen).
+  EN: Clearing recent destinations also clears the places the app has learned you usually go to, which were still suggested as "Usually around …".
+- Dienste ohne Route: Die Suche sieht 30 km um dich herum statt 6 km.
+  EN: Services with no route: the search looks 30 km around you instead of 6 km.
 
 ## 1.0.246 — 2026-10-28
 
